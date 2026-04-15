@@ -75,7 +75,7 @@ const normalizeDragStep = (value: string): number | null => {
 const show = (payload: AngleInputPayload) => {
   position.value = { x: payload.x + 10, y: payload.y };
   angleInput.value = String(payload.angle.toFixed(2).replace('.', ','));
-  dragStepInput.value = String((payload.dragAngleStep ?? 5).toFixed(2).replace('.', ','));
+  dragStepInput.value = String((payload.dragAngleStep ?? 1).toFixed(2).replace('.', ','));
   applyCallback = payload.onApply;
   applyDragStepCallback = payload.onApplyDragAngleStep ?? null;
   isVisible.value = true;
@@ -96,22 +96,13 @@ const apply = () => {
   hide();
 };
 
-const handleClickOutside = (e: MouseEvent) => {
-  if (!isVisible.value) return;
-  const target = e.target as HTMLElement;
-  if (!target.closest('.angle-input-modal')) hide();
-};
-
 onMounted(() => {
   eventBus.on(Events.C2D_SHOW_ANGLE_INPUT_MODAL as any, show);
-  eventBus.on(Events.C2D_HIDE_ANGLE_INPUT_MODAL as any, hide);
-  document.addEventListener('click', handleClickOutside);
+  // Закрытие модалки только по кнопкам внутри (Применить/Отмена).
 });
 
 onUnmounted(() => {
   eventBus.off(Events.C2D_SHOW_ANGLE_INPUT_MODAL as any, show);
-  eventBus.off(Events.C2D_HIDE_ANGLE_INPUT_MODAL as any, hide);
-  document.removeEventListener('click', handleClickOutside);
 });
 </script>
 

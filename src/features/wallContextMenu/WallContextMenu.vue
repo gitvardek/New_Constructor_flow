@@ -9,6 +9,7 @@
       v-for="action in actions"
       :key="action.key"
       class="wall-context-menu__item"
+      :disabled="action.disabled"
       @click="handleAction(action.key)"
     >
       {{ action.label }}
@@ -103,6 +104,13 @@ onUnmounted(() => {
 
     &:active {
       background-color: #e0e0e0;
+    }
+
+    &:disabled {
+      color: #9e9e9e;
+      cursor: not-allowed;
+      background: transparent;
+      pointer-events: none;
     }
   }
 }

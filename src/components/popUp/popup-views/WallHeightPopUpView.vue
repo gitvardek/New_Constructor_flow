@@ -12,18 +12,19 @@
           class="project-params-dialog__input"
           :placeholder="String(DEFAULT_WALL_HEIGHT_MM * 10)"
         />
+        <span v-if="heightError" class="project-params-dialog__error">{{ heightError }}</span>
       </div>
     </div>
 
     <div class="project-params-dialog__actions">
-      <button class="btn btn--confirm" @click="onApply">Изменить</button>
+      <button class="btn btn--confirm" :disabled="Boolean(heightError)" @click="onApply">Изменить</button>
       <button class="btn btn--cancel" @click="onCancel">Отменить</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import ClosePopUpButton from '@/components/ui/svg/ClosePopUpButton.vue';
 import { usePopupStore } from '@/store/appStore/popUpsStore';
 import {
@@ -33,6 +34,8 @@ import {
 
 const popupStore = usePopupStore();
 const wallHeightStore = useWallHeightStore();
+const MIN_WALL_HEIGHT_MM = 1000;
+const MAX_WALL_HEIGHT_MM = 10000;
 
 const heightInput = ref(String(wallHeightStore.wallHeightMm * 10));
 
@@ -46,10 +49,18 @@ watch(
 );
 
 const parseHeight = (value: string): number | null => {
-  const n = Number(value?.trim());
-  if (!Number.isFinite(n) || n <= 0) return null;
+  const n = Number(value?.trim().replace(',', '.'));
+  if (!Number.isFinite(n)) return null;
   return n;
 };
+
+const heightError = computed(() => {
+  const parsed = parseHeight(heightInput.value);
+  if (parsed === null) return 'Введите корректное число';
+  if (parsed < MIN_WALL_HEIGHT_MM) return `Минимальная высота: ${MIN_WALL_HEIGHT_MM} мм`;
+  if (parsed > MAX_WALL_HEIGHT_MM) return `Максимальная высота: ${MAX_WALL_HEIGHT_MM} мм`;
+  return '';
+});
 
 const onCancel = () => {
   popupStore.closePopup('wallHeight');
@@ -58,6 +69,7 @@ const onCancel = () => {
 const onApply = () => {
   const parsed = parseHeight(heightInput.value);
   if (parsed === null) return;
+  if (parsed < MIN_WALL_HEIGHT_MM || parsed > MAX_WALL_HEIGHT_MM) return;
 
   wallHeightStore.setWallHeightMm(parsed / 10);
   popupStore.closePopup('wallHeight');
@@ -119,6 +131,11 @@ const onApply = () => {
     box-sizing: border-box;
   }
 
+  &__error {
+    font-size: 12px;
+    color: #d32f2f;
+  }
+
   &__actions {
     display: flex;
     justify-content: flex-start;
@@ -134,6 +151,11 @@ const onApply = () => {
       &--confirm {
         background-color: $red;
         color: white;
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
       }
 
       &--cancel {

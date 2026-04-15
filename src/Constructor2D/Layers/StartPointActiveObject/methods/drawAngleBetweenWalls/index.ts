@@ -73,7 +73,8 @@ export function drawAngleBetweenWalls(this:any): void {
           color: 0xffffff
         });
 
-        this.angleText.text = degTextAngle.toFixed(2).replace('.', ',') + "°";
+        const displayAngle = Math.round(degTextAngle);
+        this.angleText.text = `${displayAngle}°`;
 
         this.angleTextConatainer.pivot.x = 5; // this.angleText.width / 2;
         this.angleTextConatainer.pivot.y = this.angleText.height / 2;

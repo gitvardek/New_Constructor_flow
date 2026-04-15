@@ -6,11 +6,13 @@ import { useWallLengthEditorStore } from '@/store/constructor2d/store/useWallLen
 export interface WallContextMenuItem {
   key: string;
   label: string;
+  disabled?: boolean;
 }
 
 export type WallContextMenuWallContext = {
   kind: 'wall';
   wallId: string | number;
+  canDeleteWall?: boolean;
   onSplitWall: (id: string | number) => void;
   onDeleteWall: (id: string | number) => void;
 };
@@ -47,7 +49,7 @@ export const useWallContextMenu = () => {
         { key: 'splitWall', label: 'Добавить стену' },
         { key: 'changeWallHeight', label: 'Изменить высоту стен' },
         { key: 'changeWallLength', label: 'Изменить длину стены' },
-        { key: 'deleteWall', label: 'Удалить стену' },
+        { key: 'deleteWall', label: 'Удалить стену', disabled: ctx.canDeleteWall === false },
       ];
     }
     if (ctx.kind === 'window') {
@@ -87,7 +89,12 @@ export const useWallContextMenu = () => {
       closeMenu();
       return;
     }
-    if (actionKey === 'deleteWall' && ctx?.kind === 'wall' && deleteWallCallback) {
+    if (
+      actionKey === 'deleteWall' &&
+      ctx?.kind === 'wall' &&
+      ctx.canDeleteWall !== false &&
+      deleteWallCallback
+    ) {
       deleteWallCallback(ctx.wallId);
       closeMenu();
       return;
