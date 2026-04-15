@@ -493,7 +493,7 @@ onBeforeUnmount(() => {
             class="UM option-small"
         >
           <div
-              :class="['option-small-item', { active: currentOption === part }]"
+              :class="['UM option-small-item', { active: currentOption === part }]"
               @click.stop="getOption(part)"
           >
             {{ partsNames[part] }}
@@ -513,10 +513,15 @@ onBeforeUnmount(() => {
   </div>
 
   <transition name="slide--left" mode="out-in">
-    <div class="color--left" v-if="currentOption" key="color--left-select">
-      <div class="color--left-select" key="color--left-select">
-        <h1 class="color__title">{{ partsNames[currentOption] }}</h1>
-        <ClosePopUpButton class="menu__close" @close="closeMenu()" />
+    <div
+        class="UM color--left"
+        v-if="currentOption"
+        key="color--left-select"
+        ref="panelRef"
+    >
+      <div class="UM color--left-select" key="color--left-select">
+        <h1 class="UM color__title">{{ partsNames[currentOption] }}</h1>
+        <ClosePopUpButton class="UM menu__close" @close="closeMenu()" />
 
         <p class="UM color__title color__switch" v-if="currentOption === 'PROFILECOLOR'">
           Профили в размер секции

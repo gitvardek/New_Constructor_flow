@@ -403,12 +403,12 @@ const onSelectShowcase = (data) => {
 
 const onChangeMillingHandlePos = (action, id) => {
   callback(id, 'MILLING_TYPE')
-  setIntegratedHandleAction(action, props.elementIndex, "milling");
+  //setIntegratedHandleAction(action, props.elementIndex, "milling");
 };
 
 const onChangeIntegratedHandlePos = (action, id) => {
   callback(id, 'TYPE')
-  setIntegratedHandleAction(action, props.elementIndex, "integrate");
+  //setIntegratedHandleAction(action, props.elementIndex, "integrate");
 };
 
 /** Удаление опций конфигурации */
