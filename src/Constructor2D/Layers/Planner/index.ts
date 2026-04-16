@@ -2178,7 +2178,7 @@ export default class Planner {
     wall: ObjectWall,
     newPoints: [Vector2, Vector2, Vector2, Vector2],
   ): boolean {
-    const minBlockDeg = 20;
+    const minBlockDeg = 0;
     const oldPoints = wall.points;
     const sides: (0 | 1)[] = [0, 1];
     for (const side of sides) {
