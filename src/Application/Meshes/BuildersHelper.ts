@@ -121,15 +121,17 @@ export class BuildersHelper extends GlobalsData {
             const modelData = this._MODELS[PARAMS.MODELID]
             const model = this.expressionsReplace(modelData, expressions);
 
-            if (model.width) size.width = parseInt(eval(model.width));
-            if (model.height) size.height = parseInt(eval(model.height));
-            if (model.depth) size.depth = parseInt(eval(model.depth));
+            if (model.width) size.width = parseInt(this.calculateFromString(model.width));
+            if (model.height) size.height = parseInt(this.calculateFromString(model.height));
+            if (model.depth) size.depth = parseInt(this.calculateFromString(model.depth));
         }
 
         // Запасные значения
         size.width ||= parseFloat(productData.width);
         size.height ||= parseFloat(resolvedHeight);
         size.depth ||= parseFloat(productData.depth);
+
+        console.log(size, ' == Size ==')
 
         return size;
     }

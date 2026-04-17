@@ -147,6 +147,11 @@ export class Filters extends GlobalsData {
             const fasad = FASADE_PROPS[fasadeNumber]?.TYPE ?? this.project.default_fasade_color ?? 7397;
             const handles = this.project.default_handles
             const sizes = fasade.FASADE_SIZE ?? null
+            const sizesData = this._FASADESIZE[sizes]
+            const ismanualSizes = this._FASADESIZE[sizes].NAME.includes("Нестандарт")
+
+
+            console.log(ismanualSizes, this._FASADESIZE[sizes])
 
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
@@ -169,7 +174,16 @@ export class Filters extends GlobalsData {
                 },
                 SIZES: {
                     id: sizes,
-                    params: {}
+                    params: (() => {
+                        if (ismanualSizes) {
+                            return {
+                                FASADE_WIDTH: sizesData.WIDTH,
+                                min: sizesData.SIZE_EDIT_WIDTH_MIN,
+                                max: sizesData.SIZE_EDIT_WIDTH_MAX
+                            }
+                        }
+                        return {}
+                    })()
                 },
                 DRAWER: {
                     drawer: fasadePosition.drawer,

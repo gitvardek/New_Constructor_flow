@@ -683,6 +683,8 @@ const changeFasadeSize = async (data: TFasadeSize) => {
   curFasade.POSITION = curPositionId;
 
   if (isIncomeWidth) {
+    console.log(isIncomeWidth, "isIncomeWidth");
+
     if (incomeSize.value.width === null)
       incomeSize.value.width = parseInt(defaultWidth);
     incomeSize.value.min = data.SIZE_EDIT_WIDTH_MIN;
@@ -742,15 +744,30 @@ onBeforeMount(() => {
   fasadeSizeList.value = prepareFasadeSizeList();
   fasadeSizeListExist.value = fasadeSizeList.value.length > 0;
 
-  const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
+  const { FASADE_PROPS, FASADE_SIZE } = productData.value.PROPS.CONFIG;
+  const positionList = Object.values(FASADE_SIZE)[props.tabIndex];
+  const defaultWidth = Object.values(positionList)[0].FASADE_WIDTH;
+
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;
+
+  // const manualInputValue = curSize?.params?.FASADE_WIDTH
+  //   ? curSize?.params?.FASADE_WIDTH
+  //   : fasadeSizeListExist.value &&
+  //       fasadeSizeList.value.length === 1 &&
+  //       fasadeSizeList.value[0].NAME.includes("Нестандарт")
+  //     ? fasadeSizeList.value[0].WIDTH
+  //     : null;
+
+  console.log(defaultWidth, "defaultWidth", fasadeSizeList.value);
 
   incomeSize.value = {
     width: curSize?.params?.FASADE_WIDTH ?? null,
     min: curSize?.params?.min ?? null,
     max: curSize?.params?.max ?? null,
   };
+
+  console.log(curSize, "curSize");
 });
 
 onMounted(() => {
