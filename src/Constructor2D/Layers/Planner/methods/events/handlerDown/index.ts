@@ -27,12 +27,21 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
       // Небольшая задержка для предотвращения конфликтов
       setTimeout(() => {
         // Эмитим событие для показа контекстного меню
+        const clickedWall = this.objectWalls.find((w: ObjectWall) => w.id === id);
+        const isClosingWall = clickedWall?.isClosing === true;
+        const regularWalls = this.objectWalls.filter(
+          (w: ObjectWall) => w.roomId === clickedWall?.roomId && w.name !== 'dividing_wall' && !w.isClosing
+        );
+        const canDelete = regularWalls.length > 3;
+
         this.parent.eventBus.emit(Events.C2D_SHOW_WALL_CONTEXT_MENU, {
           x: domX,
           y: domY,
           context: {
             kind: "wall" as const,
             wallId: id,
+            isClosingWall,
+            canDelete,
             onSplitWall: (wallId: string | number) => {
               if (typeof this.splitWallIntoTwo === "function") {
                 this.splitWallIntoTwo(wallId);

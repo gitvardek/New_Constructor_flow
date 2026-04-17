@@ -10,6 +10,7 @@ import TechnologistForm from "@/components/Technologist/TechnologistForm.vue";
 import TechnologistComments from "@/components/Technologist/TechnologistComments.vue";
 import FilePopUpView from "@/components/popUp/popup-views/FilePopUpView.vue";
 import ProjectParamsPopUpView from "@/components/popUp/popup-views/ProjectParamsPopUpView.vue";
+import RoomParamsPopUpView from "@/components/popUp/popup-views/RoomParamsPopUpView.vue";
 import WallHeightPopUpView from "@/components/popUp/popup-views/WallHeightPopUpView.vue";
 import WallLengthPopUpView from "@/components/popUp/popup-views/WallLengthPopUpView.vue";
 import DoorWindowOpeningSizePopUpView from "@/components/popUp/popup-views/DoorWindowOpeningSizePopUpView.vue";
@@ -21,6 +22,7 @@ export type PopupKey =
     'error' |
     'project' |
     'projectParams' |
+    'roomParams' |
     'wallHeight' |
     'wallLength' |
     'doorWindowSize' |
@@ -58,6 +60,10 @@ export const POPUP_CONFIG: PopupsConfig = {
   projectParams: {
     title: 'Задайте параметры проекта',
     component: ProjectParamsPopUpView
+  },
+  roomParams: {
+    title: 'Параметры помещения',
+    component: RoomParamsPopUpView
   },
   wallHeight: {
     title: 'Высота стен',

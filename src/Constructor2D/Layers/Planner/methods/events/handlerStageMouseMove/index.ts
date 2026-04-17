@@ -34,6 +34,7 @@ export function handlerStageMouseMove(this: any, e: PIXI.FederatedPointerEvent):
       }
 
       if(status){
+        this.clearWallAngleOverrides();
         const nextPoint0: Vector2 = {
           x: this.state.oldPosition[0].x + distance.x,
           y: this.state.oldPosition[0].y + distance.y,

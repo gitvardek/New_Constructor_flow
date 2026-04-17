@@ -165,6 +165,7 @@ function updateRoomStore(this: any): boolean {
               _order: "XYZ",
             },
             side: 0,
+            isClosing: wallData.isClosing ?? false,
           };
 
           room.params!.walls.push(wData);

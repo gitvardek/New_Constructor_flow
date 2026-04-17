@@ -35,6 +35,7 @@ export interface ObjectWall {
   };
   containers?: ObjectWallContainers;
   roomId: number | string | null;
+  isClosing?: boolean;
 };
 
 export interface ConfigWall {
@@ -66,10 +67,6 @@ export interface State {
   mouseLeft: boolean;
   positionDown: Vector2;
   oldPosition: Vector2[];
-  dragRoomId: string | number | null;
-  dragAngleStepDeg: number;
-  dragLastCommittedAngles: number[] | null;
-  hasAngleStepCommit: boolean;
 };
 
 export interface ArgumentDataAddWall {

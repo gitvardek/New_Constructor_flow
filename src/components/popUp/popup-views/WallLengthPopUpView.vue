@@ -12,12 +12,13 @@
           type="text"
           class="project-params-dialog__input"
           :placeholder="lengthPlaceholder"
+          :disabled="isClosingWall"
         />
       </div>
     </div>
 
     <div class="project-params-dialog__actions">
-      <button class="btn btn--confirm" @click="onApply">Изменить</button>
+      <button class="btn btn--confirm" :disabled="isClosingWall" @click="onApply">Изменить</button>
       <button class="btn btn--cancel" @click="onCancel">Отменить</button>
     </div>
   </div>
@@ -34,19 +35,25 @@ const wallLengthStore = useWallLengthEditorStore();
 
 const lengthInput = ref('');
 
+type PlannerAccess = {
+  getWallProperty?: <T extends keyof import('@/Constructor2D/Layers/Planner/interfaces').ObjectWall>(
+    id: string | number, propName: T
+  ) => import('@/Constructor2D/Layers/Planner/interfaces').ObjectWall[T] | null;
+};
+
+const getPlanner = (): PlannerAccess | undefined =>
+  (globalThis as any).C2D?.layers?.planner;
+
+const isClosingWall = computed((): boolean => {
+  const id = wallLengthStore.wallId;
+  if (id == null) return false;
+  return getPlanner()?.getWallProperty?.(id, 'isClosing') === true;
+});
+
 const getCurrentWallLengthMm = (): number | null => {
-  const c2d = (window as unknown as {
-    C2D?: {
-      layers?: {
-        planner?: {
-          getWallProperty?: <T extends 'width'>(id: string | number, propName: T) => number | null;
-        };
-      };
-    };
-  }).C2D;
   const id = wallLengthStore.wallId;
   if (id == null) return null;
-  const widthPlan = c2d?.layers?.planner?.getWallProperty?.(id, 'width');
+  const widthPlan = getPlanner()?.getWallProperty?.(id, 'width');
   if (typeof widthPlan !== 'number' || !Number.isFinite(widthPlan)) return null;
   return Math.round(widthPlan * 10);
 };
@@ -79,22 +86,13 @@ const onCancel = () => {
 };
 
 const onApply = () => {
+  if (isClosingWall.value) return;
   const id = wallLengthStore.wallId;
   if (id == null) return;
   const parsed = parseLength(lengthInput.value);
   if (parsed == null) return;
 
-  const c2d = (window as unknown as {
-    C2D?: {
-      layers?: {
-        planner?: {
-          applyWallLengthMm?: (wallId: string | number, lengthMm: number) => boolean;
-        };
-      };
-      updateRoomStore?: () => void;
-    };
-  }).C2D;
-
+  const c2d = (globalThis as any).C2D;
   const ok = c2d?.layers?.planner?.applyWallLengthMm?.(id, parsed);
   if (!ok) return;
   c2d?.updateRoomStore?.();

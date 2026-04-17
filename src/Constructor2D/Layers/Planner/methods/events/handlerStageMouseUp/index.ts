@@ -68,9 +68,6 @@ export function handlerStageMouseUp(this: any, e: PIXI.FederatedPointerEvent): v
   this.state.mouseLeft = false;
   this.state.oldPosition = [];
   this.state.positionDown = { x: 0, y: 0 };
-  this.state.dragRoomId = null;
-  this.state.dragLastCommittedAngles = null;
-  this.state.hasAngleStepCommit = false;
 
   e.stopPropagation(); // Останавливаем всплытие события
 
