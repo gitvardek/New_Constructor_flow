@@ -1,0 +1,41 @@
+components:
+  schemas:
+    ApiError:
+      type: object
+      required: [statusCode, message, errorCode]
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errorCode:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+    RateLimitError:
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+        - type: object
+          required: [retryAfter]
+          properties:
+            retryAfter:
+              type: integer
+            limit:
+              type: integer
+            windowSeconds:
+              type: integer
+    EmptyResponse:
+      type: object
+      example: {}
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string

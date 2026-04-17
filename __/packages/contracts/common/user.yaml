@@ -1,0 +1,40 @@
+components:
+  schemas:
+    User:
+      allOf:
+        - $ref: '../core/audit.yaml#/components/schemas/FullAuditFields'
+        - type: object
+          required: [email, displayName]
+          additionalProperties: false
+          properties:
+            email:
+              type: string
+              format: email
+            displayName:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+    UserListItem:
+      allOf:
+        - $ref: '#/components/schemas/User'
+    UserListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserListItem'
+        meta:
+          $ref: '../core/pagination.yaml#/components/schemas/PaginationMeta'
+    UserProfile:
+      type: object
+      required: [id, displayName]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string

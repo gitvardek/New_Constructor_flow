@@ -1,0 +1,30 @@
+components:
+  schemas:
+    BulkSelection:
+      oneOf:
+        - type: object
+          required: [ids]
+          properties:
+            ids:
+              type: array
+              items:
+                type: string
+        - type: object
+          required: [filter]
+          properties:
+            filter:
+              type: object
+            confirmCount:
+              type: integer
+    BulkResult:
+      type: object
+      required: [success, failed, errors]
+      properties:
+        success:
+          type: integer
+        failed:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object

@@ -1,0 +1,85 @@
+components:
+  schemas:
+    NotificationPriority:
+      type: string
+      enum: [low, normal, high, urgent]
+    Notification:
+      allOf:
+        - $ref: '../core/audit.yaml#/components/schemas/FullAuditFields'
+        - type: object
+          required: [title, priority]
+          properties:
+            title:
+              type: string
+            body:
+              type: string
+            priority:
+              $ref: '#/components/schemas/NotificationPriority'
+            readAt:
+              type: string
+              format: date-time
+              nullable: true
+    SseNotificationNew:
+      type: object
+      required: [event, id, data]
+      properties:
+        event:
+          type: string
+          enum: [notification.new]
+        id:
+          type: string
+        data:
+          $ref: '#/components/schemas/Notification'
+    SseNotificationRead:
+      type: object
+      required: [event, id, data]
+      properties:
+        event:
+          type: string
+          enum: [notification.read]
+        id:
+          type: string
+        data:
+          type: object
+          required: [id, readAt]
+          properties:
+            id:
+              type: string
+            readAt:
+              type: string
+              format: date-time
+    SseNotificationArchived:
+      type: object
+      required: [event, id, data]
+      properties:
+        event:
+          type: string
+          enum: [notification.archived]
+        id:
+          type: string
+        data:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+    SsePing:
+      type: object
+      required: [event, data]
+      properties:
+        event:
+          type: string
+          enum: [ping]
+        data:
+          type: object
+          required: [timestamp]
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+    SseNotificationEvent:
+      oneOf:
+        - $ref: '#/components/schemas/SseNotificationNew'
+        - $ref: '#/components/schemas/SseNotificationRead'
+        - $ref: '#/components/schemas/SseNotificationArchived'
+        - $ref: '#/components/schemas/SsePing'

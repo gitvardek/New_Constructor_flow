@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "COREPACK_HOME=/tmp/corepack pnpm test || (echo '{\"block\": true, \"message\": \"Тесты падают. Почини перед коммитом.\"}' 1>&2 && exit 2)",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
