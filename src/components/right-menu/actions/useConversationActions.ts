@@ -2,16 +2,17 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useToast } from "@/features/toaster/useToast";
 import { TFasadeGroupSize } from "@/store/appliction/useModelState";
-//@ts-nocheck
+import type { Object3D } from 'three'
+/**//@ts-nocheck */
 
-import {TTotalProps, TFasadeItem, TFasadeTrueSizes, TFasadeConversation} from "@/types/types";
+import { TTotalProps, TFasadeItem, TFasadeTrueSizes, TFasadeConversation, TMillingRestrictItem, TConfig } from "@/types/types";
 
 type TsizeData = {
     width: number
     height: number
     depth: number
 }
-import {UM_PARAMS} from "@/components/UMconstructor/utils/Const.ts";
+import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 export const useConversationActions = () => {
 
@@ -27,7 +28,7 @@ export const useConversationActions = () => {
         const { width, height } = size;
 
         if (Object.values(restrictData).length == 0) return;
-       
+
         FASADE.forEach((_, key) => {
             const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = restrictData[key];
             const check =
@@ -44,9 +45,17 @@ export const useConversationActions = () => {
         });
     }
 
-    const createFasadeConversations = (fasadeId: number): TFasadeGroupSize => {
+    const createFasadeConversations = (fasadeId: number, curModel: Object3D | null): TFasadeGroupSize => {
 
-        const curModel = modelState.getCurrentModel
+        let restrict = {
+            MAX_HEIGHT: Infinity,
+            MIN_HEIGHT: -Infinity,
+            MAX_WIDTH: Infinity,
+            MIN_WIDTH: -Infinity,
+        }
+
+        if (!curModel) return restrict
+        // const curModel = modelState.getCurrentModel
         const isUM = !!curModel?.userData?.PROPS?.CONFIG?.MODULEGRID;
         let isSlideDoor = false;
 
@@ -69,7 +78,9 @@ export const useConversationActions = () => {
         if (!groupId) return temp
 
         const toCheck = modelState._FASADE_SIZE_RESTRICT[section.ID];
-        const restrict = {
+
+
+        restrict = {
             MAX_HEIGHT: toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.HEIGHT : Infinity,
             MIN_HEIGHT: toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.MIN_HEIGHT : -Infinity,
             MAX_WIDTH: isUM ? (isSlideDoor ? UM_PARAMS.MAX_SLIDE_DOOR_WIDTH : UM_PARAMS.MAX_FASADE_WIDTH) : toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.WIDTH : Infinity,
@@ -81,8 +92,12 @@ export const useConversationActions = () => {
     }
 
     const checkFasadeConversations = (fasadeId: number, size: TFasadeTrueSizes) => {
+        console.log('СТРАУС')
+
+        const curModel = modelState.getCurrentModel
         const { FASADE_WIDTH, FASADE_HEIGHT } = size
-        const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId)
+        const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel)
+
         const check =
             FASADE_HEIGHT <= MAX_HEIGHT &&
             FASADE_HEIGHT >= MIN_HEIGHT &&
@@ -122,23 +137,61 @@ export const useConversationActions = () => {
 
     const filterMaterialsConversations = (materialList: TFasadeConversation[], fasadeSize: TFasadeTrueSizes) => {
         const tempList = materialList.map((el) => {
-                if(el.FASADES && Array.isArray(el.FASADES)) {
-                    let tmp_fasades = el.FASADES.map(item => {
-                        if (checkFasadeConversations(item, fasadeSize)){
-                            return item;
-                        }
-                    }).filter(Boolean);
+            if (el.FASADES && Array.isArray(el.FASADES)) {
+                let tmp_fasades = el.FASADES.map(item => {
+                    if (checkFasadeConversations(item, fasadeSize)) {
+                        return item;
+                    }
+                }).filter(Boolean);
 
-                    if(tmp_fasades.length)
-                        return {...el, FASADES: tmp_fasades}
-                }
-            })
+                if (tmp_fasades.length)
+                    return { ...el, FASADES: tmp_fasades }
+            }
+        })
             .filter(Boolean);
 
 
         return tempList;
     };
 
-    return { onRsizeConversations, createFasadeConversations, checkFasadeConversations, filterFasadeConversations, filterMaterialsConversations }
+    const checkMillingConversations = (fasadeId: number) => {
+
+        const { _MILLING_SIZE_RESTRICT } = modelState
+        if (!fasadeId) return null
+
+        const match = (_MILLING_SIZE_RESTRICT as TMillingRestrictItem[]).find(
+            (item) => {
+                console.log(item, 'aaaa')
+
+                return item.FASADE.includes(fasadeId)
+            }
+        )
+
+        if (!match) return null
+
+        return match.ID
+    }
+
+    const onResizeMillingCheck = () => {
+        const curModel = modelState.getCurrentModel
+        const { FASADE, CONFIG } = curModel?.userData.PROPS as TTotalProps;
+        const { FASADE_PROPS } = CONFIG as TConfig;
+        FASADE_PROPS.forEach(el => {
+            const check = checkMillingConversations(el.COLOR, el.MILLING)
+            console.log(el.COLOR, el.MILLING, 'FASADE_PROPS', check)
+        })
+
+
+    }
+
+    return {
+        onRsizeConversations,
+        createFasadeConversations,
+        checkFasadeConversations,
+        filterFasadeConversations,
+        filterMaterialsConversations,
+        checkMillingConversations,
+        onResizeMillingCheck
+    }
 
 }

@@ -26,7 +26,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
 import { useEventBus } from "@/store/appliction/useEventBus";
 
-import { TFasadeSize } from "@/types/types";
+import { TFasadeProp, TFasadeSize, TTotalProps } from "@/types/types";
 import { THandleType } from "../FigureRightPage/Handles/useHandlesAction";
 
 import ConfigurationOption from "./ConfigurationOption.vue";
@@ -52,6 +52,7 @@ const {
   checkConversations,
   checkFasadeConversations,
   filterFasadeConversations,
+  checkMillingConversations,
 } = useConversationActions();
 
 const props = defineProps({
@@ -119,12 +120,15 @@ const onSelectMaterial = (data) => {
   const { CONFIG, FASADE } = PROPS;
   const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
   const product = modelState._PRODUCTS[productId.value];
-  const { COLOR, RESET_COLOR, ALUM } = FASADE_PROPS[props.tabIndex];
+  const curFasadeProps = FASADE_PROPS[props.tabIndex] as TFasadeProp;
+  let { COLOR, RESET_COLOR, ALUM, MILLING } = curFasadeProps;
 
   const checkConversation = checkFasadeConversations(
     data.id,
     FASADE[props.tabIndex].userData.trueSize,
   );
+
+  curFasadeProps.MILLING_CONVERSATION = checkMillingConversations(data.id);
 
   if (!checkConversation) return;
 
@@ -475,7 +479,7 @@ const update = () => {
 
 const prepareData = () => {
   const { PROPS } = productData.value;
-  const { CONFIG } = PROPS;
+  const { CONFIG, FASADE } = PROPS as TTotalProps;
   const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
   const fasadeProps = FASADE_PROPS[props.tabIndex];
   const product = _APP.CATALOG.PRODUCTS[productId.value];
@@ -494,6 +498,8 @@ const prepareData = () => {
     TYPE,
   } = fasadeProps;
 
+  const curFasade = FASADE[props.tabIndex];
+  const { trueSize } = curFasade.userData;
   const fasadeData = _FASADE[COLOR];
   if (!fasadeData) return;
 
@@ -505,6 +511,7 @@ const prepareData = () => {
     fasadeId: COLOR,
     productId: pid,
     fasadeNdx: props.tabIndex,
+    fasadeSize: trueSize,
   });
   modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
   modelState.createCurrentGlassData({ fasadeId: COLOR, productId: pid });

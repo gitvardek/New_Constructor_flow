@@ -174,7 +174,8 @@ export class Filters extends GlobalsData {
                 DRAWER: {
                     drawer: fasadePosition.drawer,
                     buildIn: fasadePosition.built_in
-                }
+                },
+                MILLING_CONVERSATION: null
             }
 
             FASADE_PROPS.push(fasadeProps)

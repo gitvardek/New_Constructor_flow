@@ -72,6 +72,7 @@ const emit = defineEmits([
   "product-checkLoopsCollision",
 ]);
 
+
 const timer = ref(false);
 
 const debounce = (callback, wait) => {
@@ -88,6 +89,8 @@ const debounce = (callback, wait) => {
 const selectCell = (sec, cell = null, row = null) => {
   selectedFasade.value = { sec, cell, row };
   visualizationRef.value.selectCell("fasades", sec, cell, true, row);
+
+  console.log(selectedFasade.value, 'selectedFasade.value')
 };
 
 const handleCellSelect = (secIndex, cellIndex = null, rowIndex = null) => {

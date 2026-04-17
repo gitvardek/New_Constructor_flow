@@ -69,7 +69,7 @@ export class JsonBuilder {
         this.backMaterial = this.resolveSideMaterial(back, json.material)
         this.topMaterial = this.resolveSideMaterial(top, json.material)
 
-        if(top?.KROMKA) {
+        if (top?.KROMKA) {
             let material2 = this.resolveKromkaMaterial(top, json.material) || this.topMaterial
             this.topMaterial = [material2, material2, this.topMaterial, this.topMaterial, material2, material2]
         }
@@ -113,7 +113,7 @@ export class JsonBuilder {
             }
         }
 
-        group.applyMatrix4(group.matrixWorld)
+        // group.applyMatrix4(group.matrixWorld)
         this.clearMaterials()
         return group
     }
@@ -189,6 +189,10 @@ export class JsonBuilder {
                 this.convert(data.position.y),
                 this.convert(data.position.z)
             )
+
+            console.log(this.convert(data.position.x),
+                this.convert(data.position.y),
+                this.convert(data.position.z), 'ПОЗИЦИЯ!')
         }
 
         if (data.id === 'back' && data.position) {
@@ -201,6 +205,10 @@ export class JsonBuilder {
                 this.convert(data.rotation.y),
                 this.convert(data.rotation.z)
             )
+
+            console.log(this.convert(data.rotation.x),
+                this.convert(data.rotation.y),
+                this.convert(data.rotation.z), 'ПОЗИЦИЯ!')
         }
 
         if (!data.geometry) {

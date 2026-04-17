@@ -39,7 +39,7 @@ import { useRoomContantData } from "@/store/appliction/useRoomContantData";
 import { useUniformState } from "@/store/appliction/useUniformState";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useMenuStore } from "@/store/appStore/useMenuStore";
-import {GridModule} from "@/components/UMconstructor/types/UMtypes.ts";
+import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 
 export type TApplication = Application
 export type TRenderer = Renderer
@@ -302,7 +302,7 @@ export type TDefaultOptionsConfig = {
   defFasadeTop: number | string,
   defFasadeBottom: number | string,
   deffShowcase: number | string,
-  defPatina:number | string,
+  defPatina: number | string,
   moduleTop: TOptionItem;
   moduleBottom: TOptionItem;
   fasadsTop: TOptionItem;
@@ -374,7 +374,7 @@ export type TFasadeConversation = {
   NAME: string,
   FASADES: any[],
   SORT: number,
-  GROUP_SIZE: Object|null,
+  GROUP_SIZE: Object | null,
 }
 
 export type TFasadeProp = {
@@ -402,7 +402,23 @@ export type TFasadeProp = {
   DRAWER: TDrawer,
   MANUAL_NO_FASADE?: boolean
   TABLE?: number | null,
+  MILLING_CONVERSATION: null | number
 }
+
+export type TMillingRestrictItem =
+  {
+    "ID": number,
+    "NAME": string,
+    "SORT": number,
+    "PRODUCT": null | number,
+    "WIDTH": number | string,
+    "HEIGHT": number | string,
+    "MIN_HEIGHT": number | string,
+    "MIN_WIDTH": number | string,
+    "MILLING": number[],
+    "FASADE": number[]
+  }
+
 
 export type TToptableUMProp = {
   SHOW: boolean | null,
@@ -463,7 +479,7 @@ export type TConfig = {
   MECHANISM: NumStr | null,
   MECHANISM_TEMP: TMechanismData[] | [],
   SIZE: TSize,
-  SIZE_OFFSET:TSize,
+  SIZE_OFFSET: TSize,
   SIZE_EDIT: TSizeEdit,
   SHOWCASE: number[],
   SHELFQUANT: TShelfcount,

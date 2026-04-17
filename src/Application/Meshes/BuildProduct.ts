@@ -349,6 +349,7 @@ export class BuildProduct extends BuildersHelper {
             KROMKA: null,
             SIZEEDITJOINDEPTH: product_data.SIZE_EDIT_JOINDEPTH_MIN ? 310 : null,
             DAE: isDae,
+
         };
 
         // Все дополнительные данные заполняем только если не DAE-модель
@@ -660,7 +661,7 @@ export class BuildProduct extends BuildersHelper {
             const topFasade_width = CONFIG.SIZE.width;
             const topFasade_depth = CONFIG.SIZE.depth + moduleThickness + 2;
             let top, topFasade_thickness
-            if(TOPFASADECOLOR.TABLE){
+            if (TOPFASADECOLOR.TABLE) {
                 top = this._PRODUCTS[TOPFASADECOLOR.TABLE];
                 topFasade_thickness = top.height
             }
@@ -863,6 +864,7 @@ export class BuildProduct extends BuildersHelper {
     }
 
     private setBounds(target: THREE.Object3D, source: THREE.Object3D, resize: THREETypes.TSize, props: THREETypes.TConfig) {
+        
 
         const { SIZE, SIZE_OFFSET } = props
 
@@ -871,6 +873,7 @@ export class BuildProduct extends BuildersHelper {
         const size = new THREE.Vector3();
         aabb.getSize(size);
 
+        console.log(resize, 'RESIZE')
 
         /** Для коллизии объектов с отступами боковыми фасадами и т.д. */
         if (!resize) {

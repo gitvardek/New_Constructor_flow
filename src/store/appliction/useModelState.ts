@@ -1,14 +1,14 @@
 //@ts-nocheck
 import * as THREE from "three"
-import { FasadeTextAlignAction } from "@/types/types";
+import { FasadeTextAlignAction, TMillingRestrictItem } from "@/types/types";
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useAppData } from './useAppData';
 import { TFasadeItem } from "@/types/types";
 import { MILLINGS, additionalMillingKeys, MILLING_HANDLE_KEYS, INTEGRATE_HANDE_EXEPTIONS } from '@/Application/F-millings';
 import { number } from "yup";
-import {UM_PARAMS} from "@/components/UMconstructor/utils/Const.ts";
-import {useUMStorage} from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
 export type TFasadeGroupSize = {
 
@@ -84,6 +84,7 @@ export const useModelState = defineStore('ModelState', () => {
     const _FASADE_POSITION = computed(() => _APP.value.FASADE_POSITION || [])
     const _FASADE_GROUPS = computed<IFasadeGroups>(() => _APP.value.FASADE_GROUPS || {})
     const _FASADE_SIZE_RESTRICT = computed(() => _APP.value.FASADE_SIZE_RESTRICT || {})
+    const _MILLING_SIZE_RESTRICT = computed<TMillingRestrictItem[]>(() => _APP.value.MILLING_SIZE_RESTRICT || {})
     const _FASADE_TYPE = computed(() => _APP.value.FASADETYPE || [])
     const _FILLING = computed(() => _APP.value.FILLING || [])
     const _PRODUCTS = computed(() => _APP.value.CATALOG?.PRODUCTS || [])
@@ -432,14 +433,14 @@ export const useModelState = defineStore('ModelState', () => {
 
         // Формирование итогового массива
         const result = Object.entries(_FASADE_GROUPS.value).map(([groupId, group]) => {
-                return {
-                    NAME: group.NAME,
-                    FASADES: groupedFasades[groupId] ? groupedFasades[groupId].id : [],
-                    SORT: group.SORT,
-                    GROUP_SIZE: groupedFasades[groupId] ? groupedFasades[groupId].size : null,
+            return {
+                NAME: group.NAME,
+                FASADES: groupedFasades[groupId] ? groupedFasades[groupId].id : [],
+                SORT: group.SORT,
+                GROUP_SIZE: groupedFasades[groupId] ? groupedFasades[groupId].size : null,
 
-                }
             }
+        }
 
 
         ).filter(group => group.FASADES.length > 0 && group.NAME !== exception).sort((a, b) => a.SORT - b.SORT);
@@ -497,13 +498,18 @@ export const useModelState = defineStore('ModelState', () => {
     })
 
     /** Фрезеровки */
-    const createCurrentMillingData = ({ fasadeId, productId, fasadeNdx }): TMillingListItem[] | [] => {
+    const createCurrentMillingData = ({ fasadeId, productId, fasadeNdx, fasadeSize }): TMillingListItem[] | [] => {
+
+        console.log(fasadeSize, 'fasadeSize')
 
         let result = []
         if (fasadeId == 7397) {
             currentMillingData.value = []
             return []
         }
+
+        const millingConversations = checkMillingConversations(fasadeId)
+        console.log(millingConversations, 'millingConversations')
 
         const product = _PRODUCTS.value[productId]
         const positionId = product.FASADE_POSITION[fasadeNdx]
@@ -513,12 +519,12 @@ export const useModelState = defineStore('ModelState', () => {
         const haveShowCase = fasadePosData?.glass == 1
         const sideColors = ["LEFTSIDECOLOR", "RIGHTSIDECOLOR"]
 
-        // if (_FASADE.value[fasadeId].ATTACH_MILLINGS.length && _FASADE.value[fasadeId].ATTACH_MILLINGS[0] != null && !haveShowCase) {
+
         if ((_FASADE.value[fasadeId].ATTACH_MILLINGS.length && _FASADE.value[fasadeId].ATTACH_MILLINGS[0] != null) || (sideColors.includes(fasadeNdx) && _FASADE.value[fasadeId].ATTACH_MILLINGS_SIDE?.[0])) {
 
             let millings: IMilling[] = []
             let fasadeMilling: number[]
-            if(sideColors.includes(fasadeNdx) && _FASADE.value[fasadeId].ATTACH_MILLINGS_SIDE?.[0]){
+            if (sideColors.includes(fasadeNdx) && _FASADE.value[fasadeId].ATTACH_MILLINGS_SIDE?.[0]) {
                 fasadeMilling = _FASADE.value[fasadeId].ATTACH_MILLINGS_SIDE
             }
             else {
@@ -538,11 +544,28 @@ export const useModelState = defineStore('ModelState', () => {
 
             result = millings.sort((a, b) => a.SORT - b.SORT)
 
+            if (millingConversations && fasadeSize) {
+
+                console.log(result, '1')
+
+                const checkedMillingConversation = millingConversationFilter(fasadeSize, millingConversations);
+
+                if (checkedMillingConversation) {
+                    result = result.filter(el => {
+                        if (!checkedMillingConversation.includes(el.ID)) return el
+
+                    })
+                }
+                console.log(checkedMillingConversation, result, '2')
+
+            }
+
             currentMillingData.value = result
 
             return result
         }
 
+        console.log('3')
 
         currentMillingData.value = result
         return result
@@ -570,8 +593,12 @@ export const useModelState = defineStore('ModelState', () => {
 
     const getCurrentMillingMap = (data) => {
 
+        console.log(MILLINGS[data], 'data!!!')
+
         const millingKey = additionalMillingKeys[data];
-        const millingMapData = MILLINGS[millingKey] ?? MILLINGS[data] ?? MILLINGS[2462671];
+        const millingMapData = MILLINGS[millingKey] ?? MILLINGS[data] ?? MILLINGS[566720];
+        console.log(millingMapData, 'millingMapData')
+
         return millingMapData;
     }
 
@@ -609,6 +636,45 @@ export const useModelState = defineStore('ModelState', () => {
 
         return result;
     };
+
+    const checkMillingConversations = (fasadeId: number) => {
+
+        if (!fasadeId) return null
+
+        const match = (_MILLING_SIZE_RESTRICT.value as TMillingRestrictItem[]).find(
+            (item) => {
+
+                return item.FASADE.includes(fasadeId)
+            }
+        )
+
+        if (!match) return null
+
+        return match.ID
+    }
+
+    const millingConversationFilter = (fasadeSize, conversationId) => {
+        try {
+            const restrict = _MILLING_SIZE_RESTRICT.value.find((el) => el.ID === conversationId)
+            console.log(restrict, 'restrict')
+            const { FASADE_WIDTH, FASADE_HEIGHT } = fasadeSize
+            const { HEIGHT, WIDTH, MIN_HEIGHT, MIN_WIDTH, MILLING } = restrict
+
+            const check =
+                FASADE_HEIGHT <= HEIGHT &&
+                FASADE_HEIGHT >= MIN_HEIGHT &&
+                FASADE_WIDTH <= WIDTH &&
+                FASADE_WIDTH >= MIN_WIDTH;
+
+            if (!check) return MILLING
+            return false
+
+
+        } catch (e) {
+            console.error(e)
+        }
+
+    }
 
     /** Витрины */
     const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx }) => {
@@ -651,7 +717,7 @@ export const useModelState = defineStore('ModelState', () => {
         const productPositions = _PRODUCTS.value[productId].FASADE_POSITION
 
         const defaultTypes = productPositions.reduce((acc, index) =>
-                acc.concat(_FASADE_POSITION.value[index]?.fasade_type || []),
+            acc.concat(_FASADE_POSITION.value[index]?.fasade_type || []),
             []);
 
 
@@ -685,7 +751,7 @@ export const useModelState = defineStore('ModelState', () => {
         let glassArray = incomeGlass.filter(item => productGlass.includes(item)).sort((a, b) => a.SORT - b.SORT)
 
         const currentClass = glassArray.reduce((acc, index) =>
-                acc.concat(_GLASS.value[index] || []),
+            acc.concat(_GLASS.value[index] || []),
             []);
 
         currentGlassData.value = currentClass;
@@ -789,6 +855,7 @@ export const useModelState = defineStore('ModelState', () => {
         _FASADE_TYPE,
         _FASADE_POSITION,
         _FASADE_SIZE_RESTRICT,
+        _MILLING_SIZE_RESTRICT,
         _FASADE_SECTION,
         _FILLING,
         _MILLING,

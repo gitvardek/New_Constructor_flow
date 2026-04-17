@@ -155,30 +155,28 @@ export class BuildersHelper extends GlobalsData {
     };
 
     public expressionsReplace(obj: any, expressions: THREETypes.TObject) {
-
         if (!expressions || !Object.keys(expressions).length) return obj;
 
         let objStr: THREETypes.TObject | string | number = obj;
 
-        // Преобразуем объект в строку, если это объект
-        if (typeof obj == "object") {
+        if (typeof obj === "object") {
             objStr = JSON.stringify(obj);
         }
 
-        // Заменяем выражения
         Object.entries(expressions).forEach(([k, v]) => {
-            if (typeof objStr != "number") {
-                objStr = objStr.split(k).join(v);
+            if (typeof objStr !== "number") {
+                // Защита от undefined/null значений
+                const replacement = v ?? 0;
+                objStr = (objStr as string).split(k).join(String(replacement));
             }
         });
 
-        // Возвращаем объект или строку
-        if (typeof obj == "object") {
+        if (typeof obj === "object") {
             return JSON.parse(objStr as string);
         } else {
             return objStr;
         }
-    };
+    }
 
     public calculateFromString(expression) {
         try {
