@@ -58,7 +58,7 @@ export const POPUP_CONFIG: PopupsConfig = {
     component: ProjectPopUpView
   },
   projectParams: {
-    title: 'Задайте параметры проекта',
+    title: 'Задайте размеры комнаты',
     component: ProjectParamsPopUpView
   },
   roomParams: {

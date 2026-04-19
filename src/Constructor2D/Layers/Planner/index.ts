@@ -64,6 +64,18 @@ import { eventModifyWall } from "./methods/events/eventModifyWall/index";
 import { eventRemoveWall } from "./methods/events/eventRemoveWall/index";
 
 import { initRoom } from "./methods/initRoom/index";
+import {
+  ExactRoomGeometry,
+  ExactRoomModel,
+  buildClosingWallGeometry,
+  extractExactRoomModel,
+  insertExactWallBeforeClosing,
+  rebuildExactRoomGeometry,
+  updateExactWallDisplayAngle,
+  updateExactWallLength,
+  computeClosingWallCornerAngleDeg,
+  validateExactRoomModel,
+} from "@/Constructor2D/exactCore";
 
 export default class Planner {
 
@@ -116,6 +128,17 @@ export default class Planner {
     );
   }
 
+  private getWallDisplayLabel(idWall: string | number): string | null {
+    const wall = this.objectWalls.find((item: ObjectWall) => this.isSameId(item.id, idWall));
+    if (!wall || wall.roomId == null) return null;
+
+    const orderedWalls = this.getOrderedChain(wall.roomId);
+    const wallIndex = orderedWalls.findIndex((item: ObjectWall) => this.isSameId(item.id, idWall));
+
+    if (wallIndex === -1) return null;
+    return `С${wallIndex + 1}`;
+  }
+
   private getNormalizedVector(from: Vector2, to: Vector2): Vector2 | null {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
@@ -161,6 +184,93 @@ export default class Planner {
 
     ordered.push(closingWall);
     return ordered;
+  }
+
+  public getExactRoomModel(roomId: string | number): ExactRoomModel | null {
+    const orderedWalls = this.getOrderedChain(roomId);
+
+    try {
+      return extractExactRoomModel(orderedWalls);
+    } catch (error) {
+      console.warn("Failed to extract exact room model:", error);
+      return null;
+    }
+  }
+
+  public rebuildExactRoomGeometry(roomId: string | number): ExactRoomGeometry | null {
+    const model = this.getExactRoomModel(roomId);
+    if (!model) return null;
+
+    try {
+      return rebuildExactRoomGeometry(model);
+    } catch (error) {
+      console.warn("Failed to rebuild exact room geometry:", error);
+      return null;
+    }
+  }
+
+  public buildExactClosingWallGeometry(roomId: string | number): ReturnType<typeof buildClosingWallGeometry> {
+    const model = this.getExactRoomModel(roomId);
+    if (!model) return null;
+
+    const regularGeometry = rebuildExactRoomGeometry(model).regularWalls;
+
+    try {
+      return buildClosingWallGeometry(model, regularGeometry);
+    } catch (error) {
+      console.warn("Failed to build exact closing wall geometry:", error);
+      return null;
+    }
+  }
+
+  public commitExactRoomGeometry(roomId: string | number, geometry: ExactRoomGeometry): boolean {
+    if (!geometry || geometry.roomId == null || !this.isSameId(geometry.roomId, roomId)) {
+      return false;
+    }
+
+    const applyLineGeometryToWall = (
+      wallId: string | number,
+      line: { point0: Vector2; point1: Vector2; width: number; angleDegrees: number },
+    ): boolean => {
+      const wall = this.objectWalls.find((item: ObjectWall) => this.isSameId(item.id, wallId));
+      if (!wall) return false;
+
+      wall.points = this.calculatePositionPointsWall(
+        line.point0,
+        line.point1,
+        wall.height,
+        wall.heightDirection,
+      );
+      wall.width = line.width;
+      wall.angleDegrees = line.angleDegrees;
+      return true;
+    };
+
+    const updatedWallIds = new Set<string | number>();
+
+    geometry.regularWalls.forEach((line) => {
+      const ok = applyLineGeometryToWall(line.wallId, line);
+      if (ok) updatedWallIds.add(line.wallId);
+    });
+
+    if (geometry.closingWall) {
+      const ok = applyLineGeometryToWall(geometry.closingWall.wallId, geometry.closingWall);
+      if (ok) updatedWallIds.add(geometry.closingWall.wallId);
+    }
+
+    if (updatedWallIds.size === 0) {
+      return false;
+    }
+
+    this.clearWallAngleOverrides();
+
+    updatedWallIds.forEach((wallId) => {
+      this.drawWall(wallId);
+    });
+
+    this.redrawHalfRoom();
+
+    return true;
   }
 
   // Snapshot context for exact wall edits so angle/length logic can rely on stable topology.
@@ -1862,6 +1972,24 @@ export default class Planner {
 
       }
 
+      if (containers.textWallWidth) {
+        const wallDisplayLabel = this.getWallDisplayLabel(obj.id);
+        if (wallDisplayLabel) {
+          const centerPoint = getMidpoint(points[0], points[1]);
+          containers.textWallWidth.text = wallDisplayLabel;
+          containers.textWallWidth.style = new PIXI.TextStyle({
+            fontSize: 13,
+            fill: 0x2F5D50,
+            fontWeight: '600',
+          });
+          containers.textWallWidth.alpha = 1;
+          containers.textWallWidth.anchor.set(0.5);
+          containers.textWallWidth.position.set(centerPoint.x, centerPoint.y);
+        } else {
+          containers.textWallWidth.text = "";
+        }
+      }
+
       if(activeWallID) this.parent.layers.dimensionDisplay.show(this.state.activeWall);
 
       if (containers.eventGraphic) {
@@ -2693,38 +2821,21 @@ export default class Planner {
   public applyWallLengthMm(wallId: string | number, lengthMm: number): boolean {
     const context = this.getExactWallEditContext(wallId);
     if (!context) return false;
-
-    const wall = context.wall;
     const targetMm = Math.max(200, lengthMm);
     const targetPlan = targetMm / 10;
-    const p0 = context.point0;
-    const p1 = context.point1;
-    const dx = p1.x - p0.x;
-    const dy = p1.y - p0.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 1e-6) return false;
-    const ux = dx / len;
-    const uy = dy / len;
-    const newP1: Vector2 = { x: p0.x + ux * targetPlan, y: p0.y + uy * targetPlan };
-    const deltaDx = newP1.x - p1.x;
-    const deltaDy = newP1.y - p1.y;
-    if (Math.abs(deltaDx) < 1e-6 && Math.abs(deltaDy) < 1e-6) return false;
+    const currentLength = context.wallLength;
+    if (Math.abs(currentLength - targetPlan) < Planner.EXACT_EPSILON) return false;
 
-    wall.points = this.calculatePositionPointsWall(p0, newP1, wall.height, wall.heightDirection);
-    wall.width = getDistanceBetweenVectors(p0, newP1);
-    wall.angleDegrees = getAngleBetweenVectors(p0, { x: p0.x + 300, y: p0.y }, newP1);
+    const model = this.getExactRoomModel(context.roomId);
+    if (!model) return false;
 
-    context.tailWalls.forEach((tailWall: ObjectWall) => this.translateWallRigid(tailWall.id, deltaDx, deltaDy));
+    const nextModel = updateExactWallLength(model, wallId, targetPlan);
+    const geometry = rebuildExactRoomGeometry(nextModel);
+    const committed = this.commitExactRoomGeometry(context.roomId, geometry);
 
-    if (wall.roomId != null) this.recalculateClosingWall(wall.roomId);
+    if (!committed) return false;
 
-    this.drawWall(wallId);
-    context.tailWalls.forEach((tailWall: ObjectWall) => this.drawWall(tailWall.id));
-    const closingWall = this.objectWalls.find(w => w.roomId === wall.roomId && w.isClosing);
-    if (closingWall) this.drawWall(closingWall.id);
-
-    this.redrawHalfRoom();
-
+    this.parent.updateRoomStore();
     return true;
   }
 
@@ -2737,8 +2848,32 @@ export default class Planner {
     const context = this.getExactWallEditContext(wallId);
     if (!context || !context.incomingDir) return false;
 
-    const wall = context.wall;
     const desired = Math.max(50, Math.min(359, targetAngleDeg));
+
+    if (context.wallIndex > 0 && context.roomId != null) {
+      const model = this.getExactRoomModel(context.roomId);
+      if (!model) return false;
+
+      const nextModel = updateExactWallDisplayAngle(model, wallId, desired);
+      if (!validateExactRoomModel(nextModel)) return false;
+      const geometry = rebuildExactRoomGeometry(nextModel);
+      const committed = this.commitExactRoomGeometry(context.roomId, geometry);
+
+      if (!committed) return false;
+
+      if (this.isSameId(this.state.activeWall, wallId)) {
+        const updatedWall = this.objectWalls.find((item: ObjectWall) => this.isSameId(item.id, wallId));
+        if (updatedWall) {
+          this.parent.layers.startPointActiveObject.updatePositionIndicatorPoint(updatedWall.points[1]);
+          this.parent.layers.startPointActiveObject.drawAngleBetweenWalls();
+        }
+      }
+
+      this.parent.updateRoomStore();
+      return true;
+    }
+
+    const wall = context.wall;
     const pivot = context.point0;
     const currentEnd = context.point1;
     const length = Math.max(0.001, context.wallLength);
@@ -2785,6 +2920,44 @@ export default class Planner {
       this.parent.layers.startPointActiveObject.updatePositionIndicatorPoint(nextPoint);
       this.parent.layers.startPointActiveObject.drawAngleBetweenWalls();
     }
+    this.parent.updateRoomStore();
+    return true;
+  }
+
+  public applyClosingWallAngleDeg(roomId: string | number, targetAngleDeg: number): boolean {
+    const model = this.getExactRoomModel(roomId);
+    if (!model || model.regularWalls.length < 2) return false;
+
+    const lastWall = model.regularWalls[model.regularWalls.length - 1];
+    if (lastWall.turnFromPreviousDeg == null) return false;
+
+    const desired = Math.max(1, Math.min(359, targetAngleDeg));
+
+    const getC4Angle = (c3Angle: number): number | null =>
+      computeClosingWallCornerAngleDeg(updateExactWallDisplayAngle(model, lastWall.wallId, c3Angle));
+
+    const atLo = getC4Angle(1);
+    const atHi = getC4Angle(359);
+    if (atLo == null || atHi == null) return false;
+
+    const increasing = atHi > atLo;
+    let lo = 1, hi = 359;
+
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      const c4 = getC4Angle(mid);
+      if (c4 == null) break;
+      if (Math.abs(c4 - desired) < 0.05) { lo = hi = mid; break; }
+      if ((c4 > desired) === increasing) hi = mid;
+      else lo = mid;
+    }
+
+    const bestModel = updateExactWallDisplayAngle(model, lastWall.wallId, (lo + hi) / 2);
+    if (!validateExactRoomModel(bestModel)) return false;
+    const geometry = rebuildExactRoomGeometry(bestModel);
+    const committed = this.commitExactRoomGeometry(roomId, geometry);
+    if (!committed) return false;
+
     this.parent.updateRoomStore();
     return true;
   }
@@ -2965,6 +3138,72 @@ export default class Planner {
     // (init -> clear + initRoom), тем самым заново пересчитывая mergeWalls, как при старте
     this.parent.updateRoomStore();
     this.init(true);
+  }
+
+  public addDefaultWallBeforeClosing(roomId: string | number): boolean {
+    const orderedWalls = this.getOrderedChain(roomId);
+    const regularWalls = orderedWalls.filter((wall: ObjectWall) => !wall.isClosing);
+    const closingWall = orderedWalls.find((wall: ObjectWall) => wall.isClosing) ?? null;
+
+    if (!closingWall || regularWalls.length === 0) return false;
+
+    const lastRegularWall = regularWalls[regularWalls.length - 1];
+    const model = this.getExactRoomModel(roomId);
+    if (!model) return false;
+
+    const newWallId = `wall__default__${MathUtils.generateUUID()}`;
+    const nextModel = insertExactWallBeforeClosing(model, {
+      wallId: newWallId,
+      length: 300,
+      turnFromPreviousDeg: -10,
+      displayAngleDeg: 170,
+    });
+    const geometry = rebuildExactRoomGeometry(nextModel);
+    const newWallGeometry = geometry.regularWalls.find((wall) => this.isSameId(wall.wallId, newWallId));
+    if (!newWallGeometry) return false;
+
+    const newWall: ObjectWall = {
+      id: newWallId,
+      name: 'wall',
+      width: newWallGeometry.width,
+      height: lastRegularWall.height,
+      heightDirection: lastRegularWall.heightDirection,
+      angleDegrees: newWallGeometry.angleDegrees,
+      updateTime: Date.now(),
+      mergeWalls: {
+        wallPoint1: lastRegularWall.id,
+        wallPoint0: closingWall.id,
+      },
+      points: this.calculatePositionPointsWall(
+        newWallGeometry.point0,
+        newWallGeometry.point1,
+        lastRegularWall.height,
+        lastRegularWall.heightDirection,
+      ),
+      roomId,
+      containers: undefined,
+    };
+
+    lastRegularWall.mergeWalls.wallPoint0 = newWallId;
+    closingWall.mergeWalls.wallPoint1 = newWallId;
+
+    const closingWallIndex = this.objectWalls.findIndex((wall: ObjectWall) => this.isSameId(wall.id, closingWall.id));
+    const insertIndex = closingWallIndex === -1 ? this.objectWalls.length : closingWallIndex;
+    this.objectWalls.splice(insertIndex, 0, newWall);
+    this.createDrawContainers(newWall.id);
+
+    const committed = this.commitExactRoomGeometry(roomId, geometry);
+    if (!committed) return false;
+
+    this.parent.updateRoomStore();
+    this.init(true);
+    return true;
+  }
+
+  public addWallBeforeClosing(anchorWallId: string | number): void {
+    const anchorWall = this.objectWalls.find((wall: ObjectWall) => this.isSameId(wall.id, anchorWallId));
+    if (!anchorWall || anchorWall.roomId == null) return;
+    this.addDefaultWallBeforeClosing(anchorWall.roomId);
   }
 
   public updateScenePosition(): void {

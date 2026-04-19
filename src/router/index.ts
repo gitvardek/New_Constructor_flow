@@ -5,7 +5,13 @@ import { useAppData } from "@/store/appliction/useAppData";
 import { useAuthStore } from "@/store/appStore/authStore";
 import { AuthService } from "@/services/authService";
 
+const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true'
+
 const getBaseFromSubdomain = async () =>  {
+  if (DEV_AUTH_BYPASS) {
+    return '/dev_modeller';
+  }
+
   const pathname = window.location.pathname;
   const parts = pathname.split('/');
   console.log('parts', parts)
@@ -78,6 +84,15 @@ async function createAppRouter() {
   });
   
   router.beforeEach((to, from, next) => {
+    if (DEV_AUTH_BYPASS) {
+      if (to.path === '/auth') {
+        next({ path: '/2d', query: to.query, hash: to.hash });
+        return;
+      }
+
+      next();
+      return;
+    }
     
     console.log('!!!to:', to)
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);

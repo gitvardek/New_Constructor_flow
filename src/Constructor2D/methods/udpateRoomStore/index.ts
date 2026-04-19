@@ -28,9 +28,11 @@ function updateRoomStore(this: any): boolean {
   
   // Сохраняем все существующие комнаты из roomState
   const existingRoomsMap = new Map<string | number, IRoom>();
-  roomState.rooms.forEach((room: IRoom) => {
+  const existingRoomOrder = new Map<string, number>();
+  roomState.rooms.forEach((room: IRoom, index: number) => {
     const normalizedId = normalizeId(room.id);
     existingRoomsMap.set(normalizedId, JSON.parse(JSON.stringify(room)));
+    existingRoomOrder.set(normalizedId, index);
   });
 
   roomStore.clearStore(); // очищаем хранилище
@@ -293,6 +295,16 @@ function updateRoomStore(this: any): boolean {
       // Комната не была обновлена из 2D, сохраняем её как есть
       rooms.push(existingRoom);
     }
+  });
+
+  rooms.sort((a: IRoom, b: IRoom) => {
+    const aIndex = existingRoomOrder.get(normalizeId(a.id));
+    const bIndex = existingRoomOrder.get(normalizeId(b.id));
+
+    if (aIndex != null && bIndex != null) return aIndex - bIndex;
+    if (aIndex != null) return -1;
+    if (bIndex != null) return 1;
+    return 0;
   });
 
   roomStore.setAppData(rooms);
