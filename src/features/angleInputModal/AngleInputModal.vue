@@ -5,26 +5,22 @@
     :style="modalStyle"
     @click.stop
   >
-    <div class="angle-input-modal__title">Введите угол, ° (минимум 50)</div>
+    <div class="angle-input-modal__title">
+      {{ isReadOnly ? 'Угол, °' : 'Введите угол, °' }}
+    </div>
     <input
       v-model="angleInput"
       type="text"
       class="angle-input-modal__input"
-      @keydown.enter.prevent="apply"
-    />
-    <div class="angle-input-modal__title">Шаг изменения комнаты, ° (1-45)</div>
-    <input
-      v-model="dragStepInput"
-      type="text"
-      class="angle-input-modal__input"
+      :disabled="isReadOnly"
       @keydown.enter.prevent="apply"
     />
     <div class="angle-input-modal__actions">
-      <button class="angle-input-modal__btn angle-input-modal__btn--apply" @click="apply">
+      <button v-if="!isReadOnly" class="angle-input-modal__btn angle-input-modal__btn--apply" @click="apply">
         Применить
       </button>
       <button class="angle-input-modal__btn" @click="hide">
-        Отмена
+        {{ isReadOnly ? 'Закрыть' : 'Отмена' }}
       </button>
     </div>
   </div>
@@ -39,19 +35,17 @@ type AngleInputPayload = {
   x: number;
   y: number;
   angle: number;
-  dragAngleStep?: number;
+  readOnly?: boolean;
   onApply: (angle: number) => void;
-  onApplyDragAngleStep?: (step: number) => void;
 };
 
 const eventBus = useEventBus();
 
 const isVisible = ref(false);
+const isReadOnly = ref(false);
 const angleInput = ref('');
-const dragStepInput = ref('');
 const position = ref({ x: 0, y: 0 });
 let applyCallback: ((angle: number) => void) | null = null;
-let applyDragStepCallback: ((step: number) => void) | null = null;
 
 const modalStyle = computed(() => ({
   left: `${position.value.x}px`,
@@ -65,34 +59,32 @@ const normalizeAngle = (value: string): number | null => {
   return parsed;
 };
 
-const normalizeDragStep = (value: string): number | null => {
-  const parsed = Number(String(value).trim().replace(',', '.'));
-  if (!Number.isFinite(parsed)) return null;
-  if (parsed < 1 || parsed > 45) return null;
-  return parsed;
-};
-
 const show = (payload: AngleInputPayload) => {
   position.value = { x: payload.x + 10, y: payload.y };
+  isReadOnly.value = payload.readOnly === true;
   angleInput.value = String(payload.angle.toFixed(2).replace('.', ','));
+<<<<<<< HEAD
   dragStepInput.value = String((payload.dragAngleStep ?? 1).toFixed(2).replace('.', ','));
+=======
+>>>>>>> 4e3dbf34f155bd0d488801828cee0d61107f5b07
   applyCallback = payload.onApply;
-  applyDragStepCallback = payload.onApplyDragAngleStep ?? null;
   isVisible.value = true;
 };
 
 const hide = () => {
   isVisible.value = false;
+  isReadOnly.value = false;
   applyCallback = null;
-  applyDragStepCallback = null;
 };
 
 const apply = () => {
+  if (isReadOnly.value) {
+    hide();
+    return;
+  }
   const angle = normalizeAngle(angleInput.value);
-  const dragStep = normalizeDragStep(dragStepInput.value);
-  if (angle === null || dragStep === null || !applyCallback) return;
+  if (angle === null || !applyCallback) return;
   applyCallback(angle);
-  applyDragStepCallback?.(dragStep);
   hide();
 };
 
@@ -131,6 +123,12 @@ onUnmounted(() => {
     padding: 8px 10px;
     font-size: 14px;
     margin-bottom: 10px;
+
+    &:disabled {
+      background: #f5f5f5;
+      color: #6b6b6b;
+      cursor: not-allowed;
+    }
   }
 
   &__actions {

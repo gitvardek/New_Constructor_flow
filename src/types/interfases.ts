@@ -137,6 +137,7 @@ export interface IWallData {
     position: IVector3,
     rotation: IRotationEuler,
     side: number
+    isClosing?: boolean;
 }
 
 /**---------------------------------------------- */

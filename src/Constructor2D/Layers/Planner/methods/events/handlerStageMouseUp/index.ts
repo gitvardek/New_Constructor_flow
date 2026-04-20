@@ -14,21 +14,19 @@ import {
 export function handlerStageMouseUp(this: any, e: PIXI.FederatedPointerEvent): void {
   this.clearGhostPreview();
 
-  if (this.state.activeWall && this.state.dragRoomId != null && !this.state.hasAngleStepCommit) {
-    const wall = this.objectWalls.find((w: ObjectWall) => w.id === this.state.activeWall);
-    if (wall && this.state.oldPosition?.length >= 2) {
-      wall.points[0] = { ...this.state.oldPosition[0] };
-      wall.points[1] = { ...this.state.oldPosition[1] };
-      wall.width = Math.hypot(
-        wall.points[1].x - wall.points[0].x,
-        wall.points[1].y - wall.points[0].y,
-      );
-      if (wall.mergeWalls.wallPoint0) this.updateMergeWallProperties(0, wall.points[1], wall.mergeWalls.wallPoint0);
-      if (wall.mergeWalls.wallPoint1) this.updateMergeWallProperties(1, wall.points[0], wall.mergeWalls.wallPoint1);
-      const listRelatedWalls: (string | number)[] = this.getMergeWallsIDForUpdate(wall.id);
-      this.drawListWalls(listRelatedWalls);
-    }
-  }
+  // [REMOVED: quantization] откат стены если не было snap-коммита
+  // if (this.state.activeWall && this.state.dragRoomId != null && !this.state.hasAngleStepCommit) {
+  //   const wall = this.objectWalls.find((w: ObjectWall) => w.id === this.state.activeWall);
+  //   if (wall && this.state.oldPosition?.length >= 2) {
+  //     wall.points[0] = { ...this.state.oldPosition[0] };
+  //     wall.points[1] = { ...this.state.oldPosition[1] };
+  //     wall.width = Math.hypot(wall.points[1].x - wall.points[0].x, wall.points[1].y - wall.points[0].y);
+  //     if (wall.mergeWalls.wallPoint0) this.updateMergeWallProperties(0, wall.points[1], wall.mergeWalls.wallPoint0);
+  //     if (wall.mergeWalls.wallPoint1) this.updateMergeWallProperties(1, wall.points[0], wall.mergeWalls.wallPoint1);
+  //     const listRelatedWalls: (string | number)[] = this.getMergeWallsIDForUpdate(wall.id);
+  //     this.drawListWalls(listRelatedWalls);
+  //   }
+  // }
 
   if(this.state.activeWall) {
 
@@ -70,9 +68,6 @@ export function handlerStageMouseUp(this: any, e: PIXI.FederatedPointerEvent): v
   this.state.mouseLeft = false;
   this.state.oldPosition = [];
   this.state.positionDown = { x: 0, y: 0 };
-  this.state.dragRoomId = null;
-  this.state.dragLastCommittedAngles = null;
-  this.state.hasAngleStepCommit = false;
 
   e.stopPropagation(); // Останавливаем всплытие события
 

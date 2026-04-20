@@ -9,20 +9,28 @@ import { setCookie, getCookie, deleteCookie, COOKIE_NAMES } from '@/components/a
 import { useToast } from '@/features/toaster/useToast'
 
 const TOKEN_EXPIRATION_HOURS = 24
+const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true'
+const DEV_USER: UserData = {
+  avatar: null,
+  name: 'Dev User',
+  status: 'online',
+  login: 'dev',
+  email: 'dev@local',
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter()
   const appDataStore = useAppData()
   const isCheckURL = ref(false);
 
-  const isAuthenticated = ref(!!getCookie(COOKIE_NAMES.AUTH_TOKEN))
+  const isAuthenticated = ref(DEV_AUTH_BYPASS ? true : !!getCookie(COOKIE_NAMES.AUTH_TOKEN))
   const isSubmitting = ref(false)
   const error = ref({
     isError: false,
     message: ''
   })
 
-  const userData = ref<UserData>({
+  const userData = ref<UserData>(DEV_AUTH_BYPASS ? DEV_USER : {
     avatar: null,
     name: '',
     status: 'offline'
@@ -41,6 +49,11 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const fetchUserData = async () => {
+    if (DEV_AUTH_BYPASS) {
+      userData.value = { ...DEV_USER }
+      return userData.value
+    }
+
     try {
       const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
       
@@ -127,6 +140,10 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const checkUser = async () => {
+    if (DEV_AUTH_BYPASS) {
+      return { DATA: { type: 'success' } }
+    }
+
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
     const response = await AuthService.getCheckUser(token);
 
@@ -203,6 +220,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
   
   const logout = async () => {
+    if (DEV_AUTH_BYPASS) {
+      isAuthenticated.value = false
+      userData.value = {
+        avatar: null,
+        name: '',
+        status: 'offline'
+      }
+      return
+    }
+
     try {
       // Удаляем cookies
       deleteCookie(COOKIE_NAMES.AUTH_TOKEN)

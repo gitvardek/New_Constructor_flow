@@ -204,9 +204,17 @@ export function initRoom(this: any): (0 | 1) {
       points.push(point2, point3);
 
       wallData.points = points;
-      
+      if (roomWallData.isClosing) wallData.isClosing = true;
+
       this.objectWalls.push(wallData);
-      
+
+    }
+
+    // если ни одна стена не помечена как замыкающая — помечаем последнюю
+    const roomWalls = this.objectWalls.filter((w: ObjectWall) => w.roomId === room.id && w.name !== 'dividing_wall');
+    const hasClosing = roomWalls.some((w: ObjectWall) => w.isClosing);
+    if (!hasClosing && roomWalls.length > 0) {
+      roomWalls[roomWalls.length - 1].isClosing = true;
     }
 
     for(let i=0, len=this.objectWalls.length; i<len; i++) { // создаем точки стен для соединения
