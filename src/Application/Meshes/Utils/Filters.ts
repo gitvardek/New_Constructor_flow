@@ -69,11 +69,10 @@ export class Filters extends GlobalsData {
         if (!fasadePositionList) return
 
         const fasadeSorted = fasadePositionList.sort((a, b) => this._FASADE_POSITION[a].FASADE_NUMBER - this._FASADE_POSITION[b].FASADE_NUMBER);
-        console.log(fasadeSorted, '=== fasadeSorted ===')
+
         const fasadeTypeSorted = fasadeSorted.reduce((acc, index) =>
             acc.concat(this._FASADE_POSITION[index]?.fasade_type || []),
             []);
-
 
         params.FASADE_TYPE = fasadeTypeSorted
 
@@ -106,7 +105,6 @@ export class Filters extends GlobalsData {
             })
 
         sortFasadePositionList.forEach((fasade: number, key: number) => {
-
 
             const curFasade = fasade.ID ? fasade.ID : fasade
             const fasadePosition = this._FASADE_POSITION[curFasade]
@@ -151,7 +149,7 @@ export class Filters extends GlobalsData {
             const ismanualSizes = this._FASADESIZE[sizes]?.NAME.includes("Нестандарт")
 
 
-            console.log(ismanualSizes, this._FASADESIZE[sizes])
+            console.log(ismanualSizes, this._FASADESIZE[sizes], "Нестандарт")
 
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
@@ -175,14 +173,19 @@ export class Filters extends GlobalsData {
                 SIZES: {
                     id: sizes,
                     params: (() => {
-                        if (ismanualSizes) {
-                            return {
-                                FASADE_WIDTH: sizesData.WIDTH,
-                                min: sizesData.SIZE_EDIT_WIDTH_MIN,
-                                max: sizesData.SIZE_EDIT_WIDTH_MAX
-                            }
+                        return {
+                            FASADE_WIDTH: sizesData?.WIDTH ?? null,
+                            min: sizesData?.SIZE_EDIT_WIDTH_MIN ?? null,
+                            max: sizesData?.SIZE_EDIT_WIDTH_MAX ?? null
                         }
-                        return {}
+                        // if (ismanualSizes) {
+                        //     return {
+                        //         FASADE_WIDTH: sizesData.WIDTH,
+                        //         min: sizesData.SIZE_EDIT_WIDTH_MIN,
+                        //         max: sizesData.SIZE_EDIT_WIDTH_MAX
+                        //     }
+                        // }
+                        // return {}
                     })()
                 },
                 DRAWER: {

@@ -665,6 +665,8 @@ const prepareFasadeSizeList = () => {
 };
 
 const changeFasadeSize = async (data: TFasadeSize) => {
+  console.log("AUF");
+
   currentSize.value = data;
   const curData = productData.value;
   const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
@@ -673,20 +675,20 @@ const changeFasadeSize = async (data: TFasadeSize) => {
   const curSize = curFasade.SIZES;
   const positionList = Object.values(FASADE_SIZE)[props.tabIndex];
   const curPositionId = positionList[data.ID].ID;
-  const defaultWidth = Object.values(positionList)[0].FASADE_WIDTH;
+  const defaultWidth = Object.values(positionList)[0]?.FASADE_WIDTH;
 
-  const isIncomeWidth = isNaN(
-    Number(_APP.FASADE_POSITION[curPositionId].FASADE_WIDTH),
-  );
+  const incomePosition = _APP.FASADE_POSITION[curPositionId];
+  const isIncomeWidth = isNaN(parseInt(incomePosition.FASADE_WIDTH));
 
   curSize.id = data.ID;
   curFasade.POSITION = curPositionId;
 
   if (isIncomeWidth) {
-    console.log(isIncomeWidth, "isIncomeWidth");
-
-    if (incomeSize.value.width === null)
+    
+    if (incomeSize.value.width === null) {
       incomeSize.value.width = parseInt(defaultWidth);
+    }
+
     incomeSize.value.min = data.SIZE_EDIT_WIDTH_MIN;
     incomeSize.value.max = data.SIZE_EDIT_WIDTH_MAX;
 
@@ -697,7 +699,11 @@ const changeFasadeSize = async (data: TFasadeSize) => {
     incomeSize.value.width = null;
     incomeSize.value.min = null;
     incomeSize.value.max = null;
-    curSize.params = {};
+    curSize.params = {
+      FASADE_WIDTH: parseInt(incomePosition.FASADE_WIDTH),
+      min: null,
+      max: null,
+    };
   }
 
   eventBus.emit("A:Model-resize", {
@@ -745,8 +751,8 @@ onBeforeMount(() => {
   fasadeSizeListExist.value = fasadeSizeList.value.length > 0;
 
   const { FASADE_PROPS, FASADE_SIZE } = productData.value.PROPS.CONFIG;
+
   const positionList = Object.values(FASADE_SIZE)[props.tabIndex];
-  const defaultWidth = Object.values(positionList)[0].FASADE_WIDTH;
 
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;
@@ -759,7 +765,7 @@ onBeforeMount(() => {
   //     ? fasadeSizeList.value[0].WIDTH
   //     : null;
 
-  console.log(defaultWidth, "defaultWidth", fasadeSizeList.value);
+  console.log(positionList, "defaultWidth");
 
   incomeSize.value = {
     width: curSize?.params?.FASADE_WIDTH ?? null,
@@ -871,7 +877,7 @@ onBeforeUnmount(() => {
       </div>
 
       <MainInput
-        v-if="incomeSize.width"
+        v-if="incomeSize.min && incomeSize.max"
         :inputClass="'input__search right-menu'"
         :type="'number'"
         :min="incomeSize.min"
