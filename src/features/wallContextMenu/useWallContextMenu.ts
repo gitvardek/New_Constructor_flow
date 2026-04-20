@@ -12,7 +12,12 @@ export interface WallContextMenuItem {
 export type WallContextMenuWallContext = {
   kind: 'wall';
   wallId: string | number;
+<<<<<<< HEAD
   canDeleteWall?: boolean;
+=======
+  isClosingWall: boolean;
+  canDelete: boolean;
+>>>>>>> 4e3dbf34f155bd0d488801828cee0d61107f5b07
   onSplitWall: (id: string | number) => void;
   onDeleteWall: (id: string | number) => void;
 };
@@ -45,11 +50,19 @@ export const useWallContextMenu = () => {
     const ctx = menuContext.value;
     if (!ctx) return [];
     if (ctx.kind === 'wall') {
+      const closing = ctx.isClosingWall;
       return [
+<<<<<<< HEAD
         { key: 'splitWall', label: 'Добавить стену' },
         { key: 'changeWallHeight', label: 'Изменить высоту стен' },
         { key: 'changeWallLength', label: 'Изменить длину стены' },
         { key: 'deleteWall', label: 'Удалить стену', disabled: ctx.canDeleteWall === false },
+=======
+        { key: 'splitWall',        label: 'Добавить стену',        disabled: closing },
+        { key: 'changeWallHeight', label: 'Изменить высоту стен',  disabled: false },
+        { key: 'changeWallLength', label: 'Изменить длину стены',  disabled: closing },
+        { key: 'deleteWall',       label: 'Удалить стену',         disabled: closing || !ctx.canDelete },
+>>>>>>> 4e3dbf34f155bd0d488801828cee0d61107f5b07
       ];
     }
     if (ctx.kind === 'window') {

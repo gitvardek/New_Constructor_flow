@@ -37,13 +37,25 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
         const canDeleteWall = currentWall?.roomId == null || sameRoomWallsCount > 4;
 
         // Эмитим событие для показа контекстного меню
+        const clickedWall = this.objectWalls.find((w: ObjectWall) => w.id === id);
+        const isClosingWall = clickedWall?.isClosing === true;
+        const regularWalls = this.objectWalls.filter(
+          (w: ObjectWall) => w.roomId === clickedWall?.roomId && w.name !== 'dividing_wall' && !w.isClosing
+        );
+        const canDelete = regularWalls.length > 3;
+
         this.parent.eventBus.emit(Events.C2D_SHOW_WALL_CONTEXT_MENU, {
           x: domX,
           y: domY,
           context: {
             kind: "wall" as const,
             wallId: id,
+<<<<<<< HEAD
             canDeleteWall,
+=======
+            isClosingWall,
+            canDelete,
+>>>>>>> 4e3dbf34f155bd0d488801828cee0d61107f5b07
             onSplitWall: (wallId: string | number) => {
               if (typeof this.splitWallIntoTwo === "function") {
                 this.splitWallIntoTwo(wallId);
@@ -84,10 +96,11 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
     if (addedwall && addedwall.points) {
       this.state.oldPosition = JSON.parse(JSON.stringify(addedwall.points));
     }
-    this.state.dragRoomId = addedwall?.roomId ?? null;
-    this.state.dragLastCommittedAngles =
-      this.state.dragRoomId != null ? this.getRoomCornerAnglesDeg(this.state.dragRoomId) : null;
-    this.state.hasAngleStepCommit = false;
+    // [REMOVED: quantization] dragRoomId / dragLastCommittedAngles / hasAngleStepCommit
+    // this.state.dragRoomId = addedwall?.roomId ?? null;
+    // this.state.dragLastCommittedAngles =
+    //   this.state.dragRoomId != null ? this.getRoomCornerAnglesDeg(this.state.dragRoomId) : null;
+    // this.state.hasAngleStepCommit = false;
     
     this.state.positionDown.x = e.global.x;
     this.state.positionDown.y = e.global.y;

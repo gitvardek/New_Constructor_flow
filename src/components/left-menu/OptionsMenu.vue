@@ -145,12 +145,20 @@ const clearSearch = () => {
 
 onBeforeMount(() => {
   const app = useAppData().getAppData;
+  const catalog = app?.CATALOG;
 
-  const prepare = JSON.parse(JSON.stringify(app.CATALOG.SECTIONS_TYPE));
+  if (!catalog?.SECTIONS_TYPE || !catalog?.SECTIONS) {
+    catalogSectionsType.value = {};
+    catalogSections.value = {};
+    filteredCatalogSections.value = [];
+    return;
+  }
+
+  const prepare = JSON.parse(JSON.stringify(catalog.SECTIONS_TYPE));
   // delete prepare.room; //Убираем ниши
 
   catalogSectionsType.value = prepare;
-  catalogSections.value = app.CATALOG.SECTIONS;
+  catalogSections.value = catalog.SECTIONS;
 
   filterCatalog(selectedSectionType.value);
 });
