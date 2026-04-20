@@ -8,8 +8,11 @@ const appDataStore = useAppData()
 console.log('appDataStore.getAppData', appDataStore.getAppData)
 
 function createFacadeProps(objProps: any): IBasketFacade[] {
+  console.log('SHHHH')
+
   return objProps.CONFIG.FASADE_PROPS
     ? objProps.CONFIG.FASADE_PROPS.map((fp: any, index: number) => {
+
       const facade = objProps.FASADE[index];
       const trueSize = facade?.object?.userData?.trueSize;
 
@@ -26,6 +29,7 @@ function createFacadeProps(objProps: any): IBasketFacade[] {
       if (fp.TYPE != null) result.TYPE = fp.TYPE;
       if (fp.HANDLES != null) result.HANDLES = { ID: fp.HANDLES.id };
       if (fp.SIZES != null) result.SIZES = fp.SIZES;
+      if (fp.SIZES != null) result.SIZES2 = fp.SIZES;
       if (fp.TYPE != null || fp.MILLING_TYPE != null) result.FASADETYPE = fp.TYPE ?? fp.MILLING_TYPE;
 
 
@@ -519,7 +523,6 @@ function removeEmptyObjects(obj) {
 }
 
 export function createBasketItem(objProps: any, index: number, key: any = ''): IBasket {
-  console.log('createBasketItem', objProps);
 
   const props: any = {};
 
@@ -529,7 +532,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
   if (facadeProps && facadeProps.length > 0) {
     props.FASADE = facadeProps;
   }
-
 
   const bodyProps = createBodyProps(objProps);
   if (bodyProps && Object.keys(bodyProps).length > 0) {
@@ -597,8 +599,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
 
   if (objProps.RASPIL.data) {
 
-    console.log('====== RASPIL 2 =====', objProps.RASPIL.data)
-
     props.PROFILE = objProps.CONFIG.PROFILE.filter(el => el.value)[0]?.ID;
     props.RASPIL_COUNT = objProps.RASPIL.data.length
 
@@ -615,11 +615,7 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
 
   if (objProps.RASPIL.data && objProps.RASPIL.data.length === 1) {
 
-    console.log('====== USLUGI =====')
-
     objProps.CONFIG.USLUGI.forEach(el => {
-
-      console.log(el, '====== USLUGI 2 =====')
       if (el.value === true) {
         props.USLUGI.push(el.ID);
       }
@@ -631,7 +627,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
     props.MECHANISMNAME = objProps.CONFIG.MECHANISM_TEMP.find(el => el.active).NAME;
   }
 
-
   if (objProps.CONFIG.FILLING) {
     props.FILLING = objProps.CONFIG.FILLING;
   }
@@ -640,12 +635,10 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
     props.SHELFQUANT = objProps.CONFIG.SHELFQUANT?.current;
   }
 
-
-
   if (objProps.CONFIG.SECTIONS) {
     const propsUM = convertModuleToLegacyFormat(objProps);
     const cleanedData = removeEmptyObjects(propsUM);
-    console.log('cleanedData', cleanedData)
+
     let HANDLES = []
     facadeProps.forEach(fasade => {
       if (fasade.HANDLES) {
@@ -674,6 +667,7 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
 
 // Определения свойств (перенесено из Angular кода)
 export const propsLabel = {
+
   COLOR: { type: "COLOR", val: "int", NAME: "Цвет", SORT: 300 },
   MODULECOLOR: { type: "FASADE", val: "int", NAME: "Цвет корпуса", SORT: 300 },
   SIZE: { type: "SIZE", val: "int", NAME: "Размер", SORT: 400 },
@@ -707,7 +701,20 @@ export const propsLabel = {
   FASADEWIDTH: { type: false, val: "int", NAME: "Ширина фасада", SORT: 1360 },
   FASADE_WIDTH: { type: false, val: "int", NAME: "Ширина фасада", SORT: 1360 },
   FASADESIZE: { type: "FASADESIZE", val: "int", NAME: "Высота фасада", SORT: 1350 },
-  SIZES: { type: "SIZES", val: "int", NAME: "Высота фасада", SORT: 1350 },
+  SIZES: {
+    type: "SIZES",
+    val: "int",
+    NAME: "Высота фасада",
+    SORT: 1350
+  },
+
+  SIZES2: {
+    type: "SIZES2",
+    val: "int",
+    NAME: "Ширина фасада",
+    SORT: 1350
+  },
+
   FASADESIZE1: {
     type: "FASADESIZE",
     val: "int",

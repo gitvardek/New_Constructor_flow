@@ -35,6 +35,7 @@ const eventBus = useEventBus();
 const { setTransformControlsValue } = useTransformController();
 
 const openPopup = (popupName: keyof typeof popupStore.popups) => {
+
   popupStore.openPopup(popupName);
   eventBus.emit("A:GlobalTransformMode_Off");
   setTransformControlsValue(false);
