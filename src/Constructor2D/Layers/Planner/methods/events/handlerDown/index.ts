@@ -50,12 +50,8 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
           context: {
             kind: "wall" as const,
             wallId: id,
-<<<<<<< HEAD
-            canDeleteWall,
-=======
             isClosingWall,
             canDelete,
->>>>>>> 4e3dbf34f155bd0d488801828cee0d61107f5b07
             onSplitWall: (wallId: string | number) => {
               if (typeof this.splitWallIntoTwo === "function") {
                 this.splitWallIntoTwo(wallId);

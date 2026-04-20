@@ -63,10 +63,6 @@ const show = (payload: AngleInputPayload) => {
   position.value = { x: payload.x + 10, y: payload.y };
   isReadOnly.value = payload.readOnly === true;
   angleInput.value = String(payload.angle.toFixed(2).replace('.', ','));
-<<<<<<< HEAD
-  dragStepInput.value = String((payload.dragAngleStep ?? 1).toFixed(2).replace('.', ','));
-=======
->>>>>>> 4e3dbf34f155bd0d488801828cee0d61107f5b07
   applyCallback = payload.onApply;
   isVisible.value = true;
 };

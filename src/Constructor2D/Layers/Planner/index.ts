@@ -408,13 +408,6 @@ export default class Planner {
       y: 0
     },
     oldPosition: [],
-<<<<<<< HEAD
-    dragRoomId: null,
-    dragAngleStepDeg: 1,
-    dragLastCommittedAngles: null,
-    hasAngleStepCommit: false
-=======
->>>>>>> 4e3dbf34f155bd0d488801828cee0d61107f5b07
 
   }
 
