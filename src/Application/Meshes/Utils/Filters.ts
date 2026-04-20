@@ -148,7 +148,7 @@ export class Filters extends GlobalsData {
             const handles = this.project.default_handles
             const sizes = fasade.FASADE_SIZE ?? null
             const sizesData = this._FASADESIZE[sizes]
-            const ismanualSizes = this._FASADESIZE[sizes].NAME.includes("Нестандарт")
+            const ismanualSizes = this._FASADESIZE[sizes]?.NAME.includes("Нестандарт")
 
 
             console.log(ismanualSizes, this._FASADESIZE[sizes])

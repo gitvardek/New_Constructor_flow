@@ -21,6 +21,7 @@ import { useConstructor2DHistory } from "@/store/constructor2d/useConstructor2DH
 import { TApplication } from "@/types/types";
 import { buildProjectFromWallWidths } from "@/Constructor2D/facade/blankRoom";
 import { usePopupStore } from "@/store/appStore/popUpsStore";
+import { useTransformController } from "../ui/transformController/useTransformController";
 
 import {
   postRequest,
@@ -71,6 +72,7 @@ const customiserStore = useCustomiserStore();
 const schemeTransition = useSchemeTransition();
 const constructor2DHistory = useConstructor2DHistory();
 const popupStore = usePopupStore();
+const { setTransformControlsValue } = useTransformController();
 
 // const _saveProject = async () => {
 //   eventBus.emit("A:Save");
@@ -150,7 +152,7 @@ const createNewRoom = (value: string) => {
         widths.right,
         widths.left,
         widths.bottom,
-        widths.top
+        widths.top,
       );
 
       const template = projectData?.rooms?.[0];
@@ -158,9 +160,7 @@ const createNewRoom = (value: string) => {
 
       const roomId = template.id ?? Date.now().toString();
       const label =
-        value ||
-        template.label ||
-        `Комната ${roomState.getRooms.length + 1}`;
+        value || template.label || `Комната ${roomState.getRooms.length + 1}`;
 
       roomState.addRoom({
         id: roomId,
@@ -190,9 +190,7 @@ const createNewRoom = (value: string) => {
       nextTick(() => {
         const snapshot = schemeTransition.getAllData();
         if (snapshot && Array.isArray(snapshot)) {
-          constructor2DHistory.addAction(
-            JSON.parse(JSON.stringify(snapshot))
-          );
+          constructor2DHistory.addAction(JSON.parse(JSON.stringify(snapshot)));
         }
       });
     });
@@ -217,6 +215,11 @@ const createNewRoom = (value: string) => {
 
 const checkContantLoad = (state: boolean) => {
   contentLoaded.value = state;
+};
+
+const disableTransformMode = () => {
+  eventBus.emit("A:GlobalTransformMode_Off");
+  setTransformControlsValue(false);
 };
 
 const moreThenActions = computed(() => {
@@ -256,6 +259,9 @@ const prevAction = async () => {
     if (verdekConstructor.value) {
       contentLoaded.value = false;
       await roomState.setLoad(false);
+
+      disableTransformMode();
+
       await nextTick();
       setTimeout(() => {
         eventBus.emit("A:PrevAction");
@@ -295,6 +301,7 @@ const nextAction = async () => {
     if (verdekConstructor.value) {
       contentLoaded.value = false;
       await roomState.setLoad(false);
+      disableTransformMode();
       await nextTick();
       setTimeout(() => {
         eventBus.emit("A:NextAction");
@@ -435,10 +442,7 @@ const waitForConstructor = async (timeout = 2000, interval = 50) => {
 watch(
   () => route.path,
   async (newPath, oldPath) => {
-    
-
     try {
-
       if (oldPath === "/3d" && newPath === "/2d" && verdekConstructor.value) {
         eventBus.emit("A:Save");
         await nextTick(); // Ждем сохранения
