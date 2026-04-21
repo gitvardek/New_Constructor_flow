@@ -1,27 +1,51 @@
 //@ts-nocheck
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import {ErrorItem, ErrorsMessage, ErrorsType, LOOPSIDE} from "@/types/constructor2d/interfaсes.ts";
+import { ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/types/constructor2d/interfaсes.ts";
 import * as THREE from "three";
-import {GridModule} from "@/components/UMconstructor/types/UMtypes.ts";
+import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 
+type TSizze = {
+    width: number,
+    height: number
+}
+
+type T2DLoopParams = {
+    vertical: TSizze,
+    horizontal: TSizze
+}
 
 export default class LoopsManager {
     scope: UMconstructorClass
-    constructor(scope: UMconstructorClass) {
-        this.scope = scope
+    private readonly loopConfig: T2DLoopParams = {
+        vertical: {
+            width: 38,
+            height: 82
+        },
+        horizontal: {
+            width: 73,
+            height: 38
+        },
+        offsetX: 14,
+        offsetY: 14,
     }
 
-    calcLoops (secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
-        const CONFIG = this.scope.UM_STORE.getUMData()?.CONFIG;
+    constructor(scope: UMconstructorClass) {
+        this.scope = scope
+
+    }
+
+    calcLoops(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const { CONFIG, SECTIONS } = this.scope.UM_STORE.getUMData();
 
         if (!CONFIG.LOOPS)
             return
 
         const curSection = grid.sections[secIndex]
+        // console.log(curSection, 'curSection')
         const FASADES = curSection.fasades || []
 
-        if(grid.noLoops){
+        if (grid.noLoops) {
             delete curSection.loops
             delete curSection.loopsSides
             FASADES.forEach((door, doorKey) => {
@@ -62,71 +86,132 @@ export default class LoopsManager {
 
     calcLoopPositions(fasades, section) {
 
+        const { horizontal, vertical } = this.loopConfig
+
         let allLoops = []
 
         const defaultPos = 102
         const lowSizePos1 = 74
         const lowSizePos2 = 93
 
+        const allSides = fasades.map(fasade => { return fasade.loopsSide })
+
         fasades.forEach((fasade, key) => {
 
+            console.log(fasade, 'fasade')
+
+            const { width, height } = fasade
+
+            const fasadeHeight = height;
+            const quarterPos = fasadeHeight / 4
+            const oneThirdPos = fasadeHeight / 3
+            const secondPos = fasadeHeight / 2
+
+            const hasTop = LOOPSIDE[fasade.loopsSide]?.includes("top")
+            const notTopID = allSides.find(el => el !== LOOPSIDE['top'])
+            const notTopLoop = LOOPSIDE[notTopID]
+            const defaultLoop = LOOPSIDE['left']
+
+            const top = width >= 350 && fasadeHeight <= 450 && LOOPSIDE[fasade.loopsSide]?.includes("top")
+
+            const left = LOOPSIDE[fasade.loopsSide]?.includes("left") || hasTop && !top && notTopLoop && notTopLoop?.includes("left")
+            const right = LOOPSIDE[fasade.loopsSide]?.includes("right") || hasTop && !top && notTopLoop && notTopLoop?.includes("right")
+
+            const isDefault = hasTop && !top && !notTopLoop
+
+            if (left || right) {
+                fasade.material.MECHANISM = null
+            }
+
+            if (hasTop && !top) {
+                fasade.loopsSide = notTopID
+                fasade.material.MECHANISM = null
+            }
+            if (isDefault) {
+                fasade.loopsSide = defaultLoop
+                fasade.material.MECHANISM = null
+
+            }
             const fasadeLoops = {
                 side: fasade.loopsSide,
                 coords: [],
                 errors: [],
-                height: 82,
-                width: 38,
+                height: top ? horizontal.height : vertical.height,
+                width: top ? horizontal.width : vertical.width,
                 type: 'loop',
-                positionX: LOOPSIDE[fasade.loopsSide]?.includes("left") ? section.position.x - section.width / 2 : section.position.x + section.width / 2 - 38,
+                positionX: (() => {
+                    if (isDefault) {
+                        return section.position.x - section.width / 2
+                    }
+                    if (left) {
+                        return section.position.x - section.width / 2
+                    }
+                    if (right) {
+                        return section.position.x + section.width / 2 - 38
+                    }
+                    if (top) {
+                        return section.position.x - section.width / 2
+
+                    }
+                })(),
+                positionX2: top ? section.position.x + fasade.width / 2 - (horizontal.width) : null,
+                positionY: top ? fasade.position.y + height - horizontal.height * 0.5 - this.loopConfig.offsetY : fasade.position.y
+
             }
 
-            const fasadeSize = fasade.height;
-            const quarterPos = fasadeSize / 4
-            const oneThirdPos = fasadeSize / 3
-            const secondPos = fasadeSize / 2
-
-            const position = fasade.position.y
+            const { positionY, positionX, positionX2 } = fasadeLoops
 
             //исключения по размерам
-            if (fasadeSize === 2036) {
-                //Отступ 658 от краев фасада
+
+            if (!top) {
+                if (fasadeHeight === 2036) {
+                    //Отступ 658 от краев фасада
+                    fasadeLoops.coords = []
+                    fasadeLoops.coords.push(+(positionY + defaultPos).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + 658).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + fasadeHeight - 658).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + fasadeHeight - defaultPos).toFixed(1))
+                } else if (fasadeHeight === 536) {
+                    //Отступ 93 от краев фасада
+                    fasadeLoops.coords = []
+                    fasadeLoops.coords.push(+(positionY + lowSizePos2).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + fasadeHeight - lowSizePos2).toFixed(1))
+                }//
+                else if (fasadeHeight >= 2064) {
+                    fasadeLoops.coords.push(+(positionY + defaultPos).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + quarterPos).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + quarterPos * 2).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + quarterPos * 3).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + fasadeHeight - defaultPos).toFixed(1))
+                } else if (fasadeHeight < 2064 && fasadeHeight > 1500) {
+                    fasadeLoops.coords.push(+(positionY + defaultPos).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + oneThirdPos).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + oneThirdPos * 2).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + fasadeHeight - defaultPos).toFixed(1))
+                } else if (fasadeHeight <= 1500 && fasadeHeight > 1000) {
+                    fasadeLoops.coords.push(+(positionY + defaultPos).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + secondPos).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + fasadeHeight - defaultPos).toFixed(1))
+                } else if (fasadeHeight <= 1000 && fasadeHeight > 400) {
+                    fasadeLoops.coords.push(+(positionY + defaultPos).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + fasadeHeight - defaultPos).toFixed(1))
+                } else if (400 >= fasadeHeight && fasadeHeight >= 360) {
+                    fasadeLoops.coords.push(+(positionY + lowSizePos1).toFixed(1))
+                    fasadeLoops.coords.push(+(positionY + fasadeHeight - lowSizePos1).toFixed(1))
+                }
+            }
+            else {
                 fasadeLoops.coords = []
-                fasadeLoops.coords.push((position + defaultPos).toFixed(1))
-                fasadeLoops.coords.push((position + 658).toFixed(1))
-                fasadeLoops.coords.push((position + fasadeSize - 658).toFixed(1))
-                fasadeLoops.coords.push((position + fasadeSize - defaultPos).toFixed(1))
-            } else if (fasadeSize === 536) {
-                //Отступ 93 от краев фасада
-                fasadeLoops.coords = []
-                fasadeLoops.coords.push((position + lowSizePos2).toFixed(1))
-                fasadeLoops.coords.push((position + fasadeSize - lowSizePos2).toFixed(1))
-            }//
-            else if (fasadeSize >= 2064) {
-                fasadeLoops.coords.push((position + defaultPos).toFixed(1))
-                fasadeLoops.coords.push((position + quarterPos).toFixed(1))
-                fasadeLoops.coords.push((position + quarterPos * 2).toFixed(1))
-                fasadeLoops.coords.push((position + quarterPos * 3).toFixed(1))
-                fasadeLoops.coords.push((position + fasadeSize - defaultPos).toFixed(1))
-            } else if (fasadeSize < 2064 && fasadeSize > 1500) {
-                fasadeLoops.coords.push((position + defaultPos).toFixed(1))
-                fasadeLoops.coords.push((position + oneThirdPos).toFixed(1))
-                fasadeLoops.coords.push((position + oneThirdPos * 2).toFixed(1))
-                fasadeLoops.coords.push((position + fasadeSize - defaultPos).toFixed(1))
-            } else if (fasadeSize <= 1500 && fasadeSize > 1000) {
-                fasadeLoops.coords.push((position + defaultPos).toFixed(1))
-                fasadeLoops.coords.push((position + secondPos).toFixed(1))
-                fasadeLoops.coords.push((position + fasadeSize - defaultPos).toFixed(1))
-            } else if (fasadeSize <= 1000 && fasadeSize > 400) {
-                fasadeLoops.coords.push((position + defaultPos).toFixed(1))
-                fasadeLoops.coords.push((position + fasadeSize - defaultPos).toFixed(1))
-            } else if (400 >= fasadeSize && fasadeSize >= 360) {
-                fasadeLoops.coords.push((position + lowSizePos1).toFixed(1))
-                fasadeLoops.coords.push((position + fasadeSize - lowSizePos1).toFixed(1))
+                fasadeLoops.coords.push([+positionY.toFixed(1), +positionX.toFixed(1)])
+                fasadeLoops.coords.push([+positionY.toFixed(1), +positionX2.toFixed(1)])
             }
 
-            fasadeLoops.coords = fasadeLoops.coords.map((item) => parseInt(item))
-            allLoops.push(fasadeLoops)
+            if (fasade.loopsSide)
+
+                // fasadeLoops.coords = fasadeLoops.coords.map((item) => parseInt(item))
+                allLoops.push(fasadeLoops)
         })
+
 
         return allLoops
     }
@@ -144,7 +229,7 @@ export default class LoopsManager {
         if (!loops)
             return
 
-        const errorItem =  <ErrorItem>{
+        const errorItem = <ErrorItem>{
             type: ErrorsType['loops'],
             message: ErrorsMessage['loops'],
             sections: {}
@@ -179,10 +264,10 @@ export default class LoopsManager {
                 ) {
                     result.push(loop.id)
                 }
-                else if(cell.fillings?.length) {
+                else if (cell.fillings?.length) {
                     cell.fillings.forEach((filling) => {
                         let filling_pos = new THREE.Vector2(filling.position.x, grid.height - filling.position.y - filling.height)
-                        if(
+                        if (
                             (
                                 (loop.minY < (filling_pos.y + filling.height) && loop.maxY > (filling_pos.y + filling.height)) ||
                                 (loop.minY < filling_pos.y && loop.maxY > filling_pos.y) ||
@@ -217,7 +302,7 @@ export default class LoopsManager {
 
                         cell.cellsRows?.forEach((cellRow) => {
 
-                            if(cellRow.extras?.length) {
+                            if (cellRow.extras?.length) {
                                 cellRow.extras.forEach((extraRow) => {
                                     let check = checkLoop(_loops, extraRow)
                                     check.forEach((id) => {
@@ -231,8 +316,8 @@ export default class LoopsManager {
 
                     })
 
-                    if(loops[doorKey][fasadeKey].errors.length) {
-                        if(!errorItem.sections[secIndex])
+                    if (loops[doorKey][fasadeKey].errors.length) {
+                        if (!errorItem.sections[secIndex])
                             errorItem.sections[secIndex] = []
 
                         errorItem.sections[secIndex].push(loops[doorKey][fasadeKey].errors)
@@ -251,8 +336,8 @@ export default class LoopsManager {
                             loops[doorKey][fasadeKey].errors.push(id)
                     })
 
-                    if(loops[doorKey][fasadeKey].errors.length) {
-                        if(!errorItem.sections[secIndex])
+                    if (loops[doorKey][fasadeKey].errors.length) {
+                        if (!errorItem.sections[secIndex])
                             errorItem.sections[secIndex] = []
 
                         errorItem.sections[secIndex].push(loops[doorKey][fasadeKey].errors)
@@ -263,10 +348,10 @@ export default class LoopsManager {
         }
 
         if (Object.entries(errorItem.sections).length) {
-            if(!grid.errors)
+            if (!grid.errors)
                 grid.errors = {}
 
-            if(!grid.errors[ErrorsType['loops']])
+            if (!grid.errors[ErrorsType['loops']])
                 grid.errors[ErrorsType['loops']] = <ErrorItem>{
                     type: ErrorsType['loops'],
                     message: ErrorsMessage['loops'],
@@ -275,137 +360,170 @@ export default class LoopsManager {
 
             grid.errors[ErrorsType['loops']].sections = Object.assign(grid.errors[ErrorsType['loops']].sections, errorItem.sections)
         }
-        else if(grid.errors?.[ErrorsType['loops']]?.sections?.[secIndex]?.length) {
+        else if (grid.errors?.[ErrorsType['loops']]?.sections?.[secIndex]?.length) {
             delete grid.errors[ErrorsType['loops']].sections[secIndex]
         }
 
-        if(grid.errors?.[ErrorsType['loops']] && !Object.entries(grid.errors[ErrorsType['loops']].sections).length)
+        if (grid.errors?.[ErrorsType['loops']] && !Object.entries(grid.errors[ErrorsType['loops']].sections).length)
             delete grid.errors?.[ErrorsType['loops']]
 
         return loops;
     }
 
-    getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule) {
+
+    getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) {
+        console.log(grid, 'JJJ')
+
+
+
+
         const productInfo = this.scope.APP.CATALOG.PRODUCTS[grid.productID];
+        const loopsData = this.scope.APP.LOOPSIDE
+        const MokLoop = [...productInfo.LOOPSIDE, 14981055]
+
+        const currSection = grid.sections[secIndex];
+        const isTopPoseble = currSection.fasades?.length < 2
 
         let list = [];
         let tmp = {};
 
-        if(grid.isRestrictedModule){
-            tmp[LOOPSIDE["left"]] = this.scope.APP.LOOPSIDE[LOOPSIDE["left"]];
-            tmp[LOOPSIDE["right"]] = this.scope.APP.LOOPSIDE[LOOPSIDE["right"]];
+        if (grid.isRestrictedModule) {
+            tmp[LOOPSIDE["left"]] = loopsData[LOOPSIDE["left"]];
+            tmp[LOOPSIDE["right"]] = loopsData[LOOPSIDE["right"]];
+            tmp[LOOPSIDE["top"]] = loopsData[LOOPSIDE["top"]];
         }
         else {
-            productInfo.LOOPSIDE.forEach((type) => {
-                if (this.scope.APP.LOOPSIDE[type] != undefined) {
-                    tmp[type] = this.scope.APP.LOOPSIDE[type];
+            // productInfo.LOOPSIDE.forEach((type) => {
+            MokLoop.forEach((type) => {
+                if (loopsData[type] != undefined) {
+                    tmp[type] = loopsData[type];
                 }
             });
         }
 
-        const currSection = grid.sections[secIndex];
+
         const sectionLeft = grid.sections[secIndex - 1] || false;
         const sectionRight = grid.sections[secIndex + 1] || false;
 
-        const currSectionLoops = currSection.loopsSides || {};
+        const currSectionLoops = currSection.loopsSides ?? 13864508;
 
-        switch (doorIndex) {
-            case 0:
-                if (grid.sections[secIndex].fasades[1]) {
-                    delete tmp[LOOPSIDE["right"]];
-                }
+        if (isTopPoseble) {
 
-                if (sectionLeft) {
-                    const sectionLeftLoops = sectionLeft.loopsSides || {};
+            console.log('ЗДЕСЯЯЯ')
 
-                    if(!grid.isRestrictedModule) {
-                        if (
-                            sectionLeftLoops[1] ||
-                            [LOOPSIDE["right"], LOOPSIDE["right_on_partition"]].includes(
-                                sectionLeftLoops[0]
-                            )
-                        )
-                        {
-                            delete tmp[LOOPSIDE["left_on_partition"]];
-                        }
-                        else {
-                            tmp[LOOPSIDE["left_on_partition"]] =
-                                this.scope.APP.LOOPSIDE[LOOPSIDE["left_on_partition"]];
-                        }
+            const fasadeHeight = segment ? currSection.fasades[0][segment - 1]?.height : false
+
+            if (typeof fasadeHeight === 'number' && fasadeHeight > 450 || segment != currSection.fasades[0]?.length) {
+                delete tmp[LOOPSIDE["top"]];
+            }
+
+        }
+        else {
+
+            console.log('ТУУУУУТАААААА')
+
+            delete tmp[LOOPSIDE["top"]];
+            switch (doorIndex) {
+                case 0:
+
+                    console.log('IS TOPOPP 2222')
+                    if (grid.sections[secIndex].fasades[1]) {
+                        delete tmp[LOOPSIDE["right"]];
                     }
 
-                    delete tmp[LOOPSIDE["left"]];
-                }
+                    if (sectionLeft) {
+                        const sectionLeftLoops = sectionLeft.loopsSides || {};
 
-                if (sectionRight) {
-                    const sectionRightLoops = sectionRight.loopsSides || {};
-
-                    if(!grid.isRestrictedModule) {
-                        if (
-                            sectionRightLoops[1] ||
-                            [LOOPSIDE["left"], LOOPSIDE["left_on_partition"]].includes(
-                                sectionRightLoops[0]
-                            )
-                        ) {
-                            delete tmp[LOOPSIDE["right_on_partition"]];
-                        } else {
-                            tmp[LOOPSIDE["right_on_partition"]] =
-                                this.scope.APP.LOOPSIDE[LOOPSIDE["right_on_partition"]];
+                        if (!grid.isRestrictedModule) {
+                            if (
+                                sectionLeftLoops[1] ||
+                                [LOOPSIDE["right"], LOOPSIDE["right_on_partition"]].includes(
+                                    sectionLeftLoops[0]
+                                )
+                            ) {
+                                delete tmp[LOOPSIDE["left_on_partition"]];
+                            }
+                            else {
+                                tmp[LOOPSIDE["left_on_partition"]] =
+                                    loopsData[LOOPSIDE["left_on_partition"]];
+                            }
                         }
+
+                        delete tmp[LOOPSIDE["left"]];
                     }
 
-                    delete tmp[LOOPSIDE["right"]];
-                }
+                    if (sectionRight) {
+                        const sectionRightLoops = sectionRight.loopsSides || {};
 
-                break;
-            case 1:
-                if (sectionLeft) {
-                    const sectionLeftLoops = sectionLeft.loopsSides || {};
-
-                    if(!grid.isRestrictedModule) {
-                        if (
-                            sectionLeftLoops[1] ||
-                            [LOOPSIDE["right"], LOOPSIDE["right_on_partition"]].includes(
-                                sectionLeftLoops[0]
-                            )
-                        ) {
-                            delete tmp[LOOPSIDE["left_on_partition"]];
-                        } else {
-                            tmp[LOOPSIDE["left_on_partition"]] =
-                                this.scope.APP.LOOPSIDE[LOOPSIDE["left_on_partition"]];
+                        if (!grid.isRestrictedModule) {
+                            if (
+                                sectionRightLoops[1] ||
+                                [LOOPSIDE["left"], LOOPSIDE["left_on_partition"]].includes(
+                                    sectionRightLoops[0]
+                                )
+                            ) {
+                                delete tmp[LOOPSIDE["right_on_partition"]];
+                            } else {
+                                tmp[LOOPSIDE["right_on_partition"]] =
+                                    loopsData[LOOPSIDE["right_on_partition"]];
+                            }
                         }
+
+                        delete tmp[LOOPSIDE["right"]];
                     }
 
-                    delete tmp[LOOPSIDE["left"]];
-                }
+                    break;
+                case 1:
+                    if (sectionLeft) {
+                        const sectionLeftLoops = sectionLeft.loopsSides || {};
 
-                if (sectionRight) {
-                    const sectionRightLoops = sectionRight.loopsSides || {};
-
-                    if(!grid.isRestrictedModule) {
-                        if (
-                            sectionRightLoops[1] ||
-                            [LOOPSIDE["left"], LOOPSIDE["left_on_partition"]].includes(
-                                sectionRightLoops[0]
-                            )
-                        ) {
-                            delete tmp[LOOPSIDE["right_on_partition"]];
-                        } else {
-                            tmp[LOOPSIDE["right_on_partition"]] =
-                                this.scope.APP.LOOPSIDE[LOOPSIDE["right_on_partition"]];
+                        if (!grid.isRestrictedModule) {
+                            if (
+                                sectionLeftLoops[1] ||
+                                [LOOPSIDE["right"], LOOPSIDE["right_on_partition"]].includes(
+                                    sectionLeftLoops[0]
+                                )
+                            ) {
+                                delete tmp[LOOPSIDE["left_on_partition"]];
+                            } else {
+                                tmp[LOOPSIDE["left_on_partition"]] =
+                                    loopsData[LOOPSIDE["left_on_partition"]];
+                            }
                         }
+
+                        delete tmp[LOOPSIDE["left"]];
                     }
 
-                    delete tmp[LOOPSIDE["right"]];
-                }
+                    if (sectionRight) {
+                        const sectionRightLoops = sectionRight.loopsSides || {};
 
-                //delete tmp[LOOPSIDE["left"]]
-                delete tmp[currSectionLoops[0]];
+                        if (!grid.isRestrictedModule) {
+                            if (
+                                sectionRightLoops[1] ||
+                                [LOOPSIDE["left"], LOOPSIDE["left_on_partition"]].includes(
+                                    sectionRightLoops[0]
+                                )
+                            ) {
+                                delete tmp[LOOPSIDE["right_on_partition"]];
+                            } else {
+                                tmp[LOOPSIDE["right_on_partition"]] =
+                                    loopsData[LOOPSIDE["right_on_partition"]];
+                            }
+                        }
 
-                break;
+                        delete tmp[LOOPSIDE["right"]];
+                    }
+
+                    //delete tmp[LOOPSIDE["left"]]
+                    delete tmp[currSectionLoops[0]];
+
+                    break;
+            }
         }
 
         list = Object.values(tmp);
+
+        console.log(secIndex, list, '<====== list ======>')
         return list;
     };
 }

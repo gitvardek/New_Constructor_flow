@@ -66,7 +66,7 @@ export interface PlannerObject {
   angleDegrees: number;
   updateTime: number;
   mergeWalls: {
-    wallPoint0: string | number | null, 
+    wallPoint0: string | number | null,
     wallPoint1: string | number | null
   };
 }
@@ -85,14 +85,14 @@ export interface DrawObjects {
   containers: PlannerObjectContainers
 }
 
-export interface MergeWalls { 
+export interface MergeWalls {
   wallPoint0: null | string | number, // id стены которая присоединяется 0 точкой
   wallPoint1: null | string | number  // id стены которая присоединяется 1 точкой
 }
 
-export interface HoverPointObject { 
-  id: number | string; 
-  indexPoint: number 
+export interface HoverPointObject {
+  id: number | string;
+  indexPoint: number
 }
 
 export interface FillingObject {
@@ -102,7 +102,7 @@ export interface FillingObject {
   name: string;
   image: string;
   type: "shelf" | "drawer" | "any";
-  position:  THREE.Vector2;
+  position: THREE.Vector2;
   size: THREE.Vector3;
   width: number,
   height: number,
@@ -118,10 +118,20 @@ export interface FillingObject {
 
 export enum LOOPSIDE {
   left = 4693746,
-  left_on_partition= 7080918,
+  left_on_partition = 7080918,
   right = 4693757,
   right_on_partition = 7080949,
   none = 13864508,
+  top = 14981055
+}
+
+export interface LoopsmokAPI {
+  ID: number,
+  NAME: string,
+  DETAIL_PICTURE: string,
+  PREVIEW_PICTURE: string,
+  CODE: string,
+  SORT: number
 }
 
 export interface FasadeObject {

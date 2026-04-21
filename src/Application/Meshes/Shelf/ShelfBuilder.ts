@@ -42,7 +42,7 @@ export class ShelfBuilder {
         const correction = shelfs.WIDTH_CORRECTION;
         const startPos = this.parent.getStartPosition(props.CONFIG.SIZE);
         const { BODY_DEPTH } = props.BODY.userData.trueSize
-        const correctDepth = depth > BODY_DEPTH ? BODY_DEPTH : depth
+        const correctDepth = depth! > BODY_DEPTH ? BODY_DEPTH : depth
 
 
         const matType = props.BODY.userData.MATERIAL_TYPE ?? "MeshStandardMaterial";
@@ -122,7 +122,7 @@ export class ShelfBuilder {
         for (let i = 1; current >= i && current <= total; i++) {
             const position = startPos.y + (height / (current + 1)) * i;
             const mechanizm = position > mechanizmTemp && MECHANISM
-            const correctDepth = mechanizm ? depth - 50 : depth
+            const correctDepth = mechanizm ? depth! - 50 : depth
 
             let mesh = new Mesh(
                 new BoxGeometry(width - 32, 16, correctDepth),

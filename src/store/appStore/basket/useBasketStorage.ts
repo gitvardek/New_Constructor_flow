@@ -11,6 +11,7 @@ export function useBasketStorage() {
   const initializeFromStorage = () => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
+
       if (saved) {
         const parsed = JSON.parse(saved)
         mainConstructor.value = parsed.mainConstructor || []

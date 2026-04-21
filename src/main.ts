@@ -122,6 +122,7 @@ async function bootApp() {
 
 
   const app = createApp(App)
+  app.config.warnHandler = () => null
   const pinia = createPinia()
   setActivePinia(pinia)  // Активируем Pinia для глобального доступа к stores
 

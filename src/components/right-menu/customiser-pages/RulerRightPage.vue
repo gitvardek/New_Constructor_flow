@@ -402,19 +402,19 @@ watch(
         </div>
       </div>
 
-      <!-- <p class="customiser-section__title">Вращение</p>
+      <p class="customiser-section__title">Вращение</p>
       <DirectionControl
         @changeDirectionPos="rotateModel"
         :type="'rotateMap'"
         :scale="0.8"
         :max-width="140"
         :gap="2"
-      />  -->
+      /> 
 
-      <!-- <p class="customiser-section__title">Произвольное позиционирование</p>
+      <p class="customiser-section__title">Произвольное позиционирование</p>
       <div class="switch__container">
         <Toggle v-model="transformControlsValue" />
-      </div> -->
+      </div>
     </div>
   </div>
 </template>

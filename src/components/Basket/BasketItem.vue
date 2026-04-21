@@ -278,6 +278,7 @@
               </ul>
             </div>
           </span>
+
           <span v-if="propKey === 'KROMKA'">
             <span class="basket-item__props-lable">Кромка:</span>
             <span>{{ getTypeName("HEM", propValue, item?.product.TYPE) }}</span>
@@ -314,6 +315,7 @@
           v-for="(propValue, propKey) in renderDescription(item?.product.PROPS)"
           :key="propKey"
         >
+          <!-- {{ propValue }} -->
           <div v-if="Array.isArray(propValue.value)">
             <span class="basket-item__props-lable">{{ propValue.key }}:</span>
             <div
@@ -322,8 +324,21 @@
               v-for="(value, i) in propValue.value"
               :key="i"
             >
+<<<<<<< HEAD
+              <div v-if="propValue.key !== 'Подъёмные механизмы'">
+                <span>{{ i + 1 }} {{ value.key }}:</span>
+                <span>{{
+                  value.value ? ` - поз. ${value.value} мм` : ""
+                }}</span>
+              </div>
+              <div v-else>
+                <span>{{ value.key }}: </span>
+                <span>{{ value.value }}</span>
+              </div>
+=======
               <span>{{ i + 1 }}) {{ value.key }}:</span
               ><span>{{ value.value ? ` - поз. ${value.value} мм` : "" }}</span>
+>>>>>>> develop2
             </div>
           </div>
           <div v-else>
@@ -881,9 +896,10 @@ const getFilteredProps = (item) => {
   return filteredProps;
 };
 
-const renderDescription = (props) => {
+const renderDescription = (data) => {
   const result = [];
-  // console.log('props', props)
+  const productId = props.item.product.ID;
+  const { MECHANISM } = appData.value;
 
   const textValue = (value) => {
     const color = appData.value["FASADE"][value.COLOR]?.NAME;
@@ -905,9 +921,14 @@ const renderDescription = (props) => {
     return `${color ?? ""} ${pallette ?? ""} ${patina ?? ""} ${milling ?? ""}`;
   };
 
+<<<<<<< HEAD
+  // console.log(data, props.item, "data data data");
+  if (data.DOORS) {
+=======
   if (props.DOORS) {
+>>>>>>> develop2
     // Перебираем все двери
-    for (const [doorNumber, doorData] of Object.entries(props.DOORS)) {
+    for (const [doorNumber, doorData] of Object.entries(data.DOORS)) {
       // Для каждой двери перебираем её части (обычно только часть "1")
       for (const [partNumber, partData] of Object.entries(doorData)) {
         // Каждая часть может содержать несколько элементов (0, 1 и т.д.), если это не двери-купе
@@ -935,7 +956,7 @@ const renderDescription = (props) => {
     }
   }
 
-  for (const [key, value] of Object.entries(props)) {
+  for (const [key, value] of Object.entries(data)) {
     // console.log(getPropDefinition(key)?.NAME);
     // console.log(value);
     if (
@@ -962,6 +983,8 @@ const renderDescription = (props) => {
       result.push({ key: "Горизонт", value: value });
     }
     if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
+      console.log("МЕХАНИЗМЫ", key, value, getPropDefinition(key)?.NAME);
+
       if (key === "OPTION" && value.length) {
         value.forEach((el) => {
           result.push({
@@ -973,6 +996,29 @@ const renderDescription = (props) => {
       if (
         value.length &&
         getPropDefinition(key)?.NAME &&
+<<<<<<< HEAD
+        ![
+          "MILLING",
+          "PATINA",
+          "PALETTE",
+          "GLASS",
+          "TYPE",
+          "SHOWCASE",
+          "OPTION",
+        ].find((item) => key.includes(item))
+      ) {
+        if (Array.isArray(value)) {
+          console.log(key, value, "value");
+
+          let items = [];
+
+          if (key !== "UM_MECHANIZM") {
+            value.forEach((el) => {
+              items.push({
+                key: appData.value["CATALOG"]["PRODUCTS"][el.ID]?.NAME ?? "",
+                value: el.VALUE || "",
+              });
+=======
         key !== "OPTION" &&
         !["MILLING", "PATINA", "PALETTE", "GLASS", "TYPE", "SHOWCASE"].find(
           (item) => key.includes(item),
@@ -985,8 +1031,22 @@ const renderDescription = (props) => {
             items.push({
               key: appData.value["CATALOG"]["PRODUCTS"][el.ID]?.NAME ?? "",
               value: el.basketRenderPosition || el.VALUE || "",
+>>>>>>> develop2
             });
-          });
+          } else {
+            value.forEach((el) => {
+              console.log(el, '-------el')
+
+              items.push({
+                key: `
+                cекция: ${el.section} / 
+                дверь: ${el.doorNum} / 
+                часть: ${el.segmentNum}
+                `,
+                value: MECHANISM[el.mechanizm][productId].NAME || "",
+              });
+            });
+          }
 
           result.push({
             key: getPropDefinition(key)?.NAME,
@@ -1075,6 +1135,10 @@ const renderDescription = (props) => {
 
   return result;
 };
+
+onBeforeMount(() => {
+  console.log(props.item, "props.item");
+});
 </script>
 
 <style scoped lang="scss">

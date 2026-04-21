@@ -1,20 +1,97 @@
 <script lang="ts" setup>
 //@ts-nocheck
-import { onBeforeMount, computed, ref } from "vue";
+import { onBeforeMount, computed, ref, defineProps, withDefaults } from "vue";
 import { useOptions } from "./useOptions";
+
+interface IProps {
+  mechanizmList?: [];
+  umMechanizm?: boolean;
+  element?: any;
+  segment?: any;
+}
+
+const props = withDefaults(defineProps<IProps>(), {
+  umMechanizm: false,
+});
 
 const { createOptionList, checkActive } = useOptions();
 const optionList = ref([]);
 
 const createList = () => {
-  const { data } = createOptionList();
-  optionList.value = data;
+  if (!props.umMechanizm) {
+    const { data } = createOptionList();
+    optionList.value = data;
+    return;
+  }
+
+  optionList.value = props.mechanizmList;
 };
 
 const changeValue = (event: InputEvent, id: number) => {
+<<<<<<< HEAD
+  if (!props.umMechanizm) {
+
+    const check = event.target!.checked;
+    checkActive(id, check);
+    createList();
+    return;
+  }
+  UMMechanizmChange(event, id);
+};
+
+const UMMechanizmChange = (event: InputEvent, id: number) => {
+  activateMechanismAndDeactivateOthers(optionList.value, id)
+
+  // const curMech = props.element.MECHANISM_TEMP.find((el) => el.ID == id);
+  // props.element.MECHANISM_TEMP.forEach((mech) => {
+  //   if (mech.close === curMech.close && mech.id !== curMech.ID) {
+  //     mech.active = false;
+  //   }
+  // });
+  props.segment.MECHANISM = parseInt(id)
+  // console.log(props.element, '-----element');
+
+  // props.element.material.MECHANISM = parseInt(id);
+};
+
+const activateMechanismAndDeactivateOthers = (data, targetId) => {
+  const searchId = String(targetId);
+  let targetFound = false;
+  let otherActiveExists = false;
+
+  for (const group of data) {
+    for (const item of group.CONTANT) {
+      if (item.ID === searchId) {
+        targetFound = true;
+
+        item.active = true;
+      } else if (item.active === true) {
+        otherActiveExists = true;
+      }
+    }
+  }
+
+  if (!targetFound) {
+    return false;
+  }
+
+  if (otherActiveExists) {
+    for (const group of data) {
+      for (const item of group.CONTANT) {
+        if (item.ID !== searchId && item.active === true) {
+          item.active = false;
+        }
+      }
+    }
+  }
+
+  return true;
+=======
   const check = event.target!.checked;
+
   checkActive(id, check);
   createList();
+>>>>>>> develop2
 };
 
 onBeforeMount(() => {
@@ -41,7 +118,9 @@ onBeforeMount(() => {
           <span class="text-lg text-gray-800 font-medium">{{
             option.NAME
           }}</span>
-          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize">&emsp;{{option.cutSize}} + {{option.cutSize}}</span>
+          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize"
+            >&emsp;{{ option.cutSize }} + {{ option.cutSize }}</span
+          >
         </label>
       </div>
     </div>

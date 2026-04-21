@@ -262,7 +262,7 @@ export type TUniformGroups = {
 export type TSize = {
   width: number;
   height: number;
-  depth: number;
+  depth?: number;
 }
 
 type TSizeEdit = {
@@ -400,6 +400,12 @@ export type TFasadeProp = {
     params: TFasadePropsSizes
   },
   DRAWER: TDrawer,
+<<<<<<< HEAD
+  MANUAL_NO_FASADE?: boolean,
+  UMSIZES?: TSize,
+  MECHANISM?: NumStr | null,
+
+=======
   MANUAL_NO_FASADE?: boolean
   TABLE?: number | null,
   MILLING_CONVERSATION: null | number
@@ -431,6 +437,7 @@ export type TToptableUMProp = {
   PROFILE: NumStr | null,
   KROMKA?: NumStr | null,
   USLUGI?: TUsluga[],
+>>>>>>> develop2
 }
 
 export type TModelData = {

@@ -201,6 +201,8 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         createKromkaCardData()
     }
 
+<<<<<<< HEAD
+=======
     const getCurretKromkaListUM = (productId: number) => {
 
         if (!kromkaActive.value || !productId)
@@ -216,6 +218,7 @@ const useKromkaActions = defineStore('KromkaActions', () => {
     }
 
 
+>>>>>>> develop2
     const clearKromkaData = () => {
         tempKromkaList.value = []
         kromkaActive.value = false
