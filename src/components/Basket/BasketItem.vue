@@ -1041,7 +1041,6 @@ const renderDescription = (data) => {
                 key: `
                 cекция: ${el.section} / 
                 дверь: ${el.doorNum} / 
-                часть: ${el.segmentNum}
                 `,
                 value: MECHANISM[el.mechanizm][productId].NAME || "",
               });
