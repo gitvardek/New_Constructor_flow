@@ -772,6 +772,27 @@ type TOption = {
   visible: boolean
 }
 
+export type TRootOptionType = {
+  ID: string;
+  NAME: string;
+  IBLOCK_SECTION_ID: number[];
+  IMG: string | null;
+  CITY: number[];
+  INCITY: number[];
+  FILLING: number[];
+  CLOSE_OTHER_OPTIONS: "0" | "1" | boolean;
+  SHOW_ON_FASADE: string[];
+  SHOW_ON_WITH: number[];
+  GROUP: string;
+  PRODUCT: number[];
+  CONDITIONS: string;
+  NOT_SHOW_ON_FASADE: string[];
+  REQUIRED_OPTIONS: number[];
+  active: boolean;
+  visible: boolean;
+  cutSize: number | null;
+}
+
 type TUsluga = {
   ID: NumStr;
   NAME: NumStr;

@@ -649,8 +649,6 @@ export class FasadeBuilder {
                     })
                 }
 
-                /** ------ @Доделать_для_радиусного_шкафа ------ */
-
                 if (fasade.isObject3D && fasade.children.length == 1) {
 
 
@@ -745,6 +743,11 @@ export class FasadeBuilder {
         fasade.add(defaultEdge)
 
         return { fasade, fasadeEdge }
+    }
+
+    public createCutFasade(data:{mesh:THREE.Object3D[], }) {
+  
+        console.log('CUT')
     }
 
     private processFasadeCreation({

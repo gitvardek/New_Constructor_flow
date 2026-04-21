@@ -154,6 +154,7 @@ export class Filters extends GlobalsData {
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
                 COLOR: this.project.default_fasade_color!,
+                CUT: null,
                 SHOW: false,
                 POSITION: fasadePosition.ID,
                 RESET_COLOR: fasad,

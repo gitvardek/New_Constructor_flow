@@ -2,6 +2,7 @@
 //@ts-nocheck
 import { onBeforeMount, computed, ref } from "vue";
 import { useOptions } from "./useOptions";
+import { TRootOptionType } from "@/types/types";
 
 const { createOptionList, checkActive } = useOptions();
 const optionList = ref([]);
@@ -11,10 +12,10 @@ const createList = () => {
   optionList.value = data;
 };
 
-const changeValue = (event: InputEvent, id: number) => {
+const changeValue = (event: InputEvent, option: TRootOptionType) => {
   const check = event.target!.checked;
 
-  checkActive(id, check);
+  checkActive(option, check);
   createList();
 };
 
@@ -35,14 +36,16 @@ onBeforeMount(() => {
           <input
             type="checkbox"
             :checked="option.active"
-            @change="changeValue($event, option.ID)"
+            @change="changeValue($event, option)"
             :disabled="option.disabled"
           />
           <span class="control_indicator"></span>
           <span class="text-lg text-gray-800 font-medium">{{
             option.NAME
           }}</span>
-          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize">&emsp;{{option.cutSize}} + {{option.cutSize}}</span>
+          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize"
+            >&emsp;{{ option.cutSize }} + {{ option.cutSize }}</span
+          >
         </label>
       </div>
     </div>

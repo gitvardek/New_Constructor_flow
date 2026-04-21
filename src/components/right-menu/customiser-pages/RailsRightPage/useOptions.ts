@@ -4,6 +4,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useMechanism } from "./Mechanism/useMechanism";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { TRootOptionType } from "@/types/types";
 
 const mechanism = useMechanism()
 
@@ -39,7 +40,9 @@ export const useOptions = () => {
         }
     }
 
-    const checkActive = (id: string | number, values: boolean) => {
+    const checkActive = (option: TRootOptionType, values: boolean) => {
+        const { ID: id, cutSize } = option
+
         const { PROPS } = modelState.getCurrentModel.userData;
         const { OPTIONS, MECHANISM_TEMP, ID, SHELFQUANT } = PROPS.CONFIG;
 
@@ -77,9 +80,9 @@ export const useOptions = () => {
                     opt.group === curOpt.group &&
                     opt.close === curOpt.close &&
                     opt.section === curOpt.section &&
-                    opt.id !== curOpt.id || 
-                    opt.section === curOpt.section && 
-                    opt.close === curOpt.close && 
+                    opt.id !== curOpt.id ||
+                    opt.section === curOpt.section &&
+                    opt.close === curOpt.close &&
                     opt.id !== curOpt.id) {
 
                     if (opt.active) {
@@ -108,8 +111,6 @@ export const useOptions = () => {
                                 break;
                         }
                     }
-                    console.log('HERE')
-
                     opt.active = false;
                 }
             });
@@ -197,8 +198,7 @@ export const useOptions = () => {
                 break;
         }
 
-
-        eventBus.emit("A:SelectModelOption", { id, values })
+        eventBus.emit("A:SelectModelOption", { option, values })
 
         return curOpt.active;
     };
