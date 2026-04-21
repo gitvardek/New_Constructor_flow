@@ -13,6 +13,7 @@ const createList = () => {
 
 const changeValue = (event: InputEvent, id: number) => {
   const check = event.target!.checked;
+
   checkActive(id, check);
   createList();
 };
