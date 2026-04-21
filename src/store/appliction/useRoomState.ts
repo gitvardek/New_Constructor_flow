@@ -6,7 +6,6 @@ import { ref, computed, toRaw } from 'vue';
 import { rooms_mok } from "@/Application/F-mockapi"
 import { useSchemeTransition } from '../canvasMerge/schemeTransition';
 import { useAppData } from "@/store/appliction/useAppData";
-import { useModelState } from '../appliction/useModelState';
 import { useSceneState } from './useSceneState';
 
 import * as THREEInterfases from "../../types/interfases"
@@ -45,7 +44,6 @@ export const useRoomState = defineStore('RoomState', () => {
   const APP = computed(() => useAppData().getAppData || {})
 
   // const APP = useAppData();
-  const modelState = useModelState()
 
   const currentRoomId = ref<string | null>(null);
   const tempRoomSize = ref<THREEInterfases.IWallSizes | null>(null);

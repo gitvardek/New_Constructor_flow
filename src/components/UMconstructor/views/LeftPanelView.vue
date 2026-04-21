@@ -38,7 +38,7 @@ onBeforeMount(() => {
 
 <template>
   <div
-      class="constructor2d-container--left--module-configs"
+      class="UM constructor2d-container--left--module-configs"
   >
 
     <ModuleSizeView
@@ -48,11 +48,11 @@ onBeforeMount(() => {
       :UMconstructor="UMconstructor"
     />
 
-    <div class="no-select actions-sections-header">
+    <div class="UM no-select actions-sections-header">
       <h1>Параметры модуля</h1>
     </div>
     <div
-        class="constructor2d-container--left--module-configs--module-color"
+        class="UM constructor2d-container--left--module-configs--module-color"
     >
       <SidecolorsView
           ref="materialConfRef"
@@ -64,10 +64,10 @@ onBeforeMount(() => {
       />
     </div>
 
-    <div class="no-select actions-sections-header">
+    <div class="UM no-select actions-sections-header">
       <h1>Опции</h1>
     </div>
-    <RailsRightPage class="no-select" style="margin-top: 5px"/>
+    <RailsRightPage class="UM no-select" style="margin-top: 5px"/>
 
   </div>
 </template>

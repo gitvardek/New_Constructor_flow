@@ -9,7 +9,10 @@
       v-for="action in actions"
       :key="action.key"
       class="wall-context-menu__item"
-      @click="handleAction(action.key)"
+
+      :class="{ 'wall-context-menu__item--disabled': action.disabled }"
+      :disabled="action.disabled"
+      @click="!action.disabled && handleAction(action.key)"
     >
       {{ action.label }}
     </button>
@@ -20,7 +23,7 @@
 //@ts-nocheck
 
 import { computed, onMounted, onUnmounted } from 'vue';
-import { useWallContextMenu } from './useWallContextMenu';
+import { useWallContextMenu, type WallContextMenuPayload } from './useWallContextMenu';
 import { Events } from '@/store/constructor2d/events';
 import { useEventBus } from '@/store/constructor2d/useEventBus';
 
@@ -34,13 +37,6 @@ const {
   handleAction
 } = useWallContextMenu();
 
-interface ShowMenuData {
-  x: number;
-  y: number;
-  wallId: string | number;
-  onSplitWall: (id: string | number) => void;
-}
-
 const menuStyle = computed(() => {
   return {
     left: `${position.value.x}px`,
@@ -48,8 +44,8 @@ const menuStyle = computed(() => {
   };
 });
 
-const showMenu = (data: ShowMenuData) => {
-  openMenu(data.x, data.y, data.wallId, data.onSplitWall);
+const showMenu = (data: WallContextMenuPayload) => {
+  openMenu(data.x, data.y, data.context);
 };
 
 const hideMenu = () => {
@@ -83,7 +79,9 @@ onUnmounted(() => {
 .wall-context-menu {
   position: fixed;
   z-index: 10000;
-  width: 188px; // 5 см (при 96dpi: 1cm ≈ 37.8px, 5cm ≈ 189px)
+  min-width: 220px;
+  width: max-content;
+  max-width: 320px;
   background-color: #ffffff;
   border: 1px solid #cccccc;
   border-radius: 4px;
@@ -108,6 +106,13 @@ onUnmounted(() => {
 
     &:active {
       background-color: #e0e0e0;
+    }
+
+
+    &--disabled {
+      color: #aaaaaa;
+      cursor: not-allowed;
+      pointer-events: none;
     }
   }
 }

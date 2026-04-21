@@ -69,11 +69,10 @@ export class Filters extends GlobalsData {
         if (!fasadePositionList) return
 
         const fasadeSorted = fasadePositionList.sort((a, b) => this._FASADE_POSITION[a].FASADE_NUMBER - this._FASADE_POSITION[b].FASADE_NUMBER);
-        console.log(fasadeSorted, '=== fasadeSorted ===')
+
         const fasadeTypeSorted = fasadeSorted.reduce((acc, index) =>
             acc.concat(this._FASADE_POSITION[index]?.fasade_type || []),
             []);
-
 
         params.FASADE_TYPE = fasadeTypeSorted
 
@@ -106,7 +105,6 @@ export class Filters extends GlobalsData {
             })
 
         sortFasadePositionList.forEach((fasade: number, key: number) => {
-
 
             const curFasade = fasade.ID ? fasade.ID : fasade
             const fasadePosition = this._FASADE_POSITION[curFasade]
@@ -147,6 +145,11 @@ export class Filters extends GlobalsData {
             const fasad = FASADE_PROPS[fasadeNumber]?.TYPE ?? this.project.default_fasade_color ?? 7397;
             const handles = this.project.default_handles
             const sizes = fasade.FASADE_SIZE ?? null
+            const sizesData = this._FASADESIZE[sizes]
+            const ismanualSizes = this._FASADESIZE[sizes]?.NAME.includes("Нестандарт")
+
+
+            console.log(ismanualSizes, this._FASADESIZE[sizes], "Нестандарт")
 
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
@@ -169,13 +172,31 @@ export class Filters extends GlobalsData {
                 },
                 SIZES: {
                     id: sizes,
-                    params: {}
+                    params: (() => {
+                        return {
+                            FASADE_WIDTH: sizesData?.WIDTH ?? null,
+                            min: sizesData?.SIZE_EDIT_WIDTH_MIN ?? null,
+                            max: sizesData?.SIZE_EDIT_WIDTH_MAX ?? null
+                        }
+                        // if (ismanualSizes) {
+                        //     return {
+                        //         FASADE_WIDTH: sizesData.WIDTH,
+                        //         min: sizesData.SIZE_EDIT_WIDTH_MIN,
+                        //         max: sizesData.SIZE_EDIT_WIDTH_MAX
+                        //     }
+                        // }
+                        // return {}
+                    })()
                 },
                 DRAWER: {
                     drawer: fasadePosition.drawer,
                     buildIn: fasadePosition.built_in
                 },
+<<<<<<< HEAD
                 MECHANISM: null,
+=======
+                MILLING_CONVERSATION: null
+>>>>>>> develop2
             }
 
             FASADE_PROPS.push(fasadeProps)

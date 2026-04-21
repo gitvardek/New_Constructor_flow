@@ -23,6 +23,7 @@
         }}</span>
         <span v-if="item?.error"> (НЕДОСТУПНО!)</span>
       </h3>
+
       <!-- Секция свойств товаров общяя -->
       <div
         class="basket-item__props"
@@ -323,6 +324,7 @@
               v-for="(value, i) in propValue.value"
               :key="i"
             >
+<<<<<<< HEAD
               <div v-if="propValue.key !== 'Подъёмные механизмы'">
                 <span>{{ i + 1 }} {{ value.key }}:</span>
                 <span>{{
@@ -333,6 +335,10 @@
                 <span>{{ value.key }}: </span>
                 <span>{{ value.value }}</span>
               </div>
+=======
+              <span>{{ i + 1 }}) {{ value.key }}:</span
+              ><span>{{ value.value ? ` - поз. ${value.value} мм` : "" }}</span>
+>>>>>>> develop2
             </div>
           </div>
           <div v-else>
@@ -442,6 +448,9 @@ const {
   getArticleByFasadId,
 } = useConfigStore();
 
+onBeforeMount(() => {
+  console.log(props.item, "PPPPP");
+});
 // Получаем данные из store
 const appData = computed(() => appDataStore.getAppData);
 
@@ -497,7 +506,10 @@ const getPropDefinition = (key: string) => {
 
 const getPropLabel = (key: string) => {
   const propDef = getPropDefinition(key);
-  return propDef ? propDef.NAME + parsePropIndex(key) : "";
+  if (!propDef) return "";
+  return propDef.type === "SIZES2"
+    ? propDef.NAME
+    : propDef.NAME + parsePropIndex(key);
 };
 
 const parsePropIndex = (key: string) => {
@@ -549,7 +561,6 @@ const shouldShowPropValue = (key: string, propVal: any) => {
 
 const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
   const propDef = getPropDefinition(key);
-  console.log("propValpropVal", propVal);
 
   if (propDef && propDef.type === "PRODUCTS") {
     if (propVal.ID) {
@@ -571,13 +582,14 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
         if (typeof value === "object" && value !== null) {
           value = JSON.stringify(value);
         }
+
         if (
           key !== "HANDLES" &&
-          getTypeName(key, value, item?.product.TYPE) &&
+          getTypeName(key, value, item?.product.TYPE, index) &&
           getPropLabel(key) &&
           !isFeedbackProject
         ) {
-          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE)}</li>`; // ${getTypeName(key, value)}
+          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE, index)}</li>`; // ${getTypeName(key, value)}
         }
         if (
           key !== "HANDLES" &&
@@ -585,7 +597,7 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
           getPropLabel(key) &&
           isFeedbackProject
         ) {
-          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE)} ${getArticleByFasadId(propVal?.article)}</li>`; // ${getTypeName(key, value)}
+          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE, index)} ${getArticleByFasadId(propVal?.article)}</li>`; // ${getTypeName(key, value)}
         }
       });
 
@@ -593,8 +605,11 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
       return `<ul>${listValue}</ul>`;
     }
   }
+
   return getTypeName(propDef?.type, propVal);
 };
+
+const getWidthFasadesToSIZESProp = () => {};
 
 const getErrorClass = (propVal: any, propsError: any) => {
   // Здесь должна быть логика определения классов ошибок
@@ -655,10 +670,16 @@ const hasError = (value: any, propsError: any) => {
   // return propsError.some(error => error.id && error.id.includes(value));
 };
 
-const getTypeName = (type: any, value: any, mainType: any = "") => {
+const getTypeName = (
+  type: any,
+  value: any,
+  mainType: any = "",
+  index: number,
+) => {
   // Получаем имя из store данных
   // console.log('data', appData.value, type, value, mainType);
-  console.log(type, mainType);
+
+  console.log(index, "type");
 
   if (value && typeof value === "object" && value.NAME) {
     return value.NAME;
@@ -676,8 +697,13 @@ const getTypeName = (type: any, value: any, mainType: any = "") => {
   }
 
   if (mainType === "scene" && type === "SIZES") {
-    console.log();
+    const sizesData = appData.value["FASADESIZE"][JSON.parse(value).id];
     return appData.value["FASADESIZE"][JSON.parse(value).id]?.NAME;
+  }
+
+  if (mainType === "scene" && type === "SIZES2") {
+    const sizesData = appData.value["FASADESIZE"][JSON.parse(value).id];
+    return JSON.parse(value)?.params?.FASADE_WIDTH;
   }
 
   if (mainType === "umscene" && typeof value === "object") {
@@ -701,7 +727,7 @@ const getTypeName = (type: any, value: any, mainType: any = "") => {
 
 const getListValue = (key: string, value: any) => {
   const propDef = getPropDefinition(key);
-  console.log(key, value, propDef);
+
   return (propDef as any)?.VALUE ? (propDef as any).VALUE[value] : value;
 };
 
@@ -882,11 +908,25 @@ const renderDescription = (data) => {
     const glass = appData.value["GLASS"][value.GLASS]?.NAME;
     const milling = appData.value["MILLING"][value.MILLING]?.NAME;
 
+    const table = appData.value.CATALOG.PRODUCTS[value.TABLE]?.NAME;
+    if (table) {
+      const KROMKA = appData.value.HEM[value.KROMKA]?.NAME;
+      const PROFILE = appData.value.PROFILE.find(
+        (item) => item.PROFILE === value.PROFILE,
+      )?.NAME;
+
+      return `${table ?? ""} ${PROFILE ?? ""} ${KROMKA ?? ""}`;
+    }
+
     return `${color ?? ""} ${pallette ?? ""} ${patina ?? ""} ${milling ?? ""}`;
   };
 
+<<<<<<< HEAD
   // console.log(data, props.item, "data data data");
   if (data.DOORS) {
+=======
+  if (props.DOORS) {
+>>>>>>> develop2
     // Перебираем все двери
     for (const [doorNumber, doorData] of Object.entries(data.DOORS)) {
       // Для каждой двери перебираем её части (обычно только часть "1")
@@ -956,6 +996,7 @@ const renderDescription = (data) => {
       if (
         value.length &&
         getPropDefinition(key)?.NAME &&
+<<<<<<< HEAD
         ![
           "MILLING",
           "PATINA",
@@ -977,6 +1018,20 @@ const renderDescription = (data) => {
                 key: appData.value["CATALOG"]["PRODUCTS"][el.ID]?.NAME ?? "",
                 value: el.VALUE || "",
               });
+=======
+        key !== "OPTION" &&
+        !["MILLING", "PATINA", "PALETTE", "GLASS", "TYPE", "SHOWCASE"].find(
+          (item) => key.includes(item),
+        )
+      ) {
+        if (Array.isArray(value)) {
+          let items = [];
+
+          value.forEach((el) => {
+            items.push({
+              key: appData.value["CATALOG"]["PRODUCTS"][el.ID]?.NAME ?? "",
+              value: el.basketRenderPosition || el.VALUE || "",
+>>>>>>> develop2
             });
           } else {
             value.forEach((el) => {

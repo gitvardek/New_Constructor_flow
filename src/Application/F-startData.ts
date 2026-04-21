@@ -109,7 +109,8 @@ const START_PROJECT_PARAMS = {
             bias: 0.0001,
             castShadow: false,
             mapSize: 512,
-            intensity: 1.6,
+            // intensity: 1.6,
+            intensity: 5,
             distance: 5000,
             decay: 0
         }

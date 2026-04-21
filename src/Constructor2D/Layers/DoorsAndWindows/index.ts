@@ -245,11 +245,21 @@ export default class DoorsAndWindows {
 
         const id: number | string = NameObjects + "__" + MathUtils.generateUUID();
 
+        const defaultOpeningPlan = NameObjects === "door" ? 210 : 150;
+        const openingFrom3d =
+          object.size?.height > 0 ? object.size.height / 10 : defaultOpeningPlan;
+        const distanceFromFloorFrom3d =
+          NameObjects === "window" && object.position?.y != null
+            ? Math.max(0, object.position.y / 10 - openingFrom3d / 2)
+            : 0;
+
         const dataObject: IDrawObjects = {
           id: id,
           name: NameObjects, // 'door' или 'window'
           width: object.size.width / 10,
           height: object.size.depth / 10,
+          openingHeight: openingFrom3d,
+          distanceFromFloor: distanceFromFloorFrom3d,
           heightDirection: -1, // по умолчанию
           angleDegrees: MathUtils.radToDeg(object.rotation._y),
           updateTime: Date.now(),
@@ -466,6 +476,8 @@ export default class DoorsAndWindows {
       name: data.type,
       width: objWidth,
       height: objHeight,
+      openingHeight: data.type === "door" ? 210 : 150,
+      distanceFromFloor: data.type === "window" ? 90 : 0,
       heightDirection: objHeightDirection,
       angleDegrees: objAngleDegrees,
       updateTime: Date.now(),
@@ -1079,6 +1091,92 @@ export default class DoorsAndWindows {
 
     this.draw(dataObject.id);
 
+  }
+
+  public getDrawObjectById(id: string | number): IDrawObjects | undefined {
+    return this.drawObjects.find((el) => el.id === id);
+  }
+
+  /**
+   * Ширина и высота проёма в мм для 3D (глубина/толщина на топ-вью не меняются).
+   */
+  public applyOpeningDimensionsMm(
+    objectId: string | number,
+    widthMm: number,
+    openingHeightMm: number,
+    distanceFromFloorMm?: number,
+  ): boolean {
+    const obj = this.drawObjects.find((el) => el.id === objectId);
+    if (!obj || (obj.name !== "door" && obj.name !== "window")) return false;
+
+    const minMm = 200;
+    const wMm = Math.max(minMm, widthMm);
+    const hMm = Math.max(minMm, openingHeightMm);
+    const floorDistanceMm = Math.max(0, distanceFromFloorMm ?? 0);
+    const wPlan = wMm / 10;
+    const hPlan = hMm / 10;
+
+    obj.openingHeight = hPlan;
+    obj.distanceFromFloor = floorDistanceMm / 10;
+    obj.updateTime = Date.now();
+
+    const wallId = obj.belongsToWall?.id;
+    if (wallId != null) {
+      const wall = this.parent.layers.planner.objectWalls.find(
+        (w: ObjectWall) => w.id === wallId,
+      );
+      if (wall?.points?.length >= 2) {
+        const wallLen = getDistanceBetweenVectors(wall.points[0], wall.points[1]);
+        const eps = 0.02;
+        const minPlan = minMm / 10;
+        const maxW = Math.max(minPlan, wallLen - eps);
+        const clampedW = Math.min(Math.max(minPlan, wPlan), maxW);
+
+        const oldCenterAlong =
+          obj.belongsToWall.distanceFromWallStart + obj.width / 2;
+        let newStart = oldCenterAlong - clampedW / 2;
+        newStart = Math.max(0, Math.min(newStart, wallLen - clampedW));
+
+        obj.width = clampedW;
+        obj.belongsToWall.distanceFromWallStart = newStart;
+        this.updateObject(wallId);
+      }
+    } else {
+      const p0 = obj.points[0];
+      const p1 = obj.points[1];
+      const dx = p1.x - p0.x;
+      const dy = p1.y - p0.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 1e-6) {
+        this.draw(obj.id);
+      } else {
+        const ux = dx / len;
+        const uy = dy / len;
+        const midX = (p0.x + p1.x) / 2;
+        const midY = (p0.y + p1.y) / 2;
+        const minPlan = minMm / 10;
+        const effectiveW = Math.min(Math.max(minPlan, wPlan), len - 0.02);
+        const half = effectiveW / 2;
+        const newP0 = { x: midX - ux * half, y: midY - uy * half };
+        const newP1 = { x: midX + ux * half, y: midY + uy * half };
+        const point_2 = offsetVectorBySegmentNormal(
+          [newP0, newP1],
+          newP1,
+          obj.height * obj.heightDirection,
+        );
+        const point_3 = offsetVectorBySegmentNormal(
+          [newP0, newP1],
+          newP0,
+          obj.height * obj.heightDirection,
+        );
+        obj.points = [newP0, newP1, point_2, point_3];
+        obj.width = effectiveW;
+        this.draw(obj.id);
+      }
+    }
+
+    this.parent.updateRoomStore();
+    return true;
   }
 
   public setupInteractions(): void {

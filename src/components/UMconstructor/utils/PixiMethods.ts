@@ -689,7 +689,7 @@ class Shape extends Helpers {
                                         self.graphic.position.y = newPos;
                                         self.highlightGraphics.position.y = newPos;
 
-                                        if (!self.checkOverlap(otherShape))
+                                        //if (!self.checkOverlap(otherShape))
                                             currentY = newPos
 
                                         self.graphic.position.y = adjustedY;
@@ -703,7 +703,7 @@ class Shape extends Helpers {
                                         self.graphic.position.y = newPos;
                                         self.highlightGraphics.position.y = newPos;
 
-                                        if (!self.checkOverlap(otherShape))
+                                        //if (!self.checkOverlap(otherShape))
                                             currentY = newPos
 
                                         self.graphic.position.y = adjustedY;
@@ -830,13 +830,13 @@ class Shape extends Helpers {
                     - this.getPixelHeight(this.data.fasade.height - this.data.fasade.manufacturerOffset - this.data.height + 2)
                     : thisPosY
 
-                thisHeight = this.data.fasade ? this.getPixelHeight(this.data.fasade.height + 2) : thisHeight
+                thisHeight = this.data.fasade ? this.getPixelHeight(this.data.fasade.height + 4) : thisHeight
 
                 otherShapePosY = otherShape.data.fasade ? otherShape.graphic.position.y -
                     this.getPixelHeight(otherShape.data.fasade.height - otherShape.data.fasade.manufacturerOffset - otherShape.data.height + 2)
                     : otherShapePosY
 
-                otherShapeHeight = otherShape.data.fasade ? this.getPixelHeight(otherShape.data.fasade.height + 2) : otherShapeHeight
+                otherShapeHeight = otherShape.data.fasade ? this.getPixelHeight(otherShape.data.fasade.height + 4) : otherShapeHeight
 
                 if (!(this.data.isProfile && otherShape.data.isProfile)) {
                     if (this.data.isProfile && otherShape.data.fasade) {
@@ -890,7 +890,7 @@ class Shape extends Helpers {
         if(this.data.fasade) {
             let moduleThickness = this.UM_STORE.getUMGrid().moduleThickness
             let top_offset = this.data.fasade.height - this.data.fasade.manufacturerOffset - this.data.height - (moduleThickness - 2)
-            height = this.getPixelHeight(this.data.fasade.height - (moduleThickness - 2))
+            height = this.getPixelHeight(this.data.fasade.height - (moduleThickness - 2) * 2)
             pxPos.y -= this.getPixelHeight(top_offset)
 
             return (
@@ -1498,7 +1498,6 @@ class ShapeAdjuster extends Helpers {
         return colBounds
     }
 
-
     getRandomPosition(sector, shape) {
 
         const bounds = this.getSectorBounds(sector)
@@ -1554,8 +1553,9 @@ class ShapeAdjuster extends Helpers {
                 shape.data.fasade.height = shape.data.data.MIN_FASADE_SIZE
                 let moduleData = this.scope.UM_STORE.getUMGrid()
 
-                maxY = maxY + this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
-                minY = minY - this.getPixelHeight(moduleData.moduleThickness - 2)
+                height += this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
+                //maxY = maxY + this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
+                //minY = minY - this.getPixelHeight(moduleData.moduleThickness - 2)
             }
 
             let totalMax = this.getMmHeight(maxY - minY - height)
@@ -1578,6 +1578,159 @@ class ShapeAdjuster extends Helpers {
             }
         }
 
+
+        shape.graphic.position.x = origX;
+        shape.graphic.position.y = origY;
+        return null;
+    }
+
+    getClosestPosition(sector, data, inputPosition){
+
+        if (!sector) {
+            return false;
+        }
+
+        let tempShape = sector.shapes.find(item => (
+            item.data?.sec === data.sec &&
+            item.data?.cell === data.cell &&
+            item.data?.row === data.row &&
+            item.data?.extra === data.extra &&
+            item.data?.id === data.id
+        ))
+
+        if (!tempShape) {
+            return false;
+        }
+
+  /*      let tempShape = new Shape({
+            type: data.type,
+            sector,
+            position: {x: 0, y: 0},
+            data,
+            getMmWidth: this.getMmWidth,
+            getMmHeight: this.getMmHeight,
+            getPixelWidth: this.getPixelWidth,
+            getPixelHeight: this.getPixelHeight,
+        });*/
+
+        /** Проверяем на возможность размещения отверстия */
+
+        let position = this.findClosestPosition(sector, tempShape, {x: this.getPixelWidth(inputPosition.x), y: this.getPixelHeight(inputPosition.y)});
+
+        if (!position) {
+            return false;
+        }
+
+        return {
+            x: Math.round(this.getMmWidth(position.x)),
+            y: Math.round(this.getMmHeight(position.y)),
+        };
+    }
+
+    findClosestPosition(sector, shape, inputPosition) {
+
+        const bounds = this.getSectorBounds(sector)
+
+        const margin = 0;
+        let {width, height} = shape;
+        const {isVerticalItem} = shape.data;
+
+        const origX = shape.graphic.position.x
+        const origY = shape.graphic.position.y
+
+        if (isVerticalItem) {
+            const y = bounds.y
+            let maxX = bounds.x + bounds.width
+
+            for (let i = 0; i < maxX - bounds.x - width; i++) {
+
+                const x = this.convertToTen(bounds.x + (bounds.width - width) - i);
+
+                shape.graphic.position.x = x;
+                shape.graphic.position.y = y;
+
+                if (
+                    !sector.shapes.some(
+                        (other) => other !== shape && shape.checkOverlap(other, isVerticalItem)
+                    )
+                ) {
+                    shape.graphic.position.x = origX;
+                    shape.graphic.position.y = origY;
+                    return {x, y};
+                }
+            }
+        }
+        else {
+            const x = bounds.x
+
+            let findTopMaxY = inputPosition.y
+            let findTopMinY = bounds.y
+            let topHeight = findTopMaxY - findTopMinY
+
+            let findBottomMaxY = bounds.y + bounds.height
+            let findBottomMinY = inputPosition.y
+            let bottomStartY = findBottomMinY
+
+            /*if (shape.data?.fasade) {
+                let manufacturerOffset = shape.data.fasade.manufacturerOffset
+                let moduleData = this.scope.UM_STORE.getUMGrid()
+
+                findTopMaxY = findTopMaxY + this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
+                findTopMinY = findTopMinY - this.getPixelHeight(moduleData.moduleThickness - 2)
+
+                findBottomMaxY = findBottomMaxY + this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
+                findBottomMinY = findBottomMinY + this.getPixelHeight(moduleData.moduleThickness - 2)
+                bottomStartY = findBottomMinY + this.getPixelHeight(shape.data.fasade.height - shape.data.height - manufacturerOffset - (moduleData.moduleThickness - 2) * 2)
+            }*/
+
+            let findPositionTop = null
+            let totalMax = this.getMmHeight(topHeight - height)
+            for (let i = 0; i < totalMax; i++) {
+                let pixel_i = this.getPixelHeight(i)
+                const y = this.convertToTen(findTopMinY + (topHeight - height) - pixel_i);
+
+                shape.graphic.position.x = x;
+                shape.graphic.position.y = y;
+
+                if (
+                    !sector.shapes.some(
+                        (other) => other !== shape && shape.checkOverlap(other)
+                    )
+                ) {
+                    shape.graphic.position.x = origX;
+                    shape.graphic.position.y = origY;
+                    findPositionTop = {x, y}
+                   break;
+                }
+            }
+
+            let findPositionBottom = null
+            totalMax = this.getMmHeight(findBottomMaxY - findBottomMinY - height)
+            for (let i = 0; i < totalMax; i++) {
+                let pixel_i = this.getPixelHeight(i)
+                const y = this.convertToTen(bottomStartY + pixel_i);
+
+                shape.graphic.position.x = x;
+                shape.graphic.position.y = y;
+
+                if (
+                    !sector.shapes.some(
+                        (other) => other !== shape && shape.checkOverlap(other)
+                    )
+                ) {
+                    shape.graphic.position.x = origX;
+                    shape.graphic.position.y = origY;
+                    findPositionBottom = {x, y}
+                    break;
+                }
+            }
+
+            let topOffset = findPositionTop ? Math.abs(inputPosition.y - findPositionTop.y) : Infinity
+            let bottomOffset = findPositionBottom ? Math.abs(inputPosition.y - findPositionBottom.y) : Infinity
+
+            return topOffset > bottomOffset ? findPositionBottom : findPositionTop
+
+        }
 
         shape.graphic.position.x = origX;
         shape.graphic.position.y = origY;

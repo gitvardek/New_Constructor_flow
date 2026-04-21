@@ -4,8 +4,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 import { useModelState } from "@/store/appliction/useModelState";
-import { useEventBus } from "@/store/appliction/useEventBus";
-import { TTabelTopServiceItem, TKromkaMaterialItem } from "@/types/types";
+import {TKromkaMaterialItem, TToptableUMProp} from "@/types/types";
 import { _URL } from "@/types/constants";
 
 
@@ -104,13 +103,48 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
     }
 
+    const checkKromkaActiveUM = (toptableData: TToptableUMProp) => {
+
+        let hasActiveKromka = false
+
+        if(!toptableData) {
+            kromkaActive.value = false
+            return
+        }
+
+        const productId = toptableData?.TABLE
+
+        const activeProfile = toptableData?.PROFILE ? tempProfileData.value.find((el) => el.ID === toptableData.PROFILE) : tempProfileData.value.find((prof) => prof.value);
+        const { HEM } = PRODUCTS[productId]
+
+        if (tempProfileData.value.length > 0) {
+
+            const hasProfileKromka = activeProfile.show_props && activeProfile.show_props?.includes("hem")
+            hasActiveKromka = !!toptableData.KROMKA && hasProfileKromka
+
+            if (hasProfileKromka && tempKromkaId.value == null) {
+                const hemList = HEM.map((el: number) => {
+                    return HEMLIST[el]
+                }).filter(Boolean)
+                tempKromkaId.value = hemList[0].ID;
+            }
+
+            kromkaActive.value = hasActiveKromka ? hasActiveKromka : hasProfileKromka
+            if (!kromkaActive.value)
+                tempKromkaId.value = null
+
+            return
+        }
+
+        kromkaActive.value = false
+
+    }
+
     const kromkaSelect = (value) => {
 
         kromkaListVisible.value = false
 
         const parent = modelState.getCurrentRaspilParent
-        const { CONFIG } = parent?.userData.PROPS
-
         let data: Record<string, any> = {}
         data.NAME = value.NAME
         data.PREVIEW_PICTURE = _URL + value.PREVIEW_PICTURE
@@ -129,11 +163,10 @@ const useKromkaActions = defineStore('KromkaActions', () => {
     }
 
     const createKromkaCardData = () => {
-        if (!kromkaActive.value) return
+        if (!kromkaActive.value)
+            return
 
         const parent = modelState.getCurrentRaspilParent
-        const { CONFIG } = parent?.userData.PROPS
-
         const kromkaId = tempKromkaId.value;
         // const defaultId = 211247;
         const defaultId = tempKromkaList.value[0].ID;
@@ -168,6 +201,24 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         createKromkaCardData()
     }
 
+<<<<<<< HEAD
+=======
+    const getCurretKromkaListUM = (productId: number) => {
+
+        if (!kromkaActive.value || !productId)
+            return
+
+        const { HEM } = PRODUCTS[productId]
+        const hemList = HEM.map((el: number) => {
+            return HEMLIST[el]
+        }).filter(Boolean)
+
+        tempKromkaList.value = hemList
+        createKromkaCardData()
+    }
+
+
+>>>>>>> develop2
     const clearKromkaData = () => {
         tempKromkaList.value = []
         kromkaActive.value = false
@@ -193,7 +244,9 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         setGridData,
         setProfileData,
         setKromkaId,
-        clearKromkaData
+        clearKromkaData,
+        getCurretKromkaListUM,
+        checkKromkaActiveUM,
     }
 })
 

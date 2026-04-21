@@ -17,6 +17,9 @@ export const Events = {
   C2D_SHOW_WALL_CONTEXT_MENU: 'C2D:show-wall-context-menu',
   C2D_HIDE_WALL_CONTEXT_MENU: 'C2D:hide-wall-context-menu',
 
+  C2D_SHOW_ANGLE_INPUT_MODAL: 'C2D:show-angle-input-modal',
+  C2D_HIDE_ANGLE_INPUT_MODAL: 'C2D:hide-angle-input-modal',
+
 } as const;
 
 export type EventsType = keyof typeof Events;

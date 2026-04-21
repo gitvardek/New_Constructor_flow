@@ -5,6 +5,7 @@ import { onMounted, onUnmounted, Ref, ref } from "vue";
 import ModifyWall from "@/components/popUp/constructor2d/ModifyWall.vue";
 import FormLabelRoom from "@/components/popUp/constructor2d/FormLabelRoom.vue";
 import WallContextMenu from "@/features/wallContextMenu/WallContextMenu.vue";
+import AngleInputModal from "@/features/angleInputModal/AngleInputModal.vue";
 
 import {
   Vector2,
@@ -12,7 +13,7 @@ import {
 
 import Constructor2D from '@/Constructor2D';
 
-import { loadBlankRoom } from "@/Constructor2D/facade/blankRoom";
+import { loadBlankRoom, buildProjectFromWallWidths } from "@/Constructor2D/facade/blankRoom";
 
 import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
 import { useConstructor2DHistory } from "@/store/constructor2d/useConstructor2DHistory";
@@ -122,7 +123,7 @@ onMounted(async () => {
     // }
     const rooms = schemeTransition.getAllData();
     if (rooms.length === 0) {
-      await loadBlankRoom();
+      await loadBlankRoom(buildProjectFromWallWidths(5000, 5000, 5000, 5000));
     }
 
     // Уведомляем, что 2D конструктор готов (для показа кнопок undo/redo в хедере)
@@ -179,5 +180,6 @@ onUnmounted(() => {
     <ModifyWall />
     <FormLabelRoom />
     <WallContextMenu />
+    <AngleInputModal />
   </div>
 </template>

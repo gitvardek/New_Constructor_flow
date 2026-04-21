@@ -56,11 +56,11 @@ const getFillings = computed(() => {
     <div
         v-if="mode === 'module'"
     >
-      <h1 class="no-select">Секции</h1>
+      <h1 class="UM no-select">Секции</h1>
 
       <SectionsView
           ref="optionsRef"
-          class="constructor2d-container--right--content"
+          class="UM constructor2d-container--right--content"
           :visualizationRef="UMconstructor.RENDER_REF"
           :module="UMconstructor.UM_STORE.getUMGrid()"
           :mode="mode"
@@ -72,11 +72,11 @@ const getFillings = computed(() => {
     <div
         v-if="mode === 'fasades'"
     >
-      <h1 class="no-select">Фасады</h1>
+      <h1 class="UM no-select">Фасады</h1>
 
       <FasadesView
           ref="optionsRef"
-          class="constructor2d-container--right--content"
+          class="UM constructor2d-container--right--content"
           :visualizationRef="UMconstructor.RENDER_REF"
           :module="UMconstructor.UM_STORE.getUMGrid()"
           :mode="mode"
@@ -88,11 +88,11 @@ const getFillings = computed(() => {
     <div
         v-if="mode === 'fillings'"
     >
-      <h1 class="no-select">Наполнение</h1>
+      <h1 class="UM no-select">Наполнение</h1>
 
       <FillingsView
           ref="optionsRef"
-          class="constructor2d-container--right--content"
+          class="UM constructor2d-container--right--content"
           :visualizationRef="UMconstructor.RENDER_REF"
           :module="UMconstructor.UM_STORE.getUMGrid()"
           :fillings="getFillings"

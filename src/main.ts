@@ -9,6 +9,8 @@ import { COOKIE_NAMES, getCookie } from './components/authorization/utils/cookie
 import { useAppData } from './store/appliction/useAppData'
 import {vMaska} from "maska/vue";
 import { BASE_DOMAIN } from "@/utils/originalDomain";
+
+const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true'
 // Функция для загрузки скриптов
 // function loadScript(src: string): Promise<void> {
 //   return new Promise((resolve, reject) => {
@@ -131,7 +133,7 @@ async function bootApp() {
   app.directive('mask', vMaska)
   await router.isReady()
 
-  const token = getCookie(COOKIE_NAMES.AUTH_TOKEN)
+  const token = DEV_AUTH_BYPASS ? 'dev-bypass-token' : getCookie(COOKIE_NAMES.AUTH_TOKEN)
 
   const initialRoute = router.currentRoute.value
   console.log('initialRoute', initialRoute)

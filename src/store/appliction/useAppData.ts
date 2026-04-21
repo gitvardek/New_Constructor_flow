@@ -5,6 +5,14 @@ import { computed, ref } from 'vue'
 import { useAuthStore } from '@/store/appStore/authStore'
 import { BASE_DOMAIN } from "@/utils/originalDomain";
 
+const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true'
+const DEV_APP_DATA_STUB = {
+  user: {
+    id: 'dev',
+    name: 'Dev User',
+  },
+}
+
 export const useAppData = defineStore('AppData', () => {
   const appData = ref<{ [key: string]: any }>({})
   const indexedDataBase = ref<IDBDatabase | null>(null)
@@ -175,6 +183,18 @@ export const useAppData = defineStore('AppData', () => {
 
     const authStore = useAuthStore()
     await authStore.fetchUserData()
+
+    if (DEV_AUTH_BYPASS) {
+      setAppData(DEV_APP_DATA_STUB)
+      isLoading.value = false
+      isLoaded.value = true
+
+      if (mainLoader) {
+        mainLoader.style.display = 'none'
+      }
+
+      return
+    }
 
     if (import.meta.env.DEV) {
       if (isLoaded.value || isLoading.value) return

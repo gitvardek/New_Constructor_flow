@@ -34,10 +34,48 @@ export function handlerStageMouseMove(this: any, e: PIXI.FederatedPointerEvent):
       }
 
       if(status){
-      
+        this.clearWallAngleOverrides();
+        const nextPoint0: Vector2 = {
+          x: this.state.oldPosition[0].x + distance.x,
+          y: this.state.oldPosition[0].y + distance.y,
+        };
+        let nextPoint1: Vector2 = {
+          x: this.state.oldPosition[1].x + distance.x,
+          y: this.state.oldPosition[1].y + distance.y,
+        };
+        // [REMOVED: quantization + ghosting solver]
+        // if (this.state.dragRoomId != null && this.state.dragLastCommittedAngles) {
+        //   const simulation = this.getWallMoveSimulationResult(id, nextPoint0, nextPoint1);
+        //   if (!simulation) { this.clearGhostPreview(); return; }
+        //   const { nextAngles, previewWalls } = simulation;
+        //   this.drawGhostPreview(previewWalls);
+        //   const shouldCommit = this.hasAnyRoomAngleStepReached(
+        //     this.state.dragLastCommittedAngles, nextAngles, this.state.dragAngleStepDeg,
+        //   );
+        //   if (!shouldCommit) {
+        //     const mainPreview = previewWalls.find((w: any) => w.id === id) ?? previewWalls[0];
+        //     if (mainPreview && mainPreview.points?.length >= 2) {
+        //       this.parent.layers.startPointActiveObject.activate([mainPreview.points[0], mainPreview.points[1]]);
+        //       this.parent.layers.arrowRulerActiveObject.draw(mainPreview.points[this.state.activePointWall ?? 0]);
+        //     }
+        //     return;
+        //   }
+        //   this.clearGhostPreview();
+        //   this.state.dragLastCommittedAngles = nextAngles;
+        //   this.state.hasAngleStepCommit = true;
+        // } else
+        if (!this.canMoveActiveWallWithAcuteLimit(nextPoint0, nextPoint1)) {
+          this.clearGhostPreview();
+          return;
+        }
+
+        const appliedDistance: Vector2 = {
+          x: nextPoint0.x - this.state.oldPosition[0].x,
+          y: nextPoint0.y - this.state.oldPosition[0].y,
+        };
         dataWall.points.forEach((p: Vector2, index: number) => {
-          p.x = this.state.oldPosition[index].x + distance.x;
-          p.y = this.state.oldPosition[index].y + distance.y;
+          p.x = this.state.oldPosition[index].x + appliedDistance.x;
+          p.y = this.state.oldPosition[index].y + appliedDistance.y;
         });
 
         if(dataWall.mergeWalls.wallPoint0){

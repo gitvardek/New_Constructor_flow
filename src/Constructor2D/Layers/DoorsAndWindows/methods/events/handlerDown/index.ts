@@ -1,6 +1,6 @@
 import { MathUtils } from "three";
 import * as PIXI from "pixi.js";
-// import { Events } from "@/store/constructor2d/events";
+import { Events } from "@/store/constructor2d/events";
 
 import {
   IDrawObjects,
@@ -17,9 +17,36 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
     return;
   }
 
+  const dataObjectEarly: IDrawObjects | undefined = this.drawObjects.find((el: IDrawObjects) => el.id === id);
+
+  if (e.button === 2 && dataObjectEarly && (dataObjectEarly.name === "door" || dataObjectEarly.name === "window")) {
+    this.parent.eventBus.emit(Events.C2D_HIDE_WALL_CONTEXT_MENU);
+    const canvas = this.app.canvas as HTMLCanvasElement;
+    const rect = canvas.getBoundingClientRect();
+    const domX = rect.left + e.global.x;
+    const domY = rect.top + e.global.y;
+    setTimeout(() => {
+      this.parent.eventBus.emit(Events.C2D_SHOW_WALL_CONTEXT_MENU, {
+        x: domX,
+        y: domY,
+        context: {
+          kind: dataObjectEarly.name,
+          openingId: id,
+        },
+      });
+    }, 0);
+    e.stopPropagation();
+    try {
+      e.preventDefault();
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+
   if (e.button == 0){
 
-    const dataObject: IDrawObjects = this.drawObjects.find((el: IDrawObjects) => el.id === id);
+    const dataObject: IDrawObjects | undefined = dataObjectEarly;
     
     if(!dataObject){
       console.error(`Error: object with id ${id} not found in drawObjects.`);

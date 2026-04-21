@@ -97,7 +97,7 @@ export default class HalfRoom {
       shape(halfRoom.graphic, item.points, this.config.half.color);
 
       const center = getCenterOfPoints(item.points);
-      if (item.points.length > 3) {
+      if (item.points.length > 2) {
         halfRoom.textName.visible = true;
         halfRoom.textName.text = item.label;
         halfRoom.textName.x = center.x - halfRoom.textName.width / 2;

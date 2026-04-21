@@ -64,7 +64,12 @@ export default class ExternalFasadesManager {
         if(!baseFasade) {
             const PROPS = this.FASADES_MANAGER.scope.UM_STORE.getUMData();
 
-            const FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
+            let FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
+            if (!FASADE_PROPS) {
+                this.scope.BUILDER.filters.filterFasadePosition(PROPS.CONFIG, this.scope.APP.CATALOG.PRODUCTS[PROPS.PRODUCT]);
+                FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
+            }
+
             const FASADE = this.FASADES_MANAGER.getFasadePosition(FASADE_PROPS.POSITION);
 
             const width = currentSection.fasades[0]?.[0] ? Math.floor(currentSection.fasades[0][0].width / 2 - 2) :

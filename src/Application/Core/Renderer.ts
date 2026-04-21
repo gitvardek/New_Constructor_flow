@@ -27,6 +27,7 @@ export class Renderer {
     ratio: number
     antialiasing: boolean
     rulerVisible: boolean = true
+    backgroundColor: '#ffffff'
 
     onSetQuality: (value: string) => void
 
@@ -85,7 +86,7 @@ export class Renderer {
             this.instance.outputColorSpace = THREE.SRGBColorSpace;
             this.instance.setSize(this.sizes.width, this.sizes.height);
             this.instance.setPixelRatio(this.sizes.pixelRatio);
-            this.instance.setClearColor('#cccccc')
+            this.instance.setClearColor('#ffffff')
             // this.instance.logarithmicDepthBuffer = true
             // this.instance.shadowMap.autoUpdate = true;
             this.canvas.appendChild(this.instance.domElement)

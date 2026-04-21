@@ -35,6 +35,7 @@ export interface ObjectWall {
   };
   containers?: ObjectWallContainers;
   roomId: number | string | null;
+  isClosing?: boolean;
 };
 
 export interface ConfigWall {
@@ -88,3 +89,8 @@ export interface IC2DRoom {
   label: string;
   description: string;
 };
+
+export interface GhostWallPreview {
+  id: string | number;
+  points: Vector2[];
+}

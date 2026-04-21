@@ -66,14 +66,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="splitter-container--product">
-    <div class="splitter-container--product-data" v-if="module">
-      <section class="actions-wrapper">
+  <div class="UM splitter-container--product">
+    <div class="UM splitter-container--product-data" v-if="module">
+      <section class="UM actions-wrapper">
 
-        <div class="actions-header">
+        <div class="UM actions-header">
           <div
               :class="[
-              'actions-header--container',
+              'UM actions-header--container',
               { active: secIndex === selectedCell.sec },
             ]"
               v-for="(section, secIndex) in module.sections"
@@ -83,17 +83,17 @@ onMounted(() => {
           >
             <button
                 v-if="module.sections.length > 1"
-                class="actions-btn actions-icon"
+                class="UM actions-btn actions-icon"
                 @click="UMconstructor.SECTIONS.deleteSection(module, secIndex, true)"
             >
               <img
-                  class="actions-icon--delete"
+                  class="UM actions-icon--delete"
                   src="/icons/delite.svg"
                   alt=""
               />
             </button>
             <p
-                class="actions-title actions-title--part"
+                class="UM actions-title actions-title--part"
             >
               {{ secIndex + 1 }}
             </p>
@@ -101,27 +101,27 @@ onMounted(() => {
         </div>
 
         <div
-            class="actions-container"
+            class="UM actions-container"
             v-for="(section, secIndex) in module.sections"
             :key="secIndex"
         >
           <div
-              class="actions-items--wrapper"
+              class="UM actions-items--wrapper"
               v-if="selectedCell.sec === secIndex"
           >
-            <div class="accordion" v-if="section.cells.length">
+            <div class="UM accordion" v-if="section.cells.length">
 
               <div
                   v-if="!module.isHiTech && (!module.isRestrictedModule || (module.isRestrictedModule && module.sections.length < 2))"
-                  class="actions-items--right-items actions-header actions-items--right-items-input-block"
+                  class="UM actions-items--right-items actions-header actions-items--right-items-input-block"
               >
                 <CounterInput
                     button-text="Добавить секцию"
                     model-value="1"
                     max="10"
                     min="1"
-                    input-class="actions-items--right-items-input-block-counter"
-                    button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button"
+                    input-class="UM actions-items--right-items-input-block-counter"
+                    button-class="UM actions-btn actions-btn--default actions-items--right-items-input-block-button"
                     type="number"
                     @update:model-value="(count: number|string) => {
                         UMconstructor.SECTIONS.addSection({grid: module, secIndex, count: parseInt(count), reset: true})
@@ -129,18 +129,18 @@ onMounted(() => {
                 />
               </div>
 
-              <div class="actions-header">
+              <div class="UM actions-header">
                 <p>Ячейки</p>
               </div>
 
               <div
                   v-for="(cell, cellIndex) in section.cells"
                   :key="cellIndex"
-                  :class="'actions-items--container'"
+                  :class="'UM actions-items--container'"
                   :id="`module_${secIndex}_${cellIndex}`"
               >
                 <details
-                    class="item-group"
+                    class="UM item-group"
                     :open="cellIndex === selectedCell.cell"
                 >
 

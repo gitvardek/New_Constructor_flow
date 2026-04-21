@@ -28,6 +28,7 @@ const createList = () => {
 };
 
 const changeValue = (event: InputEvent, id: number) => {
+<<<<<<< HEAD
   if (!props.umMechanizm) {
 
     const check = event.target!.checked;
@@ -85,6 +86,12 @@ const activateMechanismAndDeactivateOthers = (data, targetId) => {
   }
 
   return true;
+=======
+  const check = event.target!.checked;
+
+  checkActive(id, check);
+  createList();
+>>>>>>> develop2
 };
 
 onBeforeMount(() => {

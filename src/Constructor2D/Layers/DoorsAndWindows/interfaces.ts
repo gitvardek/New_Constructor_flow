@@ -65,8 +65,14 @@ export interface IDrawObjectsBelongsToWall {
 export interface IDrawObjects {
   id: string | number;
   name: "door" | "window";
+  /** Проём вдоль стены (топ-вью), в тех же единицах, что и стены; в мм × 10 при выгрузке в 3D */
   width: number;
+  /** Толщина символа на топ-вью (в 3D → глубина врезки), не путать с высотой проёма */
   height: number;
+  /** Высота проёма «в человеческом смысле», мм/10 как у width (в 3D → size.height) */
+  openingHeight: number;
+  /** Расстояние от пола до низа проёма, мм/10 (для окон в 3D → position.y). */
+  distanceFromFloor: number;
   points: Vector2[];
   heightDirection: -1 | 1;
   angleDegrees: number;

@@ -29,6 +29,7 @@ import { handlerMouseOut } from "./methods/events/handlerMouseOut/index";
 import { handlerMouseMove } from "./methods/events/handlerMouseMove/index";
 import { handlerMouseUp } from "./methods/events/handlerMouseUp/index";
 import { handlerCanvasMouseLeave } from "./methods/events/handlerCanvasMouseLeave/index";
+import { handlerMouseRightDown } from "./methods/events/handlerMouseRightDown/index";
 
 import { drawAngleBetweenWalls } from "./methods/drawAngleBetweenWalls/index";
 
@@ -54,6 +55,7 @@ export default class StartPointActiveObject {
   private handlerMouseOut: (e: PIXI.FederatedPointerEvent) => void;
   private handlerMouseMove: (e: PIXI.FederatedPointerEvent) => void;
   private handlerMouseUp: (e: PIXI.FederatedPointerEvent) => void;
+  private handlerMouseRightDown: (e: PIXI.FederatedPointerEvent) => void;
   private handlerCanvasMouseLeave: (e: MouseEvent) => void;
 
   public drawAngleBetweenWalls: () => void;
@@ -120,6 +122,7 @@ export default class StartPointActiveObject {
     this.handlerMouseOut = handlerMouseOut.bind(this);
     this.handlerMouseMove = handlerMouseMove.bind(this);
     this.handlerMouseUp = handlerMouseUp.bind(this);
+    this.handlerMouseRightDown = handlerMouseRightDown.bind(this);
     this.handlerCanvasMouseLeave = handlerCanvasMouseLeave.bind(this);
 
     this.drawAngleBetweenWalls = drawAngleBetweenWalls.bind(this);
@@ -189,6 +192,7 @@ export default class StartPointActiveObject {
 
     this.circleStartPoint // события для стартовой точки
       .on('pointerdown', this.handlerMouseLeftDown) //.handleMouseDown.bind(this, 0)) // если нажали на точку стены
+      .on('rightdown', this.handlerMouseRightDown)
       .on("mouseover", this.handlerMouseOver)
       .on("mouseout", this.handlerMouseOut);
 
@@ -476,6 +480,7 @@ export default class StartPointActiveObject {
 
     this.circleStartPoint
       .off('pointerdown', this.handlerMouseLeftDown)
+      .off('rightdown', this.handlerMouseRightDown)
       .off('mouseover', this.handlerMouseOver)
       .off('mouseout', this.handlerMouseOut);
 

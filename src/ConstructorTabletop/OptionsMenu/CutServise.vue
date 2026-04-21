@@ -12,14 +12,16 @@ interface Props {
   serviseData: any[];
   currentSection: Record<string, any>;
   step?: number;
+  isUM?: boolean;
 }
 
 const kromkaActions = useKromkaActions();
-const { getCurretKromkaList, getKromkaActive, checkKromkaActive } =
+const { getCurretKromkaList, getKromkaActive, checkKromkaActive, getCurretKromkaListUM } =
   kromkaActions;
 
 const props = withDefaults(defineProps<Props>(), {
   step: 1,
+  isUM: false,
 });
 
 const emit = defineEmits([
@@ -83,8 +85,12 @@ const profileData = computed(() => {
 });
 
 onBeforeMount(() => {
-  getCurretKromkaList();
-  // profileDataParse.value = props.profileData();
+  if (props.isUM) {
+    getCurretKromkaListUM(props.currentSection?.TABLE);
+  }
+  else {
+    getCurretKromkaList();
+  } // profileDataParse.value = props.profileData();
 });
 
 watch(
@@ -97,62 +103,65 @@ watch(
 
 <template>
   <div class="splitter-container--cut">
-    <div :class="['splitter-container--cut-header', getContainerHeight]">
-      <h3 class="splitter-title">Услуги</h3>
-      <button class="actions-btn actions-icon" @click="toggleCutServise">
-        <img class="actions-icon--close" src="/icons/close.svg" alt="" />
-      </button>
-    </div>
 
-    <div :class="['splitter-container--cut-servise', getContainerHeight]">
-      <div
-        v-for="(item, key) in props.serviseData"
-        :key="key + item.NAME"
-        :class="['cut-servise--item', { error: item.error }]"
-      >
+    <div v-if="!isUM">
+      <div :class="['splitter-container--cut-header', getContainerHeight]">
+        <h3 class="splitter-title">Услуги</h3>
+        <button class="actions-btn actions-icon" @click="toggleCutServise">
+          <img class="actions-icon--close" src="/icons/close.svg" alt="" />
+        </button>
+      </div>
+
+      <div :class="['splitter-container--cut-servise', getContainerHeight]">
         <div
-          :class="['cut-servise--wrapper', { error: item.error }]"
-          v-if="item.visible"
+            v-for="(item, key) in props.serviseData"
+            :key="key + item.NAME"
+            :class="['cut-servise--item', { error: item.error }]"
         >
-          <label class="control control-checkbox">
-            <input
-              type="checkbox"
-              :checked="item.value"
-              @change="cutChacked($event, item)"
-            />
-            <span class="control_indicator"></span>
-            <span class="text-lg text-gray-800 font-medium">{{
-              item.NAME
-            }}</span>
-          </label>
-
-          <Tooltip
-            v-if="item.error"
-            :theme="'dark'"
-            :content="`${SERVISE_ERRORS[item.error]}`"
+          <div
+              :class="['cut-servise--wrapper', { error: item.error }]"
+              v-if="item.visible"
           >
-            <template #trigger>
-              <button class="actions-btn actions-icon">
-                <img class="actions-icon--help" src="/icons/help.svg" alt="" />
-              </button>
-            </template>
-            <template #content> </template>
-          </Tooltip>
-        </div>
+            <label class="control control-checkbox">
+              <input
+                  type="checkbox"
+                  :checked="item.value"
+                  @change="cutChacked($event, item)"
+              />
+              <span class="control_indicator"></span>
+              <span class="text-lg text-gray-800 font-medium">{{
+                  item.NAME
+                }}</span>
+            </label>
 
-        <div class="actions-inputs" v-if="item.EURO_WIDTH && item.value">
-          <p class="actions-title">Ширина</p>
-          <div class="actions-input--container">
-            <MainInput
-              :inputClass="'actions-input'"
-              v-model="item.EURO_WIDTH"
-              :min="200"
-              :max="getMaxWidth"
-              :type="'number'"
-              @update:modelValue="
+            <Tooltip
+                v-if="item.error"
+                :theme="'dark'"
+                :content="`${SERVISE_ERRORS[item.error]}`"
+            >
+              <template #trigger>
+                <button class="actions-btn actions-icon">
+                  <img class="actions-icon--help" src="/icons/help.svg" alt="" />
+                </button>
+              </template>
+              <template #content> </template>
+            </Tooltip>
+          </div>
+
+          <div class="actions-inputs" v-if="item.EURO_WIDTH && item.value">
+            <p class="actions-title">Ширина</p>
+            <div class="actions-input--container">
+              <MainInput
+                  :inputClass="'actions-input'"
+                  v-model="item.EURO_WIDTH"
+                  :min="200"
+                  :max="getMaxWidth"
+                  :type="'number'"
+                  @update:modelValue="
                 (newValue) => updateEuroWidth(newValue, item.NAME)
               "
-            />
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -160,7 +169,7 @@ watch(
 
     <div
       class="splitter-container--cut-header"
-      v-if="props.profileData.length > 0"
+      v-if="props.profileData?.length > 0"
     >
       <div class="splitter-container--cut-header">
         <h3 class="splitter-title">Профиль</h3>
@@ -169,7 +178,7 @@ watch(
 
     <div
       class="splitter-container--cut-servise"
-      v-if="props.profileData.length > 0"
+      v-if="props.profileData?.length > 0"
     >
       <div
         class="'cut-servise--item'"

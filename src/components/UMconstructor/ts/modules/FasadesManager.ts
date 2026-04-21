@@ -467,6 +467,8 @@ export default class FasadesManager {
         secIndex: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid()
     ) {
+        const PROPS = this.scope.UM_STORE.getUMData();
+
         const section = grid.sections[secIndex];
         const leftWidth = grid.leftWallThickness || grid.moduleThickness;
         const rightWidth = grid.rightWallThickness || grid.moduleThickness;
@@ -488,9 +490,13 @@ export default class FasadesManager {
                 firstFasade.position.y
             );
         } else {
-            const PROPS = this.scope.UM_STORE.getUMData();
+            let FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
 
-            const FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
+            if (!FASADE_PROPS) {
+                this.scope.BUILDER.filters.filterFasadePosition(PROPS.CONFIG, this.scope.APP.CATALOG.PRODUCTS[PROPS.PRODUCT]);
+                FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
+            }
+
             const FASADE = this.getFasadePosition(FASADE_PROPS.POSITION);
 
             let startX = secIndex > 0 ? section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 : FASADE.POSITION_X;

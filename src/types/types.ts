@@ -400,10 +400,44 @@ export type TFasadeProp = {
     params: TFasadePropsSizes
   },
   DRAWER: TDrawer,
+<<<<<<< HEAD
   MANUAL_NO_FASADE?: boolean,
   UMSIZES?: TSize,
   MECHANISM?: NumStr | null,
 
+=======
+  MANUAL_NO_FASADE?: boolean
+  TABLE?: number | null,
+  MILLING_CONVERSATION: null | number
+}
+
+export type TMillingRestrictItem =
+  {
+    "ID": number,
+    "NAME": string,
+    "SORT": number,
+    "PRODUCT": null | number,
+    "WIDTH": number | string,
+    "HEIGHT": number | string,
+    "MIN_HEIGHT": number | string,
+    "MIN_WIDTH": number | string,
+    "MILLING": number[],
+    "FASADE": number[]
+  }
+
+
+export type TToptableUMProp = {
+  SHOW: boolean | null,
+  POSITION: number | null,
+  SIZES: {
+    id: number,
+    params: TFasadePropsSizes
+  },
+  TABLE: number,
+  PROFILE: NumStr | null,
+  KROMKA?: NumStr | null,
+  USLUGI?: TUsluga[],
+>>>>>>> develop2
 }
 
 export type TModelData = {
@@ -452,6 +486,7 @@ export type TConfig = {
   MECHANISM: NumStr | null,
   MECHANISM_TEMP: TMechanismData[] | [],
   SIZE: TSize,
+  SIZE_OFFSET: TSize,
   SIZE_EDIT: TSizeEdit,
   SHOWCASE: number[],
   SHELFQUANT: TShelfcount,
@@ -469,11 +504,12 @@ export type TConfig = {
   BACKWALL?: TFasadeProp,
   LEFTSIDECOLOR?: TFasadeProp,
   RIGHTSIDECOLOR?: TFasadeProp,
-  TOPFASADECOLOR?: TFasadeProp,
+  TOPFASADECOLOR?: TFasadeProp | TToptableUMProp,
   LOOPS?: {},
   isHiTech?: boolean,
   isSlideDoor?: boolean,
   isRestrictedModule?: boolean,
+
 }
 
 export type TTotalProps = {

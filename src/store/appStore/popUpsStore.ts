@@ -5,6 +5,17 @@ import { useEventBus } from '../appliction/useEventBus';
 
 export type PopupsState = Record<PopupKey, boolean>
 
+type ProjectParamsWallWidths = {
+  right: number;
+  left: number;
+  bottom: number;
+  top: number;
+};
+
+type ProjectParamsCreateHandler = (
+  widths: ProjectParamsWallWidths
+) => void | Promise<void>;
+
 export const usePopupStore = defineStore('popup', () => {
   const eventBus = useEventBus()
   // Создаем состояние на основе конфигурации
@@ -17,14 +28,28 @@ export const usePopupStore = defineStore('popup', () => {
 
   const isInfoPopupOpen = ref<boolean>(false)
 
+  const projectParamsCreateHandler = ref<ProjectParamsCreateHandler | null>(null)
+
   const openPopup = (popupName: PopupKey) => {
+
     popups.value[popupName] = true;
     eventBus.emit("A:ClearSelected", { object: null });
   };
 
   const closePopup = (popupName: PopupKey) => {
     popups.value[popupName] = false;
+    if (popupName === 'projectParams') {
+      projectParamsCreateHandler.value = null;
+    }
   };
+
+  const openProjectParamsPopup = (handler?: ProjectParamsCreateHandler) => {
+    projectParamsCreateHandler.value = handler ?? null;
+    openPopup('projectParams');
+  };
+
+  const getProjectParamsCreateHandler = () =>
+    projectParamsCreateHandler.value;
 
   const toggleInfoPopup = () => {
     isInfoPopupOpen.value = !isInfoPopupOpen.value
@@ -50,6 +75,8 @@ export const usePopupStore = defineStore('popup', () => {
 
     openPopup,
     closePopup,
+    openProjectParamsPopup,
+    getProjectParamsCreateHandler,
     toggleInfoPopup,
     isAnyPopupOpen,
     getOpenedPopups

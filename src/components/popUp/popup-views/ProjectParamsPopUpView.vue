@@ -1,40 +1,22 @@
 <template>
   <div class="project-params-dialog">
-    <h3 class="project-params-dialog__label">Задайте параметры проекта</h3>
+    <h3 class="project-params-dialog__label">Задайте размеры комнаты</h3>
     <ClosePopUpButton class="project-params-dialog__close" @close="onCancel" />
 
     <div class="project-params-dialog__fields">
       <div class="project-params-dialog__field">
-        <label class="project-params-dialog__field-label">Правая</label>
+        <label class="project-params-dialog__field-label">Ширина, мм</label>
         <input
-          v-model="right"
+          v-model="width"
           type="text"
           class="project-params-dialog__input"
           placeholder="3000"
         />
       </div>
       <div class="project-params-dialog__field">
-        <label class="project-params-dialog__field-label">Левая</label>
+        <label class="project-params-dialog__field-label">Высота, мм</label>
         <input
-          v-model="left"
-          type="text"
-          class="project-params-dialog__input"
-          placeholder="3000"
-        />
-      </div>
-      <div class="project-params-dialog__field">
-        <label class="project-params-dialog__field-label">Нижняя</label>
-        <input
-          v-model="bottom"
-          type="text"
-          class="project-params-dialog__input"
-          placeholder="3000"
-        />
-      </div>
-      <div class="project-params-dialog__field">
-        <label class="project-params-dialog__field-label">Верхняя</label>
-        <input
-          v-model="top"
+          v-model="height"
           type="text"
           class="project-params-dialog__input"
           placeholder="3000"
@@ -58,10 +40,8 @@ import { useNewProjectAction } from '@/features/quickActions/project/composables
 const popupStore = usePopupStore();
 const { runNewProject, DEFAULT_WALL_WIDTH } = useNewProjectAction();
 
-const right = ref('');
-const left = ref('');
-const bottom = ref('');
-const top = ref('');
+const width = ref('');
+const height = ref('');
 
 const parseWidth = (value: string, fallback: number): number => {
   const n = Number(value?.trim());
@@ -73,13 +53,25 @@ const onCancel = () => {
 };
 
 const onCreate = async () => {
-  popupStore.closePopup('projectParams');
+  const parsedWidth = parseWidth(width.value, DEFAULT_WALL_WIDTH);
+  const parsedHeight = parseWidth(height.value, DEFAULT_WALL_WIDTH);
   const widths = {
-    right: parseWidth(right.value, DEFAULT_WALL_WIDTH),
-    left: parseWidth(left.value, DEFAULT_WALL_WIDTH),
-    bottom: parseWidth(bottom.value, DEFAULT_WALL_WIDTH),
-    top: parseWidth(top.value, DEFAULT_WALL_WIDTH),
+    right: parsedHeight,
+    left: parsedHeight,
+    bottom: parsedWidth,
+    top: parsedWidth,
   };
+
+  // Если popup открывали как шаг создания комнаты — используем переданный обработчик.
+  // Иначе работаем в режиме "новый проект".
+  const handler = popupStore.getProjectParamsCreateHandler();
+  popupStore.closePopup('projectParams');
+
+  if (handler) {
+    await handler(widths);
+    return;
+  }
+
   await runNewProject(widths);
 };
 </script>
