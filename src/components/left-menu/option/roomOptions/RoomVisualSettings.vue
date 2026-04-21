@@ -88,7 +88,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
 
       <div class="visual__bottom">
         <div class="visual__bottom--left">
-          <RangeSlider v-model="localAmbient" :min="0" :max="10" :step="0.01" :showValue="true">
+          <RangeSlider v-model="localAmbient" :min="0" :max="5" :step="0.01" :showValue="true">
             <template #title>
               <p class="label__text">Основное освещение</p>
             </template>
@@ -96,7 +96,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
         </div>
 
         <div class="visual__bottom--right">
-          <RangeSlider v-model="localPoint" :min="0" :max="10" :step="0.01" :showValue="true">
+          <RangeSlider v-model="localPoint" :min="0" :max="5" :step="0.01" :showValue="true">
             <template #title>
               <p class="label__text">Направленное освещение</p>
             </template>

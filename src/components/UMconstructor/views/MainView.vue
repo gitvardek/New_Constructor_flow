@@ -121,7 +121,7 @@ onMounted(() => {
     UMstore.noBackwall = module.value.noBackwall | false;
     UMstore.onHorizont = module.value.horizont > 0;
     UMstore.noLoops = module.value.noLoops | false;
-    UMstore.onSideProfile = !!module.value.profilesConfig?.sideProfile;
+    UMstore.onSideProfile = module.value.profilesConfig?.sideProfile | false;
     UMstore.onWallModule = module.value.onWallModule | false;
 
     UMconstructor.value?.setRenderRef(visualizationRef)
@@ -150,13 +150,10 @@ defineExpose({
 </script>
 
 <template>
-  <div
-      v-if="productData"
-      class="UM constructor2d-wrapper"
-  >
+  <div v-if="productData" class="constructor2d-wrapper">
 
     <div
-        class="UM constructor2d-container constructor2d-container--left"
+        class="constructor2d-container constructor2d-container--left"
     >
       <LeftPanelView
           :mode="mode"
@@ -167,21 +164,21 @@ defineExpose({
 
     <div
         id="midAreaUM2Dconstructor"
-        class="UM constructor2d-container constructor2d-container--mid"
+        class="constructor2d-container constructor2d-container--mid"
         ref="constructor2dContainer"
     >
-      <div class="UM no-select constructor2d-header">
-        <div class="UM constructor2d-header--title"><h1>{{productData.PROPS.NAME}}</h1></div>
+      <div class="no-select constructor2d-header">
+        <div class="constructor2d-header--title"><h1>{{productData.PROPS.NAME}}</h1></div>
       </div>
 
       <div
-          class="UM constructor2d-container constructor2d-header--mode-selector"
+          class="constructor2d-container constructor2d-header--mode-selector"
       >
-        <article class="UM actions-items actions-items--right">
-          <div class="UM actions-items--right-items">
+        <article class="actions-items actions-items--right">
+          <div class="actions-items--right-items">
             <button
                 :class="[
-                      'UM no-select actions-btn actions-btn--default', {
+                      'no-select actions-btn actions-btn--default', {
                       active:
                         mode === 'module'
                       }
@@ -192,7 +189,7 @@ defineExpose({
             </button>
             <button
                 :class="[
-                      'UM no-select actions-btn actions-btn--default', {
+                      'no-select actions-btn actions-btn--default', {
                       active:
                         mode === 'fillings'
                       }
@@ -203,7 +200,7 @@ defineExpose({
             </button>
             <button
                 :class="[
-                      'UM no-select actions-btn actions-btn--default', {
+                      'no-select actions-btn actions-btn--default', {
                       active:
                         mode === 'fasades'
                       }
@@ -216,7 +213,7 @@ defineExpose({
         </article>
       </div>
 
-      <div class="UM constructor2d-content">
+      <div class="constructor2d-content">
         <Render2D
             ref="visualizationRef"
             :mode="mode"
@@ -229,8 +226,8 @@ defineExpose({
         />
       </div>
 
-      <section class="UM actions-footer" ref="refFooter">
-        <div class="UM actions-footer--save">
+      <section class="actions-footer" ref="refFooter">
+        <div class="actions-footer--save">
           <slot name="save"></slot>
           <slot name="close"></slot>
         </div>
@@ -239,7 +236,7 @@ defineExpose({
     </div>
 
     <div
-        class="UM constructor2d-container constructor2d-container--right"
+        class="constructor2d-container constructor2d-container--right"
     >
       <RightPanelView
           :mode="mode"
@@ -251,15 +248,5 @@ defineExpose({
 </template>
 
 <style scoped lang="scss">
-.constructor2d-wrapper {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  width: 100%;
-  max-width: 100vw;
-  height: 95vh;
 
-  font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS",
-  sans-serif;
-}
 </style>

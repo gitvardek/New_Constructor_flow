@@ -26,47 +26,18 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
       
       // Небольшая задержка для предотвращения конфликтов
       setTimeout(() => {
-        const currentWall = this.objectWalls.find((el: ObjectWall) => el.id === id);
-        const sameRoomWallsCount = currentWall?.roomId == null
-          ? 0
-          : this.objectWalls.filter(
-            (el: ObjectWall) =>
-              el.roomId === currentWall.roomId &&
-              el.name !== 'dividing_wall',
-          ).length;
-        const canDeleteWall = currentWall?.roomId == null || sameRoomWallsCount > 4;
-
         // Эмитим событие для показа контекстного меню
-        const clickedWall = this.objectWalls.find((w: ObjectWall) => w.id === id);
-        const isClosingWall = clickedWall?.isClosing === true;
-        const regularWalls = this.objectWalls.filter(
-          (w: ObjectWall) => w.roomId === clickedWall?.roomId && w.name !== 'dividing_wall' && !w.isClosing
-        );
-        const canDelete = regularWalls.length > 3;
-
         this.parent.eventBus.emit(Events.C2D_SHOW_WALL_CONTEXT_MENU, {
           x: domX,
           y: domY,
-          context: {
-            kind: "wall" as const,
-            wallId: id,
-            isClosingWall,
-            canDelete,
-            onSplitWall: (wallId: string | number) => {
-              if (typeof this.splitWallIntoTwo === "function") {
-                this.splitWallIntoTwo(wallId);
-              } else {
-                console.warn("Wallsplitter is not defined on Planner");
-              }
-            },
-            onDeleteWall: (wallId: string | number) => {
-              if (typeof this.removeWallById === "function") {
-                this.removeWallById(wallId);
-              } else {
-                console.warn("removeWallById is not defined on Planner");
-              }
-            },
-          },
+          wallId: id,
+          onSplitWall: (wallId: string | number) => {
+            if (typeof this.splitWallIntoTwo === 'function') {
+              this.splitWallIntoTwo(wallId);
+            } else {
+              console.warn('Wallsplitter is not defined on Planner');
+            }
+          }
         });
       }, 0);
     }
@@ -75,7 +46,6 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
   }
 
   if (e.button == 0){
-    this.clearGhostPreview();
 
     // снимает активность с окна или двери
     this.parent.layers.doorsAndWindows.setActiveObject(null);
@@ -92,11 +62,6 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
     if (addedwall && addedwall.points) {
       this.state.oldPosition = JSON.parse(JSON.stringify(addedwall.points));
     }
-    // [REMOVED: quantization] dragRoomId / dragLastCommittedAngles / hasAngleStepCommit
-    // this.state.dragRoomId = addedwall?.roomId ?? null;
-    // this.state.dragLastCommittedAngles =
-    //   this.state.dragRoomId != null ? this.getRoomCornerAnglesDeg(this.state.dragRoomId) : null;
-    // this.state.hasAngleStepCommit = false;
     
     this.state.positionDown.x = e.global.x;
     this.state.positionDown.y = e.global.y;

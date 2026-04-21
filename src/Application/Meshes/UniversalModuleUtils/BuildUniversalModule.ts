@@ -15,7 +15,6 @@ import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
-import {TFasadeProp} from "@/types/types";
 
 export class BuildUniversalModule extends BuildProduct {
 
@@ -32,8 +31,7 @@ export class BuildUniversalModule extends BuildProduct {
         width: number,
         height: number,
         depth: number
-    }, moduleParams?: GridModule)
-    {
+    }, moduleParams?: GridModule) {
 
         // Режим чертежа
         const drowMode = this.menuStore.getDrowModeValue
@@ -214,7 +212,7 @@ export class BuildUniversalModule extends BuildProduct {
 
         const sourceForBounds = curBodyExceptions ? exept : tempTotal;
         if (sourceForBounds) {
-            this.setBounds(total, sourceForBounds, size, CONFIG);
+            this.setBounds(total, sourceForBounds);
         }
 
         if (drowMode) {
@@ -241,19 +239,19 @@ export class BuildUniversalModule extends BuildProduct {
             }
         }
 
-        CONFIG.MODULEGRID = <GridModule>{}
+        CONFIG.MODULEGRID = {}
 
         if (product_data.BACKWALL?.length && product_data.BACKWALL?.[0]) {
-            CONFIG.BACKWALL = <TFasadeProp>{ SHOW: true }
+            CONFIG.BACKWALL = { SHOW: true }
             CONFIG.BACKWALL.COLOR = this.filters.filterModuleColor(product_data.BACKWALL)[0] || CONFIG["MODULE_COLOR"];
         }
 
         if (product_data.SIDEWALL?.length && product_data.SIDEWALL?.[0]) {
-            CONFIG.LEFTSIDECOLOR = <TFasadeProp>{ COLOR: false }
-            CONFIG.RIGHTSIDECOLOR = <TFasadeProp>{ COLOR: false }
+            CONFIG.LEFTSIDECOLOR = { COLOR: false }
+            CONFIG.RIGHTSIDECOLOR = { COLOR: false }
         }
 
-        CONFIG.TOPFASADECOLOR = <TFasadeProp>{ COLOR: 7397, SHOW: false }
+        CONFIG.TOPFASADECOLOR = { COLOR: 7397, SHOW: false }
 
         if (product_data.moduleType.CODE !== "wardrobe") {
             CONFIG.LOOPS = {}
@@ -977,8 +975,6 @@ export class BuildUniversalModule extends BuildProduct {
                                 })
 
                             let relative_posY = positionY + (element.type !== 'drawer' ? element.size.y / 2 : 0) - (element.fasade?.manufacturerOffset || 0)
-                            element.basketRenderPosition = positionY
-
                             if (leftObj) {
                                 let relative_pos = leftObj.size.y - ((leftObj.position.y + leftObj.size.y) - relative_posY)
 

@@ -16,7 +16,6 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { _URL } from "@/types/constants";
 
 import Accordion from "@/components/ui/accordion/Accordion.vue";
-import { TTotalProps } from "@/types/types";
 type TSurface = "fasade" | "module";
 
 interface IProps {
@@ -88,34 +87,21 @@ const changeFasadeTexture = (data: { [key: string]: any }, id, fasadeNdx) => {
 
   if (props.type == "module") {
     emit("select", data);
+    console.log('jjj', data)
     return;
   }
 
-  // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
+  console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
-  const { PRODUCT, CONFIG, FASADE } = productData.value.PROPS as TTotalProps;
-  const { FASADE_PROPS } = CONFIG;
-  const { MILLING_CONVERSATION } = FASADE_PROPS[fasadeNdx];
-  const { trueSize } = FASADE[fasadeNdx].userData;
-
-  console.log(trueSize, "--trueSize");
+  const productId = productData.value.PROPS.PRODUCT;
   let { ID, NAME, DETAIL_PICTURE, PREVIEW_PICTURE, MATERIAL, PATINA } = data;
 
   modelState.createCurrentPaletteData(ID);
-  modelState.createCurrentMillingData({
-    fasadeId: ID,
-    productId: PRODUCT,
-    fasadeNdx,
-    fasadeSize: trueSize,
-  });
-  modelState.createCurrentShowcaseData({
-    fasadeId: ID,
-    productId: PRODUCT,
-    fasadeNdx,
-  });
-  modelState.createCurrentPatinaData({ fasadeId: ID, productId: PRODUCT });
-  modelState.createCurrentGlassData({ fasadeId: ID, productId: PRODUCT });
-  modelState.createCurrentFasadeTypesData({ fasadeId: ID, productId: PRODUCT });
+  modelState.createCurrentMillingData({ fasadeId: ID, productId, fasadeNdx });
+  modelState.createCurrentShowcaseData({ fasadeId: ID, productId, fasadeNdx });
+  modelState.createCurrentPatinaData({ fasadeId: ID, productId });
+  modelState.createCurrentGlassData({ fasadeId: ID, productId });
+  modelState.createCurrentFasadeTypesData({ fasadeId: ID, productId });
 
   const transitionT = checkTransitionTexture(data.ID);
 
@@ -134,7 +120,7 @@ const changeFasadeTexture = (data: { [key: string]: any }, id, fasadeNdx) => {
 const onSearchChange = (e) => {
   let reg = new RegExp(`${e.target.value.toLowerCase()}`, "g");
   let filteredData = totalMaterialList.value.filter((id) =>
-    reg.test(_FASADE[id].NAME.toLowerCase()),
+    reg.test(_FASADE[id].NAME.toLowerCase())
   );
 
   filteredMaterialList.value = filteredData;
@@ -143,7 +129,7 @@ const onSearchChange = (e) => {
 
 const checkTransitionTexture = (id: number) => {
   const prepare = modelState.getCurrentModelFasadesData.filter(
-    (el) => el.NAME === "Шпон Вардек 19мм",
+    (el) => el.NAME === "Шпон Вардек 19мм"
   );
 
   if (prepare.length == 0) return false;
@@ -218,6 +204,7 @@ const checkTransitionTexture = (id: number) => {
 </template>
 
 <style scoped lang="scss">
+
 .relative__wrapper {
   display: flex;
   flex-direction: column;

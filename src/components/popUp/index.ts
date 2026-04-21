@@ -10,10 +10,6 @@ import TechnologistForm from "@/components/Technologist/TechnologistForm.vue";
 import TechnologistComments from "@/components/Technologist/TechnologistComments.vue";
 import FilePopUpView from "@/components/popUp/popup-views/FilePopUpView.vue";
 import ProjectParamsPopUpView from "@/components/popUp/popup-views/ProjectParamsPopUpView.vue";
-import RoomParamsPopUpView from "@/components/popUp/popup-views/RoomParamsPopUpView.vue";
-import WallHeightPopUpView from "@/components/popUp/popup-views/WallHeightPopUpView.vue";
-import WallLengthPopUpView from "@/components/popUp/popup-views/WallLengthPopUpView.vue";
-import DoorWindowOpeningSizePopUpView from "@/components/popUp/popup-views/DoorWindowOpeningSizePopUpView.vue";
 
 
 export type PopupKey =
@@ -22,10 +18,6 @@ export type PopupKey =
     'error' |
     'project' |
     'projectParams' |
-    'roomParams' |
-    'wallHeight' |
-    'wallLength' |
-    'doorWindowSize' |
     'catalog' |
     'technologist' |
     'technologist-form' |
@@ -58,24 +50,8 @@ export const POPUP_CONFIG: PopupsConfig = {
     component: ProjectPopUpView
   },
   projectParams: {
-    title: 'Задайте размеры комнаты',
+    title: 'Задайте параметры проекта',
     component: ProjectParamsPopUpView
-  },
-  roomParams: {
-    title: 'Параметры помещения',
-    component: RoomParamsPopUpView
-  },
-  wallHeight: {
-    title: 'Высота стен',
-    component: WallHeightPopUpView
-  },
-  wallLength: {
-    title: 'Длина стены',
-    component: WallLengthPopUpView
-  },
-  doorWindowSize: {
-    title: 'Размеры проёма',
-    component: DoorWindowOpeningSizePopUpView
   },
   catalog: {
     title: 'Каталог',

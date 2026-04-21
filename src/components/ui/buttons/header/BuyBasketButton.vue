@@ -1,12 +1,6 @@
 <template>
   <button class="black-radial__button buy__button" @click="openPopup('basket')">
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 18 18"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g clip-path="url(#clip0_53_193)">
         <path
           fill-rule="evenodd"
@@ -25,20 +19,12 @@
 </template>
 
 <script lang="ts" setup>
-import { usePopupStore } from "@/store/appStore/popUpsStore";
-import { useEventBus } from "@/store/appliction/useEventBus";
-import { useTransformController } from "../../transformController/useTransformController";
+import { usePopupStore } from '@/store/appStore/popUpsStore';
 
 const popupStore = usePopupStore();
-const eventBus = useEventBus();
-
-const { setTransformControlsValue } = useTransformController();
 
 const openPopup = (popupName: keyof typeof popupStore.popups) => {
-
   popupStore.openPopup(popupName);
-  eventBus.emit("A:GlobalTransformMode_Off");
-  setTransformControlsValue(false);
 };
 </script>
 

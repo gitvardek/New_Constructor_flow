@@ -4,6 +4,7 @@ import { ObjectWall } from "./../../../Planner/interfaces";
 // import { Vector2 } from "@/types/constructor2d/interfaсes";
 
 import {
+  getAngleBetweenVectors,
   offsetVectorBySegment,
   rotatePoint,
 } from "./../../../../utils/Math";
@@ -20,13 +21,18 @@ export function drawAngleBetweenWalls(this:any): void {
     const wall = this.parent.layers.planner.objectWalls.find((el: ObjectWall) => el.id === this.parent.layers.planner.state.activeWall);
     if(!wall) return;
 
-    const angleGeometry = this.parent.layers.planner.getWallPoint0AngleGeometry(wall.id);
-    if(angleGeometry){
+    if(wall.mergeWalls.wallPoint1){
 
-      const p1 = angleGeometry.point1Pivot;
-      const p2 = angleGeometry.point2WallEnd;
-      const degTextAngle = angleGeometry.currentAngleDeg;
-      const vAngle = degTextAngle > 180 ? degTextAngle - 360 : degTextAngle;
+      const mergeWall = this.parent.layers.planner.objectWalls.find((el: ObjectWall) => el.id === wall.mergeWalls.wallPoint1);
+      if(!mergeWall) return;
+      
+      const p0 = mergeWall.points[0];
+      const p1 = wall.points[0];
+      const p2 = wall.points[1];
+
+      const vAngle = -getAngleBetweenVectors(p1, p0, p2);
+
+      const degTextAngle = vAngle < 0 ? 360 + vAngle : vAngle
       
       const radius = Math.max(24, 120 - (degTextAngle * 96 / 90));
 
@@ -67,8 +73,7 @@ export function drawAngleBetweenWalls(this:any): void {
           color: 0xffffff
         });
 
-        const displayAngle = Math.round(degTextAngle);
-        this.angleText.text = `${displayAngle}°`;
+        this.angleText.text = degTextAngle.toFixed(2).replace('.', ',') + "°";
 
         this.angleTextConatainer.pivot.x = 5; // this.angleText.width / 2;
         this.angleTextConatainer.pivot.y = this.angleText.height / 2;

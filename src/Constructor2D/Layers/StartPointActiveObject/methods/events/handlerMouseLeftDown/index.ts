@@ -36,7 +36,6 @@ export function handlerMouseLeftDown(this: any, e: PIXI.FederatedPointerEvent): 
     this.parent.layers.doorsAndWindows.state.activePointObject = indexPoint;
   }
   this.parent.state.mouse.left = true;
-  this.parent.eventBus.emit(Events.C2D_HIDE_ANGLE_INPUT_MODAL);
 
   if(this.parent.layers.planner.state.activeWall){
     const dataWall: { id: string, points: Vector2[] } | undefined = 

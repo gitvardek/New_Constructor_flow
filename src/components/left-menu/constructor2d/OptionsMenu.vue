@@ -35,6 +35,9 @@ const { getRooms, getRoomId } = storeToRefs(roomState);
   
 const popupStore = usePopupStore();
 
+// Локальное состояние для открытия/закрытия меню "Параметры помещения" в 2D
+const isRoomParamsOpen = ref(false);
+
 const deleteRoom = (value: number) => {
   roomState.removeRoom(value);
   // Синхронизируем список комнат в schemeTransition
@@ -54,7 +57,9 @@ const deleteRoom = (value: number) => {
 };
 
 const toggleRoomParams = () => {
-  popupStore.openPopup('roomParams');
+  isRoomParamsOpen.value = !isRoomParamsOpen.value;
+  
+  console.log('11111111111111111111111111111111111111111')
 };
 
 const constructor2dMenu = useC2DLeftMenuStore();
@@ -186,6 +191,8 @@ const switchRoom = async (roomId: string | number) => {
     }
   }
   
+  // Закрываем меню параметров помещения
+  isRoomParamsOpen.value = false;
 };
 
 
@@ -199,6 +206,7 @@ const switchRoom = async (roomId: string | number) => {
         <div class="goods">
           <div
             class="goods-item"
+            :class="{ active: isRoomParamsOpen }"
             @click="toggleRoomParams"
           >
             <S2DAppartSVG class="goods-item__image" />
@@ -232,6 +240,42 @@ const switchRoom = async (roomId: string | number) => {
           </div>
         </div>
       </div>
+
+      <transition name="slide--left">
+        <div class="room" v-if="isRoomParamsOpen">
+          <div class="room-popup">
+            <h1 class="popup__title">Параметры помещения</h1>
+            <ClosePopUpButton class="menu__close" @close="toggleRoomParams" />
+            <div class="room-cards-grid">
+              <div
+                v-for="room in roomsList"
+                :key="room.id"
+                class="project-item"
+                :class="{ active: String(room.id) === String(currentRoomId) }"
+                @click="switchRoom(room.id)"
+              >
+              <img
+                :src="'/src/assets/img/proj.png'"
+                class="item__image"
+                :alt="room.label || room.description || 'Комната'"
+              />
+              <div class="item-info">
+                <div class="info-id">
+                  <p class="id__name">
+                    {{ room.label || room.description || (`Комната ${room.id}`) }}
+                  </p>
+                  <ClosePopUpButton
+                    class="room-action-btn"
+                    @close="deleteRoom(room.id)"
+                    @click.stop
+                  />
+                </div>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </section>
 </template>

@@ -281,7 +281,7 @@ export const useQuickActionsToolbar = () => {
       iconClass: 'icon-add',
       path: 'default',
       action: () => {
-        popupStore.openProjectParamsPopup();
+        popupStore.openPopup('projectParams');
       },
     },
     {

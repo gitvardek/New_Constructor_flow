@@ -109,26 +109,9 @@ export class BuildProduct extends BuildersHelper {
             const type = this._MODELS[product_data.models[0]];
 
             if (type.DAE) {
-                const props = this.createStartProps(product_data, loaded_props);
-                let useContentSizeForDae = false;
-                // Размер из схемы (2D → content.size); иначе ModelsBuilder для DAE не применяет loaded_size
-                if (
-                    loaded_size
-                    && typeof loaded_size === 'object'
-                    && (Number(loaded_size.width) > 0
-                        || Number(loaded_size.height) > 0
-                        || Number(loaded_size.depth) > 0)
-                ) {
-                    props.CONFIG.SIZE = {
-                        width: Number(loaded_size.width),
-                        height: Number(loaded_size.height),
-                        depth: Number(loaded_size.depth),
-                    };
-                    useContentSizeForDae = true;
-                }
                 return this.models_builder.create({
-                    props,
-                    forceContentSizeScale: useContentSizeForDae,
+                    props: this.createStartProps(product_data, loaded_props),
+                    size: loaded_size
                 })
                     .then(model => this.finalizeModel(model, resolve, type))
                     .catch(err => console.error('Ошибка загрузки DAE:', err));
@@ -320,7 +303,6 @@ export class BuildProduct extends BuildersHelper {
             MECHANISM: null,
             MECHANISM_TEMP: [],
             SIZE: { width, height, depth },
-            SIZE_OFFSET: { width: 0, height: 0, depth: 0 },
             SIZE_EDIT: {
                 SIZE_EDIT_WIDTH_MIN: null,
                 SIZE_EDIT_WIDTH_MAX: null,
@@ -349,7 +331,6 @@ export class BuildProduct extends BuildersHelper {
             KROMKA: null,
             SIZEEDITJOINDEPTH: product_data.SIZE_EDIT_JOINDEPTH_MIN ? 310 : null,
             DAE: isDae,
-
         };
 
         // Все дополнительные данные заполняем только если не DAE-модель
@@ -398,7 +379,6 @@ export class BuildProduct extends BuildersHelper {
 
         PARAMS.SIZE = loadedProps ? loadedProps.CONFIG.SIZE : this.getProductSize(PARAMS, product_data);
         PARAMS.SIZE_EDIT = { ...this.getSizeEdit(product_data, PARAMS) };
-        PARAMS.SIZE_OFFSET = loadedProps ? loadedProps.CONFIG.SIZE_OFFSET : { width: 0, height: 0, depth: 0 };
 
         return PARAMS;
     }
@@ -430,8 +410,6 @@ export class BuildProduct extends BuildersHelper {
         const legsHeight = this._PRODUCTS[productId]?.leg_length;
         const fasadeProps = Object.values(CONFIG.FASADE_PROPS);
         const shelfCount = CONFIG.SHELFQUANT.max;
-        // console.log(size, 'resize')
-
 
         // Обновляем размер в конфиге
         if (size) {
@@ -440,10 +418,7 @@ export class BuildProduct extends BuildersHelper {
                 : size;
         }
 
-        console.log(modelData, PROPS.CONFIG.SIZE, '=== modelData ===')
-
-
-        total.userData.prodSize =  PROPS.CONFIG.SIZE;
+        total.userData.prodSize = PROPS.CONFIG.SIZE;
 
         if (!modelData) return;
 
@@ -489,8 +464,6 @@ export class BuildProduct extends BuildersHelper {
             part.position.y = y;
         });
 
-        console.log(body, ' === body ===')
-
         if (body) {
             body.position.set(move.x, baseY, move.z);
             body.visible = !curBodyExceptions;
@@ -503,7 +476,6 @@ export class BuildProduct extends BuildersHelper {
         const totalParts = curBodyExceptions
             ? [body, shelf, fasade, arrows, plinth]
             : [plinth, legs, body, shelf, fasade, drower, arrows];
-
 
         totalParts.filter(Boolean).forEach(part => total.add(part as THREE.Object3D));
 
@@ -519,12 +491,9 @@ export class BuildProduct extends BuildersHelper {
             .filter(Boolean)
             .forEach(part => exept.add(part));
 
-
-
-
         const sourceForBounds = curBodyExceptions ? exept : tempTotal;
 
-        if (sourceForBounds) this.setBounds(total, sourceForBounds, size, CONFIG);
+        if (sourceForBounds) this.setBounds(total, sourceForBounds);
 
         if (drowMode) this.useEdgeBuilder.drawingMode(drowMode, total);
 
@@ -668,17 +637,10 @@ export class BuildProduct extends BuildersHelper {
         const startPos = this.getStartPosition(CONFIG.SIZE);
 
         if (TOPFASADECOLOR?.SHOW) {
+            const top = this._FASADE[TOPFASADECOLOR.COLOR];
             const topFasade_width = CONFIG.SIZE.width;
-            const topFasade_depth = CONFIG.SIZE.depth + moduleThickness + 2;
-            let top, topFasade_thickness
-            if (TOPFASADECOLOR.TABLE) {
-                top = this._PRODUCTS[TOPFASADECOLOR.TABLE];
-                topFasade_thickness = top.height
-            }
-            else {
-                top = this._FASADE[TOPFASADECOLOR.COLOR];
-                topFasade_thickness = top.DEPTH
-            }
+            const topFasade_depth = CONFIG.SIZE.depth + moduleThickness;
+            const topFasade_thickness = top.DEPTH;
 
             Object.assign(TOPFASADECOLOR, {
                 width: topFasade_width,
@@ -696,8 +658,8 @@ export class BuildProduct extends BuildersHelper {
                 rotation: { x: 0, y: 0, z: 0 },
                 position: {
                     x: 0,
-                    y: startPos.y + CONFIG.SIZE.height + topFasade_thickness / 2,
-                    z: startPos.z + topFasade_depth / 2,
+                    y: startPos.y + CONFIG.SIZE.height + top.DEPTH / 2,
+                    z: startPos.z + CONFIG.SIZE.depth / 2 + moduleThickness / 2,
                 },
             });
         }
@@ -773,12 +735,7 @@ export class BuildProduct extends BuildersHelper {
 
         Object.values(leg_position as THREETypes.TObject[]).forEach((position) => {
             const leg = this.createLeg(leg_length);
-            leg.position.set(
-                this.calculateFromString(position.x),
-                this.calculateFromString(position.y),
-                this.calculateFromString(position.z
-
-                ));
+            leg.position.set(position.x, position.y, position.z);
             legs.add(leg);
         });
 
@@ -793,9 +750,9 @@ export class BuildProduct extends BuildersHelper {
         size: THREETypes.TObject,
         model: THREETypes.TObject
     ) {
-        const corr_x = model ? this.calculateFromString(model.corr_x) : 0;
-        const corr_y = model ? this.calculateFromString(model.corr_y) : 0;
-        const corr_z = model ? this.calculateFromString(model.corr_z) : 0;
+        const corr_x = model ? eval(model.corr_x) : 0;
+        const corr_y = model ? eval(model.corr_y) : 0;
+        const corr_z = model ? eval(model.corr_z) : 0;
 
         const x = start_position.x + corr_x;
         const y = start_position.y + corr_y;
@@ -878,29 +835,17 @@ export class BuildProduct extends BuildersHelper {
         return arrows;
     }
 
-    private setBounds(target: THREE.Object3D, source: THREE.Object3D, resize: THREETypes.TSize, props: THREETypes.TConfig) {
-
-
-        const { SIZE, SIZE_OFFSET } = props
-
+    private setBounds(target: THREE.Object3D, source: THREE.Object3D) {
         const aabb = new THREE.Box3().setFromObject(source);
         const obb = new OBB().fromBox3(aabb);
         const size = new THREE.Vector3();
         aabb.getSize(size);
-
-        console.log(resize, 'RESIZE')
-
-        /** Для коллизии объектов с отступами боковыми фасадами и т.д. */
-        if (!resize) {
-            SIZE_OFFSET.width = size.x - SIZE.width
-        }
 
         target.userData.trueSizes = {
             DEPTH: size.z * 0.5,
             HEIGHT: size.y * 0.5,
             WIDTH: size.x * 0.5,
         };
-
         target.userData.aabb = aabb;
         target.userData.obb = obb;
     }

@@ -7,7 +7,6 @@ import * as BufferGeometry from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { useAppData } from "@/store/appliction/useAppData"
 import { useModelState } from "@/store/appliction/useModelState";
 import { OBB } from 'three/examples/jsm/math/OBB.js';
-import { useToast } from "@/features/toaster/useToast";
 
 
 type TFasadePartPosition = {
@@ -35,7 +34,6 @@ export class FasadeBuilder {
     handlesBuilder: THREETypes.THandlesBuilder
 
 
-
     constructor(parent: THREETypes.TBuildProduct) {
         this.parent = parent
         this.dispose = parent.root._deepDispose
@@ -50,7 +48,6 @@ export class FasadeBuilder {
         this.useEdgeBuilder = parent.root.useEdgeBuilder
         this.menuStore = parent.root.menuStore
         this.handlesBuilder = parent.handles_builder
-        this.toaster = useToast();
 
     }
 
@@ -130,17 +127,14 @@ export class FasadeBuilder {
 
         if (Number.isInteger(fasadeNdx)) {
 
-            console.log(FASADE, '==== ❌ FASADE NUMERED ❌ ====')
-
             const fasadeData: THREETypes.TFasadeProp = FASADE_PROPS[fasadeNdx];
             const { color, pallite, milling } = resolveColorId(fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE);
 
 
             const haveShowcase = FASADE_POSITIONS[fasadeNdx].SHOWCASE === 1
-            let curFasade = FASADE[fasadeNdx];
-            const curParent = curFasade.parent;
-            const { trueSize } = curFasade.userData;
-            curFasade.geometry = FASADE_DEFAULT[fasadeNdx].geometry.clone();
+            let curFasade = FASADE[fasadeNdx]
+            const curParent = curFasade.parent
+            curFasade.geometry = FASADE_DEFAULT[fasadeNdx].geometry.clone()
 
             if (remove) {
                 fasadeData.COLOR = 7397;
@@ -194,13 +188,7 @@ export class FasadeBuilder {
 
                 const firstValuePall = Object.values(this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR))[0] as any;
                 const firstValueGlass = this.parent.modelState.getCurrentGlassData[0] as any;
-                const millingList = this.parent.modelState.createCurrentMillingData(
-                    {
-                        fasadeId: fasadeData.COLOR,
-                        productId: PRODUCT,
-                        fasadeNdx: fasadeNdx,
-                        fasadeSize: trueSize,
-                    })
+                const millingList = this.parent.modelState.createCurrentMillingData({ fasadeId: fasadeData.COLOR, productId: PRODUCT, fasadeNdx: fasadeNdx })
                 const firstValueMilling = millingList[0] as any;
 
                 // console.log(typeof firstValueMilling == 'object' && milling, '==== ❌ firstValueMilling ❌ ====')
@@ -217,6 +205,7 @@ export class FasadeBuilder {
                     fasadeData.PALETTE = null;
                 }
 
+
                 if (fasadeData.SHOW && typeof firstValueMilling == 'object') {
 
                     // fasadeData.MILLING = this.containsValue(millingList, milling) ? milling : firstValueMilling.ID;
@@ -231,6 +220,7 @@ export class FasadeBuilder {
                     fasadeData.MILLING = null
                     fasadeData.PATINA = null
                 }
+
 
                 if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
                     fasadeData.GLASS = firstValueGlass.ID;
@@ -360,12 +350,11 @@ export class FasadeBuilder {
 
             const fasadeData = FASADE_PROPS[key];
             const haveShowcase = FASADE_POSITIONS[key].SHOWCASE === 1
-            // Позиция фасада вычисляется один раз
-            const fasadePositionData = this.getFasadePosition(CONFIG, key, isUMmodule);
-            const { color, pallite, milling } = resolveColorId(fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE);
 
+            // Массовая инициализация, когда remove=false и индекс не задан
             if (!remove && !fasadeNdx) {
-                // const { color, pallite, milling } = resolveColorId(fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE);
+
+                const { color, pallite, milling } = resolveColorId(fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE);
                 const curFasadeList = this.parent.modelState.createFlatFasadeData({ data: currentProduct.FACADE, fasadeNdx, def: true })
 
                 const includeIncomeFasade = curFasadeList.includes(color)
@@ -374,50 +363,11 @@ export class FasadeBuilder {
                 fasadeData.SHOW = curBodyExceptions ? true : fasadeData.COLOR !== 7397;
                 fasadeData.SHOWCASE = fasadeData.SHOW && haveShowcase ? fasadeData.SHOWCASE ?? SHOWCASE[0] ?? deffShowcase : null
 
-            }
-
-            const { result } = this.processFasadeCreation({
-                fasadePositionData,
-                startPosition,
-                props,
-                FASADE_PROPS,
-                FASADE,
-                FASADE_DEFAULT,
-                FASADE_POSITIONS,
-                FASADE_TYPE,
-                key,
-                incomingModel,
-                curBodyExceptions,
-                parent,
-                modelType
-            });
-
-            // Массовая инициализация, когда remove=false и индекс не задан
-            if (!remove && !fasadeNdx) {
-
-                console.log(FASADE[key], '==== ❌ FASADE remove ❌ ====')
-
-                const curFasade = FASADE[key];
-                const { trueSize } = curFasade.userData;
-
-                const millingList = this.parent.modelState.createCurrentMillingData({
-                    fasadeId: fasadeData.COLOR,
-                    productId: PRODUCT,
-                    fasadeNdx: key,
-                    fasadeSize: trueSize
-                })
-
-                const checkCurrentMilling = millingList.findIndex(el => el.ID === fasadeData.MILLING) > -1
-                console.log(checkCurrentMilling, 'checkCurrentMilling')
-
-                const firstValueMilling = millingList[0] as any;
                 const firstValuePall = Object.values(this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR))[0] as any;
                 const firstValueGlass = this.parent.modelState.createCurrentGlassData({ fasadeId: fasadeData.COLOR, productId: PRODUCT })[0] as any;
+                const millingList = this.parent.modelState.createCurrentMillingData({ fasadeId: fasadeData.COLOR, productId: PRODUCT, fasadeNdx: key })
+                const firstValueMilling = millingList[0] as any;
 
-                if (!checkCurrentMilling && fasadeData.MILLING != null && fasadeData.MILLING != millingList[0].ID) {
-                    fasadeData.MILLING = millingList[0].ID
-                    this.toaster.error(` Не корректный размер фасада. Фрезеровка фасада №${key + 1} была изменена`)
-                }
 
                 if (fasadeData.SHOW && pallite && fasadeData.PALETTE === null) {
                     fasadeData.PALETTE = pallite;
@@ -445,24 +395,24 @@ export class FasadeBuilder {
 
             }
 
-            // // Позиция фасада вычисляется один раз
-            // const fasadePositionData = this.getFasadePosition(CONFIG, key, isUMmodule);
+            // Позиция фасада вычисляется один раз
+            const fasadePositionData = this.getFasadePosition(CONFIG, key, isUMmodule);
 
-            // const { result } = this.processFasadeCreation({
-            //     fasadePositionData,
-            //     startPosition,
-            //     props,
-            //     FASADE_PROPS,
-            //     FASADE,
-            //     FASADE_DEFAULT,
-            //     FASADE_POSITIONS,
-            //     FASADE_TYPE,
-            //     key,
-            //     incomingModel,
-            //     curBodyExceptions,
-            //     parent,
-            //     modelType
-            // });
+            const { result } = this.processFasadeCreation({
+                fasadePositionData,
+                startPosition,
+                props,
+                FASADE_PROPS,
+                FASADE,
+                FASADE_DEFAULT,
+                FASADE_POSITIONS,
+                FASADE_TYPE,
+                key,
+                incomingModel,
+                curBodyExceptions,
+                parent,
+                modelType
+            });
 
             // Палитра
             if (fasadeData.PALETTE != null) {
@@ -474,14 +424,13 @@ export class FasadeBuilder {
                 });
             }
 
-
-
             // Фрезеровка
             if (fasadeData.MILLING != null && !haveShowcase) {
                 // console.log('==== ❌ MILLING NEW ❌ ====')
 
                 const action = this.modelState.getCurrentMillingActionMap(fasadeData.MILLING_TYPE, fasadeData.MILLING) ?? null
                 const millingParams = action ? action : this.modelState.getCurrentMillingMap(fasadeData.MILLING);
+
 
                 this.parent.milling_builder.createMillingFasade(
                     result,

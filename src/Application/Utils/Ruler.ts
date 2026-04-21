@@ -135,7 +135,7 @@ export class Ruler {
       (box, t) => t.set((box.min.x + box.max.x) / 2, box.max.y, box.max.z),
       (box, t) => t.set(box.min.x, box.max.y, (box.min.z + box.max.z) / 2),
       (box, t) => t.set((box.min.x + box.max.x) / 2, box.min.y, (box.min.z + box.max.z) / 2),
-      (box, t) => t.set((box.min.x + box.max.x) / 2, box.max.y, box.min.z ),
+      (box, t) => t.set((box.min.x + box.max.x) / 2, box.max.y, box.min.z - 20),
     ];
 
   constructor(root: THREETypes.TApplication) {

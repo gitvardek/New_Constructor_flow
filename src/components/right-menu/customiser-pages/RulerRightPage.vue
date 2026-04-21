@@ -45,7 +45,7 @@ type TChelfCount = {
 
 const modelState = useModelState();
 const eventBus = useEventBus();
-const { onRsizeConversations, onResizeMillingCheck } = useConversationActions();
+const { onRsizeConversations } = useConversationActions();
 
 const joinDepthResizeData = ref({
   width: 0,
@@ -203,12 +203,8 @@ const resizeModel = (value: object) => {
   if (!isMounted.value) return; // игнорируем вызов до готовности
   eventBus.emit("A:Model-resize", { data: { ...resizeData.value, ...value } });
 
-  const curModel = modelState.getCurrentModel
+  if (modelState.getCurrentModel?.name === "MODEL") return;
 
-  if (curModel?.name === "MODEL") return;
-
-
-  console.log(curModel)
   /** @Проверка_FILLING */
   if (fillingList.value?.length > 0) {
     fillingList.value.forEach((el, key) => {
@@ -226,8 +222,6 @@ const resizeModel = (value: object) => {
     }
   }
   onRsizeConversations(resizeData.value);
-  onResizeMillingCheck()
-
 };
 
 const checkFillingConditions = (data, size) => {

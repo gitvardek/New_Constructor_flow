@@ -26,7 +26,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
 import { useEventBus } from "@/store/appliction/useEventBus";
 
-import { TFasadeProp, TFasadeSize, TTotalProps } from "@/types/types";
+import { TFasadeSize } from "@/types/types";
 import { THandleType } from "../FigureRightPage/Handles/useHandlesAction";
 
 import ConfigurationOption from "./ConfigurationOption.vue";
@@ -52,7 +52,6 @@ const {
   checkConversations,
   checkFasadeConversations,
   filterFasadeConversations,
-  checkMillingConversations,
 } = useConversationActions();
 
 const props = defineProps({
@@ -120,15 +119,12 @@ const onSelectMaterial = (data) => {
   const { CONFIG, FASADE } = PROPS;
   const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
   const product = modelState._PRODUCTS[productId.value];
-  const curFasadeProps = FASADE_PROPS[props.tabIndex] as TFasadeProp;
-  let { COLOR, RESET_COLOR, ALUM, MILLING } = curFasadeProps;
+  const { COLOR, RESET_COLOR, ALUM } = FASADE_PROPS[props.tabIndex];
 
   const checkConversation = checkFasadeConversations(
     data.id,
     FASADE[props.tabIndex].userData.trueSize,
   );
-
-  curFasadeProps.MILLING_CONVERSATION = checkMillingConversations(data.id);
 
   if (!checkConversation) return;
 
@@ -479,7 +475,7 @@ const update = () => {
 
 const prepareData = () => {
   const { PROPS } = productData.value;
-  const { CONFIG, FASADE } = PROPS as TTotalProps;
+  const { CONFIG } = PROPS;
   const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
   const fasadeProps = FASADE_PROPS[props.tabIndex];
   const product = _APP.CATALOG.PRODUCTS[productId.value];
@@ -498,8 +494,6 @@ const prepareData = () => {
     TYPE,
   } = fasadeProps;
 
-  const curFasade = FASADE[props.tabIndex];
-  const { trueSize } = curFasade.userData;
   const fasadeData = _FASADE[COLOR];
   if (!fasadeData) return;
 
@@ -511,7 +505,6 @@ const prepareData = () => {
     fasadeId: COLOR,
     productId: pid,
     fasadeNdx: props.tabIndex,
-    fasadeSize: trueSize,
   });
   modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
   modelState.createCurrentGlassData({ fasadeId: COLOR, productId: pid });
@@ -665,8 +658,6 @@ const prepareFasadeSizeList = () => {
 };
 
 const changeFasadeSize = async (data: TFasadeSize) => {
-  console.log("AUF");
-
   currentSize.value = data;
   const curData = productData.value;
   const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
@@ -675,20 +666,18 @@ const changeFasadeSize = async (data: TFasadeSize) => {
   const curSize = curFasade.SIZES;
   const positionList = Object.values(FASADE_SIZE)[props.tabIndex];
   const curPositionId = positionList[data.ID].ID;
-  const defaultWidth = Object.values(positionList)[0]?.FASADE_WIDTH;
+  const defaultWidth = Object.values(positionList)[0].FASADE_WIDTH;
 
-  const incomePosition = _APP.FASADE_POSITION[curPositionId];
-  const isIncomeWidth = isNaN(parseInt(incomePosition.FASADE_WIDTH));
+  const isIncomeWidth = isNaN(
+    Number(_APP.FASADE_POSITION[curPositionId].FASADE_WIDTH),
+  );
 
   curSize.id = data.ID;
   curFasade.POSITION = curPositionId;
 
   if (isIncomeWidth) {
-    
-    if (incomeSize.value.width === null) {
+    if (incomeSize.value.width === null)
       incomeSize.value.width = parseInt(defaultWidth);
-    }
-
     incomeSize.value.min = data.SIZE_EDIT_WIDTH_MIN;
     incomeSize.value.max = data.SIZE_EDIT_WIDTH_MAX;
 
@@ -699,11 +688,7 @@ const changeFasadeSize = async (data: TFasadeSize) => {
     incomeSize.value.width = null;
     incomeSize.value.min = null;
     incomeSize.value.max = null;
-    curSize.params = {
-      FASADE_WIDTH: parseInt(incomePosition.FASADE_WIDTH),
-      min: null,
-      max: null,
-    };
+    curSize.params = {};
   }
 
   eventBus.emit("A:Model-resize", {
@@ -750,30 +735,15 @@ onBeforeMount(() => {
   fasadeSizeList.value = prepareFasadeSizeList();
   fasadeSizeListExist.value = fasadeSizeList.value.length > 0;
 
-  const { FASADE_PROPS, FASADE_SIZE } = productData.value.PROPS.CONFIG;
-
-  const positionList = Object.values(FASADE_SIZE)[props.tabIndex];
-
+  const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;
-
-  // const manualInputValue = curSize?.params?.FASADE_WIDTH
-  //   ? curSize?.params?.FASADE_WIDTH
-  //   : fasadeSizeListExist.value &&
-  //       fasadeSizeList.value.length === 1 &&
-  //       fasadeSizeList.value[0].NAME.includes("Нестандарт")
-  //     ? fasadeSizeList.value[0].WIDTH
-  //     : null;
-
-  console.log(positionList, "defaultWidth");
 
   incomeSize.value = {
     width: curSize?.params?.FASADE_WIDTH ?? null,
     min: curSize?.params?.min ?? null,
     max: curSize?.params?.max ?? null,
   };
-
-  console.log(curSize, "curSize");
 });
 
 onMounted(() => {
@@ -877,7 +847,7 @@ onBeforeUnmount(() => {
       </div>
 
       <MainInput
-        v-if="incomeSize.min && incomeSize.max"
+        v-if="incomeSize.width"
         :inputClass="'input__search right-menu'"
         :type="'number'"
         :min="incomeSize.min"

@@ -37,8 +37,7 @@ export const ERROR_MESSAGES = {
   SAVE_PROJECT: 'Ошибка сохранения проекта',
   INVALID_PROJECT_DATA: 'Данные проекта невалидны',
   MISSING_PROJECT_ID: 'ID проекта не указан',
-  DELETE_PROJECT: 'Не удалось удалить проект',
-  LOAD_FORM_DATA: 'Не удалось получить форму'
+  DELETE_PROJECT: 'Не удалось удалить проект'
 } as const
 
 // Сообщения для пользователя

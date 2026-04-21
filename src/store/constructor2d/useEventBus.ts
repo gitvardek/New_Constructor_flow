@@ -13,9 +13,7 @@ export type EventName =
   | 'C2D:set-room-label'
   | 'C2D:update-input-room-label'
   | 'C2D:show-form-room-label'
-  | 'C2D:hide-form-room-label'
-  | 'C2D:show-angle-input-modal'
-  | 'C2D:hide-angle-input-modal';
+  | 'C2D:hide-form-room-label';
 
 // Определяем тип обработчиков событий
 type EventCallback<T = any> = (payload: T) => void;

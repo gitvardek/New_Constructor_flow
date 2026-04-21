@@ -47,6 +47,8 @@ export const useOptions = () => {
         const curMech = MECHANISM_TEMP.find(el => el.ID == id);
         const isNestandart = NESTANDART_MODULES.includes(ID)
 
+        console.log(isNestandart, ID)
+
         if (curMech) {
 
             MECHANISM_TEMP.forEach(mech => {
@@ -60,9 +62,12 @@ export const useOptions = () => {
             PROPS.CONFIG.MECHANISM = values ? id : null
             curMech.active = values;
 
+
+
             eventBus.emit("A:SelectModelOption")
             if (isNestandart) {
                 eventBus.emit("A:RecountShelfs", { data: SHELFQUANT.current });
+
             }
 
         }
@@ -72,15 +77,10 @@ export const useOptions = () => {
 
         if (values) {
             OPTIONS.forEach(opt => {
-                console.log(opt)
-                if (
-                    opt.group === curOpt.group &&
-                    opt.close === curOpt.close &&
-                    opt.section === curOpt.section &&
-                    opt.id !== curOpt.id || 
-                    opt.section === curOpt.section && 
-                    opt.close === curOpt.close && 
-                    opt.id !== curOpt.id) {
+                // if (opt.close === curOpt.close && opt.id !== curOpt.id) {
+                //     opt.active = false;
+                // }
+                if (opt.group === curOpt.group && opt.close === curOpt.close && opt.id !== curOpt.id || opt.section === curOpt.section && opt.close === curOpt.close && opt.id !== curOpt.id) {
 
                     if (opt.active) {
                         switch (+opt.id) {
@@ -102,13 +102,11 @@ export const useOptions = () => {
                             case 4722965:   //Навесной
                                 UM_STORE.onHorizont = true
                                 UM_STORE.onWallModule = false
-                                modelState.createCurrentBackwallData(ID);
                                 break;
                             default:
                                 break;
                         }
                     }
-                    console.log('HERE')
 
                     opt.active = false;
                 }
@@ -164,17 +162,9 @@ export const useOptions = () => {
                     UM_STORE.onHorizont = true
                     UM_STORE.onWallModule = false
                 }
-                modelState.createCurrentBackwallData(ID);
-                let currentBackwallData = modelState.getCurrentBackwallData;
-
-                if (UM_STORE.onWallModule && currentBackwallData.length > 0) {
-                    if (!currentBackwallData[0]?.FASADES.includes(PROPS.CONFIG.BACKWALL.COLOR))
-                        PROPS.CONFIG.BACKWALL = { COLOR: currentBackwallData[0]?.FASADES?.[0], SHOW: true };
-                }
-
                 break;
             case 1795067: //Опция без петель
-                if (curOpt.active) {
+                if(curOpt.active) {
                     UM_STORE.noLoops = true
                 }
                 else {
@@ -197,8 +187,7 @@ export const useOptions = () => {
                 break;
         }
 
-
-        eventBus.emit("A:SelectModelOption", { id, values })
+        eventBus.emit("A:SelectModelOption")
 
         return curOpt.active;
     };
@@ -230,6 +219,10 @@ export const useOptions = () => {
                 return { ...options[el.id], active: el.active, visible: el.visible, cutSize: cutSize }
             })
             .filter(Boolean);
+
+
+
+        console.log(curOptionsList, '88888888')
 
         for (const el in optGroup) {
 

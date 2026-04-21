@@ -4,7 +4,6 @@ import { MathUtils } from "three";
 import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
 import { useRoomState } from "@/store/appliction/useRoomState";
 import { useEventBus } from "@/store/appliction/useEventBus";
-import { useWallHeightStore } from "@/store/constructor2d/store/useWallHeightStore";
 
 import { IRoom, IWallData, IContentItem } from "@/types/interfases";
 
@@ -19,20 +18,14 @@ function updateRoomStore(this: any): boolean {
     value !== undefined && value !== null ? String(value) : "";
   const eventBus = useEventBus();
   const roomState = useRoomState();
-  const wallHeightStore = useWallHeightStore();
-  const wallHeightScene = wallHeightStore.wallHeightMm * 10;
-  const wallHeightHalfY = wallHeightScene / 2;
-
   console.log("BEFORE: ", roomState.rooms);
   const roomStore = useSchemeTransition();
   
   // Сохраняем все существующие комнаты из roomState
   const existingRoomsMap = new Map<string | number, IRoom>();
-  const existingRoomOrder = new Map<string, number>();
-  roomState.rooms.forEach((room: IRoom, index: number) => {
+  roomState.rooms.forEach((room: IRoom) => {
     const normalizedId = normalizeId(room.id);
     existingRoomsMap.set(normalizedId, JSON.parse(JSON.stringify(room)));
-    existingRoomOrder.set(normalizedId, index);
   });
 
   roomStore.clearStore(); // очищаем хранилище
@@ -152,11 +145,11 @@ function updateRoomStore(this: any): boolean {
           const wData: IWallData = {
             id: normalizeId(wallData.id),
             width: wallData.width * 10,
-            height: wallHeightScene,
+            height: 300 * 10,
             depth: wallData.height * 10,
             position: {
               x: centerWall.x * 10,
-              y: wallHeightHalfY,
+              y: (300 * 10) / 2,
               z: centerWall.y * 10,
             },
             rotation: {
@@ -167,7 +160,6 @@ function updateRoomStore(this: any): boolean {
               _order: "XYZ",
             },
             side: 0,
-            isClosing: wallData.isClosing ?? false,
           };
 
           room.params!.walls.push(wData);
@@ -241,7 +233,12 @@ function updateRoomStore(this: any): boolean {
           id: IDObjects, // Заметка: убрать "?? 0"
           position: {
             x: centerWall.x * 10 - normalOffsetX,
-            y: objData.name === "door" ? 0 : wallHeightHalfY,
+            y:
+              objData.name === "door"
+                ? 0
+                : objData.name === "window"
+                ? 1500
+                : (300 * 10) / 2,
             z: centerWall.y * 10 - normalOffsetY,
           },
           rotation: {
@@ -254,27 +251,9 @@ function updateRoomStore(this: any): boolean {
         };
 
         if (objData.name === "door" || objData.name === "window") {
-          const openingHeightPlan =
-            typeof objData.openingHeight === "number" && objData.openingHeight > 0
-              ? objData.openingHeight
-              : objData.name === "door"
-              ? 210
-              : 150;
-          const distanceFromFloorPlan =
-            objData.name === "window" &&
-            typeof objData.distanceFromFloor === "number" &&
-            objData.distanceFromFloor >= 0
-              ? objData.distanceFromFloor
-              : 0;
-          const windowCenterY =
-            (distanceFromFloorPlan + openingHeightPlan / 2) * 10;
-
-          if (objData.name === "window") {
-            obj.position.y = windowCenterY;
-          }
           obj.size = {
             width: objData.width * 10,
-            height: openingHeightPlan * 10,
+            height: 0,
             depth: objData.height * 10,
           };
         }
@@ -295,16 +274,6 @@ function updateRoomStore(this: any): boolean {
       // Комната не была обновлена из 2D, сохраняем её как есть
       rooms.push(existingRoom);
     }
-  });
-
-  rooms.sort((a: IRoom, b: IRoom) => {
-    const aIndex = existingRoomOrder.get(normalizeId(a.id));
-    const bIndex = existingRoomOrder.get(normalizeId(b.id));
-
-    if (aIndex != null && bIndex != null) return aIndex - bIndex;
-    if (aIndex != null) return -1;
-    if (bIndex != null) return 1;
-    return 0;
   });
 
   roomStore.setAppData(rooms);

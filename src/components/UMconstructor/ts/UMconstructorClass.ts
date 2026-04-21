@@ -102,13 +102,7 @@ export default class UMconstructorClass {
             if (!PROPS.CONFIG.MODULEGRID || !Object.keys(PROPS.CONFIG.MODULEGRID).length) {
 
                 let FASADE = PROPS.CONFIG.FASADE_POSITIONS[0]
-
                 let FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0]
-                if (!FASADE_PROPS) {
-                    this.BUILDER.filters.filterFasadePosition(PROPS.CONFIG, this.APP.CATALOG.PRODUCTS[PROPS.PRODUCT]);
-                    FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
-                }
-
                 let fasadeColor = this.APP.FASADE[FASADE_PROPS.COLOR]
                 let fasadePosition = this.APP.FASADE_POSITION[FASADE_PROPS.POSITION];
                 fasadePosition = this.BUILDER.expressionsReplace(fasadePosition,
@@ -319,7 +313,7 @@ export default class UMconstructorClass {
         }, 1000)
     };
 
-    updateTotalHeight(value, event: Event) {
+    updateTotalHeight(value) {
         this.debounce('totalHeight', () => {
             const grid = this.UM_STORE.getUMGrid()
 

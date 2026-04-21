@@ -19,9 +19,7 @@ import { useRoomOptions } from "../left-menu/option/roomOptions/useRoomOptons";
 import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
 import { useConstructor2DHistory } from "@/store/constructor2d/useConstructor2DHistory";
 import { TApplication } from "@/types/types";
-import { buildProjectFromWallWidths } from "@/Constructor2D/facade/blankRoom";
-import { usePopupStore } from "@/store/appStore/popUpsStore";
-import { useTransformController } from "../ui/transformController/useTransformController";
+import { getBlankRoomTemplate } from "@/Constructor2D/facade/blankRoom";
 
 import {
   postRequest,
@@ -71,8 +69,6 @@ const roomOptions = useRoomOptions();
 const customiserStore = useCustomiserStore();
 const schemeTransition = useSchemeTransition();
 const constructor2DHistory = useConstructor2DHistory();
-const popupStore = usePopupStore();
-const { setTransformControlsValue } = useTransformController();
 
 // const _saveProject = async () => {
 //   eventBus.emit("A:Save");
@@ -147,52 +143,41 @@ const { setTransformControlsValue } = useTransformController();
 const createNewRoom = (value: string) => {
   // 2D: создаем новую комнату на основе шаблона blankroom
   if (route.path === "/2d") {
-    popupStore.openProjectParamsPopup(async (widths) => {
-      const projectData = buildProjectFromWallWidths(
-        widths.right,
-        widths.left,
-        widths.bottom,
-        widths.top,
-      );
+    const roomId = Date.now().toString();
+    const template = getBlankRoomTemplate();
+    const label =
+      value || template.label || `Комната ${roomState.getRooms.length + 1}`;
 
-      const template = projectData?.rooms?.[0];
-      if (!template) return;
+    roomState.addRoom({
+      id: roomId,
+      label,
+      description: template.description || "",
+      params: template.params,
+      content: template.content,
+      basket: JSON.stringify({
+        scene: [],
+        catalog: [],
+      }),
+    });
 
-      const roomId = template.id ?? Date.now().toString();
-      const label =
-        value || template.label || `Комната ${roomState.getRooms.length + 1}`;
+    roomState.setCurrentRoomId(roomId);
 
-      roomState.addRoom({
-        id: roomId,
-        label,
-        description: template.description || "",
-        params: template.params,
-        content: template.content,
-        basket: JSON.stringify({
-          scene: [],
-          catalog: [],
-        }),
-      });
+    // Обновляем данные для 2D‑конструктора
+    roomState.routConvertData("/2d");
 
-      roomState.setCurrentRoomId(roomId);
+    // Переинициализируем C2D, если он уже загружен
+    const c2d = window.C2D;
+    if (c2d?.layers?.planner && c2d?.layers?.doorsAndWindows) {
+      c2d.layers.planner.init(true);
+      c2d.layers.doorsAndWindows.init(true);
+    }
 
-      // Обновляем данные для 2D‑конструктора
-      roomState.routConvertData("/2d");
-
-      // Переинициализируем C2D, если он уже загружен
-      const c2d = window.C2D;
-      if (c2d?.layers?.planner && c2d?.layers?.doorsAndWindows) {
-        c2d.layers.planner.init(true);
-        c2d.layers.doorsAndWindows.init(true);
+    // Сохраняем снимок в историю undo/redo (явно, после обновления schemeTransition)
+    nextTick(() => {
+      const snapshot = schemeTransition.getAllData();
+      if (snapshot && Array.isArray(snapshot)) {
+        constructor2DHistory.addAction(JSON.parse(JSON.stringify(snapshot)));
       }
-
-      // Сохраняем снимок в историю undo/redo (явно, после обновления schemeTransition)
-      nextTick(() => {
-        const snapshot = schemeTransition.getAllData();
-        if (snapshot && Array.isArray(snapshot)) {
-          constructor2DHistory.addAction(JSON.parse(JSON.stringify(snapshot)));
-        }
-      });
     });
 
     return;
@@ -215,11 +200,6 @@ const createNewRoom = (value: string) => {
 
 const checkContantLoad = (state: boolean) => {
   contentLoaded.value = state;
-};
-
-const disableTransformMode = () => {
-  eventBus.emit("A:GlobalTransformMode_Off");
-  setTransformControlsValue(false);
 };
 
 const moreThenActions = computed(() => {
@@ -259,9 +239,6 @@ const prevAction = async () => {
     if (verdekConstructor.value) {
       contentLoaded.value = false;
       await roomState.setLoad(false);
-
-      disableTransformMode();
-
       await nextTick();
       setTimeout(() => {
         eventBus.emit("A:PrevAction");
@@ -301,7 +278,6 @@ const nextAction = async () => {
     if (verdekConstructor.value) {
       contentLoaded.value = false;
       await roomState.setLoad(false);
-      disableTransformMode();
       await nextTick();
       setTimeout(() => {
         eventBus.emit("A:NextAction");
@@ -442,7 +418,10 @@ const waitForConstructor = async (timeout = 2000, interval = 50) => {
 watch(
   () => route.path,
   async (newPath, oldPath) => {
+    
+
     try {
+
       if (oldPath === "/3d" && newPath === "/2d" && verdekConstructor.value) {
         eventBus.emit("A:Save");
         await nextTick(); // Ждем сохранения
