@@ -950,7 +950,6 @@ class Section extends Helpers {
   }
 
   // getServiseData() {
-  //   // console.log(this.data, 'this.data')
 
   //   // Сбрасываем ошибки
   //   this.data.serviseData.forEach(el => {
@@ -959,7 +958,6 @@ class Section extends Helpers {
 
   //   const data = this.data.serviseData.filter(elem => elem.value === true);
 
-  //   console.log(this.data.serviseData, 'data')
 
   //   const handlers: Record<number, (acc: any, el: any) => void> = {
   //     // bottomLeft
@@ -1000,7 +998,6 @@ class Section extends Helpers {
   //   };
 
   //   const remaster = data.reduce((acc, el) => {
-  //          console.log(handlers[el.ID], ' === handler ===')
 
   //     const handler = handlers[el.ID];
 
@@ -1009,7 +1006,6 @@ class Section extends Helpers {
   //     return acc;
   //   }, {} as Record<string, any>);
 
-  //   console.log(remaster, 'remaster')
 
   //   return remaster;
   // }

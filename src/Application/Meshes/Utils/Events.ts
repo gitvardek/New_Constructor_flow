@@ -251,7 +251,6 @@ export class MeshEvents extends BuildersHelper {
         //     FASADE[fasadeNdx].geometry = FASADE_DEFAULT[fasadeNdx].geometry.clone()
         //     FASADE[fasadeNdx].userData.millingMaterial = null
         //     if (globalMilling) {
-        //         console.log(globalMilling, 'globalMilling')
 
         //         FASADE_PROPS[fasadeNdx].MILLING = globalMilling
         //     }
@@ -268,9 +267,8 @@ export class MeshEvents extends BuildersHelper {
         const product = currentMesh ?? this._currentMesh;
         const { CONFIG, SHELF, BODY, JSON_FILLINGS } = product.userData.PROPS;
         const { ID } = CONFIG;
-        const productData = this._PRODUCTS[ID]
+        const productData = this._PRODUCTS[ID];
 
-        console.log(productData, 'ID');
         [BODY, ...(SHELF ?? []), ...(JSON_FILLINGS ?? [])].forEach((obj) => {
             if (obj instanceof THREE.Object3D) {
                 obj?.traverse((child: THREE.Object3D) => {
@@ -321,7 +319,6 @@ export class MeshEvents extends BuildersHelper {
 
         if (Array.isArray(elementsList) && elementsList[0]) {
             elementsList.forEach(async (el) => {
-                console.log(el)
 
                 const { PROPS } = el.userData
                 const { PRODUCT } = PROPS
@@ -395,10 +392,8 @@ export class MeshEvents extends BuildersHelper {
 
         if (incomingModel) {
             const action = this.modelState.getCurrentFasadeTypesAction(handleType)
-            // console.log('==== ❌ SHOWCASE ALUM ❌ ====')
             this.changeShowcase({ data: incomingModel, fasadeNdx, action, mesh: mesh });
         } else if (SHOWCASE.length > 0 && fasadeShowcase) {
-            // console.log('==== ❌ SHOWCASE CLASSIK❌ ====')
             this.changeShowcase({ data: SHOWCASE[0], fasadeNdx, mesh: mesh });
         }
 
@@ -417,7 +412,6 @@ export class MeshEvents extends BuildersHelper {
     private tryApplyTexture(data: any, fasade: any, fasadeProp: any): boolean {
         if (data.COLOR) return false;
 
-        console.log(data, '=== TEXTURE_DATA ====')
 
         fasade.visible = true;
         fasade.traverse((child: THREE.Object3D) => {
@@ -534,7 +528,6 @@ export class MeshEvents extends BuildersHelper {
         const fasade = FASADE[fasadeNdx]
         const fasadeProps = FASADE_PROPS[fasadeNdx]
 
-        // console.log({ data, fasadeNdx }, 'PALLIT')
 
         this.buildPalette.createPaletteColor({ fasade, data, fasadeProps })
     }
@@ -550,14 +543,12 @@ export class MeshEvents extends BuildersHelper {
         const { FASADE_PROPS } = CONFIG
         const patina = FASADE_PROPS[fasadeNdx]?.PATINA
 
-        // console.log(data, 'data')
 
         await this.catchChangePaletteColor({ data, fasadeNdx, mesh: meshData } as TDataWithNdx)
         if (patina) {
 
             await this.catchDrawPatina({ data: patina, fasadeNdx, mesh: meshData })
         }
-        // console.log(FASADE_PROPS[fasadeNdx].PATINA, 'FASADE')
         this.events.emit("U:ChangePaletteColor")
 
     }
@@ -751,7 +742,6 @@ export class MeshEvents extends BuildersHelper {
         // const helper = new VertexNormalsHelper(fasade, 100, 0xff00ff);
         // this.scene.add(helper);
 
-        // console.log(material)
 
         FASADE_PROPS[fasadeNdx].PATINA = data
     }
@@ -894,7 +884,6 @@ export class MeshEvents extends BuildersHelper {
 
     public async catchDeliteFasade(fasadeNdx: number, el: THREE.Object3D) {
 
-        // console.log('==== ❌ catchDeliteFasade ❌ ====')
 
         const drowMode = this.menuStore.getDrowModeValue
         const product = el ?? this._currentMesh
@@ -931,7 +920,6 @@ export class MeshEvents extends BuildersHelper {
         const { NAME, ID, cutSize } = data.option
         // const isCutFasade = this.cutFasadeId.includes(parseInt(ID))
 
-        console.log(data, 'createCutFasade')
 
         if (!this._currentMesh) return;
         if (!cutSize) return
@@ -1103,7 +1091,6 @@ export class MeshEvents extends BuildersHelper {
 
         currentMesh.userData.obb.halfSize.x = fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
         currentMesh.userData.obb.halfSize.z = fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5;
-        console.log(this)
 
         if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
             currentMesh.userData.obb.halfSize.y = data.height * 0.5;

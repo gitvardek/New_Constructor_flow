@@ -118,7 +118,6 @@ const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYP
 async function bootApp() {
   // await loadDependencies()
 
-  console.log(BASE_DOMAIN, 'BASE_DOMAIN')
 
 
   const app = createApp(App)
@@ -135,7 +134,6 @@ async function bootApp() {
   const token = DEV_AUTH_BYPASS ? 'dev-bypass-token' : getCookie(COOKIE_NAMES.AUTH_TOKEN)
 
   const initialRoute = router.currentRoute.value
-  console.log('initialRoute', initialRoute)
   const preservedQuery = initialRoute.query
   const preservedHash = initialRoute.hash ?? ''
 

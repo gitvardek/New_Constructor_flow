@@ -149,7 +149,6 @@ export class Filters extends GlobalsData {
             const ismanualSizes = this._FASADESIZE[sizes]?.NAME.includes("Нестандарт")
 
 
-            console.log(ismanualSizes, this._FASADESIZE[sizes], "Нестандарт")
 
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
@@ -269,7 +268,6 @@ export class Filters extends GlobalsData {
         //     .filter(fasadeSizeId => fasadeSize[fasadeSizeId])
         //     // Сортируем фасады по их значению сортировки (SORT)
         //     .sort((a, b) => fasadeSize[a].SORT - fasadeSize[b].SORT);
-        //     console.log(result, 'result-2')
 
         // return result;
     }

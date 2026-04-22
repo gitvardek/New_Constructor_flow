@@ -22,7 +22,6 @@ export const useAppData = defineStore('AppData', () => {
   const fetchRemoteData = async () => {
     isLoading.value = true;
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
-    console.log('Start fetch from API')
     const url = new URL(`https://${BASE_DOMAIN}/api/modellerjwt/auth/getdata/`)
     let currentURL = window.location.href;
     url.searchParams.append('url', currentURL)
@@ -37,11 +36,9 @@ export const useAppData = defineStore('AppData', () => {
     const contentType = response.headers.get('content-type')
     if (contentType?.includes('application/json')) {
       const data = await response.json()
-      console.log('Полученные JSON данные:', data.DATA)
       return data.DATA
     } else {
       const text = await response.text()
-      console.log('Полученные текстовые данные:', text)
       return null
     }
   }
@@ -136,7 +133,6 @@ export const useAppData = defineStore('AppData', () => {
         
         // Проверяем существование object store перед операцией
         if (!db.objectStoreNames.contains('data')) {
-          console.log('Object store "data" не существует, создаем...')
           const transaction = db.transaction(['data'], 'readwrite')
           resolve()
           return
@@ -147,7 +143,6 @@ export const useAppData = defineStore('AppData', () => {
         const clearRequest = store.clear()
         
         clearRequest.onsuccess = function() {
-          console.log('Object store "data" очищен')
           resolve()
         }
         
@@ -213,7 +208,6 @@ export const useAppData = defineStore('AppData', () => {
       let localData = await getFromIndexedDB(indexedDataBase.value)
       
       if (localData) {
-        console.log('Загружено из IndexedDB', localData)
         setAppData(localData)
         isLoaded.value = true
         return

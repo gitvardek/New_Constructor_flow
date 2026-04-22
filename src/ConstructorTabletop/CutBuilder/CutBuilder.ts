@@ -60,7 +60,6 @@ class TableTopCreator extends BuildersHelper {
 
         if (object.userData.groupId) {
 
-            console.log('GROOO')
 
             const parent: THREE.Object3D = this.root._scene?.getObjectByProperty('id', object.userData.groupId)!;
 
@@ -95,7 +94,6 @@ class TableTopCreator extends BuildersHelper {
             return
         }
 
-        console.log('NO GROOO', object)
 
 
         let { RASPIL_LIST, CONFIG } = object.userData.PROPS
@@ -127,7 +125,6 @@ class TableTopCreator extends BuildersHelper {
     private createSections(path, xOffset = 0, yOffset = 0) {
         const shape = new THREE.Shape();
 
-        console.log(path, 'PATH')
 
         // let lastPoint = new THREE.Vector2();
 
@@ -316,7 +313,6 @@ class TableTopCreator extends BuildersHelper {
 
     // private _createShape(row, parent, material_1, material_2) {
     //     const { xOffset, yOffset, width, height, holes } = row;
-    //     console.log(parent, 'SHAPE parent')
 
     //     let startGeometry = CSG.fromMesh(parent);
     //     let material = new THREE.MeshPhongMaterial({
@@ -361,7 +357,6 @@ class TableTopCreator extends BuildersHelper {
 
     private createShape(row: any, parent: THREE.Mesh, material_1: THREE.Material, material_2: THREE.Material): THREE.Mesh {
         const { xOffset, yOffset, width, height, holes } = row;
-        console.log(material_1, material_2, 'material parent')
 
         let startGeometry = CSG.fromMesh(parent);
         let material = new THREE.MeshPhongMaterial({
@@ -494,8 +489,6 @@ class TableTopCreator extends BuildersHelper {
     }) {
         const RASPIL_COUNT = raspilCount ?? object.userData.PROPS.RASPIL_COUNT
         const resultData = []
-        // console.log(object, 'PAR')
-        // console.log(`PARENT-${RASPIL_COUNT}`, `CURRENT-${meshes.length}`)
 
         meshes.forEach(mesh => {
             const worldPosition = new THREE.Vector3();
@@ -514,7 +507,6 @@ class TableTopCreator extends BuildersHelper {
             this.root._scene?.add(mesh); // Добавляем меш напрямую на сцену
             this.roomManager._roomContant = mesh
 
-            // console.log(mesh.userData.position, mesh.userData.rotation, 'ROW')
 
             if (mesh.userData.position && mesh.userData.rotation && RASPIL_COUNT === meshes.length) {
 

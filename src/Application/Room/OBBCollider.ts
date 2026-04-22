@@ -114,7 +114,6 @@ export class OBBCollider {
             }
         }
 
-        // console.log(object)
 
         /** Проверка на положение объекта только на полу */
 
@@ -355,10 +354,8 @@ export class OBBCollider {
 
         // Сравниваем расстояния
         if (distanceToPoint1 < distanceToPoint2) {
-            // console.log('point1')
             return point1; // Ближе к первой точке
         } else {
-            // console.log('point2')
             return point2; // Ближе ко второй точке
         }
     }

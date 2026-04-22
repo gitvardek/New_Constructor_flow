@@ -100,7 +100,6 @@ export const useModelState = defineStore('ModelState', () => {
     const _HEM = computed(() => _APP.value.HEM || [])
     const _WALL = computed(() => _APP.value.WALL || [])
 
-    // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 
 
 
@@ -336,7 +335,6 @@ export const useModelState = defineStore('ModelState', () => {
             return percept[key] = _PRODUCTS.value[el]
         }).filter(Boolean)
 
-        // console.log(percept)
 
         // const filtered = Object.values(_PLINTH).map(el => {
         //     return _PRODUCTS.value[el]
@@ -374,7 +372,6 @@ export const useModelState = defineStore('ModelState', () => {
             let fasadePosData = null;
             const product = _PRODUCTS.value[productId]
 
-            console.log(product, 'product')
 
             if (!product.FASADE_POSITION || product.FASADE_POSITION.length == 0) {
                 return []
@@ -398,7 +395,6 @@ export const useModelState = defineStore('ModelState', () => {
 
         data.forEach(facadeId => {
             const facade = _FASADE.value[facadeId];
-            // console.log(facade)
 
             if (!facade) return;
             const hasGlass = _FASADE.value[facadeId].GLASS_ONLY == 1
@@ -500,7 +496,6 @@ export const useModelState = defineStore('ModelState', () => {
     /** Фрезеровки */
     const createCurrentMillingData = ({ fasadeId, productId, fasadeNdx, fasadeSize }): TMillingListItem[] | [] => {
 
-        console.log(fasadeSize, 'fasadeSize')
 
         let result = []
         if (fasadeId == 7397) {
@@ -509,7 +504,6 @@ export const useModelState = defineStore('ModelState', () => {
         }
 
         const millingConversations = checkMillingConversations(fasadeId)
-        console.log(millingConversations, 'millingConversations')
 
         const product = _PRODUCTS.value[productId]
         const positionId = product.FASADE_POSITION[fasadeNdx]
@@ -546,7 +540,6 @@ export const useModelState = defineStore('ModelState', () => {
 
             if (millingConversations && fasadeSize) {
 
-                console.log(result, '1')
 
                 const checkedMillingConversation = millingConversationFilter(fasadeSize, millingConversations);
 
@@ -556,7 +549,6 @@ export const useModelState = defineStore('ModelState', () => {
 
                     })
                 }
-                console.log(checkedMillingConversation, result, '2')
 
             }
 
@@ -565,7 +557,6 @@ export const useModelState = defineStore('ModelState', () => {
             return result
         }
 
-        console.log('3')
 
         currentMillingData.value = result
         return result
@@ -593,11 +584,9 @@ export const useModelState = defineStore('ModelState', () => {
 
     const getCurrentMillingMap = (data) => {
 
-        console.log(MILLINGS[data], 'data!!!')
 
         const millingKey = additionalMillingKeys[data];
         const millingMapData = MILLINGS[millingKey] ?? MILLINGS[data] ?? MILLINGS[566720];
-        console.log(millingMapData, 'millingMapData')
 
         return millingMapData;
     }
@@ -656,7 +645,6 @@ export const useModelState = defineStore('ModelState', () => {
     const millingConversationFilter = (fasadeSize, conversationId) => {
         try {
             const restrict = _MILLING_SIZE_RESTRICT.value.find((el) => el.ID === conversationId)
-            console.log(restrict, 'restrict')
             const { FASADE_WIDTH, FASADE_HEIGHT } = fasadeSize
             const { HEIGHT, WIDTH, MIN_HEIGHT, MIN_WIDTH, MILLING } = restrict
 
@@ -840,7 +828,6 @@ export const useModelState = defineStore('ModelState', () => {
             const func = new Function("return " + expression);
             return func();
         } catch (error) {
-            console.log(expression, '---"Недопустимое выражение!"')
 
             return "Недопустимое выражение!";
         }

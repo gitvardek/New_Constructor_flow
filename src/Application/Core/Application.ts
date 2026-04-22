@@ -351,7 +351,6 @@ export class Application {
     // checkLostContext() {
     //     this.canvas.addEventListener('webglcontextlost', (event) => {
     //         event.preventDefault();
-    //         console.log('WebGL context lost');
     //     }, false);
     // }
 
@@ -365,10 +364,8 @@ export class Application {
     private vueEvents() {
 
         this.eventBus.onEmitCalled(async (event) => {
-            // console.log(`🔥 emit вызван: "${event}"`);
 
             if (this.userHistory.checkEvent(event)) {
-                // console.log(`🔥 emit вызван: "${event}"`);
 
                 const toAction: string[] = this.room?.save()!
                 this.userHistory!.addAction(toAction)

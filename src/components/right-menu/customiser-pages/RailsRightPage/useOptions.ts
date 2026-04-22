@@ -76,7 +76,6 @@ export const useOptions = () => {
 
         if (values) {
             OPTIONS.forEach(opt => {
-                console.log(opt)
                 if (
                     opt.group === curOpt.group &&
                     opt.close === curOpt.close &&

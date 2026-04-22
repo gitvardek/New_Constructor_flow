@@ -102,7 +102,6 @@ export class ShelfBuilder {
         const { SHELF, CONFIG } = props
         const { SHELFQUANT, SIZE, MECHANISM } = CONFIG
 
-        // console.log(MECHANISM, '==== MECHANISM ====')
 
         const total = SHELFQUANT.max!
         const current = SHELFQUANT.current!
@@ -111,7 +110,6 @@ export class ShelfBuilder {
         const { width, height, depth } = SIZE
         const mechanizmTemp = height * 0.5 - 216
 
-        console.log(mechanizmTemp, 'mechanizmTemp')
 
         const matType = props.BODY.userData.MATERIAL_TYPE ?? "MeshStandardMaterial";
         const shelfMaterial = material || this.materialMap[matType] || this.materialMap.MeshStandardMaterial;

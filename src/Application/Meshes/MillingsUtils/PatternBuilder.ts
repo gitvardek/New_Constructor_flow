@@ -171,7 +171,6 @@ export class PatternBuilder {
 
         const defaultHeight = FASADE_HEIGHT
 
-        // console.log(padding, '--Padding')
 
         const calculatePadding = (dimension: number, additional: number = 0) =>
             padding ? dimension - Math.abs(padding * 2 + additional) : dimension;
@@ -190,7 +189,6 @@ export class PatternBuilder {
                 };
             case 'xy':
 
-                // console.log({
                 //     x: calculatePadding(defaultWidth),
                 //     y: calculatePadding(defaultHeight, capsuleRadius)
                 // })
@@ -439,7 +437,6 @@ export class PatternBuilder {
 
         const { FASADE_WIDTH, FASADE_HEIGHT, FASADE_DEPTH } = fasadePosition
 
-        // console.log(boolMesh, 'boolMesh')
 
         const startBoolMeshSize = boolMesh.userData.startSize
 
@@ -447,7 +444,6 @@ export class PatternBuilder {
         const boolMeshSize = new THREE.Vector3();
         aabb.getSize(boolMeshSize);
 
-        // console.log(boolMeshSize, 'boolMeshSize')
 
         let pattern = patternData.figureParams.pattern as TPattern;
         let capsuleRadius = ((patternData?.figureParams?.radius ?? 0) * 2);

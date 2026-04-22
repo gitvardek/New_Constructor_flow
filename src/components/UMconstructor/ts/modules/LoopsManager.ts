@@ -43,7 +43,6 @@ export default class LoopsManager {
             return
 
         const curSection = grid.sections[secIndex]
-        // console.log(curSection, 'curSection')
         const FASADES = curSection.fasades || []
 
         if (grid.noLoops) {
@@ -99,7 +98,6 @@ export default class LoopsManager {
 
         fasades.forEach((fasade, key) => {
 
-            console.log(fasade, 'fasade')
 
             const { width, height } = fasade
 
@@ -120,7 +118,6 @@ export default class LoopsManager {
 
             const isDefault = hasTop && !top && !notTopLoop
 
-            console.log(LOOPSIDE[fasade.loopsSide])
 
             if (left || right) {
                 fasade.material.MECHANISM = null
@@ -215,7 +212,6 @@ export default class LoopsManager {
                 allLoops.push(fasadeLoops)
         })
 
-        console.log(allLoops, 'allLoops')
 
         return allLoops
     }
@@ -377,7 +373,6 @@ export default class LoopsManager {
 
     getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) {
 
-        // console.log(this.scope.UM_STORE.getSelected("fasades").row)
 
         const { row } = this.scope.UM_STORE.getSelected("fasades")
 
@@ -390,7 +385,6 @@ export default class LoopsManager {
         const sectionRight = grid.sections[secIndex + 1] || false;
         const isDoors = currSection.fasades?.length > 1
 
-        // console.log(segment, `${sectionLeft} лево`, `${sectionRight} право`, 'ИНДЕКС CEGMENT')
 
         const productInfo = this.scope.APP.CATALOG.PRODUCTS[grid.productID];
 
@@ -434,7 +428,6 @@ export default class LoopsManager {
                 const loops = [...new Set(fasades.map(el => el.loopsSide))]
                 const hasCommon = loopsList.some(item => loops.includes(item));
 
-                console.log(hasCommon, 'SIDE')
 
                 // return section.fasades.length < 2 && !loopsList.includes(loopsSide);
                 return section.fasades.length < 2 && !hasCommon;
@@ -446,7 +439,6 @@ export default class LoopsManager {
 
         const topIsPossible = topPossibles()
 
-        console.log(topIsPossible)
 
         let list = [];
         let tmp = {};
@@ -469,7 +461,6 @@ export default class LoopsManager {
 
         if (topIsPossible) {
 
-            console.log('ВЕРХ')
 
 
             const fasadeHeight = segment ? currSection.fasades[0][segment - 1]?.height : false
@@ -487,7 +478,6 @@ export default class LoopsManager {
                 } else {
                     delete tmp[LOOPSIDE["top"]];
                 }
-                // console.log(isLeftDoors, 'ЛЕВАЯ СЕКЦИЯ TOP')
             }
 
             if (sectionRight) {
@@ -501,13 +491,11 @@ export default class LoopsManager {
                     delete tmp[LOOPSIDE["top"]];
                 }
 
-                // console.log(isRightDoors, 'ПРАВАЯ СЕКЦИЯ TOP')
             }
 
         }
 
         else if (isDoors) {
-            console.log('DOORS')
             // else {
             delete tmp[LOOPSIDE["top"]];
             switch (doorIndex) {
@@ -518,7 +506,6 @@ export default class LoopsManager {
 
                     if (sectionLeft) {
 
-                        // console.log(sectionLeft, 'ЛЕВАЯ СЕКЦИЯ 0')
 
                         const sectionLeftLoops = sectionLeft.loopsSides || {};
 
@@ -542,7 +529,6 @@ export default class LoopsManager {
 
                     if (sectionRight) {
 
-                        console.log(sectionRight, 'ПРАВАЯ СЕКЦИЯ 0')
 
                         const sectionRightLoops = sectionRight.loopsSides || {};
 
@@ -567,7 +553,6 @@ export default class LoopsManager {
                 case 1:
                     if (sectionLeft) {
 
-                        // console.log(sectionLeft, 'ЛЕВАЯ СЕКЦИЯ 1')
 
                         const sectionLeftLoops = sectionLeft.loopsSides || {};
 
@@ -590,7 +575,6 @@ export default class LoopsManager {
 
                     if (sectionRight) {
 
-                        console.log(sectionRight, 'ПРАВАЯ СЕКЦИЯ 1')
 
                         const sectionRightLoops = sectionRight.loopsSides || {};
 
@@ -621,7 +605,6 @@ export default class LoopsManager {
         else {
             delete tmp[LOOPSIDE["top"]];
             if (sectionLeft) {
-                console.log('ЛЕВАЯ', segment)
 
                 delete tmp[LOOPSIDE["left"]];
                 const isLeftDoors = sectionLeft.fasades?.length > 1
@@ -631,7 +614,6 @@ export default class LoopsManager {
                 }
             }
             if (sectionRight) {
-                console.log('ПРАВАЯ', segment)
 
                 delete tmp[LOOPSIDE["right"]];
                 const isRightDoors = sectionRight.fasades?.length > 1
@@ -646,7 +628,6 @@ export default class LoopsManager {
 
         list = Object.values(tmp);
 
-        // console.log(secIndex, list, '<====== list ======>')
         return list;
     };
 }

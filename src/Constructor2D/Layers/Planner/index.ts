@@ -608,7 +608,6 @@ export default class Planner {
         .on("mousemove", this.handlerStageMouseMove);
     }
 
-    console.log('Planner initialized with', this.objectWalls.length, 'walls');
 
   }
 
@@ -921,7 +920,6 @@ export default class Planner {
         const rooms = this.allRooms; // спиосок всех комнат
 
         if(!rooms || rooms.length === 0){
-          console.log('No rooms available for processing');
         }
         
         const originObject: Vector2 = getCenterOfPoints(wallData.points); // находим центр нового объекта
@@ -935,7 +933,6 @@ export default class Planner {
             const pointInRoom: boolean = this.isPointInRoom(rooms[i].id, originObject);
 
             if (pointInRoom) {
-              console.log('>>> Объект находится внутри комнаты');
               wallData.roomId = rooms[i].id;
               break;
             }
@@ -948,7 +945,6 @@ export default class Planner {
 
     }
 
-    console.log('all rooms:', this.allRooms);
 
     // 2. добавляем данные стены в this.objectWalls
     if (wallData.mergeWalls.wallPoint0) {
@@ -2090,7 +2086,6 @@ export default class Planner {
    * ```typescript
    * const result = getConnectionPointInPolygon(new Vector2(10, 20), 'wall-1');
    * if (result) {
-   *   console.log(`Соединено со стеной ${result.id} в точке`, result.point);
    * }
    * ```
    */
@@ -3521,7 +3516,6 @@ export default class Planner {
             this.removeRoom(deletedRoomId);
           }
         }
-        console.log('remove | all rooms:', this.allRooms);
         // this.roomStore.removeWall({
         //   idRoom: this.roomStore.getSchemeTransitionData[0].id,
         //   idWall: this.state.activeWall

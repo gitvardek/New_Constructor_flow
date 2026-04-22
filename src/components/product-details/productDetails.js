@@ -324,7 +324,6 @@ function CatalogApp() {
 
 	this.catalogAddToBasket = function (e) {
 		const target = e.currentTarget;
-		console.log('1')
 		// ищем форму (аналог jQuery: $(e.currentTarget).parentsUntil(".product__wrapper").parent().find(".product__form"))
 		const form = target.closest(".product__wrapper")?.querySelector(".product__form");
 
@@ -358,7 +357,6 @@ function CatalogApp() {
 
 					
 
-		console.log(formDataObj);
 
 
 		const basketStore = useBasketStore();
@@ -1001,8 +999,6 @@ if ($('input[data-opt-specific="true"]').val()) {
 
     if ($("input[name='MECHANISM']", form_parent).length > 0) {
       //let q = self.getElementSize('.catalog-element-form');
-      //console.log(q)
-      //console.log($("input[name='MECHANISM']", form_parent));
       var activeFasade = $('input[name="FACADE"]:checked');
       var typeFasade = $('input[name="FACADE"]:checked').attr('data-type');
       var mechanismList = $("input[name='MECHANISM']", form_parent);
@@ -1166,7 +1162,6 @@ if ($('input[data-opt-specific="true"]').val()) {
 	        if (typeVal !== undefined) {
 	          $("input[name='"+codeElem+"']").val(typeVal)
 	          if (arrType[type] == 'PALETTE') {
-	            console.log(typeVal)
 	            text += name[arrType[type]] +': '+$("select:enabled[name='"+arrType[type]+"'] option:selected").text() + '<br>';
 	          } else {
 	            text += name[arrType[type]] +': '+$("input[name='"+arrType[type]+"']:checked").closest('.selected').find('.value-title').text() + '<br>';
@@ -1741,8 +1736,7 @@ if ($('input[data-opt-specific="true"]').val()) {
           })
           .then(response => response.text())
           .then(msg => {
-              console.log(msg);
-
+				console.log(msg);
               // === Извлекаем DOM-элемент из jQuery-объекта или используем напрямую ===
               const container = elem[0] || elem; // ← ключевая строка: если elem — jQuery, берём elem[0]
 

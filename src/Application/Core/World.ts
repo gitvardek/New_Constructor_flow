@@ -126,7 +126,6 @@ export class World {
 
         if (!this.roomState.getRoomId) {
             const roomId = Date.now().toString()
-            // console.log('Комнаты ещё нет')
             const contant = this.room!.save() as string[]
 
             this.roomState.addRoom({
@@ -147,7 +146,6 @@ export class World {
             return
         }
 
-        // console.log('Комната уже существует')
 
         const contant = this.room!.save() as string[]
         const roomId = String(this.roomState.getRoomId)
@@ -196,7 +194,6 @@ export class World {
         if (basketRaw) {
             try {
                 const basket = JSON.parse(basketRaw);
-                // console.log('basket', basket);
                 if (basket) this.basketStore.loadBasket(basket)
             } catch (err) {
                 console.warn('Не удалось распарсить корзину комнаты', err);

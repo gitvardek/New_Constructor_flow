@@ -616,21 +616,13 @@ export const useSchemeTransition = defineStore('SchemeTransition', () => {
 			wall.position.z -= wallsCenter.z;
 		});
 
-		console.log("");
-		console.log("");
-		console.log("");
 
 		// 3. Смещаем объекты на ТО ЖЕ расстояние
 		if (roomData.content?.length) {
 			roomData.content.forEach((item: any) => {
-				console.log(item.position.x, item.position.y, item.position.z);
 				item.position.x -= wallsCenter.x;
 				item.position.y = 1500; // Фиксированная высота
 				item.position.z -= wallsCenter.z;
-				console.log(item.position.x, item.position.y, item.position.z);
-				console.log("");
-				console.log("");
-				console.log("");
 			});
 		}
 		*/

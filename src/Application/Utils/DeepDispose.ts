@@ -240,7 +240,6 @@ export class DeepDispose {
             scene.remove(object); // Удаляем объект из сцены
         }
 
-        console.log('✅ Сцена и ресурсы полностью очищены.');
     }
 
     clearExceptEssential(scene: THREE.Scene) {
@@ -319,6 +318,5 @@ export class DeepDispose {
             }
         });
 
-        console.log('✅ Сцена очищена, ключевые объекты сохранены.');
     }
 }

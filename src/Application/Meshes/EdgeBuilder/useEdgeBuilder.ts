@@ -98,7 +98,6 @@ export class UseEdgeBuilder {
 
             // if (child.parent?.name == 'raspilPart') {
 
-            //     console.log(child.parent.userData.PROPS.DISABLED)
 
             //     if (child.parent instanceof Mesh && child.parent.userData.PROPS.DISABLED) {
 

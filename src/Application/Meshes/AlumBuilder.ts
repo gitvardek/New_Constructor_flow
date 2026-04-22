@@ -36,7 +36,6 @@ export class AlumBuilder {
 
     createAlum({ fasade, data }: { fasade: THREE.Object3D; data: { COLOR: string } }) {
         if (!fasade) {
-            console.log('AlumBuilder: параметр fasade - не определён')
             return
         }
 

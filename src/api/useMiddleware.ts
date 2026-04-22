@@ -81,7 +81,6 @@ export const useMiddleware = () => {
 
     // Middleware для legacy API
     const legacyMiddleware = () => {
-        // console.log('HHHHHH')
 
         return {
             async onRequest(req: Request) {

@@ -37,7 +37,6 @@ export class UniformTextureCreateTexture {
         const url = this.uniformTexture.length > 0 ? this.uniformTexture : this.localTexture
         const type = this.uniformTexture.length > 0 ? 'texture' : 'localTexture'
 
-        // console.log('loadTexture')
 
         this.resources!.startLoading(url, type, (texture: THREE.Texture) => {
 
@@ -102,7 +101,6 @@ export class UniformTextureCreateTexture {
                     let columnTotalHeight = 0
 
                     column.forEach((columnElement, columnElementNdx, columnElementsArray) => {
-                        // console.log(columnElement, 'columnElement')
                         if (columnElementNdx > 0) {
                             const prevColumnElem = columnElementsArray[columnElementNdx! - 1]
                             const { BODY } = prevColumnElem.userData.PROPS
@@ -166,7 +164,6 @@ export class UniformTextureCreateTexture {
     ) {
         // return
 
-        // console.log(elementNdx, '--elementNdx')
 
         let totalWidth = 0
         let totalHeight = 0
@@ -184,7 +181,6 @@ export class UniformTextureCreateTexture {
 
         if (hasMixedTypes) {
             // Особая обработка для смешанных типов
-            // console.log('hasMixedTypes');
 
             // Сортируем фасады по типу для более предсказуемой обработки
             const sortedFasades = [...FASADE].sort((a, b) => {
@@ -235,15 +231,12 @@ export class UniformTextureCreateTexture {
 
                 if (fasadeNdx > 0 && TYPE_POSITION === "col") {
 
-                    // console.log('--DEFAULT')
-                    // console.log(totalHeightToDefault, '--totalHeightToDefault')
 
                     prevHeightToDefault = fasadeArray[fasadeNdx - 1].userData.trueSize.FASADE_HEIGHT
 
                     correctHeightToDefault += prevHeightToDefault
                     totalHeightToDefault += FASADE_HEIGHT
 
-                    // console.log(totalHeightToDefault, 'prevHeightToDefault')
                 }
 
                 if (fasadeNdx > 0 && TYPE_POSITION === "row") {
@@ -298,11 +291,9 @@ export class UniformTextureCreateTexture {
                 fasade.visible = true;
             });
 
-            // console.log(totalHeightToDefault, 'MIX')
         }
         if ((hasStringType || hasStringType && FASADE.length < 2) && !hasMixedTypes) {
 
-            // console.log('hasStringType')
 
             FASADE.forEach((fasade, fasadeNdx, fasadeArray) => {
 
@@ -358,7 +349,6 @@ export class UniformTextureCreateTexture {
         }
         if (hasDefaultType && !hasMixedTypes) {
 
-            // console.log('hasDefaultType')
 
             const sortedFasades = [...FASADE].sort((a, b) => {
                 const typeA = a.userData.partPosition.FASADE_NUMBER;
@@ -379,7 +369,6 @@ export class UniformTextureCreateTexture {
                 if (totalWidth === 0) totalWidth = FASADE_WIDTH;
                 if (totalHeight === 0) totalHeight = FASADE_HEIGHT;
 
-                // console.log(totalHeight, '--COOOOL')
 
                 let prevHeight
 
@@ -389,7 +378,6 @@ export class UniformTextureCreateTexture {
                     totalHeight += FASADE_HEIGHT
                 }
 
-                // console.log(totalLevelHeightCorrect, totalLevelHeight, '--DEFCORR')
 
                 this.textured({
                     fasade,
@@ -484,7 +472,6 @@ export class UniformTextureCreateTexture {
         const startCorrect = elementNdx > 0 ? totalLevelWidthCorrect : 0;
         const startHeightCorrect = levelNdx > 0 ? FASADE_HEIGHT : 0
 
-        // console.log(startHeightCorrect, levelNdx, 'levelNdx')
 
         const startWidth = FASADE_WIDTH + totalLevelWidth;
         const startHeight = FASADE_HEIGHT + totalLevelHeight + totalLevelHeightCorrect + columnCorrect;
@@ -656,7 +643,6 @@ export class UniformTextureCreateTexture {
         const flatedLevel = this.flatedArrayToWidth(level)
 
         let totalLevelWidth = 0
-        // console.log(flatedLevel, '--flatedLevel')
         flatedLevel.forEach(item => {
             totalLevelWidth += item.userData.PROPS.BODY.userData.trueSize.BODY_WIDTH - 4
         })

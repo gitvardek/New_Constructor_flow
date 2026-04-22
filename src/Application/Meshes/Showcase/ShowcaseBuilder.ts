@@ -38,7 +38,6 @@ export class ShowcaseBuilder extends MillingBuilder {
         if (curFasadeData) {
             const haveHandle = this._FASADE[curFasadeData.COLOR].TYPE_HANDLE
 
-            // console.log(haveHandle, action, '==== ❌ haveHandle ❌ ====')
 
             if (typeof haveHandle == 'string' && typeof action === 'number') {
                 this.createHandles({
@@ -60,7 +59,6 @@ export class ShowcaseBuilder extends MillingBuilder {
         const { FASADE_WIDTH, FASADE_HEIGHT } = fasade.userData.trueSize
 
         const glassId = toRaw(this.modelState.getCurrentGlassData[0])
-        // console.log(glassId, '--glassId')
 
         const glassColor = glassId ? `#${glassId.COLOR}` : '#ffffff'
 
@@ -114,7 +112,6 @@ export class ShowcaseBuilder extends MillingBuilder {
 
         const roughness = glassData.NAME.toLowerCase().includes('матовое') ? 0.2 : 0.05
 
-        // console.log(roughness, glassData, 'AFCHANGE')
 
         fasade.traverse(children => {
             if (children instanceof THREE.Mesh && children.userData.type == 'glass') {

@@ -93,7 +93,6 @@ export class Camera {
         if (event.ctrlKey || event.metaKey) {
 
             this.controls.screenSpacePanning = true
-            // console.log('screenSpacePanning TRUE')
         }
     }
 
@@ -101,7 +100,6 @@ export class Camera {
 
         if (!event.ctrlKey || !event.metaKey) {
             this.controls.screenSpacePanning = false
-            // console.log('screenSpacePanning FALSE')
         }
 
     }
@@ -293,7 +291,6 @@ export class Camera {
         // Обновляем контролы
         this.controls.update()
 
-        // console.log('Камера установлена напротив самой широкой стены', {
         //     wallCenter: wallCenter.toArray(),
         //     cameraPosition: cameraPosition.toArray(),
         //     targetPosition: targetPosition.toArray(),
