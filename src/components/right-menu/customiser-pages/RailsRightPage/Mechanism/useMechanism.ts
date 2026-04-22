@@ -24,60 +24,104 @@ type TMechanismListData = {
     NAME: string, CONTANT: TMechanismData[]
 }
 
+type TWeightData = {
+    fasade: TFasadeProp,
+    params: Record<string, number>,
+    props: any,
+    defMilling: number,
+    milling_weight: any,
+    fasade_weight: any
+}
+
 export const useMechanism = () => {
 
     const appData = useAppData()
     const modelState = useModelState();
     const sceneState = useSceneState();
 
-    const weightCalculation = (): TWheightData[] | null[] | [] => {
+
+
+    const weightCalculation = (element): TWheightData[] | null[] | [] => {
         try {
+
+            console.log(appData.getAppData)
+
             const { fasade_weight, milling_weight, CATALOG } = appData.getAppData
             const { PRODUCTS } = CATALOG
-            const { PROPS } = modelState.getCurrentModel!.userData
+            // const { PROPS } = element ?? modelState.getCurrentModel!.userData
+            const { PROPS } = element.userData
+
+            console.log(PROPS, '---PROPS---')
             const { CONFIG, FASADE } = PROPS
             const { FASADE_PROPS } = CONFIG
 
+            let weightData;
             const defMilling = sceneState.getCurrentProjectParams.default_milling as number
 
-            const weightData = FASADE_PROPS.map((fasade: TFasadeProp, ndx: number) => {
-                if (fasade.COLOR == 7397) return null
+            if (element.userData.UM) {
+                weightData = [createWeightData({
+                    fasade: FASADE_PROPS,
+                    props: PROPS,
+                    defMilling,
+                    milling_weight,
+                    fasade_weight,
+                    coreProducts: PRODUCTS
+                })]
+            }
+            else {
+                weightData = FASADE_PROPS.map((fasade: TFasadeProp, ndx: number) => {
+                    const { FASADE_WIDTH, FASADE_HEIGHT } = FASADE[ndx].userData.trueSize;
+                    const result = createWeightData({
+                        fasade: fasade,
+                        params: { FASADE_WIDTH, FASADE_HEIGHT },
+                        props: PROPS,
+                        defMilling,
+                        milling_weight,
+                        fasade_weight,
+                        coreProducts: PRODUCTS
+                    });
+                    return result
+                })
+            }
 
-                const { PRODUCT } = PROPS
-                const { FASADE_WIDTH, FASADE_HEIGHT } = FASADE[ndx].userData.trueSize
-                const product = PRODUCTS[PRODUCT]
+            // weightData = FASADE_PROPS.map((fasade: TFasadeProp, ndx: number) => {
+            //     if (fasade.COLOR == 7397) return null
 
-                const prodMill = product.type_showcase[0] !== null && product.MILLING[0] !== null
+            //     const { PRODUCT } = PROPS
+            //     const { FASADE_WIDTH, FASADE_HEIGHT } = FASADE[ndx].userData.trueSize
+            //     const product = PRODUCTS[PRODUCT]
 
-                const curWeight = fasade_weight[fasade.COLOR]
-                const curMilling = fasade.MILLING ? milling_weight[fasade.MILLING!] : prodMill ? milling_weight[defMilling] : null
+            //     const prodMill = product.type_showcase[0] !== null && product.MILLING[0] !== null
 
-                if (curWeight) {
-                    const square = FASADE_WIDTH * FASADE_HEIGHT
-                    const weight = parseFloat(curWeight) * (square / 1000000);
+            //     const curWeight = fasade_weight[fasade.COLOR]
+            //     const curMilling = fasade.MILLING ? milling_weight[fasade.MILLING!] : prodMill ? milling_weight[defMilling] : null
 
-                    return {
-                        width: FASADE_WIDTH,
-                        height: FASADE_HEIGHT,
-                        square: parseFloat(square.toFixed(2)),
-                        weight: parseFloat(weight.toFixed(2))
-                    }
-                }
-                else if (curMilling) {
+            //     if (curWeight) {
+            //         const square = FASADE_WIDTH * FASADE_HEIGHT
+            //         const weight = parseFloat(curWeight) * (square / 1000000);
 
-                    const square = FASADE_WIDTH * FASADE_HEIGHT
-                    const weight = parseFloat(curMilling) * (square / 1000000);
+            //         return {
+            //             width: FASADE_WIDTH,
+            //             height: FASADE_HEIGHT,
+            //             square: parseFloat(square.toFixed(2)),
+            //             weight: parseFloat(weight.toFixed(2))
+            //         }
+            //     }
+            //     else if (curMilling) {
 
-                    return {
-                        width: FASADE_WIDTH,
-                        height: FASADE_HEIGHT,
-                        square: parseFloat(square.toFixed(2)),
-                        weight: parseFloat(weight.toFixed(2))
-                    }
-                }
-                return null
+            //         const square = FASADE_WIDTH * FASADE_HEIGHT
+            //         const weight = parseFloat(curMilling) * (square / 1000000);
 
-            })
+            //         return {
+            //             width: FASADE_WIDTH,
+            //             height: FASADE_HEIGHT,
+            //             square: parseFloat(square.toFixed(2)),
+            //             weight: parseFloat(weight.toFixed(2))
+            //         }
+            //     }
+            //     return null
+
+            // })
 
             console.log(weightData, '✅ IN useMechanism/weightCalculation -- weightData')
             return weightData
@@ -88,9 +132,65 @@ export const useMechanism = () => {
         }
     }
 
-    const createMeckhanizmList = (): TMechanismListData | [] => {
+    const createWeightData = (
+        { fasade,
+            params,
+            props,
+            defMilling,
+            milling_weight,
+            fasade_weight,
+            coreProducts
+        }: TWeightData) => {
+        if (fasade.COLOR == 7397) return null
+
+        console.log(fasade, '1')
+
+        const { PRODUCT } = props
+        let FASADE_WIDTH = params ? params.FASADE_WIDTH : fasade.UMSIZES?.width
+        let FASADE_HEIGHT = params ? params.FASADE_HEIGHT : fasade.UMSIZES?.height
+
+        const product = coreProducts[PRODUCT];
+
+        console.log(PRODUCT, props, product, '2')
+
+        const prodMill = product.type_showcase[0] !== null && product.MILLING[0] !== null
+
+        const curWeight = fasade_weight[fasade.COLOR]
+        const curMilling = fasade.MILLING ? milling_weight[fasade.MILLING!] : prodMill ? milling_weight[defMilling] : null
+
+        if (curWeight) {
+            const square = FASADE_WIDTH * FASADE_HEIGHT
+            const weight = parseFloat(curWeight) * (square / 1000000);
+
+            return {
+                width: FASADE_WIDTH,
+                height: FASADE_HEIGHT,
+                square: parseFloat(square.toFixed(2)),
+                weight: parseFloat(weight.toFixed(2))
+            }
+        }
+        else if (curMilling) {
+
+            const square = FASADE_WIDTH * FASADE_HEIGHT
+            const weight = parseFloat(curMilling) * (square / 1000000);
+
+            return {
+                width: FASADE_WIDTH,
+                height: FASADE_HEIGHT,
+                square: parseFloat(square.toFixed(2)),
+                weight: parseFloat(weight.toFixed(2))
+            }
+        }
+        return null
+    }
+
+    const createMeckhanizmList = (element): TMechanismListData | [] => {
         try {
-            const curModel = modelState.getCurrentModel;
+            const curModel = element ?? modelState.getCurrentModel;
+            console.log(curModel)
+
+            // return
+
             if (!curModel) return [];
 
             const { MECHANISM, CATALOG, condition_mechanism, OPTIONS_GROUP, FILLING } = appData.getAppData;
@@ -105,11 +205,9 @@ export const useMechanism = () => {
                 if (!checkFilling) return []
             }
 
-
-
-
             const prodOptions = PRODUCTS[PRODUCT].OPTION;
-            const weightsData = weightCalculation()
+            const weightsData = weightCalculation(curModel);
+            // const weightsData = element.UM ? weightCalculation(element) : weightCalculation()
 
             if (weightsData.includes(null)) {
 
@@ -122,6 +220,8 @@ export const useMechanism = () => {
             const totalWeight: number = weightsData
                 .filter(Boolean)
                 .reduce((sum, item) => sum + item!.weight, 0);
+
+            console.log(totalWeight, 'totalWeight')
 
             if (!totalWeight) {
                 CONFIG.MECHANISM = null
@@ -147,15 +247,12 @@ export const useMechanism = () => {
 
                 const { PROPERTY_MECHANISM_LINK_VALUE, SECTION, GROUP, PROPERTY_TYPE_MECHANISM_VALUE, NAME } = mech;
 
-                console.log(mechanism[GROUP], '✅ === GROUP === ✅')
+                // console.log(mechanism[GROUP], '✅ === GROUP === ✅')
 
                 // console.log(PROPERTY_MECHANISM_LINK_VALUE, '✅ === LINK_VALUE === ✅')
 
                 for (const linkID of PROPERTY_MECHANISM_LINK_VALUE) {
                     const cond = condition_mechanism[linkID];
-
-
-
 
                     if (!cond) continue;
 
@@ -173,7 +270,6 @@ export const useMechanism = () => {
                     if (filtered[SECTION] && filtered[SECTION] !== PROPERTY_TYPE_MECHANISM_VALUE) continue;
                     filtered[SECTION] = PROPERTY_TYPE_MECHANISM_VALUE;
 
-
                     mechanism[GROUP] ??= [];
 
                     mechanism[GROUP].push({
@@ -186,10 +282,7 @@ export const useMechanism = () => {
                         active: CONFIG.MECHANISM == parseInt(mechID),
                         visible: true
                     })
-
-
                 }
-
             }
 
 
@@ -209,7 +302,7 @@ export const useMechanism = () => {
                 }
             })
 
-            createMeckhanizmTemp(mechanism)
+            createMeckhanizmTemp(mechanism, curModel)
 
             return result;
 
@@ -219,7 +312,7 @@ export const useMechanism = () => {
         }
     };
 
-    const createMeckhanizmTemp = (data: TMechanismData[] | []) => {
+    const createMeckhanizmTemp = (data: TMechanismData[] | [], element: any) => {
         const result = Object.values(data).flat().reduce((acc, meck) => {
             const exist = acc.find(el => el.ID === meck.ID)
             if (!exist) acc.push(meck)
@@ -227,9 +320,11 @@ export const useMechanism = () => {
         }, [])
 
 
-        const curModel = modelState.getCurrentModel;
+        const curModel = element ?? modelState.getCurrentModel;
         const { PROPS } = curModel!.userData;
         const { CONFIG } = PROPS;
+
+        console.log()
 
         CONFIG.MECHANISM_TEMP = result
 

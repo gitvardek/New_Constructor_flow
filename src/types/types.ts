@@ -402,7 +402,9 @@ export type TFasadeProp = {
   DRAWER: TDrawer,
   MANUAL_NO_FASADE?: boolean
   TABLE?: number | null,
-  MILLING_CONVERSATION: null | number
+  MILLING_CONVERSATION: null | number,
+  UMSIZES?: TSize,
+  MECHANISM?: NumStr | null,
 }
 
 export type TMillingRestrictItem =

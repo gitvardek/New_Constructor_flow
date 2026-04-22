@@ -31,6 +31,7 @@ function createFacadeProps(objProps: any): IBasketFacade[] {
       if (fp.SIZES != null) result.SIZES = fp.SIZES;
       if (fp.SIZES != null) result.SIZES2 = fp.SIZES;
       if (fp.TYPE != null || fp.MILLING_TYPE != null) result.FASADETYPE = fp.TYPE ?? fp.MILLING_TYPE;
+      if (fp.MECHANISM != null) result.MECHANISM = fp.MECHANISM;
 
 
       // Добавляем SIZE только если есть хотя бы одно измерение
@@ -176,6 +177,36 @@ function generateDoorsSimple(moduleData) {
   return DOORS;
 }
 
+function generateMechanizmSimple(moduleData) {
+  const Mechanizm = [];
+  const seen = new Set();
+
+  moduleData.sections?.forEach((section, number) => {
+    const sectionNum = number + 1;
+
+    section.fasades?.forEach(fasadeArray => {
+      fasadeArray.forEach((fasade, index) => {
+        const elem = {}
+        const doorNum = fasade.door || 1;
+        const segmentNum = index;
+        elem.mechanizm = fasade.material.MECHANISM
+        elem.section = sectionNum
+        elem.doorNum = doorNum
+        elem.segmentNum = segmentNum
+
+        const key = `${elem.mechanizm}_${elem.section}_${elem.doorNum}_${elem.segmentNum}`;
+
+        if (elem.mechanizm && !seen.has(key)) {
+          seen.add(key);
+          Mechanizm.push(elem);
+        }
+      });
+    });
+  });
+
+  return Mechanizm;
+}
+
 function transformLoops(sections, horizont, moduleThickness) {
   const coordsResult = {};
   const sidesResult = {};
@@ -289,6 +320,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
     OPTION: createOptionsProps(newModuleObject),
     // DOORS: CONFIG.FASADE_PROPS || {}
     DOORS: generateDoorsSimple(CONFIG.MODULEGRID),
+    UM_MECHANIZM: generateMechanizmSimple(CONFIG.MODULEGRID)
 
   };
 
@@ -697,6 +729,8 @@ export const propsLabel = {
   FASADE3: { type: "FASADE", val: "int", NAME: "Цвет фасада 3", SORT: 1200 },
   FASADE4: { type: "FASADE", val: "int", NAME: "Цвет фасада 4", SORT: 1300 },
   FASADE5: { type: "FASADE", val: "int", NAME: "Цвет фасада 5", SORT: 1300 },
+
+  UM_MECHANIZM: { type: "UM_MECHANIZM", val: "array", NAME: "Подъёмные механизмы", SORT: 100 },
 
   FASADEWIDTH: { type: false, val: "int", NAME: "Ширина фасада", SORT: 1360 },
   FASADE_WIDTH: { type: false, val: "int", NAME: "Ширина фасада", SORT: 1360 },
