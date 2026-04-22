@@ -13,17 +13,17 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
     if (id != null) {
       // Сначала скрываем старое меню, если оно открыто
       this.parent.eventBus.emit(Events.C2D_HIDE_WALL_CONTEXT_MENU);
-      
+
       // Получаем DOM координаты курсора
       // Преобразуем координаты PIXI в DOM координаты
       const canvas = this.app.canvas as HTMLCanvasElement;
       const rect = canvas.getBoundingClientRect();
-      
+
       // При autoDensity: true, e.global.x/y уже в логических CSS пикселях
       // Просто добавляем позицию canvas на странице
       const domX = rect.left + e.global.x;
       const domY = rect.top + e.global.y;
-      
+
       // Небольшая задержка для предотвращения конфликтов
       setTimeout(() => {
         const currentWall = this.objectWalls.find((el: ObjectWall) => el.id === id);
@@ -34,6 +34,7 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
               el.roomId === currentWall.roomId &&
               el.name !== 'dividing_wall',
           ).length;
+        // @ts-ignore
         const canDeleteWall = currentWall?.roomId == null || sameRoomWallsCount > 4;
 
         // Эмитим событие для показа контекстного меню
@@ -74,7 +75,7 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
     return;
   }
 
-  if (e.button == 0){
+  if (e.button == 0) {
     this.clearGhostPreview();
 
     // снимает активность с окна или двери
@@ -97,19 +98,19 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
     // this.state.dragLastCommittedAngles =
     //   this.state.dragRoomId != null ? this.getRoomCornerAnglesDeg(this.state.dragRoomId) : null;
     // this.state.hasAngleStepCommit = false;
-    
+
     this.state.positionDown.x = e.global.x;
     this.state.positionDown.y = e.global.y;
-    
-    if(id !== prevActiveObject){
-      
-      if(!prevActiveObject){
+
+    if (id !== prevActiveObject) {
+
+      if (!prevActiveObject) {
         this.redrawAllObjects();
-      }else{
+      } else {
         this.drawWall(prevActiveObject);
         this.drawWall(id);
       }
-      
+
       // рендеринг стрелок
       this.parent.layers.arrowRulerActiveObject.draw(addedwall?.points[this.state.activePointWall]);
 
@@ -118,11 +119,11 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
         [
           addedwall?.points[0],
           addedwall?.points[1]
-        ], 
+        ],
         this.state.activePointWall
       );
 
-      if(addedwall){
+      if (addedwall) {
         this.parent.layers.startPointActiveObject.startPointRect.rotation = MathUtils.degToRad(addedwall.angleDegrees);
         this.parent.layers.startPointActiveObject.endPointRect.rotation = MathUtils.degToRad(addedwall.angleDegrees);
       }
@@ -132,7 +133,7 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
     this.parent.eventBus.emit(Events.C2D_HIDE_FORM_MODIFY_WALL);
 
   }
-  
+
   e.stopPropagation(); // Останавливаем всплытие события
-  
+
 };

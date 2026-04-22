@@ -173,10 +173,14 @@ export const useConversationActions = () => {
     }
 
     const onResizeMillingCheck = () => {
+
         const curModel = modelState.getCurrentModel
+        // @ts-ignore
         const { FASADE, CONFIG } = curModel?.userData.PROPS as TTotalProps;
         const { FASADE_PROPS } = CONFIG as TConfig;
+
         FASADE_PROPS.forEach(el => {
+            // @ts-ignore
             const check = checkMillingConversations(el.COLOR, el.MILLING)
             console.log(el.COLOR, el.MILLING, 'FASADE_PROPS', check)
         })

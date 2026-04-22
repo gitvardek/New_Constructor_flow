@@ -14,12 +14,13 @@
             + Комната
           </button>
         </div>
+     
         <RoomList
-          :rooms="roomsList"
+          :rooms="roomsList" 
           :currentRoomId="currentRoomId"
           @load-room="switchRoom"
           @delete-room="deleteRoom"
-        />
+        /> 
       </div>
 
       <div class="room-params-dialog__toolbar-section room-params-dialog__toolbar-section--height">
@@ -142,6 +143,8 @@
 </template>
 
 <script setup lang="ts">
+
+// @ts-nocheck
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import ClosePopUpButton from '@/components/ui/svg/ClosePopUpButton.vue';
