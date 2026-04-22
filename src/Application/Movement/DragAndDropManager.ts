@@ -94,6 +94,8 @@ export class DragAndDropManager {
                 const surface = intersects[0].object;
                 // this.eventBus.emit('U:Drop')
 
+                console.log(productData)
+
                 if (productData.moduleType || productData.ID == 3954672) {
                     object = await this.universalGeometryBuilder.createModel(productData)
                 } else {

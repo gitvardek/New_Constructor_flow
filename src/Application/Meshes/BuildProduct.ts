@@ -225,11 +225,20 @@ export class BuildProduct extends BuildersHelper {
         // const aabb = new THREE.Box3().setFromObject(parent_group);
         // const obb = new OBB().fromBox3(aabb);
 
+        console.log(product, '<<<<<<product>>>>>>')
+
         const aabb = product?.userData.aabb;
         const obb = product?.userData.obb;
         const productSize = new THREE.Vector3();
         aabb.getSize(productSize);
 
+        if (product_data.moduleType || product_data.ID == 3954672) {
+            parent_group.name = 'UNIVERSAL'
+        }
+
+        if(product.userData.isTopTable){
+            parent_group.name = 'TOP_TABLE'
+        }
 
         parent_group.userData.elementType = product_data.element_type;
         parent_group.elementType = product_data.element_type;
@@ -432,19 +441,12 @@ export class BuildProduct extends BuildersHelper {
 
         const shelfCount = CONFIG.SHELFQUANT.max;
 
-        // const shelfCount = this._FILLING[CONFIG.FILLING]?.SHELFQUANT ?? CONFIG.SHELFQUANT.max;
-        // console.log(size, 'resize')
-
-
         // Обновляем размер в конфиге
         if (size) {
             PROPS.CONFIG.SIZE = resize
                 ? this.getProductSize(CONFIG, size)
                 : size;
         }
-
-        console.log(modelData, PROPS.CONFIG.SIZE, '=== modelData ===')
-
 
         total.userData.prodSize = PROPS.CONFIG.SIZE;
 
@@ -453,7 +455,7 @@ export class BuildProduct extends BuildersHelper {
         const data = this.createModelData(modelData, PROPS, modelSize);
         const curBodyExceptions = bodyExceptions?.includes(modelData.id);
 
-        const { body, tempMaterial, move } = !this.isEmpty(modelData)
+        const { body, tempMaterial, move, isTopTable } = !this.isEmpty(modelData)
             ? this.createBody(data, PROPS, defaultConfig, modelSize)
             : { body: null, tempMaterial: null, move: null };
 
@@ -523,13 +525,14 @@ export class BuildProduct extends BuildersHelper {
             .forEach(part => exept.add(part));
 
 
-
-
         const sourceForBounds = curBodyExceptions ? exept : tempTotal;
 
         if (sourceForBounds) this.setBounds(total, sourceForBounds, size, CONFIG);
 
         if (drowMode) this.useEdgeBuilder.drawingMode(drowMode, total);
+
+        console.log(isTopTable, '<<<<isTopTable>>>>')
+        total.userData.isTopTable = isTopTable
 
         return total;
     }
@@ -654,7 +657,7 @@ export class BuildProduct extends BuildersHelper {
         };
 
         props.BODY_DEFAULT = body.clone();
-        return { body, tempMaterial: body.children[0]?.material, move };
+        return { body, tempMaterial: body.children[0]?.material, move, isTopTable };
     }
 
     /**
@@ -883,15 +886,12 @@ export class BuildProduct extends BuildersHelper {
 
     private setBounds(target: THREE.Object3D, source: THREE.Object3D, resize: THREETypes.TSize, props: THREETypes.TConfig) {
 
-
         const { SIZE, SIZE_OFFSET } = props
 
         const aabb = new THREE.Box3().setFromObject(source);
         const obb = new OBB().fromBox3(aabb);
         const size = new THREE.Vector3();
         aabb.getSize(size);
-
-        console.log(resize, 'RESIZE')
 
         /** Для коллизии объектов с отступами боковыми фасадами и т.д. */
         if (!resize) {

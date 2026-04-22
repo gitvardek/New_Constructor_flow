@@ -175,8 +175,10 @@ const prepareData = () => {
 
   const maxCount = isNumber(hasShelfCount)
     ? modelState._FILLING[FILLING]?.SHELFQUANT
-    : // : SHELFQUANT.max;
-      1;
+    : SHELFQUANT.max
+      ? 1
+      : false;
+  // 1;
 
   shelfCount.value = {
     max: maxCount,

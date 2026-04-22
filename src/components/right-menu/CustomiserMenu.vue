@@ -39,6 +39,7 @@ const modelState = useModelState();
 const uniformState = useUniformState();
 const menuStore = useMenuStore();
 const app = useAppData();
+const exceptionNames = ["MODEL", "UNIVERSAL", "TOP_TABLE"];
 
 const currentModel = ref(null);
 const buttonVisibles = ref<TButtonVisibles>({
@@ -65,19 +66,26 @@ const checkSelect = (el) => {
     modelState.setCurrentModel(null);
     return;
   }
-  // console.log(el.object, "A:Selected");
+  console.log(el.object, "SELECT");
 
   currentModel.value = el.object;
-  // modelState.setCurrentModel(el.object.userData);
+
   modelState.setCurrentModel(el.object);
-  if (el.object.userData.elementType === "raspil") return;
-
-  checkData(el.object);
-
-  if (el.object.name == "MODEL") {
+  if (el.object.userData.elementType === "raspil") {
     closeCustomiser();
     return;
   }
+
+  checkData(el.object);
+
+  if (exceptionNames.includes(el.object.name)) {
+    closeCustomiser();
+    return;
+  }
+  // if (el.object.name == "MODEL") {
+  //   closeCustomiser();
+  //   return;
+  // }
   customiserStore.switchCustomiser("ruler");
 };
 
