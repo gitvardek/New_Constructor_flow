@@ -2,7 +2,9 @@
 //@ts-nocheck
 import { onBeforeMount, computed, ref } from "vue";
 import { useOptions } from "./useOptions";
+import { TRootOptionType } from "@/types/types";
 import {_URL} from "@/types/constants.ts";
+
 
 const { createOptionList, checkActive } = useOptions();
 const optionList = ref([]);
@@ -14,9 +16,11 @@ const createList = () => {
 
 };
 
-const changeValue = (event: InputEvent, id: number) => {
+const changeValue = (event: InputEvent, option: TRootOptionType) => {
+  // console.log('AUF', id)
+
   const check = event.target!.checked;
-  event.target.checked = checkActive(id, check);
+  event.target.checked = checkActive(option, check);
   createList();
 };
 
@@ -54,7 +58,7 @@ onBeforeMount(() => {
                 <input
                     type="checkbox"
                     :checked="option.active"
-                    @change="changeValue($event, option.ID)"
+                    @change="changeValue($event, option)"
                     :disabled="option.disabled"
                 />
                 <span class="control_indicator"></span>
