@@ -41,6 +41,7 @@ export const useOptions = () => {
     }
 
     const checkActive = (option: TRootOptionType, values: boolean) => {
+
         const { ID: id, cutSize } = option
 
         const { PROPS } = modelState.getCurrentModel.userData;
@@ -198,7 +199,9 @@ export const useOptions = () => {
                 break;
         }
 
-        eventBus.emit("A:SelectModelOption", { option, values })
+        // eventBus.emit("A:SelectModelOption", { option, values })
+
+             eventBus.emit("A:SelectModelOption")
 
         return curOpt.active;
     };

@@ -2,6 +2,7 @@
 //@ts-nocheck
 import { onBeforeMount, computed, ref, defineProps, withDefaults } from "vue";
 import { useOptions } from "./useOptions";
+import { TRootOptionType } from "@/types/types";
 
 interface IProps {
   mechanizmList?: [];
@@ -27,14 +28,16 @@ const createList = () => {
   optionList.value = props.mechanizmList;
 };
 
-const changeValue = (event: InputEvent, id: number) => {
+const changeValue = (event: InputEvent, option: TRootOptionType) => {
+  console.log(option)
+
   if (!props.umMechanizm) {
     const check = event.target!.checked;
-    checkActive(id, check);
+    checkActive(option, check);
     createList();
     return;
   }
-  UMMechanizmChange(event, id);
+  UMMechanizmChange(event, option.ID);
 };
 
 const UMMechanizmChange = (event: InputEvent, id: number) => {
@@ -106,7 +109,7 @@ onBeforeMount(() => {
           <input
             type="checkbox"
             :checked="option.active"
-            @change="changeValue($event, option.ID)"
+            @change="changeValue($event, option)"
             :disabled="option.disabled"
           />
           <span class="control_indicator"></span>

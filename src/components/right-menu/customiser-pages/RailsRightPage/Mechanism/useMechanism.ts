@@ -324,7 +324,7 @@ export const useMechanism = () => {
         const { PROPS } = curModel!.userData;
         const { CONFIG } = PROPS;
 
-        console.log()
+        console.log(result, '<<<<<result>>>>>')
 
         CONFIG.MECHANISM_TEMP = result
 

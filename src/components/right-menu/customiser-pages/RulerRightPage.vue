@@ -106,7 +106,7 @@ const updateRootModel = (model: TFillingDataType) => {
 const updateFillingModel = (filling: TFillingData) => {
   // console.log(modelState._FILLING[filling.id].SHELFQUANT, "_FILLING");
   const incomeShelfcount = modelState._FILLING[filling.id].SHELFQUANT;
-  const maxCount = typeof incomeShelfcount === "number" ? incomeShelfcount : 20;
+  const maxCount = typeof incomeShelfcount === "number" ? incomeShelfcount : 1;
   // console.log(maxCount, "===== maxCount");
   shelfCount.value = {
     max: maxCount,
@@ -163,9 +163,8 @@ const prepareData = () => {
 
   // console.log(modelState._FILLING, "--");
   // console.log(modelState._FILLING[FILLING]?.SHELFQUANT, '[FILLING]?.SHELFQUANT')
-  // console.log(SHELFQUANT, "SHELFQUANTSHELFQUANT");
 
-  const maxCount = modelState._FILLING[FILLING]?.SHELFQUANT
+  const maxCount = !isNaN(modelState._FILLING[FILLING]?.SHELFQUANT)
     ? modelState._FILLING[FILLING]?.SHELFQUANT
     : SHELFQUANT.max;
 
