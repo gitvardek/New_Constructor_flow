@@ -2855,7 +2855,6 @@ export default class Planner {
       if (!model) return false;
 
       const nextModel = updateExactWallDisplayAngle(model, wallId, desired);
-      if (!validateExactRoomModel(nextModel)) return false;
       const geometry = rebuildExactRoomGeometry(nextModel);
       const committed = this.commitExactRoomGeometry(context.roomId, geometry);
 
