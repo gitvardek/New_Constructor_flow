@@ -39,7 +39,7 @@ export function handlerStageMouseMove(this: any, e: PIXI.FederatedPointerEvent):
           x: this.state.oldPosition[0].x + distance.x,
           y: this.state.oldPosition[0].y + distance.y,
         };
-        const nextPoint1: Vector2 = {
+        let nextPoint1: Vector2 = {
           x: this.state.oldPosition[1].x + distance.x,
           y: this.state.oldPosition[1].y + distance.y,
         };
@@ -68,10 +68,14 @@ export function handlerStageMouseMove(this: any, e: PIXI.FederatedPointerEvent):
           this.clearGhostPreview();
           return;
         }
-      
+
+        const appliedDistance: Vector2 = {
+          x: nextPoint0.x - this.state.oldPosition[0].x,
+          y: nextPoint0.y - this.state.oldPosition[0].y,
+        };
         dataWall.points.forEach((p: Vector2, index: number) => {
-          p.x = this.state.oldPosition[index].x + distance.x;
-          p.y = this.state.oldPosition[index].y + distance.y;
+          p.x = this.state.oldPosition[index].x + appliedDistance.x;
+          p.y = this.state.oldPosition[index].y + appliedDistance.y;
         });
 
         if(dataWall.mergeWalls.wallPoint0){

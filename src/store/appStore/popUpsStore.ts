@@ -31,6 +31,7 @@ export const usePopupStore = defineStore('popup', () => {
   const projectParamsCreateHandler = ref<ProjectParamsCreateHandler | null>(null)
 
   const openPopup = (popupName: PopupKey) => {
+
     popups.value[popupName] = true;
     eventBus.emit("A:ClearSelected", { object: null });
   };

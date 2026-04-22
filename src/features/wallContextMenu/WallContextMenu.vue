@@ -9,6 +9,7 @@
       v-for="action in actions"
       :key="action.key"
       class="wall-context-menu__item"
+
       :class="{ 'wall-context-menu__item--disabled': action.disabled }"
       :disabled="action.disabled"
       @click="!action.disabled && handleAction(action.key)"
@@ -106,6 +107,7 @@ onUnmounted(() => {
     &:active {
       background-color: #e0e0e0;
     }
+
 
     &--disabled {
       color: #aaaaaa;

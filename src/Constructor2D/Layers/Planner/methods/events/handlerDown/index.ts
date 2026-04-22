@@ -26,6 +26,16 @@ export function handlerDownEventGraphic(this: any, e: PIXI.FederatedPointerEvent
       
       // Небольшая задержка для предотвращения конфликтов
       setTimeout(() => {
+        const currentWall = this.objectWalls.find((el: ObjectWall) => el.id === id);
+        const sameRoomWallsCount = currentWall?.roomId == null
+          ? 0
+          : this.objectWalls.filter(
+            (el: ObjectWall) =>
+              el.roomId === currentWall.roomId &&
+              el.name !== 'dividing_wall',
+          ).length;
+        const canDeleteWall = currentWall?.roomId == null || sameRoomWallsCount > 4;
+
         // Эмитим событие для показа контекстного меню
         const clickedWall = this.objectWalls.find((w: ObjectWall) => w.id === id);
         const isClosingWall = clickedWall?.isClosing === true;

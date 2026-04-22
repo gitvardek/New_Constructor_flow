@@ -2486,7 +2486,7 @@ export default class Planner {
     wall: ObjectWall,
     newPoints: [Vector2, Vector2, Vector2, Vector2],
   ): boolean {
-    const minBlockDeg = 20;
+    const minBlockDeg = 0;
     const oldPoints = wall.points;
     const sides: (0 | 1)[] = [0, 1];
     for (const side of sides) {
@@ -2617,6 +2617,122 @@ export default class Planner {
       }
     }
     return false;
+  }
+
+  private getSnappedAngleDeg(angleDeg: number, stepDeg: number): number {
+    const safeStep = Math.max(1, Number(stepDeg) || 1);
+    return Math.round(angleDeg / safeStep) * safeStep;
+  }
+
+  private getAnglesQuantizationMetrics(
+    angles: number[] | null,
+    stepDeg: number,
+  ): { maxError: number; totalError: number } {
+    if (!angles || angles.length === 0) {
+      return { maxError: Number.POSITIVE_INFINITY, totalError: Number.POSITIVE_INFINITY };
+    }
+    let maxError = 0;
+    let totalError = 0;
+    for (const angle of angles) {
+      const snapped = this.getSnappedAngleDeg(angle, stepDeg);
+      const error = Math.abs(angle - snapped);
+      maxError = Math.max(maxError, error);
+      totalError += error;
+    }
+    return { maxError, totalError };
+  }
+
+  public getStrictStepWallMoveSimulationResult(
+    wallId: string | number,
+    fromPoint0: Vector2,
+    fromPoint1: Vector2,
+    toPoint0: Vector2,
+    toPoint1: Vector2,
+    stepDeg: number,
+  ): { nextPoint0: Vector2; nextPoint1: Vector2; nextAngles: number[]; previewWalls: GhostWallPreview[] } | null {
+    const totalSteps = 120;
+    const toleranceDeg = 0.005;
+    let best: {
+      nextPoint0: Vector2;
+      nextPoint1: Vector2;
+      nextAngles: number[];
+      previewWalls: GhostWallPreview[];
+      maxError: number;
+      totalError: number;
+      t: number;
+    } | null = null;
+
+    const tryCandidateAtT = (tRaw: number) => {
+      const t = Math.max(0, Math.min(1, tRaw));
+      const candidatePoint0: Vector2 = {
+        x: fromPoint0.x + (toPoint0.x - fromPoint0.x) * t,
+        y: fromPoint0.y + (toPoint0.y - fromPoint0.y) * t,
+      };
+      const candidatePoint1: Vector2 = {
+        x: fromPoint1.x + (toPoint1.x - fromPoint1.x) * t,
+        y: fromPoint1.y + (toPoint1.y - fromPoint1.y) * t,
+      };
+      const simulation = this.getWallMoveSimulationResult(wallId, candidatePoint0, candidatePoint1);
+      if (!simulation?.nextAngles?.length) return;
+      
+      const metrics = this.getAnglesQuantizationMetrics(simulation.nextAngles, stepDeg);
+
+      if (
+        !best ||
+        metrics.maxError < best.maxError - 1e-9 ||
+        (
+          Math.abs(metrics.maxError - best.maxError) <= 1e-9 &&
+          (
+            metrics.totalError < best.totalError - 1e-9 ||
+            (
+              Math.abs(metrics.totalError - best.totalError) <= 1e-9 &&
+              t > best.t
+            )
+          )
+        )
+      ) {
+        best = {
+          nextPoint0: candidatePoint0,
+          nextPoint1: candidatePoint1,
+          nextAngles: simulation.nextAngles,
+          previewWalls: simulation.previewWalls,
+          maxError: metrics.maxError,
+          totalError: metrics.totalError,
+          t,
+        };
+      }
+    };
+
+    for (let i = 1; i <= totalSteps; i++) {
+      const t = i / totalSteps;
+      tryCandidateAtT(t);
+    }
+
+    // Локальная доводка лучшего кандидата: уменьшаем погрешность квантования
+    // вокруг найденного t, чтобы убрать расхождения в сотых/десятых.
+    if (best) {
+      let center = best.t;
+      let span = 1 / totalSteps;
+      for (let iter = 0; iter < 5; iter++) {
+        const samples = 21;
+        for (let i = 0; i < samples; i++) {
+          const alpha = i / (samples - 1);
+          const t = center - span + alpha * span * 2;
+          tryCandidateAtT(t);
+        }
+        center = best.t;
+        span /= 3;
+      }
+    }
+
+    if (!best) return null;
+    if (best.maxError > toleranceDeg) return null;
+    return {
+      nextPoint0: best.nextPoint0,
+      nextPoint1: best.nextPoint1,
+      nextAngles: best.nextAngles,
+      previewWalls: best.previewWalls,
+    };
   }
 
   public getRoomAnglesForSimulatedWallMove(

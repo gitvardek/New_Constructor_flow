@@ -62,7 +62,8 @@ export class AppLights {
         // )
         this.ambientLight = new THREE.HemisphereLight(
             new THREE.Color('rgba(228, 228, 228, 1)'), // Цвет неба
-            new THREE.Color('rgba(89, 89, 89, 1)'), // Цвет земли (можно добавить в params)
+            // new THREE.Color('rgba(89, 89, 89, 1)'), // Цвет земли (можно добавить в params)
+             new THREE.Color('rgba(175, 175, 175, 1))'), 
             this.roomOptions.getAmbientLightRange // Интенсивность
         );
 

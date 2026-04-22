@@ -23,6 +23,7 @@
         }}</span>
         <span v-if="item?.error"> (НЕДОСТУПНО!)</span>
       </h3>
+
       <!-- Секция свойств товаров общяя -->
       <div
         class="basket-item__props"
@@ -93,9 +94,7 @@
                       "
                     >
                       Фрезеровка:
-                      {{
-                        getMillingSectionName(propVal.FASADE.fasade.MILLING)
-                      }}
+                      {{ getMillingSectionName(propVal.FASADE.fasade.MILLING) }}
                       -
                       {{ getMillingName(propVal.FASADE.fasade.MILLING) }}
                     </p>
@@ -318,13 +317,13 @@
           <div v-if="Array.isArray(propValue.value)">
             <span class="basket-item__props-lable">{{ propValue.key }}:</span>
             <div
-                class="basket-item__props-block__lables"
-                style="list-style: none"
-                v-for="(value, i) in propValue.value"
-                :key="i"
+              class="basket-item__props-block__lables"
+              style="list-style: none"
+              v-for="(value, i) in propValue.value"
+              :key="i"
             >
-              <span>{{i+1}}) {{ value.key }}:</span
-              ><span>{{value.value ? ` - поз. ${value.value} мм` : ""}}</span>
+              <span>{{ i + 1 }}) {{ value.key }}:</span
+              ><span>{{ value.value ? ` - поз. ${value.value} мм` : "" }}</span>
             </div>
           </div>
           <div v-else>
@@ -398,7 +397,7 @@
 // @ts-nocheck
 import { useBasketStore } from "@/store/appStore/useBasketStore";
 import { useAppData } from "@/store/appliction/useAppData";
-import { ref, computed } from "vue";
+import { ref, computed, onBeforeMount } from "vue";
 import DeleteBasketButton from "../ui/buttons/basket/DeleteBasketButton.vue";
 import axios from "axios";
 import InfoPopUp from "../popUp/InfoPopUp.vue";
@@ -434,6 +433,9 @@ const {
   getArticleByFasadId,
 } = useConfigStore();
 
+onBeforeMount(() => {
+  console.log(props.item, "PPPPP");
+});
 // Получаем данные из store
 const appData = computed(() => appDataStore.getAppData);
 
@@ -489,7 +491,10 @@ const getPropDefinition = (key: string) => {
 
 const getPropLabel = (key: string) => {
   const propDef = getPropDefinition(key);
-  return propDef ? propDef.NAME + parsePropIndex(key) : "";
+  if (!propDef) return "";
+  return propDef.type === "SIZES2"
+    ? propDef.NAME
+    : propDef.NAME + parsePropIndex(key);
 };
 
 const parsePropIndex = (key: string) => {
@@ -541,7 +546,6 @@ const shouldShowPropValue = (key: string, propVal: any) => {
 
 const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
   const propDef = getPropDefinition(key);
-  console.log("propValpropVal", propVal);
 
   if (propDef && propDef.type === "PRODUCTS") {
     if (propVal.ID) {
@@ -563,13 +567,14 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
         if (typeof value === "object" && value !== null) {
           value = JSON.stringify(value);
         }
+
         if (
           key !== "HANDLES" &&
-          getTypeName(key, value, item?.product.TYPE) &&
+          getTypeName(key, value, item?.product.TYPE, index) &&
           getPropLabel(key) &&
           !isFeedbackProject
         ) {
-          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE)}</li>`; // ${getTypeName(key, value)}
+          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE, index)}</li>`; // ${getTypeName(key, value)}
         }
         if (
           key !== "HANDLES" &&
@@ -577,7 +582,7 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
           getPropLabel(key) &&
           isFeedbackProject
         ) {
-          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE)} ${getArticleByFasadId(propVal?.article)}</li>`; // ${getTypeName(key, value)}
+          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE, index)} ${getArticleByFasadId(propVal?.article)}</li>`; // ${getTypeName(key, value)}
         }
       });
 
@@ -585,8 +590,11 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
       return `<ul>${listValue}</ul>`;
     }
   }
+
   return getTypeName(propDef?.type, propVal);
 };
+
+const getWidthFasadesToSIZESProp = () => {};
 
 const getErrorClass = (propVal: any, propsError: any) => {
   // Здесь должна быть логика определения классов ошибок
@@ -647,10 +655,16 @@ const hasError = (value: any, propsError: any) => {
   // return propsError.some(error => error.id && error.id.includes(value));
 };
 
-const getTypeName = (type: any, value: any, mainType: any = "") => {
+const getTypeName = (
+  type: any,
+  value: any,
+  mainType: any = "",
+  index: number,
+) => {
   // Получаем имя из store данных
   // console.log('data', appData.value, type, value, mainType);
-  console.log(type, mainType);
+
+  console.log(index, "type");
 
   if (value && typeof value === "object" && value.NAME) {
     return value.NAME;
@@ -668,8 +682,13 @@ const getTypeName = (type: any, value: any, mainType: any = "") => {
   }
 
   if (mainType === "scene" && type === "SIZES") {
-    console.log();
+    const sizesData = appData.value["FASADESIZE"][JSON.parse(value).id];
     return appData.value["FASADESIZE"][JSON.parse(value).id]?.NAME;
+  }
+
+  if (mainType === "scene" && type === "SIZES2") {
+    const sizesData = appData.value["FASADESIZE"][JSON.parse(value).id];
+    return JSON.parse(value)?.params?.FASADE_WIDTH;
   }
 
   if (mainType === "umscene" && typeof value === "object") {
@@ -693,7 +712,7 @@ const getTypeName = (type: any, value: any, mainType: any = "") => {
 
 const getListValue = (key: string, value: any) => {
   const propDef = getPropDefinition(key);
-  console.log(key, value, propDef);
+
   return (propDef as any)?.VALUE ? (propDef as any).VALUE[value] : value;
 };
 
@@ -874,18 +893,18 @@ const renderDescription = (props) => {
     const milling = appData.value["MILLING"][value.MILLING]?.NAME;
 
     const table = appData.value.CATALOG.PRODUCTS[value.TABLE]?.NAME;
-    if(table){
+    if (table) {
       const KROMKA = appData.value.HEM[value.KROMKA]?.NAME;
-      const PROFILE = appData.value.PROFILE.find(item => item.PROFILE === value.PROFILE)?.NAME;
+      const PROFILE = appData.value.PROFILE.find(
+        (item) => item.PROFILE === value.PROFILE,
+      )?.NAME;
 
       return `${table ?? ""} ${PROFILE ?? ""} ${KROMKA ?? ""}`;
     }
 
-
     return `${color ?? ""} ${pallette ?? ""} ${patina ?? ""} ${milling ?? ""}`;
   };
 
-  console.log(appData.value);
   if (props.DOORS) {
     // Перебираем все двери
     for (const [doorNumber, doorData] of Object.entries(props.DOORS)) {
@@ -895,18 +914,17 @@ const renderDescription = (props) => {
         // тогда здесь уже будет id материала
         if (typeof partData === "number") {
           const description =
-              appData.value["FASADE"][partData].NAME ||
-              `Неизвестный материал (ID: ${partData})`;
+            appData.value["FASADE"][partData].NAME ||
+            `Неизвестный материал (ID: ${partData})`;
           result.push({
             key: `Цвет фасада ${doorNumber}`,
             value: ` дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
           });
-        }
-        else {
+        } else {
           for (const [elementNumber, materialId] of Object.entries(partData)) {
             const description =
-                appData.value["FASADE"][materialId].NAME ||
-                `Неизвестный материал (ID: ${materialId})`;
+              appData.value["FASADE"][materialId].NAME ||
+              `Неизвестный материал (ID: ${materialId})`;
             result.push({
               key: `Цвет фасада ${doorNumber}`,
               value: ` дверь ${partNumber} часть ${+elementNumber + 1} : ${description}`,
@@ -952,12 +970,16 @@ const renderDescription = (props) => {
           });
         });
       }
-      if (value.length && getPropDefinition(key)?.NAME
-          && key !== "OPTION"
-          && !["MILLING", "PATINA", "PALETTE", "GLASS", "TYPE", "SHOWCASE"].find(item => key.includes(item))
+      if (
+        value.length &&
+        getPropDefinition(key)?.NAME &&
+        key !== "OPTION" &&
+        !["MILLING", "PATINA", "PALETTE", "GLASS", "TYPE", "SHOWCASE"].find(
+          (item) => key.includes(item),
+        )
       ) {
-        if(Array.isArray(value)) {
-          let items = []
+        if (Array.isArray(value)) {
+          let items = [];
 
           value.forEach((el) => {
             items.push({
@@ -970,14 +992,12 @@ const renderDescription = (props) => {
             key: getPropDefinition(key)?.NAME,
             value: items,
           });
-        }
-        else {
+        } else {
           result.push({
             key: getPropDefinition(key)?.NAME,
             value: value,
           });
         }
-
       }
     }
 
@@ -1037,19 +1057,19 @@ const renderDescription = (props) => {
       if (key === "BACKWALL" && !value.COLOR) {
         result.push({ key: getPropDefinition(key)?.NAME, value: "Выключена" });
       }
-    }
-    else if (getPropDefinition(key)?.NAME && Array.isArray(value)) {  //У шкафов ЭКО фрезеровки, палитры и т.д. приходят в формате Array, а не Object
+    } else if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
+      //У шкафов ЭКО фрезеровки, палитры и т.д. приходят в формате Array, а не Object
       value.forEach((doorData, doorNumber) => {
-        if(typeof doorData === "number"){
+        if (typeof doorData === "number") {
           const description =
-              appData.value[getPropDefinition(key)?.type][doorData].NAME ||
-              `Неизвестный материал (ID: ${doorData})`;
+            appData.value[getPropDefinition(key)?.type][doorData].NAME ||
+            `Неизвестный материал (ID: ${doorData})`;
           result.push({
             key: getPropDefinition(key)?.NAME,
             value: `${description}`,
           });
         }
-      })
+      });
     }
   }
 

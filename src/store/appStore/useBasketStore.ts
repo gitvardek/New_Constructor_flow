@@ -96,6 +96,7 @@ export const useBasketStore = defineStore('basket', () => {
   }
 
   const addFromScene = () => {
+
     const roomContantData = useRoomContantData().getRoomContantDataForBasket
     const roomDataCopy = JSON.parse(roomContantData)
     const sceneItems = Object.entries(roomDataCopy)

@@ -349,6 +349,7 @@ export class BuildProduct extends BuildersHelper {
             KROMKA: null,
             SIZEEDITJOINDEPTH: product_data.SIZE_EDIT_JOINDEPTH_MIN ? 310 : null,
             DAE: isDae,
+
         };
 
         // Все дополнительные данные заполняем только если не DAE-модель
@@ -429,7 +430,8 @@ export class BuildProduct extends BuildersHelper {
         const legsHeight = this._PRODUCTS[productId]?.leg_length;
         const fasadeProps = Object.values(CONFIG.FASADE_PROPS);
         const shelfCount = CONFIG.SHELFQUANT.max;
-        console.log(size, 'resize')
+        // console.log(size, 'resize')
+
 
         // Обновляем размер в конфиге
         if (size) {
@@ -438,7 +440,10 @@ export class BuildProduct extends BuildersHelper {
                 : size;
         }
 
-        total.userData.prodSize = PROPS.CONFIG.SIZE;
+        console.log(modelData, PROPS.CONFIG.SIZE, '=== modelData ===')
+
+
+        total.userData.prodSize =  PROPS.CONFIG.SIZE;
 
         if (!modelData) return;
 
@@ -484,6 +489,8 @@ export class BuildProduct extends BuildersHelper {
             part.position.y = y;
         });
 
+        console.log(body, ' === body ===')
+
         if (body) {
             body.position.set(move.x, baseY, move.z);
             body.visible = !curBodyExceptions;
@@ -496,6 +503,7 @@ export class BuildProduct extends BuildersHelper {
         const totalParts = curBodyExceptions
             ? [body, shelf, fasade, arrows, plinth]
             : [plinth, legs, body, shelf, fasade, drower, arrows];
+
 
         totalParts.filter(Boolean).forEach(part => total.add(part as THREE.Object3D));
 
@@ -510,6 +518,9 @@ export class BuildProduct extends BuildersHelper {
         [legs?.clone(), body?.clone(), plinth?.clone()]
             .filter(Boolean)
             .forEach(part => exept.add(part));
+
+
+
 
         const sourceForBounds = curBodyExceptions ? exept : tempTotal;
 
@@ -660,7 +671,7 @@ export class BuildProduct extends BuildersHelper {
             const topFasade_width = CONFIG.SIZE.width;
             const topFasade_depth = CONFIG.SIZE.depth + moduleThickness + 2;
             let top, topFasade_thickness
-            if(TOPFASADECOLOR.TABLE){
+            if (TOPFASADECOLOR.TABLE) {
                 top = this._PRODUCTS[TOPFASADECOLOR.TABLE];
                 topFasade_thickness = top.height
             }
@@ -762,7 +773,12 @@ export class BuildProduct extends BuildersHelper {
 
         Object.values(leg_position as THREETypes.TObject[]).forEach((position) => {
             const leg = this.createLeg(leg_length);
-            leg.position.set(position.x, position.y, position.z);
+            leg.position.set(
+                this.calculateFromString(position.x),
+                this.calculateFromString(position.y),
+                this.calculateFromString(position.z
+
+                ));
             legs.add(leg);
         });
 
@@ -777,9 +793,9 @@ export class BuildProduct extends BuildersHelper {
         size: THREETypes.TObject,
         model: THREETypes.TObject
     ) {
-        const corr_x = model ? eval(model.corr_x) : 0;
-        const corr_y = model ? eval(model.corr_y) : 0;
-        const corr_z = model ? eval(model.corr_z) : 0;
+        const corr_x = model ? this.calculateFromString(model.corr_x) : 0;
+        const corr_y = model ? this.calculateFromString(model.corr_y) : 0;
+        const corr_z = model ? this.calculateFromString(model.corr_z) : 0;
 
         const x = start_position.x + corr_x;
         const y = start_position.y + corr_y;
@@ -864,6 +880,7 @@ export class BuildProduct extends BuildersHelper {
 
     private setBounds(target: THREE.Object3D, source: THREE.Object3D, resize: THREETypes.TSize, props: THREETypes.TConfig) {
 
+
         const { SIZE, SIZE_OFFSET } = props
 
         const aabb = new THREE.Box3().setFromObject(source);
@@ -871,6 +888,7 @@ export class BuildProduct extends BuildersHelper {
         const size = new THREE.Vector3();
         aabb.getSize(size);
 
+        console.log(resize, 'RESIZE')
 
         /** Для коллизии объектов с отступами боковыми фасадами и т.д. */
         if (!resize) {

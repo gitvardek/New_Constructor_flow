@@ -48,11 +48,13 @@
       </div>
 
       <div class="basket-container">
-        <div
-          class="basket-container__main-table"
-          v-if="mainItems.length || !additionalItems.length"
-        >
-          <BasketTable :key="basketUpdateKey" :items="mainItems" type="main" />
+
+        <div class="basket-container__main-table" v-if="mainItems.length || !additionalItems.length ">
+          <BasketTable
+            :key="basketUpdateKey"
+            :items="mainItems"
+            type="main"
+          />
         </div>
         <div class="basket__additional-table">
           <BasketTable

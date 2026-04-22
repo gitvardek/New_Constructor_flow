@@ -121,15 +121,17 @@ export class BuildersHelper extends GlobalsData {
             const modelData = this._MODELS[PARAMS.MODELID]
             const model = this.expressionsReplace(modelData, expressions);
 
-            if (model.width) size.width = parseInt(eval(model.width));
-            if (model.height) size.height = parseInt(eval(model.height));
-            if (model.depth) size.depth = parseInt(eval(model.depth));
+            if (model.width) size.width = parseInt(this.calculateFromString(model.width));
+            if (model.height) size.height = parseInt(this.calculateFromString(model.height));
+            if (model.depth) size.depth = parseInt(this.calculateFromString(model.depth));
         }
 
         // Запасные значения
         size.width ||= parseFloat(productData.width);
         size.height ||= parseFloat(resolvedHeight);
         size.depth ||= parseFloat(productData.depth);
+
+        console.log(size, ' == Size ==')
 
         return size;
     }
@@ -155,30 +157,28 @@ export class BuildersHelper extends GlobalsData {
     };
 
     public expressionsReplace(obj: any, expressions: THREETypes.TObject) {
-
         if (!expressions || !Object.keys(expressions).length) return obj;
 
         let objStr: THREETypes.TObject | string | number = obj;
 
-        // Преобразуем объект в строку, если это объект
-        if (typeof obj == "object") {
+        if (typeof obj === "object") {
             objStr = JSON.stringify(obj);
         }
 
-        // Заменяем выражения
         Object.entries(expressions).forEach(([k, v]) => {
-            if (typeof objStr != "number") {
-                objStr = objStr.split(k).join(v);
+            if (typeof objStr !== "number") {
+                // Защита от undefined/null значений
+                const replacement = v ?? 0;
+                objStr = (objStr as string).split(k).join(String(replacement));
             }
         });
 
-        // Возвращаем объект или строку
-        if (typeof obj == "object") {
+        if (typeof obj === "object") {
             return JSON.parse(objStr as string);
         } else {
             return objStr;
         }
-    };
+    }
 
     public calculateFromString(expression) {
         try {

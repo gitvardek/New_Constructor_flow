@@ -91,7 +91,12 @@ export const useWallContextMenu = () => {
       closeMenu();
       return;
     }
-    if (actionKey === 'deleteWall' && ctx?.kind === 'wall' && deleteWallCallback) {
+    if (
+      actionKey === 'deleteWall' &&
+      ctx?.kind === 'wall' &&
+      ctx.canDeleteWall !== false &&
+      deleteWallCallback
+    ) {
       deleteWallCallback(ctx.wallId);
       closeMenu();
       return;

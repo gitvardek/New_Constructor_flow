@@ -27,6 +27,7 @@ import {
 import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
 import { useEventBus } from "@/store/appliction/useEventBus";
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage";
 
 import MillingRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/MillingRedactor.vue";
 import PatinaRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/PatinaRedactor.vue";
@@ -34,13 +35,15 @@ import GlassRedactor from "@/components/right-menu/customiser-pages/ColorRightPa
 import ConfigurationOption from "@/components/right-menu/customiser-pages/ColorRightPage/ConfigurationOption.vue";
 import SurfaceRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/SurfaceRedactor.vue";
 import ColorRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/ColorRedactor.vue";
-import {useHandlesAction} from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/useHandlesAction.ts";
-import {useConversationActions} from "@/components/right-menu/actions/useConversationActions.ts";
-import {TFasadeSize} from "@/types/types.ts";
+import { useHandlesAction } from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/useHandlesAction.ts";
+import { useConversationActions } from "@/components/right-menu/actions/useConversationActions.ts";
+import { TFasadeSize } from "@/types/types.ts";
 import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import ShowcaseRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/ShowcaseRedactor.vue";
+
+const umStorage = useUMStorage();
 
 const props = defineProps({
   elementIndex: [Number, String] /** Индекс выбранного элемента */,
@@ -56,11 +59,11 @@ const props = defineProps({
   materialList: {
     type: Array,
     default: [],
-  }
+  },
 });
 
 const { getIntegratedHandleControllerData, setIntegratedHandleAction } =
-    useHandlesAction();
+  useHandlesAction();
 const {
   createFasadeConversations,
   checkConversations,
@@ -70,7 +73,7 @@ const {
 } = useConversationActions();
 
 enum partsNames {
-  PROFILECOLOR = 'Цвет профиля'
+  PROFILECOLOR = "Цвет профиля",
 }
 
 const emit = defineEmits(["parent-callback"]);
@@ -135,35 +138,42 @@ const fasadeHandleList = ref<Array>([]);
 const isFasadeHandleExist = ref<boolean>(false);
 
 const onSelectMaterial = (data) => {
+  console.log(data, "data");
 
-  console.log(data, 'data')
+  /** ============== Данные размера выбранного Фасада ==============*/
+  const { sec, cell, row } = umStorage.getSelected("fasades");
+  const { sections } = umStorage.getUMGrid();
+  const curSection = sections[sec];
+  const curFasade = curSection.fasades[cell][row];
+  const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade;
+  //======================================================================
 
-  const {PROPS} = productData.value;
+  const { PROPS } = productData.value;
   const { CONFIG, FASADE } = PROPS;
-  const {FASADE_POSITIONS, FASADE_PROPS} = CONFIG;
+  const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
   const product = _APP.CATALOG.PRODUCTS[productId.value];
-  const { COLOR, RESET_COLOR, ALUM, SHOWCASE } = props.elementData || FASADE_PROPS[props.elementIndex];
+  const { COLOR, RESET_COLOR, ALUM, SHOWCASE } =
+    props.elementData || FASADE_PROPS[props.elementIndex];
 
-  let haveShowcase
+  let haveShowcase;
   let dataOfFasadeType;
 
-  if(props.isFasade) {
+  if (props.isFasade) {
     const checkConversation = checkFasadeConversations(
-        data.ID,
-        props.fasadeSize || FASADE[props.elementIndex].userData.trueSize
+      data.ID,
+      props.fasadeSize || FASADE[props.elementIndex].userData.trueSize,
     );
 
     if (!checkConversation) return;
 
-    productData.value.restrictData[props.elementIndex] = createFasadeConversations(
-        data.ID
-    );
+    productData.value.restrictData[props.elementIndex] =
+      createFasadeConversations(data.ID);
   }
 
   isSurfaceSelected.value = true;
   currentSurfaceData.value = data;
 
-  dataOfFasadeType = _FASADE[COLOR] || _COLOR[COLOR]
+  dataOfFasadeType = _FASADE[COLOR] || _COLOR[COLOR];
   haveShowcase = !!SHOWCASE;
   let disablePatina = false;
 
@@ -172,6 +182,7 @@ const onSelectMaterial = (data) => {
       fasadeId: data.ID,
       productId: productId.value,
       fasadeNdx: props.elementIndex,
+      fasadeSize: { FASADE_WIDTH, FASADE_HEIGHT },
     });
 
     modelState.createCurrentPatinaData({
@@ -187,24 +198,25 @@ const onSelectMaterial = (data) => {
     millingList.value = modelState.getCurrentMillingData;
     patinaList.value = modelState.getCurrentPatinaData;
 
-    if(typeof props.elementIndex === "string" && props.elementIndex.toLowerCase().includes('sidecolor')) {
+    if (
+      typeof props.elementIndex === "string" &&
+      props.elementIndex.toLowerCase().includes("sidecolor")
+    ) {
       /*millingList.value = millingList.value.filter(item => {
         if ([2462671, 2503106, 2839850, 1596264].includes(item.ID))
           return item
       })*/
-      patinaList.value = []
-      isPatinaExist.value = false
+      patinaList.value = [];
+      isPatinaExist.value = false;
       disablePatina = true;
-    }
-    else{
+    } else {
       /** @Патина */
       isPatinaExist.value =
-          patinaList.value.length > 0 && !product.type_showcase[0];
+        patinaList.value.length > 0 && !product.type_showcase[0];
     }
 
     isMillingExist.value = millingList.value.length > 0 && !haveShowcase;
-  }
-  else {
+  } else {
     isMillingExist.value = false;
     isPalleteExist.value = false;
     isPatinaExist.value = false;
@@ -216,11 +228,9 @@ const onSelectMaterial = (data) => {
       productId: productId.value,
       fasadeNdx: props.elementIndex,
     });
+  } else {
+    glassList.value = false;
   }
-  else {
-    glassList.value = false
-  }
-
 
   modelState.createCurrentPaletteData(data.ID);
 
@@ -234,7 +244,7 @@ const onSelectMaterial = (data) => {
   // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
   isShowcaseExist.value =
-      !data.material?.includes("Alum") && haveShowcase && data.id !== RESET_COLOR;
+    !data.material?.includes("Alum") && haveShowcase && data.id !== RESET_COLOR;
 
   /** @Стёкла */
   glassList.value = modelState.getCurrentGlassData;
@@ -255,8 +265,10 @@ const onSelectMaterial = (data) => {
     currentMillingData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
 
     isPatinaExist.value =
-        patinaList.value.length > 0 && isMillingExist.value && PATINAOFF == 0 && !disablePatina;
-
+      patinaList.value.length > 0 &&
+      isMillingExist.value &&
+      PATINAOFF == 0 &&
+      !disablePatina;
   } else {
     currentMillingData.value = {};
     isFasadeHandleExist.value = false;
@@ -270,22 +282,17 @@ const onSelectMaterial = (data) => {
     const { NAME, PREVIEW_PICTURE, ID } = patinaList.value[0];
     currentPatinaData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
     callback(patinaList.value[0], "PATINA");
-  }
-  else
-    callback(false, "PATINA");
-
+  } else callback(false, "PATINA");
 
   let palette;
   if (isPalleteExist.value) {
     let { NAME, HTML, ID } =
-        paletteList.value[Object.keys(paletteList.value)[0]];
+      paletteList.value[Object.keys(paletteList.value)[0]];
     currentPaletteData.value = { name: NAME, hex: HTML };
     callback(ID, "PALETTE");
 
     palette = ID;
-  }
-  else
-    callback(false, "PALETTE");
+  } else callback(false, "PALETTE");
 
   if (isGlassExist.value) {
     const { NAME, PREVIEW_PICTURE, ID } = glassList.value[0];
@@ -307,9 +314,9 @@ const onSelectMaterial = (data) => {
 
   if (isFasadeTypesExist.value) {
     const typeList = getIntegratedHandleControllerData(
-        modelState.getCurrentFasadeTypesData,
-        props.elementIndex,
-        "integrate"
+      modelState.getCurrentFasadeTypesData,
+      props.elementIndex,
+      "integrate",
     );
 
     fasadeTypesList.value = typeList;
@@ -328,22 +335,21 @@ const onSelectMilling = (data) => {
   const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
   const fasadeProps = props.elementData || FASADE_PROPS[props.elementIndex];
   const rootDataPatina = modelState._FASADE[fasadeProps.COLOR].PATINA;
-  const disablePatina = typeof props.elementIndex === "string" && props.elementIndex.toLowerCase().includes('sidecolor')
+  const disablePatina =
+    typeof props.elementIndex === "string" &&
+    props.elementIndex.toLowerCase().includes("sidecolor");
 
   isPatinaExist.value =
-      data.patina == 0 &&
-      rootDataPatina.length > 0 &&
-      rootDataPatina[0] != null &&
-      rootDataPatina[0] != 0 &&
-      !disablePatina;
-
+    data.patina == 0 &&
+    rootDataPatina.length > 0 &&
+    rootDataPatina[0] != null &&
+    rootDataPatina[0] != 0 &&
+    !disablePatina;
 
   /** @Если у выбранной фрезы нет патина */
 
   try {
     if (!isPatinaExist.value && patinaList.value.length > 0) {
-
-
       fasadeProps.PATINA = Object.values(modelState._PATINA)[0].ID;
       const { NAME, PREVIEW_PICTURE } = Object.values(modelState._PATINA)[0];
       currentPatinaData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
@@ -356,9 +362,9 @@ const onSelectMilling = (data) => {
 
   if (data.fasade_type && data.fasade_type[0] !== null) {
     const typeList = getIntegratedHandleControllerData(
-        data,
-        props.elementIndex,
-        "milling"
+      data,
+      props.elementIndex,
+      "milling",
     );
 
     if (typeList.length > 0) {
@@ -370,12 +376,12 @@ const onSelectMilling = (data) => {
       fasadeHandleList.value = {};
       fasadeProps.MILLING_TYPE = null;
     }
-    callback(fasadeProps.MILLING_TYPE, 'MILLING_TYPE')
+    callback(fasadeProps.MILLING_TYPE, "MILLING_TYPE");
   } else {
     isFasadeHandleExist.value = false;
     fasadeHandleList.value = {};
     fasadeProps.MILLING_TYPE = null;
-    callback(null, 'MILLING_TYPE')
+    callback(null, "MILLING_TYPE");
   }
 
   callback(data, "MILLING");
@@ -402,13 +408,13 @@ const onSelectShowcase = (data) => {
 };
 
 const onChangeMillingHandlePos = (action, id) => {
-  callback(id, 'MILLING_TYPE')
-  //setIntegratedHandleAction(action, props.elementIndex, "milling");
+  callback(id, "MILLING_TYPE");
+  setIntegratedHandleAction(action, props.elementIndex, "milling");
 };
 
 const onChangeIntegratedHandlePos = (action, id) => {
-  callback(id, 'TYPE')
-  //setIntegratedHandleAction(action, props.elementIndex, "integrate");
+  callback(id, "TYPE");
+  setIntegratedHandleAction(action, props.elementIndex, "integrate");
 };
 
 /** Удаление опций конфигурации */
@@ -416,7 +422,6 @@ const deleteSelectedOptions = (type: String) => {
   const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
 
   if (type == "surface" && props.isFasade) {
-
     let { NAME, DETAIL_PICTURE } = _FASADE[7397];
     currentSurfaceData.value = { name: NAME, imgSrc: DETAIL_PICTURE };
     isMillingExist.value = false;
@@ -431,7 +436,7 @@ const deleteSelectedOptions = (type: String) => {
     isFasadeTypesExist.value = false;
     fasadeTypesList.value = {};
 
-    if(props.elementIndex && FASADE_PROPS[props.elementIndex]) {
+    if (props.elementIndex && FASADE_PROPS[props.elementIndex]) {
       FASADE_PROPS[props.elementIndex].TYPE = null;
       FASADE_PROPS[props.elementIndex].MILLING_TYPE = null;
     }
@@ -535,18 +540,27 @@ const update = () => {
 
 const prepareData = () => {
   const { PROPS } = productData.value;
-  const { CONFIG } = PROPS;
-  const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
+  const { CONFIG, FASADE } = PROPS as TTotalProps;
+  const { FASADE_POSITIONS, FASADE_PROPS, MODULEGRID } = CONFIG;
   const fasadeProps = FASADE_PROPS[props.elementIndex];
   const product = _APP.CATALOG.PRODUCTS[productId.value];
 
-  currentElementData.value = props.elementData ? props.elementData
-      : props.isFasade
-          ? fasadeProps
-          : productData.value.PROPS.CONFIG[props.elementIndex] || {COLOR: props};
+  currentElementData.value = props.elementData
+    ? props.elementData
+    : props.isFasade
+      ? fasadeProps
+      : productData.value.PROPS.CONFIG[props.elementIndex] || { COLOR: props };
 
   const haveShowcase = currentElementData.value.SHOWCASE === 1;
   const currentFasadeData = currentElementData.value;
+
+  const { sec, cell, row } = umStorage.getSelected("fasades");
+  const { sections } = umStorage.getUMGrid();
+  const curSection = sections[sec];
+  const curFasade = curSection.fasades[cell][row];
+  const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade;
+
+  console.log(FASADE_WIDTH, FASADE_HEIGHT);
 
   let {
     MILLING,
@@ -561,8 +575,11 @@ const prepareData = () => {
     TYPE,
   } = currentFasadeData;
 
+  // const curFasade = FASADE[props.elementIndex];
+  // const { trueSize } = curFasade.userData;
+
   if (typeof currentFasadeData === "number") {
-    COLOR = currentFasadeData
+    COLOR = currentFasadeData;
   }
 
   // Проверка есть ли у текущего фасада опции выбора фрезеровки и цвета
@@ -578,6 +595,7 @@ const prepareData = () => {
       fasadeId: COLOR,
       productId: pid,
       fasadeNdx: props.elementIndex,
+      fasadeSize: { FASADE_WIDTH, FASADE_HEIGHT },
     });
 
     modelState.createCurrentShowcaseData({
@@ -606,9 +624,9 @@ const prepareData = () => {
   if (TYPE) {
     isFasadeTypesExist.value = fasadeTypes.length > 0;
     fasadeTypesList.value = getIntegratedHandleControllerData(
-        fasadeTypes,
-        props.elementIndex,
-        "integrate"
+      fasadeTypes,
+      props.elementIndex,
+      "integrate",
     );
   }
 
@@ -616,9 +634,9 @@ const prepareData = () => {
   if (MILLING_TYPE && MILLING) {
     const curMilling = _APP.MILLING[MILLING];
     const typeList = getIntegratedHandleControllerData(
-        curMilling,
-        props.elementIndex,
-        "milling"
+      curMilling,
+      props.elementIndex,
+      "milling",
     );
     fasadeHandleList.value = typeList;
     isFasadeHandleExist.value = true;
@@ -629,13 +647,16 @@ const prepareData = () => {
   if (fasadeData.ATTACH_MILLINGS?.[0] && !haveShowcase) {
     millingList.value = millingData;
 
-    if(typeof props.elementIndex === "string" && props.elementIndex.toLowerCase().includes('sidecolor')) {
+    if (
+      typeof props.elementIndex === "string" &&
+      props.elementIndex.toLowerCase().includes("sidecolor")
+    ) {
       /*millingList.value = millingData.filter(item => {
         if ([2462671, 2503106, 2839850, 1596264].includes(item.ID))
           return item
       })*/
-      patinaList.value = []
-      isPatinaExist.value = false
+      patinaList.value = [];
+      isPatinaExist.value = false;
       disablePatina = true;
     }
 
@@ -655,11 +676,17 @@ const prepareData = () => {
   }
 
   /** @Патина */
-  if (fasadeData.PATINA?.[0] && isMillingExist.value && MILLING && !disablePatina) {
+  if (
+    fasadeData.PATINA?.[0] &&
+    isMillingExist.value &&
+    MILLING &&
+    !disablePatina
+  ) {
     const curMilling = _APP.MILLING[MILLING];
 
     patinaList.value = patinaData;
-    isPatinaExist.value = patinaData.length > 0 && curMilling.PATINAOFF == 0 && !disablePatina;
+    isPatinaExist.value =
+      patinaData.length > 0 && curMilling.PATINAOFF == 0 && !disablePatina;
   }
 
   /** @Стёкла */
@@ -676,11 +703,11 @@ const prepareData = () => {
   }
 
   const assignIfFound = (
-      list: any[],
-      id: string | number,
-      target: any,
-      key: string,
-      imageKey = "PREVIEW_PICTURE"
+    list: any[],
+    id: string | number,
+    target: any,
+    key: string,
+    imageKey = "PREVIEW_PICTURE",
   ) => {
     const item = list?.find((i) => i.ID == id);
 
@@ -689,10 +716,10 @@ const prepareData = () => {
 
   if (MILLING) {
     assignIfFound(
-        millingData,
-        MILLING,
-        currentMillingData,
-        "currentMillingData"
+      millingData,
+      MILLING,
+      currentMillingData,
+      "currentMillingData",
     );
 
     callback(MILLING, "MILLING");
@@ -710,10 +737,10 @@ const prepareData = () => {
 
   if (SHOWCASE) {
     assignIfFound(
-        showcaseData,
-        SHOWCASE,
-        currentShowcaseData,
-        "currentShowcaseData"
+      showcaseData,
+      SHOWCASE,
+      currentShowcaseData,
+      "currentShowcaseData",
     );
     callback(SHOWCASE, "SWOCASE");
   }
@@ -744,11 +771,11 @@ const prepareFasadeSizeList = () => {
   const curSizeId = FASADE_PROPS[props.elementIndex].SIZES.id;
 
   const sizesData = sizesKeys
-      .map((el) => {
-        _APP.FASADESIZE[el].active = _APP.FASADESIZE[el].ID == curSizeId;
-        return _APP.FASADESIZE[el];
-      })
-      .sort((a, b) => a.SORT - b.SORT);
+    .map((el) => {
+      _APP.FASADESIZE[el].active = _APP.FASADESIZE[el].ID == curSizeId;
+      return _APP.FASADESIZE[el];
+    })
+    .sort((a, b) => a.SORT - b.SORT);
 
   currentSize.value = sizesData.find((el) => el.active) ?? null;
 
@@ -767,7 +794,7 @@ const changeFasadeSize = async (data: TFasadeSize) => {
   const defaultWidth = Object.values(positionList)[0].FASADE_WIDTH;
 
   const isIncomeWidth = isNaN(
-      Number(_APP.FASADE_POSITION[curPositionId].FASADE_WIDTH)
+    Number(_APP.FASADE_POSITION[curPositionId].FASADE_WIDTH),
   );
 
   curSize.id = data.ID;
@@ -811,8 +838,8 @@ const updateFasadeSize = async (data) => {
 
 const getFasadDataType = (data) => {
   const result = data.fasade_type
-      .map((item) => _APP.FASADETYPE[item])
-      .filter(Boolean);
+    .map((item) => _APP.FASADETYPE[item])
+    .filter(Boolean);
 
   return result;
 };
@@ -827,23 +854,27 @@ const getFasadesize = computed(() => {
 onBeforeMount(() => {
   productData.value = modelState.getCurrentModel.userData;
   productId.value = productData.value.PROPS.PRODUCT;
-  productData.value.restrictData[props.elementIndex] = createFasadeConversations(
-      props.elementData.COLOR
-  );
+  productData.value.restrictData[props.elementIndex] =
+    createFasadeConversations(props.elementData.COLOR);
 
-  materialList.value = props.materialList?.length ? props.fasadeSize ? filterMaterialsConversations(props.materialList, props.fasadeSize) : props.materialList :
-      filterFasadeConversations(props.elementIndex, props.fasadeSize);
+  materialList.value = props.materialList?.length
+    ? props.fasadeSize
+      ? filterMaterialsConversations(props.materialList, props.fasadeSize)
+      : props.materialList
+    : filterFasadeConversations(props.elementIndex, props.fasadeSize);
 
-  if(!props.materialList?.length) {
+  if (!props.materialList?.length) {
     fasadeSizeList.value = prepareFasadeSizeList();
     fasadeSizeListExist.value = fasadeSizeList.value.length > 0;
 
-    const {FASADE_PROPS} = productData.value.PROPS.CONFIG;
+    const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
     const curFasade = props.elementData || FASADE_PROPS[props.elementIndex];
     const curSize = curFasade?.SIZES;
 
     incomeSize.value = {
-      width: curSize?.params?.FASADE_WIDTH ? curSize.params.FASADE_WIDTH : props.fasadeSize.FASADE_WIDTH || null,
+      width: curSize?.params?.FASADE_WIDTH
+        ? curSize.params.FASADE_WIDTH
+        : props.fasadeSize.FASADE_WIDTH || null,
       min: curSize?.params?.min ?? null,
       max: curSize?.params?.max ?? null,
     };
@@ -862,65 +893,65 @@ onBeforeUnmount(() => {
 <template>
   <div class="container">
     <div
-        class="container__header"
-        v-if="props.isFasade && props.elementIndex !== null"
+      class="container__header"
+      v-if="props.isFasade && props.elementIndex !== null"
     >
       <h3>Конфигурация фасада {{ props.elementIndex + 1 }}</h3>
     </div>
     <div
-        class="container__header"
-        v-else-if="props.elementIndex !== null && partsNames[props.elementIndex]"
+      class="container__header"
+      v-else-if="props.elementIndex !== null && partsNames[props.elementIndex]"
     >
-      <h3>{{partsNames[props.elementIndex]}}</h3>
+      <h3>{{ partsNames[props.elementIndex] }}</h3>
     </div>
 
     <div class="configuration" v-if="isSurfaceSelected">
       <ConfigurationOption
-          :type="'surface'"
-          :data="currentSurfaceData"
-          @choose-option="setCurrentEditableOption"
-          @delete-choise="deleteSelectedOptions"
+        :type="'surface'"
+        :data="currentSurfaceData"
+        @choose-option="setCurrentEditableOption"
+        @delete-choise="deleteSelectedOptions"
       />
 
       <ConfigurationOption
-          v-if="isMillingExist"
-          :type="'milling'"
-          :data="currentMillingData"
-          @choose-option="setCurrentEditableOption"
-          @delete-choise="deleteSelectedOptions"
+        v-if="isMillingExist"
+        :type="'milling'"
+        :data="currentMillingData"
+        @choose-option="setCurrentEditableOption"
+        @delete-choise="deleteSelectedOptions"
       />
 
       <ConfigurationOption
-          v-if="isPalleteExist"
-          :type="'palette'"
-          :data="currentPaletteData"
-          @choose-option="setCurrentEditableOption"
-          @delete-choise="deleteSelectedOptions"
+        v-if="isPalleteExist"
+        :type="'palette'"
+        :data="currentPaletteData"
+        @choose-option="setCurrentEditableOption"
+        @delete-choise="deleteSelectedOptions"
       />
 
       <ConfigurationOption
-          v-if="isPatinaExist"
-          :type="'patina'"
-          :data="currentPatinaData"
-          :additionalClass="millingStatus"
-          @choose-option="setCurrentEditableOption"
-          @delete-choise="deleteSelectedOptions"
+        v-if="isPatinaExist"
+        :type="'patina'"
+        :data="currentPatinaData"
+        :additionalClass="millingStatus"
+        @choose-option="setCurrentEditableOption"
+        @delete-choise="deleteSelectedOptions"
       />
 
       <ConfigurationOption
-          v-if="isGlassExist"
-          :type="'glass'"
-          :data="currentGlassData"
-          @choose-option="setCurrentEditableOption"
-          @delete-choise="deleteSelectedOptions"
+        v-if="isGlassExist"
+        :type="'glass'"
+        :data="currentGlassData"
+        @choose-option="setCurrentEditableOption"
+        @delete-choise="deleteSelectedOptions"
       />
 
       <ConfigurationOption
-          v-if="isShowcaseExist"
-          :type="'showcase'"
-          :data="currentShowcaseData"
-          @choose-option="setCurrentEditableOption"
-          @delete-choise="deleteSelectedOptions"
+        v-if="isShowcaseExist"
+        :type="'showcase'"
+        :data="currentShowcaseData"
+        @choose-option="setCurrentEditableOption"
+        @delete-choise="deleteSelectedOptions"
       />
 
       <div v-if="fasadeSizeListExist">
@@ -935,10 +966,10 @@ onBeforeUnmount(() => {
           <template #params="{ onToggle }">
             <ul class="accordion__contant">
               <li
-                  class="accordion__text"
-                  v-for="(size, key) in fasadeSizeList"
-                  :key="key + size.NAME"
-                  @click="
+                class="accordion__text"
+                v-for="(size, key) in fasadeSizeList"
+                :key="key + size.NAME"
+                @click="
                   () => {
                     changeFasadeSize(size);
                     onToggle();
@@ -953,91 +984,91 @@ onBeforeUnmount(() => {
       </div>
 
       <MainInput
-          v-if="incomeSize.width"
-          :inputClass="'input__search right-menu'"
-          :type="'number'"
-          :min="incomeSize.min"
-          :max="incomeSize.max"
-          @update:modelValue="updateFasadeSize"
-          v-model="incomeSize.width"
+        v-if="incomeSize.width"
+        :inputClass="'input__search right-menu'"
+        :type="'number'"
+        :min="incomeSize.min"
+        :max="incomeSize.max"
+        @update:modelValue="updateFasadeSize"
+        v-model="incomeSize.width"
       />
 
       <DirectionControl
-          v-if="isFasadeTypesExist"
-          :handle-pos="fasadeTypesList"
-          @changeDirectionPos="onChangeIntegratedHandlePos"
-          :container="'card'"
-          :scale="1"
-          :gap="2"
-          :max-width="120"
-          :size="20"
-          :fontSize="10"
+        v-if="isFasadeTypesExist"
+        :handle-pos="fasadeTypesList"
+        @changeDirectionPos="onChangeIntegratedHandlePos"
+        :container="'card'"
+        :scale="1"
+        :gap="2"
+        :max-width="120"
+        :size="20"
+        :fontSize="10"
       />
 
       <DirectionControl
-          v-if="isFasadeHandleExist"
-          :handle-pos="fasadeHandleList"
-          @changeDirectionPos="onChangeMillingHandlePos"
-          :container="'card'"
-          :scale="1"
-          :gap="2"
-          :max-width="120"
-          :size="20"
-          :fontSize="10"
+        v-if="isFasadeHandleExist"
+        :handle-pos="fasadeHandleList"
+        @changeDirectionPos="onChangeMillingHandlePos"
+        :container="'card'"
+        :scale="1"
+        :gap="2"
+        :max-width="120"
+        :size="20"
+        :fontSize="10"
       />
     </div>
 
     <SurfaceRedactor
-        v-if="currentEditableOption === 'surface' && materialList[0]?.FASADES"
-        :materialList="materialList"
-        :elementIndex="props.elementIndex"
-        :temp-work="true"
-        @select_material="onSelectMaterial"
+      v-if="currentEditableOption === 'surface' && materialList[0]?.FASADES"
+      :materialList="materialList"
+      :elementIndex="props.elementIndex"
+      :temp-work="true"
+      @select_material="onSelectMaterial"
     />
     <MaterialSelector
-        v-if="currentEditableOption === 'surface' && !materialList[0]?.FASADES"
-        :materials="materialList"
-        @select="onSelectMaterial"
+      v-if="currentEditableOption === 'surface' && !materialList[0]?.FASADES"
+      :materials="materialList"
+      @select="onSelectMaterial"
     />
 
     <MillingRedactor
-        v-if="currentEditableOption === 'milling'"
-        :millingList="millingList"
-        :elementIndex="props.elementIndex"
-        :temp-work="true"
-        @select_milling="onSelectMilling"
+      v-if="currentEditableOption === 'milling'"
+      :millingList="millingList"
+      :elementIndex="props.elementIndex"
+      :temp-work="true"
+      @select_milling="onSelectMilling"
     />
 
     <ColorRedactor
-        v-if="currentEditableOption === 'palette'"
-        :paletteList="paletteList"
-        :elementIndex="props.elementIndex"
-        :temp-work="true"
-        @select_color="onSelectPalette"
+      v-if="currentEditableOption === 'palette'"
+      :paletteList="paletteList"
+      :elementIndex="props.elementIndex"
+      :temp-work="true"
+      @select_color="onSelectPalette"
     />
 
     <PatinaRedactor
-        v-if="currentEditableOption === 'patina'"
-        :patinaList="patinaList"
-        :elementIndex="props.elementIndex"
-        :temp-work="true"
-        @select_patina="onSelectPatina"
+      v-if="currentEditableOption === 'patina'"
+      :patinaList="patinaList"
+      :elementIndex="props.elementIndex"
+      :temp-work="true"
+      @select_patina="onSelectPatina"
     />
 
     <GlassRedactor
-        v-if="currentEditableOption === 'glass'"
-        :glassList="glassList"
-        :elementIndex="props.elementIndex"
-        :temp-work="true"
-        @select_glass="onSelectGlass"
+      v-if="currentEditableOption === 'glass'"
+      :glassList="glassList"
+      :elementIndex="props.elementIndex"
+      :temp-work="true"
+      @select_glass="onSelectGlass"
     />
 
     <ShowcaseRedactor
-        v-if="currentEditableOption === 'showcase'"
-        :showcaseList="showcaseList"
-        :elementIndex="props.elementIndex"
-        :temp-work="true"
-        @select_showcase="onSelectShowcase"
+      v-if="currentEditableOption === 'showcase'"
+      :showcaseList="showcaseList"
+      :elementIndex="props.elementIndex"
+      :temp-work="true"
+      @select_showcase="onSelectShowcase"
     />
   </div>
 </template>
@@ -1055,8 +1086,8 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 
   -webkit-user-select: none; /* Safari */
-  -ms-user-select: none;     /* IE 10+ и Edge */
-  user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+  -ms-user-select: none; /* IE 10+ и Edge */
+  user-select: none; /* Стандарт: Chrome, Firefox, Opera, Edge */
 
   &__header {
     display: flex;
@@ -1092,8 +1123,8 @@ onBeforeUnmount(() => {
 
 .no-select {
   -webkit-user-select: none; /* Safari */
-  -ms-user-select: none;     /* IE 10+ и Edge */
-  user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+  -ms-user-select: none; /* IE 10+ и Edge */
+  user-select: none; /* Стандарт: Chrome, Firefox, Opera, Edge */
 }
 
 .configuration {
@@ -1104,8 +1135,8 @@ onBeforeUnmount(() => {
   gap: 8px;
 
   -webkit-user-select: none; /* Safari */
-  -ms-user-select: none;     /* IE 10+ и Edge */
-  user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+  -ms-user-select: none; /* IE 10+ и Edge */
+  user-select: none; /* Стандарт: Chrome, Firefox, Opera, Edge */
 
   &__item {
     height: 50px;
@@ -1126,8 +1157,8 @@ onBeforeUnmount(() => {
   transition-timing-function: ease;
 
   -webkit-user-select: none; /* Safari */
-  -ms-user-select: none;     /* IE 10+ и Edge */
-  user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+  -ms-user-select: none; /* IE 10+ и Edge */
+  user-select: none; /* Стандарт: Chrome, Firefox, Opera, Edge */
 
   &__contant {
     padding-top: 0.5rem;
