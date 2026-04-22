@@ -881,9 +881,9 @@ export default class FasadesManager {
         ) {
         fasade.loopsSide = typeof newSide === "string" ? parseInt(newSide) : newSide;
 
-        // if(!grid.sections[secIndex].loopsSides){
-        //     grid.sections[secIndex].loopsSides = {}
-        // }
+        if(!grid.sections[secIndex].loopsSides){
+            grid.sections[secIndex].loopsSides = {}
+        }
 
         // grid.sections[secIndex].loopsSides[doorIndex] = fasade.loopsSide;
         // grid.sections[secIndex].fasades[doorIndex].forEach(

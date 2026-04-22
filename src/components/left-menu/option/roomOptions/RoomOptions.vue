@@ -68,7 +68,6 @@ const palitteSelect = (
   key: keyof TOptionsMap,
   palitteData: TPalitte[]
 ) => {
-  console.log(palitteTitle, key, palitteData)
 
   emit("toPalitteSelect", palitteTitle, key, palitteData);
 };
@@ -86,7 +85,6 @@ const plinthSelect = (
   key: keyof TOptionsMap,
   plinthData: TFasadeItem[]
 ) => {
-  console.log(plinthTitle, key, plinthData, "--- PLINT ---");
 
   emit("toPlinthSelect", plinthTitle, key, plinthData);
 };

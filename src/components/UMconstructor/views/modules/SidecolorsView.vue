@@ -283,8 +283,6 @@ const setEccentricOption = (props = {PROPS: false, side : false}) => {
 }
 
 const selectOption = (value: Object | number, type: string, palette: Object = false) => {
-  console.log(value, "value", currentOption.value);
-
   switch (currentOption.value) {
     case "MODULE_COLOR":
       objectData.value.CONFIG[currentOption.value] = value.ID;

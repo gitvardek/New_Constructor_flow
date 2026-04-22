@@ -138,14 +138,8 @@ const fasadeHandleList = ref<Array>([]);
 const isFasadeHandleExist = ref<boolean>(false);
 
 const onSelectMaterial = (data) => {
-  console.log(data, "data");
 
   /** ============== Данные размера выбранного Фасада ==============*/
-  // const { sec, cell, row } = umStorage.getSelected("fasades");
-  // const { sections } = umStorage.getUMGrid();
-  // const curSection = sections[sec];
-  // const curFasade = curSection.fasades[cell][row];
-  // const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade;
 
   const selectedSection = umStorage.getSelected("fasades");
 
@@ -257,7 +251,6 @@ const onSelectMaterial = (data) => {
   /** @Витрины */
   showcaseList.value = modelState.getCurrentShowcaseData;
 
-  // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
   isShowcaseExist.value =
     !data.material?.includes("Alum") && haveShowcase && data.id !== RESET_COLOR;
@@ -515,7 +508,6 @@ const millingStatus = computed(() => {
 
 /** Выбор панели редактирования фрезеровки или цвета, если такая опция существует */
 const setCurrentEditableOption = (name: String) => {
-  // console.log(name, "NAME");
   currentEditableOption.value = name;
 };
 

@@ -444,9 +444,7 @@ const {
   getArticleByFasadId,
 } = useConfigStore();
 
-onBeforeMount(() => {
-  console.log(props.item, "PPPPP");
-});
+
 // Получаем данные из store
 const appData = computed(() => appDataStore.getAppData);
 
@@ -519,41 +517,6 @@ const shouldShowPropValue = (key: string, propVal: any) => {
   return propDef && propDef.type && propDef.type !== "PRODUCT";
 };
 
-// const formatPropValue = (key: string, propVal: any, item: any) => {
-//   const propDef = getPropDefinition(key);
-//   console.log('propValpropVal', propVal);
-
-//   if (propDef && propDef.type === 'PRODUCTS') {
-//     if (propVal.ID) {
-//       return propVal.VALUE === null
-//         ? getProductInfo(propVal.ID).NAME
-//         : `${getProductInfo(propVal.ID).NAME} - поз. ${propVal.VALUE} мм.`;
-//     } else {
-//       return getProductInfo(propVal).NAME;
-//     }
-//   }
-
-//   if(item?.product.TYPE=== 'scene') {
-//     if (typeof propVal === 'object' && propVal !== null) {
-//       let getListValue = '';
-//       Object.entries(propVal).forEach(([key, value]) => {
-//         if (typeof value === 'object' && value !== null) {
-//           value = JSON.stringify(value);
-//         }
-//         getListValue += `<li><strong>${key}:</strong> ${value}</li>`;
-//       });
-
-//       const ul = document.createElement('ul');
-//       ul.innerHTML = getListValue;
-//       console.log(ul);
-//       return ul; // возвращаем DOM элемент
-//     }
-//     console.log('тип')
-
-//     return getTypeName(propDef?.type, propVal.COLOR);
-//   }
-//   return getTypeName(propDef?.type, propVal);
-// };
 
 const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
   const propDef = getPropDefinition(key);
@@ -658,9 +621,7 @@ const getArticleCodeForSegment = (_segment: any, _key: string) => {
 };
 
 const hasError = (value: any, propsError: any) => {
-  // Логика проверки ошибки
-  console.log(propsError);
-  // return propsError && propsError.includes(value);
+
   if (!propsError || !Array.isArray(propsError)) return false;
 
   // return propsError.some(error => error.id && error.id.includes(value));
@@ -673,9 +634,7 @@ const getTypeName = (
   index: number,
 ) => {
   // Получаем имя из store данных
-  // console.log('data', appData.value, type, value, mainType);
 
-  console.log(index, "type");
 
   if (value && typeof value === "object" && value.NAME) {
     return value.NAME;
@@ -703,7 +662,6 @@ const getTypeName = (
   }
 
   if (mainType === "umscene" && typeof value === "object") {
-    console.log();
     return appData.value[type][value["1"][0]]?.NAME;
   }
 
@@ -842,7 +800,6 @@ function updateQuantity(id: string, type: string) {
 }
 
 const deleteProductInBusket = (id: string, type: string) => {
-  console.log(id, type);
   basketStore.removeFromBasket(id, type);
   if (type === "scene" || type === "umscene") {
     useEventBus().emit("A:RemoveModelFromBasket", {
@@ -856,11 +813,7 @@ const deleteProductInBusket = (id: string, type: string) => {
 // -------------- сцена
 
 const formatPropSceneValue = (key: string, propVal: any) => {
-  console.log("propVal", propVal);
-  console.log("key", key);
-  // if (typeof secondItem === 'object' && secondItem !== null && !Array.isArray(secondItem)) {
-  //   console.log('Второй элемент - объект:', secondItem);
-  // }
+
   const propDef = getPropDefinition(key);
   return getTypeName(propDef?.type, propVal);
 };
@@ -948,8 +901,7 @@ const renderDescription = (data) => {
   }
 
   for (const [key, value] of Object.entries(data)) {
-    // console.log(getPropDefinition(key)?.NAME);
-    // console.log(value);
+
     if (
       getPropDefinition(key)?.NAME &&
       !isObject(value) &&
@@ -974,7 +926,6 @@ const renderDescription = (data) => {
       result.push({ key: "Горизонт", value: value });
     }
     if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
-      console.log("МЕХАНИЗМЫ", key, value, getPropDefinition(key)?.NAME);
 
       if (key === "OPTION" && value.length) {
         value.forEach((el) => {
@@ -998,7 +949,6 @@ const renderDescription = (data) => {
         ].find((item) => key.includes(item))
       ) {
         if (Array.isArray(value)) {
-          console.log(key, value, "value");
 
           let items = [];
 
@@ -1011,8 +961,6 @@ const renderDescription = (data) => {
             });
           } else {
             value.forEach((el) => {
-              console.log(el, "-------el");
-
               items.push({
                 key: `
                 cекция: ${el.section} / 
@@ -1047,11 +995,10 @@ const renderDescription = (data) => {
         key !== "DOORS"
       ) {
         for (const [doorNumber, doorData] of Object.entries(value)) {
-          console.log("1 уровень ", doorNumber, doorData);
+
           // Для каждой двери перебираем её части (обычно только часть "1")
           for (const [partNumber, partData] of Object.entries(doorData)) {
             // Каждая часть может содержать несколько элементов (0, 1 и т.д.)
-            console.log("2 уровень ", partNumber, partData);
 
             const description =
               appData.value[getPropDefinition(key)?.type][partData].NAME ||

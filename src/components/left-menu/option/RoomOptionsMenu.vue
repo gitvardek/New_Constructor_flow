@@ -134,7 +134,6 @@ const globalOptions = ref<TOptionsMap | null>(null);
 const currentRedactor = ref<boolean>(false);
 
 onBeforeMount(() => {
-  console.log(roomState.getRooms);
   prepareOptions();
 });
 
@@ -166,7 +165,6 @@ const prepareOptions = () => {
 
   globalOptions.value = getGlobalOptions;
 
-  // console.log(globalOptions.value, '========= getHeightClamp')
 
   const { fasadsBottom, fasadsTop, plinth } = globalOptions.value;
 
@@ -187,17 +185,7 @@ const prepareExtras = (arr: TOptionItem[]) => {
   const extaras = {};
   for (const el in arr) {
     const option = arr[el];
-    // const { isPalitte, isMilling, isPlinth } = checkExtras(option.id);
-    // switch (option.prefix) {
-    //   case "fasadsTop":
-    //   case "fasadsBottom":
-    //     option.millingData = isMilling;
-    //     option.palitteData = isPalitte;
-    //     break;
-    //   case "plinth":
-    //     option.plinthData = isPlinth;
-    // }
-    console.log(option, "--> option <--");
+
   }
 };
 
@@ -205,7 +193,7 @@ const checkExtras = (
   fasadeId?: number | string,
   curOption?: string,
 ): TExtras => {
-  console.log(fasadeId, "====> checkExtras");
+
 
   // const defaultId = globalOptions.value![curOption];
 
@@ -385,7 +373,7 @@ const selectOption = (
   const curOption = globalOptions.value![type];
   const curOptionId = extras ? curOption.id : value.ID;
 
-  console.log(curOption, "-------- curOption");
+
 
   const { isPalitte, isMilling, isPlinth } = checkExtras(curOptionId, type);
 

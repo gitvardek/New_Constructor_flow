@@ -230,7 +230,6 @@ const setLocalActivateValue = () => {
 };
 
 const controlsActivate = (value) => {
-  console.log(value, "value");
   transformControlsValue.value = value;
   try {
     if (product.value?.userData.MOUSE_POSITION) {
@@ -347,13 +346,10 @@ const screenPrint = async () => {
 
     // Очищаем предыдущие скриншоты перед созданием новых
     screenshotsStore.clearScreenshots();
-    console.log("Предыдущие скриншоты очищены");
 
     // Получаем все комнаты из store - используем правильный источник данных
     // const allRooms = schemeTransitionStore.getSchemeTransitionData;
     const allRooms = roomState.getRooms;
-
-    console.log(`Начинаем создание скриншотов для ${allRooms.length} комнат`);
 
     // Сохраняем текущую комнату, чтобы восстановить её после создания скриншотов
     const currentRoomId = roomContantData.value?.roomId || null;
@@ -363,11 +359,6 @@ const screenPrint = async () => {
 
     for (let i = 0; i < allRooms.length; i++) {
       const room = allRooms[i];
-      console.log(
-        `Обрабатываем комнату ${i + 1}/${allRooms.length}: ${
-          room.label || room.id
-        }`,
-      );
 
       try {
         // Загружаем комнату в сцену через eventBus
@@ -379,9 +370,7 @@ const screenPrint = async () => {
         // Принудительно рендерим сцену перед созданием скриншота
 
         // 1. Создаем скриншот комнаты в обычном режиме
-        console.log(
-          `Создаем скриншот комнаты "${room.label || room.id}" в обычном режиме`,
-        );
+
         await new Promise<void>((resolve) => {
           renderer.domElement.toBlob((blob: Blob | null) => {
             if (blob) {
@@ -400,20 +389,13 @@ const screenPrint = async () => {
               };
 
               screenshotsStore.addScreenshot(screenshot);
-              console.log(
-                `Скриншот комнаты "${
-                  room.label || room.id
-                }" в обычном режиме сохранен в стор`,
-              );
             }
             resolve();
           }, "image/png");
         });
 
         // 2. Включаем режим чертежа
-        console.log(
-          `Включаем режим чертежа для комнаты "${room.label || room.id}"`,
-        );
+
         await menuStore.toggleDrowModeValue();
         const drawingModeValue = menuStore.getDrowModeValue;
         eventBus.emit("A:DrawingMode", drawingModeValue);
@@ -421,10 +403,6 @@ const screenPrint = async () => {
         // Ждем применения режима чертежа
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // 3. Создаем скриншот комнаты в режиме чертежа
-        console.log(
-          `Создаем скриншот комнаты "${room.label || room.id}" в режиме чертежа`,
-        );
         await new Promise<void>((resolve) => {
           renderer.domElement.toBlob((blob: Blob | null) => {
             if (blob) {
@@ -443,11 +421,6 @@ const screenPrint = async () => {
               };
 
               screenshotsStore.addScreenshot(screenshot);
-              console.log(
-                `Скриншот комнаты "${
-                  room.label || room.id
-                }" в режиме чертежа сохранен в стор`,
-              );
             }
             resolve();
           }, "image/png");
@@ -485,11 +458,6 @@ const screenPrint = async () => {
       eventBus.emit("A:DrawingMode", currentDrawingMode);
     }
 
-    console.log(
-      `Все скриншоты комнат созданы и сохранены в стор. Всего скриншотов: ${
-        screenshotsStore.getScreenshots().length
-      }`,
-    );
     eventBus.emit("A:3DScreenshotCreated");
   } catch (error) {
     console.error("Ошибка при создании 3D скриншотов:", error);
@@ -658,13 +626,11 @@ const openTableRedactor = () => {
 
   isModalOpen.value = true;
 
-  console.log(product.value);
 
   const parent = userData.groupId
     ? APP!._scene!.getObjectByProperty("id", userData.groupId)
     : product.value;
 
-  console.log(parent, "parent");
 
   if (parent) {
     modelState.setCurrentRaspilParent(parent);

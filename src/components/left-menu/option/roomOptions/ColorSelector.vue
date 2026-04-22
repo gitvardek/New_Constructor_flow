@@ -26,7 +26,6 @@ const emit = defineEmits<{
 }>();
 
 const handleSelect = (value: any, type: string, extras: string | undefined) => {
-  console.log(value, type, extras, "---- ПЛИНТУС ----");
   emit("select", value, type, extras);
   // eventBus.emit('A:GlobalParapsSelect')
 };

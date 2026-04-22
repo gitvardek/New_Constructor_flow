@@ -66,7 +66,6 @@ const checkSelect = (el) => {
     modelState.setCurrentModel(null);
     return;
   }
-  console.log(el.object, "SELECT");
 
   currentModel.value = el.object;
 

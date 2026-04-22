@@ -29,7 +29,7 @@ export const useOptions = () => {
         const filtered = filterOptions()
         let result = checkExeptionOptionForFasade(filtered, PROPS.CONFIG.OPTIONS)
 
-        if (mechanismList.length > 0) {
+        if (mechanismList.length > 0 && !NESTANDART_MODULES.includes(PROPS.PRODUCT)) /** (&& !NESTANDART_MODULES.includes....)  ДЛЯ МАСТЕРА   */ {
 
             result = [...result, ...mechanismList]
         }

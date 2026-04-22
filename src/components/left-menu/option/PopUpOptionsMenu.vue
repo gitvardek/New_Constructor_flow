@@ -18,22 +18,14 @@ const { getAppData } = useAppData();
 const { getArticleByProductId, isFeedbackProject } = useConfigStore();
 
 const exeption = ref([
-  1516913,
-  1516914,
-  6051066,
-  81768,
-  2370182,
-  81772,
-  11451679,
+  1516913, 1516914, 6051066, 81768, 2370182, 81772, 11451679,
 ]); //3140746, 971222, 1814256б 166757
 
 const props = defineProps<{
   filteredData: Array<any>;
 }>();
 
-const emit = defineEmits([
-  "close-menu",
-]);
+const emit = defineEmits(["close-menu"]);
 
 const currentProductInfo = ref({
   title: "",
@@ -56,8 +48,6 @@ const filteredData = computed(() => {
         );
       })
       .sort((a, b) => a.SORT - b.SORT);
-  } else {
-    console.log("empty");
   }
 });
 
@@ -81,11 +71,10 @@ const onDrag = (event: any, model: { [key: string]: any } | string) => {
 
 const closeMenu = (menuType: MenuType) => {
   menuStore.closeMenu(menuType);
-  emit('close-menu')
+  emit("close-menu");
 };
 
 const openPopup = async (item) => {
-  console.log(getAppData, "getAppData");
   try {
     const { data } = await axios.post(`/api/modeller/product/getbyid/`, {
       ID: item.ID,
@@ -128,9 +117,7 @@ const closeInfoPopup = () => {
   };
 };
 
-onBeforeMount(()=>{
-  console.log(props.filteredData)
-})
+
 </script>
 
 <template>
@@ -138,7 +125,7 @@ onBeforeMount(()=>{
     <h1 class="popup__title">Основное</h1>
     <ClosePopUpButton class="menu__close" @close="closeMenu('tech')" />
     <div
-      v-if="menuStore.catalogFilterProductsId || props.filteredData.length>0"
+      v-if="menuStore.catalogFilterProductsId || props.filteredData.length > 0"
       class="options-popup__container"
     >
       <div
@@ -159,7 +146,12 @@ onBeforeMount(()=>{
             class="popup-items__image"
           />
         </div>
-        <p class="popup-items__title">{{ item.NAME }} <span v-if='isFeedbackProject'>{{ getArticleByProductId(item?.ID) }}</span></p>
+        <p class="popup-items__title">
+          {{ item.NAME }}
+          <span v-if="isFeedbackProject">{{
+            getArticleByProductId(item?.ID)
+          }}</span>
+        </p>
       </div>
     </div>
     <div v-else class="options-popup-isempty">

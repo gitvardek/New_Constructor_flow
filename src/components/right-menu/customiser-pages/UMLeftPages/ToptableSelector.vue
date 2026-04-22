@@ -163,8 +163,6 @@ const clearTable = () => {
 const createProfileServices = () => {
   /** Отладка */
 
-  // console.log(modelState._PROFILE, "---Profile");
-
   /*---------------*/
   if (!tempProfile.value.length > 0)
     return null;

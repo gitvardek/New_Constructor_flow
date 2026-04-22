@@ -276,7 +276,7 @@ const getHandlesPosition = (
 ) => {
   const trueSize = fasadeMesh.size;
   if (!trueSize) {
-    console.warn('fasadeMesh.userData.trueSize отсутствует');
+
     return;
   }
   const { width, height } = trueSize;
@@ -290,7 +290,6 @@ const getHandlesPosition = (
 
   const cfg = positionMap[posNumber];
   if (!cfg) {
-    console.warn('Неверный action для ручки:', posNumber);
     return;
   }
 
@@ -2433,7 +2432,7 @@ const handleGlobalPointerMove = (event) => {
       mouseX > app.renderer.width ||
       mouseY > app.renderer.height
   ) {
-    // console.log("Курсор вне холста (глобальная проверка)");
+
     onDragEnd();
   }
 };
@@ -2933,7 +2932,6 @@ const adjustSizeFromExternal = ({
   type?: string;
 }) => {
   if (sec === null) {
-    console.warn("Не выбрана ячейка для изменения размера");
     return;
   }
 

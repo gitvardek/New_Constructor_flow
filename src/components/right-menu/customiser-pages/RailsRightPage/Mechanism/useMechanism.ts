@@ -82,45 +82,6 @@ export const useMechanism = () => {
                 })
             }
 
-            // weightData = FASADE_PROPS.map((fasade: TFasadeProp, ndx: number) => {
-            //     if (fasade.COLOR == 7397) return null
-
-            //     const { PRODUCT } = PROPS
-            //     const { FASADE_WIDTH, FASADE_HEIGHT } = FASADE[ndx].userData.trueSize
-            //     const product = PRODUCTS[PRODUCT]
-
-            //     const prodMill = product.type_showcase[0] !== null && product.MILLING[0] !== null
-
-            //     const curWeight = fasade_weight[fasade.COLOR]
-            //     const curMilling = fasade.MILLING ? milling_weight[fasade.MILLING!] : prodMill ? milling_weight[defMilling] : null
-
-            //     if (curWeight) {
-            //         const square = FASADE_WIDTH * FASADE_HEIGHT
-            //         const weight = parseFloat(curWeight) * (square / 1000000);
-
-            //         return {
-            //             width: FASADE_WIDTH,
-            //             height: FASADE_HEIGHT,
-            //             square: parseFloat(square.toFixed(2)),
-            //             weight: parseFloat(weight.toFixed(2))
-            //         }
-            //     }
-            //     else if (curMilling) {
-
-            //         const square = FASADE_WIDTH * FASADE_HEIGHT
-            //         const weight = parseFloat(curMilling) * (square / 1000000);
-
-            //         return {
-            //             width: FASADE_WIDTH,
-            //             height: FASADE_HEIGHT,
-            //             square: parseFloat(square.toFixed(2)),
-            //             weight: parseFloat(weight.toFixed(2))
-            //         }
-            //     }
-            //     return null
-
-            // })
-
             return weightData
 
         } catch (e) {

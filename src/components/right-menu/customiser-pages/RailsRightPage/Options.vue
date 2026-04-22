@@ -29,7 +29,6 @@ const createList = () => {
 };
 
 const changeValue = (event: InputEvent, option: TRootOptionType) => {
-  console.log(option)
 
   if (!props.umMechanizm) {
     const check = event.target!.checked;
@@ -43,19 +42,7 @@ const changeValue = (event: InputEvent, option: TRootOptionType) => {
 const UMMechanizmChange = (event: InputEvent, id: number) => {
   activateMechanismAndDeactivateOthers(optionList.value, id);
 
-  // const curMech = props.element.MECHANISM_TEMP.find((el) => el.ID == id);
-  // props.element.MECHANISM_TEMP.forEach((mech) => {
-  //   if (mech.close === curMech.close && mech.id !== curMech.ID) {
-  //     mech.active = false;
-  //   }
-  // });
-
-  console.log(id, event.target!.checked);
-
   props.segment.MECHANISM = event.target!.checked ? parseInt(id) : null;
-  // console.log(props.element, '-----element');
-
-  // props.element.material.MECHANISM = parseInt(id);
 };
 
 const activateMechanismAndDeactivateOthers = (data, targetId) => {

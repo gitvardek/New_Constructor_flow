@@ -637,9 +637,6 @@ const renderGrid = (_moduleGrid) => {
 
           tmpLoopData.xOffset = loopXOffset;
 
-          console.log(loopXOffset, "loopXOffset");
-          console.log(tmpLoopData.positionX, "positionX");
-
           loop.coords.forEach((pos, posIndex) => {
             let loopSector;
             let tmp_top_loop_pos;
@@ -662,7 +659,6 @@ const renderGrid = (_moduleGrid) => {
 
             // Отрисовываем секцию
             if (isTopLoops) {
-              console.log(pos, "PPPPPPPP");
 
               loopSector = createLoop({
                 x: getPixelWidth(pos[1]),
@@ -694,8 +690,6 @@ const renderGrid = (_moduleGrid) => {
                 },
               });
             }
-
-            console.log(loopSector, "vvvv");
 
             for (let i = 0; i < tmp_array_sectors.length; i++) {
               let sector = tmp_array_sectors[i];
@@ -2705,7 +2699,6 @@ const handleGlobalPointerMove = (event) => {
     mouseX > app.renderer.width ||
     mouseY > app.renderer.height
   ) {
-    // console.log("Курсор вне холста (глобальная проверка)");
     onDragEnd();
   }
 };
