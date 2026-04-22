@@ -47,8 +47,6 @@ export const useOptions = () => {
         const curMech = MECHANISM_TEMP.find(el => el.ID == id);
         const isNestandart = NESTANDART_MODULES.includes(ID)
 
-        console.log(isNestandart, ID)
-
         if (curMech) {
 
             MECHANISM_TEMP.forEach(mech => {

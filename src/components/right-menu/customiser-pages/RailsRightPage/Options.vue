@@ -29,7 +29,6 @@ const createList = () => {
 
 const changeValue = (event: InputEvent, id: number) => {
   if (!props.umMechanizm) {
-
     const check = event.target!.checked;
     checkActive(id, check);
     createList();
@@ -39,7 +38,7 @@ const changeValue = (event: InputEvent, id: number) => {
 };
 
 const UMMechanizmChange = (event: InputEvent, id: number) => {
-  activateMechanismAndDeactivateOthers(optionList.value, id)
+  activateMechanismAndDeactivateOthers(optionList.value, id);
 
   // const curMech = props.element.MECHANISM_TEMP.find((el) => el.ID == id);
   // props.element.MECHANISM_TEMP.forEach((mech) => {
@@ -47,7 +46,10 @@ const UMMechanizmChange = (event: InputEvent, id: number) => {
   //     mech.active = false;
   //   }
   // });
-  props.segment.MECHANISM = parseInt(id)
+
+  console.log(id, event.target!.checked);
+
+  props.segment.MECHANISM = event.target!.checked ? parseInt(id) : null;
   // console.log(props.element, '-----element');
 
   // props.element.material.MECHANISM = parseInt(id);
