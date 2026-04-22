@@ -104,10 +104,16 @@ const updateRootModel = (model: TFillingDataType) => {
 };
 
 const updateFillingModel = (filling: TFillingData) => {
-  // console.log(modelState._FILLING[filling.id].SHELFQUANT, "_FILLING");
+  const { userData } = modelState.getCurrentModel;
+  const { SHELFQUANT } = userData.PROPS.CONFIG;
+
+  console.log(modelState._FILLING[filling.id], "_FILLING");
   const incomeShelfcount = modelState._FILLING[filling.id].SHELFQUANT;
-  const maxCount = typeof incomeShelfcount === "number" ? incomeShelfcount : 1;
-  // console.log(maxCount, "===== maxCount");
+  const maxCount = isNumber(incomeShelfcount)
+    ? incomeShelfcount
+    : // : SHELFQUANT.max;
+      1;
+
   shelfCount.value = {
     max: maxCount,
     current: 0,
@@ -117,6 +123,10 @@ const updateFillingModel = (filling: TFillingData) => {
   fillingList.value?.forEach((el) => {
     el.active = el.id == filling.id;
   });
+};
+
+const isNumber = (value) => {
+  return typeof value === "number" && !isNaN(value);
 };
 
 const prepareData = () => {
@@ -161,14 +171,12 @@ const prepareData = () => {
     };
   }).sort((a, b) => a.sort - b.sort);
 
-  // console.log(modelState._FILLING, "--");
-  // console.log(modelState._FILLING[FILLING]?.SHELFQUANT, '[FILLING]?.SHELFQUANT')
+  const hasShelfCount = modelState._FILLING[FILLING]?.SHELFQUANT;
 
-  const maxCount = !isNaN(modelState._FILLING[FILLING]?.SHELFQUANT)
+  const maxCount = isNumber(hasShelfCount)
     ? modelState._FILLING[FILLING]?.SHELFQUANT
-    : SHELFQUANT.max;
-
-
+    : // : SHELFQUANT.max;
+      1;
 
   shelfCount.value = {
     max: maxCount,
@@ -202,12 +210,11 @@ const resizeModel = (value: object) => {
   if (!isMounted.value) return; // игнорируем вызов до готовности
   eventBus.emit("A:Model-resize", { data: { ...resizeData.value, ...value } });
 
-  const curModel = modelState.getCurrentModel
+  const curModel = modelState.getCurrentModel;
 
   if (curModel?.name === "MODEL") return;
 
-
-  console.log(curModel)
+  console.log(curModel);
   /** @Проверка_FILLING */
   if (fillingList.value?.length > 0) {
     fillingList.value.forEach((el, key) => {
@@ -225,8 +232,7 @@ const resizeModel = (value: object) => {
     }
   }
   onRsizeConversations(resizeData.value);
-  onResizeMillingCheck()
-
+  onResizeMillingCheck();
 };
 
 const checkFillingConditions = (data, size) => {
@@ -348,12 +354,13 @@ watch(
         <div class="customiser-section__refactor-item">
           <p
             class="customiser-section__refactor-title item__label text-grey"
-            v-if="typeof shelfCount.max == 'number'"
+            v-if="isNumber(shelfCount.max)"
           >
-            Количество полок / max: {{shelfCount.max  }}
+            Количество полок / max: {{ shelfCount.max }}
           </p>
+          <!--     v-if="typeof shelfCount.max == 'number'" -->
           <MainInput
-            v-if="typeof shelfCount.max == 'number'"
+            v-if="isNumber(shelfCount.max)"
             class="input__search right-menu"
             v-model="shelfCount.current"
             @update:modelValue="recountShelfs"

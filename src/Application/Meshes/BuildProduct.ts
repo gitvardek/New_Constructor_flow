@@ -429,9 +429,10 @@ export class BuildProduct extends BuildersHelper {
         const bodyExceptions = this.project.default_overlay_id;
         const legsHeight = this._PRODUCTS[productId]?.leg_length;
         const fasadeProps = Object.values(CONFIG.FASADE_PROPS);
-        console.log(this._FILLING[CONFIG.FILLING]?.SHELFQUANT)
 
-        const shelfCount = this._FILLING[CONFIG.FILLING]?.SHELFQUANT ?? CONFIG.SHELFQUANT.max;
+        const shelfCount = CONFIG.SHELFQUANT.max;
+
+        // const shelfCount = this._FILLING[CONFIG.FILLING]?.SHELFQUANT ?? CONFIG.SHELFQUANT.max;
         // console.log(size, 'resize')
 
 
