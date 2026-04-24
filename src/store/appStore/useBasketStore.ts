@@ -16,7 +16,6 @@ const generateUniqueId = (): string =>
 
 // Формирования массива ручик фасадов
 const countHandles = (items: any[]): number[] => {
-  console.log('items', items);
   const handles: number[] = []
   
   items.forEach(item => {
@@ -110,7 +109,6 @@ export const useBasketStore = defineStore('basket', () => {
       .map(([key, obj]: [string, any]) => 
         createBasketItem(obj.data, mainConstructor.value.length, obj.basketId)
       )
-    // console.log('appDataStore', appDataStore.getAppData.decor);
 
     mainConstructor.value = sceneItems
   }
@@ -146,10 +144,8 @@ export const useBasketStore = defineStore('basket', () => {
   }
   
   const loadBasket = async (data: any) => { 
-    // console.log('datadata', data);
     mainConstructor.value = data.scene;
     mainCatalog.value = data.catalog;
-    // console.log('allBasketItems.value', allBasketItems.value);
     syncBasket();
   }
 
@@ -165,7 +161,6 @@ export const useBasketStore = defineStore('basket', () => {
   }
 
   const syncBasket = async (): Promise<IBasketResponse | null> => {
-    console.log('mainConstructor.value', mainConstructor.value)
     const currentHandlesData = countHandles(mainConstructor.value)
     const data = currentHandlesData.length > 0 
         ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)] 
@@ -174,16 +169,13 @@ export const useBasketStore = defineStore('basket', () => {
     if (result) {
       basketData.value = result
     }
-    console.log('basketData.value', basketData.value)
     return result
   }
   const syncBasketMulti = async (data): Promise<IBasketResponse | null> => {
-    console.log('mainConstructor.value', mainConstructor.value)
     const result = await syncBasketWithServer(data)
     if (result) {
       basketData.value = result
     }
-    console.log('basketData.value', basketData.value)
     return result
   }
   const syncBasketDelay = async (): Promise<IBasketResponse | null> => {
@@ -193,7 +185,6 @@ export const useBasketStore = defineStore('basket', () => {
         : allBasketItems.value
 
     const result = await syncBasketProductDelay(data)
-    console.log('result', result);
     // Используем basketDelay.value для реактивного обновления
     if (result) {
       basketDelay.value = Array.isArray(result) ? result : [result]

@@ -445,7 +445,6 @@ export class RoomManager extends Room {
         const size = model.size ?? '';
 
         if (!this._PRODUCTS[model.id]) {
-            console.log(`❌ Товара c ID:${model.id} нет в списке PRODUCTS`)
             return 1
         }
         try {
@@ -501,7 +500,6 @@ export class RoomManager extends Room {
             curProd.userData.current = false
         }
         catch (e) {
-            console.log('❌ Контекст userData.current потерян')
         }
         const { MOUSE_POSITION } = curProd.userData
 

@@ -46,7 +46,6 @@ export class MillingBuilder extends MillingsUtils {
     // // Получаем данные фрезеровки
     // const millingData = this.millingsStore[millingKey] ?? this.millingsStore[2462671];
 
-    // console.log('=== CREATE MILLING ===', millingParams)
 
     // Клонируем базовую геометрию
     let startGeometry = defaultGeometry.clone();

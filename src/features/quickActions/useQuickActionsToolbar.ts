@@ -88,7 +88,6 @@ export const useQuickActionsToolbar = () => {
   const updateExistingProject = async () => {
     if (!projectState.currentProjectId) return;
 
-    console.log(projectState.currentProjectId, 'currentProjectId');
     projectState.isSaving = true;
 
     try {
@@ -131,7 +130,6 @@ export const useQuickActionsToolbar = () => {
       if (result.success) {
         // SaveProject всегда создаёт новый проект — обновляем текущий ID на только что сохранённый
         if (result.data?.ID) projectState.setProjectId(result.data.ID);
-        console.log(result.data?.kp);
         projectState.updateAfterSave();
         const roomsData = schemeTransition.getAllData() ?? [];
         if (roomsData.length > 0) {

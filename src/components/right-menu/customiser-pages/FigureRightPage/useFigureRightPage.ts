@@ -96,7 +96,6 @@ export const useFigureRightPage = () => {
             const fasadeData = FASADE[COLOR]
             const haveHandles = POSITION_HANDLES[PRODUCT]
 
-            console.log(haveHandles, '=== haveHandles ===')
 
             if (haveHandles) {
                 tempList.push({

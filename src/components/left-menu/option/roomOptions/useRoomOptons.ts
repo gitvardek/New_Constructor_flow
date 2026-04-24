@@ -528,7 +528,6 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
 
         }
 
-        console.log(newParams, 'GGGGGHHHHH')
     })
 
     return {

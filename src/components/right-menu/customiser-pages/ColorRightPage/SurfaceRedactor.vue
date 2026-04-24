@@ -59,7 +59,6 @@ const emit = defineEmits<{
 const modelState = useModelState();
 const eventBus = useEventBus();
 
-// console.log(modelState.getCurrentModel);
 const productData = ref(null);
 
 const _APP = useAppData().getAppData;
@@ -91,14 +90,11 @@ const changeFasadeTexture = (data: { [key: string]: any }, id, fasadeNdx) => {
     return;
   }
 
-  // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
-
   const { PRODUCT, CONFIG, FASADE } = productData.value.PROPS as TTotalProps;
   const { FASADE_PROPS } = CONFIG;
   const { MILLING_CONVERSATION } = FASADE_PROPS[fasadeNdx];
   const { trueSize } = FASADE[fasadeNdx].userData;
 
-  console.log(trueSize, "--trueSize");
   let { ID, NAME, DETAIL_PICTURE, PREVIEW_PICTURE, MATERIAL, PATINA } = data;
 
   modelState.createCurrentPaletteData(ID);

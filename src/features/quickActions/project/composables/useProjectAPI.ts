@@ -293,7 +293,6 @@ export function useProjectAPI() {
       // resetGlobalOptions()
 
       const projectData = saveSceneParams() ?? sceneState.getCurrentProjectParams
-      console.log(projectData, 'projectData', sceneState.getCurrentProjectParams, 'getCurrentProjectParams')
 
       // Если передан projectName, обновляем его перед сохранением
       if (projectName) {
@@ -396,7 +395,6 @@ export function useProjectAPI() {
           error: 'Unexpected DATA format: expected array'
         }
       }
-      console.log(json.DATA)
       return { success: true, data: json.DATA }
     } catch (error) {
       console.error(ERROR_MESSAGES.LOAD_FORM_DATA, error)

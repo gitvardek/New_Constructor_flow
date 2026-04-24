@@ -427,8 +427,6 @@ const getHoleOptionsActive = computed(() => {
 const createProfileServices = () => {
   /** Отладка */
 
-  // console.log(modelState._PROFILE, "---Profile");
-
   /*---------------*/
   const parent = modelState.getCurrentRaspilParent;
 
@@ -444,14 +442,11 @@ const createProfileServices = () => {
 
   const { SERVICE } = curProfileData;
 
-  // console.log(SERVICE, "----SERVICE---", USLUGI, "--USLUGI");
 
   const curProfileServise = USLUGI.filter((el) => {
-    // console.log(el.ID);
     return SERVICE.includes(el.ID);
   });
 
-  // console.log(curProfileServise, 'curProfileServise')
 
   if (activeProfile.show_props && activeProfile.show_props?.includes("hem")) {
     getCurretKromkaList();
@@ -565,8 +560,6 @@ const updateGlobalService = (value, item, USLUGI) => {
   if (globalService) {
     globalService.value = value;
   }
-
-  console.log(tempUslugi.value, "tempUslugi.value");
 };
 
 /** @Обновляет_локальный_сервис_в_текущей_секции_с_логикой_позиционирования */
@@ -592,7 +585,6 @@ const updateLocalService = (value, item, USLUGI) => {
     if (service.ID === targetService.ID) return;
 
     const pos = service.NEW_CONSTRUCTOR_GROUP;
-    // console.log(service, targetPosition, "==== ❌ ====");
 
     if (!pos || !targetPosition) return;
     const isConflict = pos.some((item) => targetPosition.includes(item));
@@ -604,7 +596,6 @@ const updateLocalService = (value, item, USLUGI) => {
   //  Установка значения для текущего сервиса
   targetService.value = value;
 
-  // console.log(data, " ==== data ====");
   checkKromkaActive();
 
   if (getKromkaActive) {
@@ -1006,8 +997,6 @@ const createServiseData = () => {
     return acc;
   }, []);
 
-  console.log(convertParams, "convertParams");
-
   return convertParams;
 };
 
@@ -1042,7 +1031,6 @@ const reset = (reset = false) => {
 };
 
 const saveProfile = () => {
-  // console.log(getCurrentKromkaId(), "tempKromka.value;");
 
   const parent = modelState.getCurrentRaspilParent;
   const { PROPS } = parent.userData;
@@ -1097,10 +1085,6 @@ defineExpose({
 });
 
 onBeforeMount(() => {
-  console.log(
-    modelState.getCurrentRaspilParent,
-    "==== getCurrentRaspilParent ====",
-  );
 
   const parent = modelState.getCurrentRaspilParent;
   const { PROPS } = parent.userData;
@@ -1127,11 +1111,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  console.log(
-    modelState.getCurrentRaspilParent,
-    "==== getCurrentRaspilParent ====",
-  );
-
   shapeAdjuster = null;
   grid.value = null;
   clearKromkaData();

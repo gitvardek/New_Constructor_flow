@@ -59,16 +59,30 @@ onBeforeMount(() => {
 });
 
 const prepareData = () => {
-  const { NAME, DETAIL_PICTURE } = props.isNisha
-      ? modelState._WALL[selectedSurfaceID.value]
-      : modelState._FASADE[selectedSurfaceID.value];
+  const source = props.isNisha
+    ? modelState._WALL?.[selectedSurfaceID.value]
+    : modelState._FASADE?.[selectedSurfaceID.value];
+
   materialList.value = props.materialList?.length ? props.materialList : modelState.getCurrentModuleData;
 
   currentSurfaceData.value = {
-    name: NAME,
-    imgSrc: DETAIL_PICTURE,
+    name: source?.NAME ?? '',
+    imgSrc: source?.DETAIL_PICTURE ?? '',
   };
 }
+
+// const prepareData = () => {
+  
+//   const { NAME, DETAIL_PICTURE } = props.isNisha
+//       ? modelState._WALL[selectedSurfaceID.value]
+//       : modelState._FASADE[selectedSurfaceID.value];
+//   materialList.value = props.materialList?.length ? props.materialList : modelState.getCurrentModuleData;
+
+//   currentSurfaceData.value = {
+//     name: NAME,
+//     imgSrc: DETAIL_PICTURE,
+//   };
+// }
 
 onMounted(() => {
   prepareData();

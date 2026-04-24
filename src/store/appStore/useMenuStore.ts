@@ -51,7 +51,6 @@ export const useMenuStore = defineStore('menu', () => {
 
   const toggleDrowModeValue = async () => {
     drowMode.value = !drowMode.value
-    // console.log(drowMode.value, 'drowMode.value')
   }
 
   const getDrowModeValue = computed(() => {

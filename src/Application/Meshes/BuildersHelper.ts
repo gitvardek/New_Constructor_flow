@@ -131,7 +131,6 @@ export class BuildersHelper extends GlobalsData {
         size.height ||= parseFloat(resolvedHeight);
         size.depth ||= parseFloat(productData.depth);
 
-        console.log(size, ' == Size ==')
 
         return size;
     }
@@ -289,7 +288,6 @@ export class BuildersHelper extends GlobalsData {
     }
 
     public createNishaMaterial(url, size, comand) {
-        // console.log(comand)
 
 
         const material = new THREE.MeshStandardMaterial({
@@ -419,7 +417,6 @@ export class BuildersHelper extends GlobalsData {
             extrusionSettings
         );
 
-        // console.log(geometry, 'KKgeometry')
 
         return geometry;
     }
@@ -551,7 +548,6 @@ export class BuildersHelper extends GlobalsData {
 
     public createCutterParams(uslugi) {
         // const SERVISES = CUTTER_PARAMS.CUT_SERVISES
-        // console.log(uslugi, ' ====== uslugi =====', SERVISES)
 
         const result = uslugi.map(obj1 => {
             const obj2 = SERVISES.find(o => o.ID === obj1.ID);

@@ -798,7 +798,6 @@ const handleGlobalPointerMove = (event) => {
     mouseX > app.renderer.width ||
     mouseY > app.renderer.height
   ) {
-    // console.log("Курсор вне холста (глобальная проверка)");
     onDragEnd();
   }
 };

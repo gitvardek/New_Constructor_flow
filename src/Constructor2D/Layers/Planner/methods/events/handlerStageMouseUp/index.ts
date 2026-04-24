@@ -51,7 +51,6 @@ export function handlerStageMouseUp(this: any, e: PIXI.FederatedPointerEvent): v
           this.objectWalls[wallDataIndex].roomId = pointInRoom ? rooms[i].id : null;
 
           if (pointInRoom) {
-            console.log('>>> Объект находится внутри комнаты:', rooms[i].id);
             break;
           }
 

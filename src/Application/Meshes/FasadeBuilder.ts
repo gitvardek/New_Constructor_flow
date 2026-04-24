@@ -119,7 +119,6 @@ export class FasadeBuilder {
                         milling: fasadsTop.milling
                     }
                 default:
-                    // console.log('None ')
                     return {
                         color: fasadeColor,
                         pallite: null,
@@ -130,7 +129,6 @@ export class FasadeBuilder {
 
         if (Number.isInteger(fasadeNdx)) {
 
-            console.log(FASADE, '==== ❌ FASADE NUMERED ❌ ====')
 
             const fasadeData: THREETypes.TFasadeProp = FASADE_PROPS[fasadeNdx];
             const { color, pallite, milling } = resolveColorId(fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE);
@@ -188,7 +186,6 @@ export class FasadeBuilder {
                     fasadeData.SHOWCASE = null
                 }
 
-                // console.log(fasadeData.SHOWCASE, '==== ❌ fasadeData.SHOWCASE ❌ ====')
 
                 // fasadeData.SHOWCASE = fasadeData.SHOW && haveShowcase && !fasadeData.ALUM ? fasadeData.SHOWCASE ?? SHOWCASE[0] ?? deffShowcase : null
 
@@ -203,7 +200,6 @@ export class FasadeBuilder {
                     })
                 const firstValueMilling = millingList[0] as any;
 
-                // console.log(typeof firstValueMilling == 'object' && milling, '==== ❌ firstValueMilling ❌ ====')
 
 
                 if (fasadeData.SHOW && pallite && firstValuePall && fasadeData.PALETTE === null) {
@@ -268,7 +264,6 @@ export class FasadeBuilder {
                 try {
                     curFasade.userData.trueSize.FASADE_DEPTH = fasadePositionData.FASADE_DEPTH
                 } catch (e) {
-                    console.log(e)
                 }
             }
 
@@ -301,7 +296,6 @@ export class FasadeBuilder {
             if (fasadeData.SHOWCASE != null) {
 
                 const action = this.modelState.getCurrentFasadeTypesAction(fasadeData.TYPE)
-                console.log('==== ❌ SHOWCASE ❌ ====')
 
                 this.parent.showcase_builder.createShowcase({
                     fasade: curFasade,
@@ -316,7 +310,6 @@ export class FasadeBuilder {
 
             // Алюм. профиль
             if (fasadeData.ALUM != null && FASADE_PROPS[fasadeNdx].COLOR != null) {
-                console.log('==== ❌ ALUM ❌ ====')
 
                 const alumData = this.parent._FASADE[FASADE_PROPS[fasadeNdx].COLOR];
                 this.parent.alum_builder.createAlum({ fasade: curFasade, data: alumData });
@@ -395,7 +388,6 @@ export class FasadeBuilder {
             // Массовая инициализация, когда remove=false и индекс не задан
             if (!remove && !fasadeNdx) {
 
-                console.log(FASADE[key], '==== ❌ FASADE remove ❌ ====')
 
                 const curFasade = FASADE[key];
                 const { trueSize } = curFasade.userData;
@@ -408,7 +400,6 @@ export class FasadeBuilder {
                 })
 
                 const checkCurrentMilling = millingList.findIndex(el => el.ID === fasadeData.MILLING) > -1
-                console.log(checkCurrentMilling, 'checkCurrentMilling')
 
                 const firstValueMilling = millingList[0] as any;
                 const firstValuePall = Object.values(this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR))[0] as any;
@@ -428,7 +419,6 @@ export class FasadeBuilder {
 
                 if (fasadeData.SHOW && typeof firstValueMilling == 'object') {
 
-                    // console.log('==== ❌ MILLING ❌ ====', this.containsValue(millingList, milling))
 
                     fasadeData.MILLING = fasadeData.MILLING ? fasadeData.MILLING : this.containsValue(millingList, milling) ? milling : firstValueMilling.ID;
                     /** @Позиционирование_интегрированной_ручки */
@@ -438,7 +428,6 @@ export class FasadeBuilder {
                     }
                 }
 
-                // console.log('==== ❌ SHOWCASE ❌ ====', fasadeData.MILLING, firstValueGlass, haveShowcase)
                 if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
                     fasadeData.GLASS = firstValueGlass.ID;
                 }
@@ -478,7 +467,6 @@ export class FasadeBuilder {
 
             // Фрезеровка
             if (fasadeData.MILLING != null && !haveShowcase) {
-                // console.log('==== ❌ MILLING NEW ❌ ====')
 
                 const action = this.modelState.getCurrentMillingActionMap(fasadeData.MILLING_TYPE, fasadeData.MILLING) ?? null
                 const millingParams = action ? action : this.modelState.getCurrentMillingMap(fasadeData.MILLING);
@@ -495,7 +483,6 @@ export class FasadeBuilder {
 
             // Окно
             if (fasadeData.SHOWCASE != null) {
-                // console.log('==== ❌ SHOWCASE NEW ❌ ====')
 
                 const action = this.modelState.getCurrentFasadeTypesAction(fasadeData.TYPE)
 
@@ -649,8 +636,6 @@ export class FasadeBuilder {
                     })
                 }
 
-                /** ------ @Доделать_для_радиусного_шкафа ------ */
-
                 if (fasade.isObject3D && fasade.children.length == 1) {
 
 
@@ -745,6 +730,10 @@ export class FasadeBuilder {
         fasade.add(defaultEdge)
 
         return { fasade, fasadeEdge }
+    }
+
+    public createCutFasade(data:{mesh:THREE.Object3D[], }) {
+  
     }
 
     private processFasadeCreation({
@@ -855,7 +844,6 @@ export class FasadeBuilder {
 
         const curFasadeDepth = this.checkFasadeDepth(FASADE_PROPS, key) ?? replacedExpressions.FASADE_DEPTH
 
-        // console.log(curFasadeDepth)
 
         const fasadePositionsData: THREETypes.TFasadePositionItem = {
 
@@ -1012,7 +1000,6 @@ export class FasadeBuilder {
             const { FASADE_WIDTH } = fasade_position
             const fasadeWidth = this.parent.calculateFromString(FASADE_WIDTH)
 
-            // console.log(fasade_position, 'fasade_position')
 
 
             const partPosition: TFasadePartPosition = {
@@ -1027,7 +1014,6 @@ export class FasadeBuilder {
 
             numered.push(partPosition)
 
-            // console.log(numered)
 
         })
 
@@ -1040,7 +1026,6 @@ export class FasadeBuilder {
             hasMixedTypes
         }
 
-        // console.log(result)
 
         return result
 
@@ -1136,7 +1121,6 @@ export class FasadeBuilder {
 
         const numeredFasade = this.numberingToUniform(FASADE_PROPS, CONFIG, BODY, isUMmodule)
 
-        // console.log(this.rearrangeFasadeNumbers(this.originalArray), 'numeredFasade')
 
 
 

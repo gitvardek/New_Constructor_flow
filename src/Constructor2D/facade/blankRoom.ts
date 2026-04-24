@@ -270,7 +270,6 @@ export const loadBlankRoom = async (customProject?: typeof projectData) => {
 
     window.C2D.layers.planner.init(true)
     window.C2D.layers.doorsAndWindows.init(true)
-    console.log('BLANKROOM LOADED')
   } catch (error) {
     console.error('Ошибка предварительной инициализации комнаты', error)
   }

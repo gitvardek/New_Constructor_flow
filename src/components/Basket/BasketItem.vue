@@ -322,8 +322,19 @@
               v-for="(value, i) in propValue.value"
               :key="i"
             >
-              <span>{{ i + 1 }}) {{ value.key }}:</span
-              ><span>{{ value.value ? ` - поз. ${value.value} мм` : "" }}</span>
+              <!-- <span>{{ i + 1 }}) {{ value.key }}:</span
+              ><span>{{ value.value ? ` - поз. ${value.value} мм` : "" }}</span> -->
+
+              <div v-if="propValue.key !== 'Подъёмные механизмы'">
+                <span>{{ i + 1 }} {{ value.key }}:</span>
+                <span>{{
+                  value.value ? ` - поз. ${value.value} мм` : ""
+                }}</span>
+              </div>
+              <div v-else>
+                <span>{{ value.key }}: </span>
+                <span>{{ value.value }}</span>
+              </div>
             </div>
           </div>
           <div v-else>
@@ -433,9 +444,7 @@ const {
   getArticleByFasadId,
 } = useConfigStore();
 
-onBeforeMount(() => {
-  console.log(props.item, "PPPPP");
-});
+
 // Получаем данные из store
 const appData = computed(() => appDataStore.getAppData);
 
@@ -508,41 +517,6 @@ const shouldShowPropValue = (key: string, propVal: any) => {
   return propDef && propDef.type && propDef.type !== "PRODUCT";
 };
 
-// const formatPropValue = (key: string, propVal: any, item: any) => {
-//   const propDef = getPropDefinition(key);
-//   console.log('propValpropVal', propVal);
-
-//   if (propDef && propDef.type === 'PRODUCTS') {
-//     if (propVal.ID) {
-//       return propVal.VALUE === null
-//         ? getProductInfo(propVal.ID).NAME
-//         : `${getProductInfo(propVal.ID).NAME} - поз. ${propVal.VALUE} мм.`;
-//     } else {
-//       return getProductInfo(propVal).NAME;
-//     }
-//   }
-
-//   if(item?.product.TYPE=== 'scene') {
-//     if (typeof propVal === 'object' && propVal !== null) {
-//       let getListValue = '';
-//       Object.entries(propVal).forEach(([key, value]) => {
-//         if (typeof value === 'object' && value !== null) {
-//           value = JSON.stringify(value);
-//         }
-//         getListValue += `<li><strong>${key}:</strong> ${value}</li>`;
-//       });
-
-//       const ul = document.createElement('ul');
-//       ul.innerHTML = getListValue;
-//       console.log(ul);
-//       return ul; // возвращаем DOM элемент
-//     }
-//     console.log('тип')
-
-//     return getTypeName(propDef?.type, propVal.COLOR);
-//   }
-//   return getTypeName(propDef?.type, propVal);
-// };
 
 const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
   const propDef = getPropDefinition(key);
@@ -647,9 +621,7 @@ const getArticleCodeForSegment = (_segment: any, _key: string) => {
 };
 
 const hasError = (value: any, propsError: any) => {
-  // Логика проверки ошибки
-  console.log(propsError);
-  // return propsError && propsError.includes(value);
+
   if (!propsError || !Array.isArray(propsError)) return false;
 
   // return propsError.some(error => error.id && error.id.includes(value));
@@ -662,9 +634,7 @@ const getTypeName = (
   index: number,
 ) => {
   // Получаем имя из store данных
-  // console.log('data', appData.value, type, value, mainType);
 
-  console.log(index, "type");
 
   if (value && typeof value === "object" && value.NAME) {
     return value.NAME;
@@ -692,7 +662,6 @@ const getTypeName = (
   }
 
   if (mainType === "umscene" && typeof value === "object") {
-    console.log();
     return appData.value[type][value["1"][0]]?.NAME;
   }
 
@@ -831,7 +800,6 @@ function updateQuantity(id: string, type: string) {
 }
 
 const deleteProductInBusket = (id: string, type: string) => {
-  console.log(id, type);
   basketStore.removeFromBasket(id, type);
   if (type === "scene" || type === "umscene") {
     useEventBus().emit("A:RemoveModelFromBasket", {
@@ -845,11 +813,7 @@ const deleteProductInBusket = (id: string, type: string) => {
 // -------------- сцена
 
 const formatPropSceneValue = (key: string, propVal: any) => {
-  console.log("propVal", propVal);
-  console.log("key", key);
-  // if (typeof secondItem === 'object' && secondItem !== null && !Array.isArray(secondItem)) {
-  //   console.log('Второй элемент - объект:', secondItem);
-  // }
+
   const propDef = getPropDefinition(key);
   return getTypeName(propDef?.type, propVal);
 };
@@ -881,9 +845,10 @@ const getFilteredProps = (item) => {
   return filteredProps;
 };
 
-const renderDescription = (props) => {
+const renderDescription = (data) => {
   const result = [];
-  // console.log('props', props)
+  const productId = props.item.product.ID;
+  const { MECHANISM } = appData.value;
 
   const textValue = (value) => {
     const color = appData.value["FASADE"][value.COLOR]?.NAME;
@@ -905,9 +870,9 @@ const renderDescription = (props) => {
     return `${color ?? ""} ${pallette ?? ""} ${patina ?? ""} ${milling ?? ""}`;
   };
 
-  if (props.DOORS) {
+  if (data.DOORS) {
     // Перебираем все двери
-    for (const [doorNumber, doorData] of Object.entries(props.DOORS)) {
+    for (const [doorNumber, doorData] of Object.entries(data.DOORS)) {
       // Для каждой двери перебираем её части (обычно только часть "1")
       for (const [partNumber, partData] of Object.entries(doorData)) {
         // Каждая часть может содержать несколько элементов (0, 1 и т.д.), если это не двери-купе
@@ -935,9 +900,8 @@ const renderDescription = (props) => {
     }
   }
 
-  for (const [key, value] of Object.entries(props)) {
-    // console.log(getPropDefinition(key)?.NAME);
-    // console.log(value);
+  for (const [key, value] of Object.entries(data)) {
+
     if (
       getPropDefinition(key)?.NAME &&
       !isObject(value) &&
@@ -962,6 +926,7 @@ const renderDescription = (props) => {
       result.push({ key: "Горизонт", value: value });
     }
     if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
+
       if (key === "OPTION" && value.length) {
         value.forEach((el) => {
           result.push({
@@ -973,20 +938,39 @@ const renderDescription = (props) => {
       if (
         value.length &&
         getPropDefinition(key)?.NAME &&
-        key !== "OPTION" &&
-        !["MILLING", "PATINA", "PALETTE", "GLASS", "TYPE", "SHOWCASE"].find(
-          (item) => key.includes(item),
-        )
+        ![
+          "MILLING",
+          "PATINA",
+          "PALETTE",
+          "GLASS",
+          "TYPE",
+          "SHOWCASE",
+          "OPTION",
+        ].find((item) => key.includes(item))
       ) {
         if (Array.isArray(value)) {
+
           let items = [];
 
-          value.forEach((el) => {
-            items.push({
-              key: appData.value["CATALOG"]["PRODUCTS"][el.ID]?.NAME ?? "",
-              value: el.basketRenderPosition || el.VALUE || "",
+          if (key !== "UM_MECHANIZM") {
+            value.forEach((el) => {
+              items.push({
+                key: appData.value["CATALOG"]["PRODUCTS"][el.ID]?.NAME ?? "",
+                value: el.VALUE || "",
+              });
             });
-          });
+          } else {
+            value.forEach((el) => {
+              items.push({
+                key: `
+                cекция: ${el.section} / 
+                дверь: ${el.doorNum} / 
+                часть: ${el.segmentNum}
+                `,
+                value: MECHANISM[el.mechanizm][productId].NAME || "",
+              });
+            });
+          }
 
           result.push({
             key: getPropDefinition(key)?.NAME,
@@ -1011,11 +995,10 @@ const renderDescription = (props) => {
         key !== "DOORS"
       ) {
         for (const [doorNumber, doorData] of Object.entries(value)) {
-          console.log("1 уровень ", doorNumber, doorData);
+
           // Для каждой двери перебираем её части (обычно только часть "1")
           for (const [partNumber, partData] of Object.entries(doorData)) {
             // Каждая часть может содержать несколько элементов (0, 1 и т.д.)
-            console.log("2 уровень ", partNumber, partData);
 
             const description =
               appData.value[getPropDefinition(key)?.type][partData].NAME ||

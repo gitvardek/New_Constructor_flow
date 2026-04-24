@@ -41,8 +41,6 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       // const data = await processSections(response.sections);
       // сategoriesList.value = data;
-      // console.log(response.sections);
-      // console.log(data);
       сategoriesList.value = response.sections;
     } catch (err) {
       error.value = err
@@ -62,7 +60,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     // Собираем все промисы и ждём их выполнения
     const sectionsNew = await Promise.all(
       sections.map(async (section) => {
-        console.log('Processing section ID:', section.ID);
         try {
           const data = await fetchSubCatalogData(section.ID);
           return data; // Предполагается, что fetchSubCatalogData возвращает объект с items и pager
@@ -77,7 +74,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     // Фильтруем: исключаем объекты, где items пустой массив И pager равен false
     // Также исключаем null/undefined, если были ошибки
     const filteredSections = sectionsNew.filter(item => {
-      console.log();
       if (!item) return false; // исключаем null/undefined
       const isEmptyItems = Array.isArray(item.items) && item.items.length === 0;
       const isPagerFalse = item.pager === false;
@@ -215,7 +211,6 @@ export const useCatalogStore = defineStore('catalog', () => {
   };
 
   const updateProductPrice = (data:any) => {
-    console.log('data', data);
     try {
         // Скрываем спиннер и показываем блоки с ценами
         const loader = document.querySelector('.spinner__loader_price');

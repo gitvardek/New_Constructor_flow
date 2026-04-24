@@ -1,20 +1,82 @@
 <script lang="ts" setup>
 //@ts-nocheck
-import { onBeforeMount, computed, ref } from "vue";
+import { onBeforeMount, computed, ref, defineProps, withDefaults } from "vue";
 import { useOptions } from "./useOptions";
+import { TRootOptionType } from "@/types/types";
+
+interface IProps {
+  mechanizmList?: [];
+  umMechanizm?: boolean;
+  element?: any;
+  segment?: any;
+}
+
+const props = withDefaults(defineProps<IProps>(), {
+  umMechanizm: false,
+});
 
 const { createOptionList, checkActive } = useOptions();
 const optionList = ref([]);
 
 const createList = () => {
-  const { data } = createOptionList();
-  optionList.value = data;
+  if (!props.umMechanizm) {
+    const { data } = createOptionList();
+    optionList.value = data;
+    return;
+  }
+
+  optionList.value = props.mechanizmList;
 };
 
-const changeValue = (event: InputEvent, id: number) => {
-  const check = event.target!.checked;
-  checkActive(id, check);
-  createList();
+const changeValue = (event: InputEvent, option: TRootOptionType) => {
+
+  if (!props.umMechanizm) {
+    const check = event.target!.checked;
+    checkActive(option, check);
+    createList();
+    return;
+  }
+  UMMechanizmChange(event, option.ID);
+};
+
+const UMMechanizmChange = (event: InputEvent, id: number) => {
+  activateMechanismAndDeactivateOthers(optionList.value, id);
+
+  props.segment.MECHANISM = event.target!.checked ? parseInt(id) : null;
+};
+
+const activateMechanismAndDeactivateOthers = (data, targetId) => {
+  const searchId = String(targetId);
+  let targetFound = false;
+  let otherActiveExists = false;
+
+  for (const group of data) {
+    for (const item of group.CONTANT) {
+      if (item.ID === searchId) {
+        targetFound = true;
+
+        item.active = true;
+      } else if (item.active === true) {
+        otherActiveExists = true;
+      }
+    }
+  }
+
+  if (!targetFound) {
+    return false;
+  }
+
+  if (otherActiveExists) {
+    for (const group of data) {
+      for (const item of group.CONTANT) {
+        if (item.ID !== searchId && item.active === true) {
+          item.active = false;
+        }
+      }
+    }
+  }
+
+  return true;
 };
 
 onBeforeMount(() => {
@@ -34,14 +96,16 @@ onBeforeMount(() => {
           <input
             type="checkbox"
             :checked="option.active"
-            @change="changeValue($event, option.ID)"
+            @change="changeValue($event, option)"
             :disabled="option.disabled"
           />
           <span class="control_indicator"></span>
           <span class="text-lg text-gray-800 font-medium">{{
             option.NAME
           }}</span>
-          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize">&emsp;{{option.cutSize}} + {{option.cutSize}}</span>
+          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize"
+            >&emsp;{{ option.cutSize }} + {{ option.cutSize }}</span
+          >
         </label>
       </div>
     </div>

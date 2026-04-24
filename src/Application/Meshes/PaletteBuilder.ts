@@ -120,7 +120,6 @@ export class PaletteBuilder {
         const fasadeName = _FASADE[fasadeId].NAME.toLowerCase();
         const fasadeTexture = _FASADE[fasadeId].TEXTURE
 
-        console.log(fasadeTexture, palette, '==== fasadeData =====')
 
         fasade.visible = true;
 

@@ -5,10 +5,8 @@ import { useAppData } from "@/store/appliction/useAppData"
 
 const appDataStore = useAppData()
 
-console.log('appDataStore.getAppData', appDataStore.getAppData)
 
 function createFacadeProps(objProps: any): IBasketFacade[] {
-  console.log('SHHHH')
 
   return objProps.CONFIG.FASADE_PROPS
     ? objProps.CONFIG.FASADE_PROPS.map((fp: any, index: number) => {
@@ -31,6 +29,7 @@ function createFacadeProps(objProps: any): IBasketFacade[] {
       if (fp.SIZES != null) result.SIZES = fp.SIZES;
       if (fp.SIZES != null) result.SIZES2 = fp.SIZES;
       if (fp.TYPE != null || fp.MILLING_TYPE != null) result.FASADETYPE = fp.TYPE ?? fp.MILLING_TYPE;
+      if (fp.MECHANISM != null) result.MECHANISM = fp.MECHANISM;
 
 
       // Добавляем SIZE только если есть хотя бы одно измерение
@@ -66,8 +65,6 @@ function createBodyProps(objProps: any) {
   const isSizeEditStepHeight = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_HEIGHT;
   const isSizeEditStepDepth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_DEPTH;
 
-  console.log('isSizeEdit', isSizeEdit);
-  console.log('isSizeStepEdit', isSizeEditStepWidth, isSizeEditStepHeight, isSizeEditStepDepth);
   if (isSizeEdit === "obligatory") {
     if (isSizeEditStepWidth) {
       sizeObj.WIDTH = objProps.CONFIG.SIZE.width;
@@ -176,6 +173,36 @@ function generateDoorsSimple(moduleData) {
   return DOORS;
 }
 
+function generateMechanizmSimple(moduleData) {
+  const Mechanizm = [];
+  const seen = new Set();
+
+  moduleData.sections?.forEach((section, number) => {
+    const sectionNum = number + 1;
+
+    section.fasades?.forEach(fasadeArray => {
+      fasadeArray.forEach((fasade, index) => {
+        const elem = {}
+        const doorNum = fasade.door || 1;
+        const segmentNum = index;
+        elem.mechanizm = fasade.material.MECHANISM
+        elem.section = sectionNum
+        elem.doorNum = doorNum
+        elem.segmentNum = segmentNum
+
+        const key = `${elem.mechanizm}_${elem.section}_${elem.doorNum}_${elem.segmentNum}`;
+
+        if (elem.mechanizm && !seen.has(key)) {
+          seen.add(key);
+          Mechanizm.push(elem);
+        }
+      });
+    });
+  });
+
+  return Mechanizm;
+}
+
 function transformLoops(sections, horizont, moduleThickness) {
   const coordsResult = {};
   const sidesResult = {};
@@ -276,7 +303,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
   const { CONFIG } = newModuleObject;
   const sectionCount = Object.keys(CONFIG.SECTIONS).length;
-  console.log('CONFIG', CONFIG, sectionCount)
 
   const legacyProps = {
     SIZEEDITWIDTH: CONFIG.SIZE?.width || 0,
@@ -289,6 +315,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
     OPTION: createOptionsProps(newModuleObject),
     // DOORS: CONFIG.FASADE_PROPS || {}
     DOORS: generateDoorsSimple(CONFIG.MODULEGRID),
+    UM_MECHANIZM: generateMechanizmSimple(CONFIG.MODULEGRID)
 
   };
 
@@ -342,7 +369,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
   }
   else {
     const result = {}
-    console.log('sections', CONFIG.MODULEGRID.sections)
     CONFIG.MODULEGRID.sections.forEach((section, number) => {
       const sectionNumber = number + 1;
       const sectionKey = `SECTIONS${sectionNumber}`;
@@ -353,7 +379,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
 
-      console.log('sectionKey', sectionKey);
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = {};
       result[fasadesMillingKey] = {};
@@ -560,8 +585,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
           height: el.height,
           width: el.width,
           serviseData: el.serviseData.filter(el => el.value).map(el => {
-            console.log(el, 'IN BUSKET')
-            console.log(el.separated == '0', 'IN separated')
 
             if (el.separated == '0') return
             if (el.width) {
@@ -581,7 +604,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
       })
     }
 
-    console.log(props.RASPIL)
 
     // props.PROFILE = '251698';
     props.PROFILE = objProps.CONFIG.PROFILE.filter(el => el.value === true)[0]?.ID
@@ -603,9 +625,8 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
     props.RASPIL_COUNT = objProps.RASPIL.data.length
 
     function createRaspil(data) {
-      return data.flat().map(el => { console.log(el); return `${el.width}мм` }).join(' x ');
+      return data.flat().map(el => { return `${el.width}мм` }).join(' x ');
     }
-
     props.USLUGIraspil = createRaspil(objProps.RASPIL.data);
   }
 
@@ -697,6 +718,8 @@ export const propsLabel = {
   FASADE3: { type: "FASADE", val: "int", NAME: "Цвет фасада 3", SORT: 1200 },
   FASADE4: { type: "FASADE", val: "int", NAME: "Цвет фасада 4", SORT: 1300 },
   FASADE5: { type: "FASADE", val: "int", NAME: "Цвет фасада 5", SORT: 1300 },
+
+  UM_MECHANIZM: { type: "UM_MECHANIZM", val: "array", NAME: "Подъёмные механизмы", SORT: 100 },
 
   FASADEWIDTH: { type: false, val: "int", NAME: "Ширина фасада", SORT: 1360 },
   FASADE_WIDTH: { type: false, val: "int", NAME: "Ширина фасада", SORT: 1360 },

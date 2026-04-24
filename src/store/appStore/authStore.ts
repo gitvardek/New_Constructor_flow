@@ -75,11 +75,9 @@ export const useAuthStore = defineStore('auth', () => {
       const rawList = (salonOwner as any)?.DATA?.data ?? (Array.isArray((salonOwner as any)?.DATA) ? (salonOwner as any).DATA : []);
       salonOwnerList.value = Array.isArray(rawList) ? rawList : [];
 
-      console.log('BACKEND USERR DATA', response?.DATA?.data ?? response);
 
       // Логируем ответ только в development режиме
       if (process.env.NODE_ENV === 'development') {
-        console.log('Ответ сервера:', response);
       }
 
       // Проверяем структуру ответа
@@ -181,21 +179,12 @@ export const useAuthStore = defineStore('auth', () => {
     const expirationTime = Date.now() + (TOKEN_EXPIRATION_HOURS * 60 * 60 * 1000)
     setCookie(COOKIE_NAMES.TOKEN_EXPIRATION, expirationTime.toString(), 1)
     
-    // Логируем для отладки
-    console.log('Токен сохранен:', {
-      tokenExpiration: new Date(expirationTime).toLocaleString(),
-      hoursFromNow: TOKEN_EXPIRATION_HOURS,
-      cookieDays: 1
-    })
-    
-
 
     isAuthenticated.value = true
     await appDataStore.initAppData()
 
     // Загружаем данные пользователя
     // await fetchUserData().then(res => {
-    //   console.log(res);
     // })
     // await appDataStore.initAppData()
     
@@ -246,7 +235,6 @@ export const useAuthStore = defineStore('auth', () => {
         status: 'offline'
       }
       // const currentUrl = window.location.href;
-      // console.log('currentUrl', currentUrl);
       // // http://localhost:5000/dev_modeller/petrovich/2d
 
       // // Разбиваем URL на части
@@ -256,7 +244,6 @@ export const useAuthStore = defineStore('auth', () => {
       // // Собираем URL обратно
       // const authUrl = urlParts.join('/');
 
-      // console.log('authUrl', authUrl);
       // // http://localhost:5000/dev_modeller/petrovich/auth
 
       // // Перенаправляем

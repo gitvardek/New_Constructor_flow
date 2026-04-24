@@ -23,7 +23,6 @@ function updateRoomStore(this: any): boolean {
   const wallHeightScene = wallHeightStore.wallHeightMm * 10;
   const wallHeightHalfY = wallHeightScene / 2;
 
-  console.log("BEFORE: ", roomState.rooms);
   const roomStore = useSchemeTransition();
   
   // Сохраняем все существующие комнаты из roomState
@@ -36,7 +35,6 @@ function updateRoomStore(this: any): boolean {
   });
 
   roomStore.clearStore(); // очищаем хранилище
-  console.log("AFTER: ", roomState.rooms);
 
   const rooms: IRoom[] = [];
 
@@ -286,7 +284,6 @@ function updateRoomStore(this: any): boolean {
     rooms.push(room);
     updatedRoomIds.add(normalizedRoomId);
 
-    // console.log("rooms", rooms);
   });
 
   // Добавляем все комнаты, которые не представлены в 2D редакторе
@@ -314,7 +311,6 @@ function updateRoomStore(this: any): boolean {
   // Уведомляем историю 2D о новом состоянии для undo/redo
   eventBus.emit("C2D:HistoryPush");
 
-  console.log("AFTER AFTER: ", roomState.rooms);
   return true;
 }
 

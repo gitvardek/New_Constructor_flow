@@ -497,9 +497,8 @@ watch(
           curActionCount.value = constructor2DHistory.currentIndex;
         }
       }
-      console.log("Все комнаты:", roomState.rooms);
-      roomState.routConvertData(newPath);
 
+      roomState.routConvertData(newPath);
       menuStore.setRulerVisibility(true);
       menuStore.setDrowModeValue(false);
       modelState.setCurrentModel(null);

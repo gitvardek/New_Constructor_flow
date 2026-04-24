@@ -229,8 +229,6 @@ const uploadProjectTech = async (id: string | number) => {
     if (projectData) {
       projectState.resetState();
       projectState.setInitialState(projectData);
-      console.log(projectData, "----PROD");
-
       try {
         schemeTransition.clearStore();
         // 1. Обновляем данные проекта в sceneState

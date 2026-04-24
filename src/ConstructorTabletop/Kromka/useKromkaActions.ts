@@ -90,8 +90,6 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                 tempKromkaId.value = hemList[0].ID;
             }
 
-            // console.log(hasActiveKromka, '==== ❌ hasActiveKromka ❌ ====')
-            // console.log(hasProfileKromka, '==== ❌ hasProfileKromka ❌ ====')
 
             kromkaActive.value = hasActiveKromka ? hasActiveKromka : hasProfileKromka
             if (!kromkaActive.value) tempKromkaId.value = null

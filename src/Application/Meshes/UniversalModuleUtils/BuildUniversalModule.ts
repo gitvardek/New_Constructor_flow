@@ -805,6 +805,8 @@ export class BuildUniversalModule extends BuildProduct {
         let start_position = this.getStartPosition(size)
 
         const create = (dae, secIndex, doorKey, loopCoord) => {
+
+
             let loopGroup = new THREE.Object3D();
 
             let box = new THREE.Box3().setFromObject(dae);
@@ -815,8 +817,10 @@ export class BuildUniversalModule extends BuildProduct {
             loop.height = loop_size.y;
             loop.depth = loop_size.z;
 
+
             const loopside = loopCoord.side
             const rightSide = LOOPSIDE[loopside] === 'right' || LOOPSIDE[loopside] === 'right_on_partition'
+            const top = LOOPSIDE[loopside] === 'top'
 
             let section = PROPS.CONFIG.SECTIONS[secIndex];
 
@@ -827,7 +831,10 @@ export class BuildUniversalModule extends BuildProduct {
                 return false
 
             loopCoord.coords.forEach((coord) => {
+                let position;
                 let loopMesh = new THREE.Object3D();
+
+
 
                 let rotation = new THREE.Vector3(
                     Math.PI / 2,
@@ -835,15 +842,34 @@ export class BuildUniversalModule extends BuildProduct {
                     0,
                 );
 
-                let position = new THREE.Vector3(
-                    rightSide ? rightPosition : leftPosition,
-                    coord,
-                    rightSide ?
-                        PROPS.CONFIG.SIZE.depth + loopPosition.RIGHT_CORRECTION_Z :
-                        PROPS.CONFIG.SIZE.depth + loopPosition.CORRECTION_Z,
-                );
+                if (top) {
+                    position = new THREE.Vector3(
+                        coord[1] + loop.width,
+                        coord[0] + loop.width * 0.25,
+                        rightSide ?
+                            PROPS.CONFIG.SIZE.depth + loopPosition.RIGHT_CORRECTION_Z :
+                            PROPS.CONFIG.SIZE.depth + loopPosition.CORRECTION_Z,
+                    );
 
-                position.z -= loop_size.z / 2
+
+                    rotation = new THREE.Vector3(
+                        Math.PI * 0.5,
+                        Math.PI + Math.PI * 0.5,
+                        0,
+                    );
+
+                }
+                else {
+                    position = new THREE.Vector3(
+                        rightSide ? rightPosition : leftPosition,
+                        coord,
+                        rightSide ?
+                            PROPS.CONFIG.SIZE.depth + loopPosition.RIGHT_CORRECTION_Z :
+                            PROPS.CONFIG.SIZE.depth + loopPosition.CORRECTION_Z,
+                    );
+                }
+
+                position.z -= loop_size.z / 2 - 10
 
                 loopMesh.rotation.set(rotation.x, rotation.y, rotation.z);
 

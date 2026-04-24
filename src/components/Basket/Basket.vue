@@ -8,14 +8,13 @@
       >
         Корзина
       </button>
-      <!-- TODO -->
       <!-- <button
         class="basket-tabs__tab"
         :class="{ 'basket-tabs__tab--active': activeTab === 'order' }"
         @click="activeTab = 'order'"
       >
         Форма заказа
-      </button>
+      </button> -->
       <ClosePopUpButton
         class="basket-tabs__close-btn"
         @click="closePopup"
@@ -319,8 +318,8 @@ const onOrderFormServiceCalcChange = (
 };
 
 const setInvoice = () => {
-  console.log("basketData", basketData);
-  if (isFeedbackProject) {
+
+  if(isFeedbackProject) {
     closePopup();
     openPopupFormBasket();
   } else {
@@ -366,12 +365,13 @@ const selectRoom = async (id) => {
 const getBasket = () => {
   roomsBasketData.value = rooms.value.flatMap((el) => {
     const roomBasket = JSON.parse(el.basket);
-    console.log("el", roomBasket);
-
-    return [...(roomBasket.scene || []), ...(roomBasket.catalog || [])];
+    
+    return [
+      ...(roomBasket.scene || []),
+      ...(roomBasket.catalog || [])
+    ];
   });
-
-  console.log("Объединенная корзина:", roomsBasketData.value);
+  
   // allBasket(roomsBasketData.value);
   syncBasketMulti(roomsBasketData.value);
 };
@@ -390,46 +390,29 @@ const loadRoom = async (id: number) => {
 };
 
 onMounted(async () => {
-  console.log("basketData", basketData);
-  console.log("rooms", rooms);
-  console.log("roomsID", roomState.getRoomId);
-  selectedRoomId.value = roomState.getRoomId || "all";
-  // if(rooms.length > 1) {
-  //   getBasket();
-  // } else {
-  // }
+  selectedRoomId.value = roomState.getRoomId || 'all';
   updateBasketData();
   await syncBasketDelay();
 });
 
 // Следим за изменениями отложенных товаров
-watch(
-  () => useBasketStore().allBasketDelay,
-  (newValue) => {
-    console.log("Отложенные товары изменились:", newValue);
-    productDelayData.value = newValue;
-  },
-  { deep: true },
-);
+watch(() => useBasketStore().allBasketDelay, (newValue) => {
+  productDelayData.value = newValue
+}, { deep: true });
 
 // Следим за изменениями в хранилище корзины
-watch(
-  () => useBasketStore().basketData,
-  (newValue) => {
-    console.log("Basket data changed:", newValue);
-    items.value = newValue;
-    basketUpdateKey.value++;
-    loading.value = false;
-    console.log(newValue.products);
-    if (newValue.products) {
-      errorCount.value = newValue.products.filter(
-        (item: IProduct) => item.error,
-      ).length;
-      errorBasket.value = newValue.type === "error";
-    }
-  },
-  { deep: true },
-);
+watch(() => useBasketStore().basketData, (newValue) => {
+  items.value = newValue;
+  basketUpdateKey.value++;
+  loading.value = false;
+  if(newValue.products) {
+    errorCount.value = newValue.products.filter((item: IProduct) => item.error).length;
+    errorBasket.value = newValue.type === 'error';
+  }
+}, { deep: true });
+
+
+
 </script>
 
 <style lang="scss" scoped>

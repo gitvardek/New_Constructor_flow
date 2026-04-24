@@ -4,6 +4,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useMechanism } from "./Mechanism/useMechanism";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { TRootOptionType } from "@/types/types";
 
 const mechanism = useMechanism()
 
@@ -24,13 +25,11 @@ export const useOptions = () => {
 
     const createOptionList = () => {
 
-        console.log(mechanismList, 'mechanismList')
-
         const { PROPS } = modelState.getCurrentModel.userData;
         const filtered = filterOptions()
         let result = checkExeptionOptionForFasade(filtered, PROPS.CONFIG.OPTIONS)
 
-        if (mechanismList.length > 0) {
+        if (mechanismList.length > 0 && !NESTANDART_MODULES.includes(PROPS.PRODUCT)) /** (&& !NESTANDART_MODULES.includes....)  ДЛЯ МАСТЕРА   */ {
 
             result = [...result, ...mechanismList]
         }
@@ -41,15 +40,16 @@ export const useOptions = () => {
         }
     }
 
-    const checkActive = (id: string | number, values: boolean) => {
+    const checkActive = (option: TRootOptionType, values: boolean) => {
+
+        const { ID: id, cutSize } = option
+
         const { PROPS } = modelState.getCurrentModel.userData;
         const { OPTIONS, MECHANISM_TEMP, ID, SHELFQUANT } = PROPS.CONFIG;
 
         const curOpt = OPTIONS.find(el => el.id == id);
         const curMech = MECHANISM_TEMP.find(el => el.ID == id);
         const isNestandart = NESTANDART_MODULES.includes(ID)
-
-        console.log(isNestandart, ID)
 
         if (curMech) {
 
@@ -64,12 +64,9 @@ export const useOptions = () => {
             PROPS.CONFIG.MECHANISM = values ? id : null
             curMech.active = values;
 
-
-
             eventBus.emit("A:SelectModelOption")
             if (isNestandart) {
                 eventBus.emit("A:RecountShelfs", { data: SHELFQUANT.current });
-
             }
 
         }
@@ -79,10 +76,14 @@ export const useOptions = () => {
 
         if (values) {
             OPTIONS.forEach(opt => {
-                // if (opt.close === curOpt.close && opt.id !== curOpt.id) {
-                //     opt.active = false;
-                // }
-                if (opt.group === curOpt.group && opt.close === curOpt.close && opt.id !== curOpt.id || opt.section === curOpt.section && opt.close === curOpt.close && opt.id !== curOpt.id) {
+                if (
+                    opt.group === curOpt.group &&
+                    opt.close === curOpt.close &&
+                    opt.section === curOpt.section &&
+                    opt.id !== curOpt.id ||
+                    opt.section === curOpt.section &&
+                    opt.close === curOpt.close &&
+                    opt.id !== curOpt.id) {
 
                     if (opt.active) {
                         switch (+opt.id) {
@@ -110,7 +111,6 @@ export const useOptions = () => {
                                 break;
                         }
                     }
-
                     opt.active = false;
                 }
             });
@@ -168,14 +168,14 @@ export const useOptions = () => {
                 modelState.createCurrentBackwallData(ID);
                 let currentBackwallData = modelState.getCurrentBackwallData;
 
-                if(UM_STORE.onWallModule && currentBackwallData.length > 0) {
+                if (UM_STORE.onWallModule && currentBackwallData.length > 0) {
                     if (!currentBackwallData[0]?.FASADES.includes(PROPS.CONFIG.BACKWALL.COLOR))
                         PROPS.CONFIG.BACKWALL = { COLOR: currentBackwallData[0]?.FASADES?.[0], SHOW: true };
                 }
 
                 break;
             case 1795067: //Опция без петель
-                if(curOpt.active) {
+                if (curOpt.active) {
                     UM_STORE.noLoops = true
                 }
                 else {
@@ -198,7 +198,9 @@ export const useOptions = () => {
                 break;
         }
 
-        eventBus.emit("A:SelectModelOption")
+        // eventBus.emit("A:SelectModelOption", { option, values })
+
+             eventBus.emit("A:SelectModelOption")
 
         return curOpt.active;
     };
@@ -230,10 +232,6 @@ export const useOptions = () => {
                 return { ...options[el.id], active: el.active, visible: el.visible, cutSize: cutSize }
             })
             .filter(Boolean);
-
-
-
-        console.log(curOptionsList, '88888888')
 
         for (const el in optGroup) {
 

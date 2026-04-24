@@ -220,7 +220,6 @@ export class MoveManager {
     // Универсальная функция для перемещения объекта (мышь или касание)
     public handleInteractionMove(clientX: number, clientY: number) {
         if (this.uniformEvents._unionMode) return
-        // console.log(this.selectedObject)
         if (this.selectedObject) {
 
             this.updateMousePosition(clientX, clientY);
@@ -365,7 +364,6 @@ export class MoveManager {
         // Пересекаем луч с полом и стенами
         const intersects = this.raycaster.intersectObjects([...this.roomManager._roomWalls, this.roomManager._roomFloor]);
 
-        // console.log(this.selectedObject.userData.disableMove)
 
         if (intersects.length > 0 && !this.selectedObject.userData.disableMove) {
 

@@ -149,11 +149,11 @@ export class Filters extends GlobalsData {
             const ismanualSizes = this._FASADESIZE[sizes]?.NAME.includes("Нестандарт")
 
 
-            console.log(ismanualSizes, this._FASADESIZE[sizes], "Нестандарт")
 
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
                 COLOR: this.project.default_fasade_color!,
+                CUT: null,
                 SHOW: false,
                 POSITION: fasadePosition.ID,
                 RESET_COLOR: fasad,
@@ -192,6 +192,7 @@ export class Filters extends GlobalsData {
                     drawer: fasadePosition.drawer,
                     buildIn: fasadePosition.built_in
                 },
+                MECHANISM: null,
                 MILLING_CONVERSATION: null
             }
 
@@ -267,7 +268,6 @@ export class Filters extends GlobalsData {
         //     .filter(fasadeSizeId => fasadeSize[fasadeSizeId])
         //     // Сортируем фасады по их значению сортировки (SORT)
         //     .sort((a, b) => fasadeSize[a].SORT - fasadeSize[b].SORT);
-        //     console.log(result, 'result-2')
 
         // return result;
     }

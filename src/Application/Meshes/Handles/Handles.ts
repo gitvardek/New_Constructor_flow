@@ -52,7 +52,6 @@ export class HandlesBuilder {
     public async createHandle(params: TCreateHandleParams, fasade: THREE.Object3D, fasadeData: TFasadeProp): Promise<THREE.Object3D | null> {
         const { id, model } = params;
 
-        // console.log(fasadeData.HANDLES)
 
         const startAction = fasadeData.HANDLES.position ?? 4
         const handleData: TModelData = this.parent._MODELS[model]

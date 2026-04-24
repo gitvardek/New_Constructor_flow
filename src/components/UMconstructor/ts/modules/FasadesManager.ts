@@ -885,10 +885,10 @@ export default class FasadesManager {
             grid.sections[secIndex].loopsSides = {}
         }
 
-        grid.sections[secIndex].loopsSides[doorIndex] = fasade.loopsSide;
-        grid.sections[secIndex].fasades[doorIndex].forEach(
-            (item) => (item.loopsSide = fasade.loopsSide)
-        );
+        // grid.sections[secIndex].loopsSides[doorIndex] = fasade.loopsSide;
+        // grid.sections[secIndex].fasades[doorIndex].forEach(
+        //     (item) => (item.loopsSide = fasade.loopsSide)
+        // );
 
         if(grid.profilesConfig?.sideProfile)
             this.scope.PROFILES.changeProfileSide(LOOPSIDE[fasade.loopsSide]?.includes("left") ? "left" : "right", grid)

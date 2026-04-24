@@ -256,8 +256,6 @@ const priceProduct = computed(() =>
 );
 
 onMounted(async () => {
-  console.log(appData.appData.CITY.config);
-  console.log(appData.appData.CITY.style);
   await catalogStore.fetchInitialCatalog({
     idSection: false,
     page: "1",
@@ -270,7 +268,6 @@ onMounted(async () => {
 watch(
   () => productPrice.value,
   (newValue, oldValue) => {
-    console.log("Цена изменилась:", oldValue, "→", newValue);
     catalogStore.updateProductPrice(productPrice.value);
     // Дополнительные действия при изменении
   },

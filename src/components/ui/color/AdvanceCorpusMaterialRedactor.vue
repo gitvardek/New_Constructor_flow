@@ -138,14 +138,11 @@ const fasadeHandleList = ref<Array>([]);
 const isFasadeHandleExist = ref<boolean>(false);
 
 const onSelectMaterial = (data) => {
-  console.log(data, "data");
 
   /** ============== Данные размера выбранного Фасада ==============*/
-  const { sec, cell, row } = umStorage.getSelected("fasades");
-  const { sections } = umStorage.getUMGrid();
-  const curSection = sections[sec];
-  const curFasade = curSection.fasades[cell][row];
-  const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade;
+
+  const selectedSection = umStorage.getSelected("fasades");
+
   //======================================================================
 
   const { PROPS } = productData.value;
@@ -178,11 +175,24 @@ const onSelectMaterial = (data) => {
   let disablePatina = false;
 
   if (data.ATTACH_MILLINGS?.[0] || data.ATTACH_MILLINGS_SIDE?.[0]) {
+    if (selected) {
+      const { sec, cell, row } = umStorage.getSelected("fasades");
+      const curFasade =
+        umStorage.getUMGrid().sections[sec]?.fasades?.[cell]?.[row];
+      const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade ?? {};
+
+      modelState.createCurrentMillingData({
+        fasadeId: data.ID,
+        productId: productId.value,
+        fasadeNdx: props.elementIndex,
+        fasadeSize: { FASADE_WIDTH, FASADE_HEIGHT },
+      });
+    }
+
     modelState.createCurrentMillingData({
       fasadeId: data.ID,
       productId: productId.value,
       fasadeNdx: props.elementIndex,
-      fasadeSize: { FASADE_WIDTH, FASADE_HEIGHT },
     });
 
     modelState.createCurrentPatinaData({
@@ -241,7 +251,6 @@ const onSelectMaterial = (data) => {
   /** @Витрины */
   showcaseList.value = modelState.getCurrentShowcaseData;
 
-  // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
   isShowcaseExist.value =
     !data.material?.includes("Alum") && haveShowcase && data.id !== RESET_COLOR;
@@ -499,7 +508,6 @@ const millingStatus = computed(() => {
 
 /** Выбор панели редактирования фрезеровки или цвета, если такая опция существует */
 const setCurrentEditableOption = (name: String) => {
-  // console.log(name, "NAME");
   currentEditableOption.value = name;
 };
 
@@ -554,14 +562,6 @@ const prepareData = () => {
   const haveShowcase = currentElementData.value.SHOWCASE === 1;
   const currentFasadeData = currentElementData.value;
 
-  const { sec, cell, row } = umStorage.getSelected("fasades");
-  const { sections } = umStorage.getUMGrid();
-  const curSection = sections[sec];
-  const curFasade = curSection.fasades[cell][row];
-  const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade;
-
-  console.log(FASADE_WIDTH, FASADE_HEIGHT);
-
   let {
     MILLING,
     MILLING_TYPE,
@@ -591,11 +591,25 @@ const prepareData = () => {
   modelState.createCurrentPaletteData(COLOR);
 
   if (fasadeData.ATTACH_MILLINGS?.[0] /*&& !product.GLASS[0]*/) {
+    const selected = umStorage.getSelected("fasades");
+    if (selected) {
+      const { sec, cell, row } = umStorage.getSelected("fasades");
+      const curFasade =
+        umStorage.getUMGrid().sections[sec]?.fasades?.[cell]?.[row];
+      const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade ?? {};
+
+      modelState.createCurrentMillingData({
+        fasadeId: COLOR,
+        productId: pid,
+        fasadeNdx: props.elementIndex,
+        fasadeSize: { FASADE_WIDTH, FASADE_HEIGHT },
+      });
+    }
+
     modelState.createCurrentMillingData({
       fasadeId: COLOR,
       productId: pid,
       fasadeNdx: props.elementIndex,
-      fasadeSize: { FASADE_WIDTH, FASADE_HEIGHT },
     });
 
     modelState.createCurrentShowcaseData({

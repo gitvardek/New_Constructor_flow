@@ -154,7 +154,6 @@ export const BasketService = {
       );
 
       // Проверяем успешный ответ и наличие токена
-      console.log('123213', data.DATA.token)
       if (data.DATA && data.DATA.type === "success" && data.DATA.token) {
         // Сохраняем токен в cookie
 

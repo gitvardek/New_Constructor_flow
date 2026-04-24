@@ -86,9 +86,7 @@ export const useSceneState = defineStore('SceneState', () => {
         const curOption = keys[type];
         const curPalitte = externalPalitteKeys[type];
 
-        // console.log(value, 'curOption')
         if (curOption) {
-            // console.log(startProjectParams.value, 'startProjectParams_1')
 
             startProjectParams.value[curOption] = value?.id;
             currentProjectParams.value[curOption] = value?.id;
@@ -126,7 +124,6 @@ export const useSceneState = defineStore('SceneState', () => {
 
     const loadProjectFromData = async (newProject: IProjectParams) => {
 
-        console.log(newProject, 'newProject')
 
         startProjectParams.value = newProject
 

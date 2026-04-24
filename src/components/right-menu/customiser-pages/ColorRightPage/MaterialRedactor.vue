@@ -164,7 +164,6 @@ const onSelectMaterial = (data) => {
   /** @Витрины */
   showcaseList.value = modelState.getCurrentShowcaseData;
 
-  // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
   isShowcaseExist.value =
     !data.material?.includes("Alum") &&
@@ -665,8 +664,6 @@ const prepareFasadeSizeList = () => {
 };
 
 const changeFasadeSize = async (data: TFasadeSize) => {
-  console.log("AUF");
-
   currentSize.value = data;
   const curData = productData.value;
   const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
@@ -757,23 +754,12 @@ onBeforeMount(() => {
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;
 
-  // const manualInputValue = curSize?.params?.FASADE_WIDTH
-  //   ? curSize?.params?.FASADE_WIDTH
-  //   : fasadeSizeListExist.value &&
-  //       fasadeSizeList.value.length === 1 &&
-  //       fasadeSizeList.value[0].NAME.includes("Нестандарт")
-  //     ? fasadeSizeList.value[0].WIDTH
-  //     : null;
-
-  console.log(positionList, "defaultWidth");
-
   incomeSize.value = {
     width: curSize?.params?.FASADE_WIDTH ?? null,
     min: curSize?.params?.min ?? null,
     max: curSize?.params?.max ?? null,
   };
 
-  console.log(curSize, "curSize");
 });
 
 onMounted(() => {

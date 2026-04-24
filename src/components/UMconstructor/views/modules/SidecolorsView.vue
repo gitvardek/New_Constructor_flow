@@ -1,8 +1,8 @@
 <script setup lang="ts" xmlns="http://www.w3.org/1999/html">
 // @ts-nocheck
-import "@/components/UMconstructor/styles/UM.scss"
+import "@/components/UMconstructor/styles/UM.scss";
 
-import {computed, onBeforeUnmount, onMounted, ref, toRefs} from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, toRefs } from "vue";
 
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import CorpusMaterialRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/CorpusMaterialRedactor.vue";
@@ -11,9 +11,13 @@ import { useModelState } from "@/store/appliction/useModelState.ts";
 import HiTechSideprofile from "@/components/right-menu/customiser-pages/UMLeftPages/HiTechSideprofile.vue";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import Toggle from "@vueform/toggle";
-import {TFasadeProp, TFasadeTrueSizes, TToptableUMProp} from "@/types/types.ts";
+import {
+  TFasadeProp,
+  TFasadeTrueSizes,
+  TToptableUMProp,
+} from "@/types/types.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import {useOptions} from "@/components/right-menu/customiser-pages/RailsRightPage/useOptions.ts";
+import { useOptions } from "@/components/right-menu/customiser-pages/RailsRightPage/useOptions.ts";
 import ToptableSelector from "@/components/right-menu/customiser-pages/UMLeftPages/ToptableSelector.vue";
 const props = defineProps({
   module: {
@@ -36,12 +40,12 @@ const props = defineProps({
 });
 
 type CATALOG_TYPE =
-    | "FASADE"
-    | "PALETTE"
-    | "MILLING"
-    | "FASADETYPE"
-    | "GLASS"
-    | "PATINA";
+  | "FASADE"
+  | "PALETTE"
+  | "MILLING"
+  | "FASADETYPE"
+  | "GLASS"
+  | "PATINA";
 
 const moduleParts = [
   "MODULE_COLOR",
@@ -61,7 +65,6 @@ enum partsNames {
   PROFILECOLOR = "Профили",
 }
 
-
 const { module, objectData, visualizationRef, UMconstructor } = toRefs(props);
 const APP = useAppData().getAppData;
 const modelState = useModelState();
@@ -71,46 +74,44 @@ const { checkActive } = useOptions();
 const currentOption = ref<string | boolean>(false);
 const panelRef = ref<HTMLElement | null>(null);
 const materialList = ref(null);
-const elementSize = <TFasadeTrueSizes|boolean>ref(false);
+const elementSize = <TFasadeTrueSizes | boolean>ref(false);
 const toptableMode = ref<boolean>(false);
 const toptableProductsList = ref<Array>([]);
 const getToptableList = () => {
-  if(toptableProductsList.value.length > 0) {
+  if (toptableProductsList.value.length > 0) {
     return toptableProductsList.value;
-  }
-  else {
-    const {CATALOG} = UMconstructor?.value?.APP;
-    const {SECTIONS, PRODUCTS} = CATALOG;
-    const toptable_sections = Object.values(SECTIONS).filter(section => {
-      let NAME = section.NAME.toLowerCase()
-      return NAME.includes('столешницы');
-    })
+  } else {
+    const { CATALOG } = UMconstructor?.value?.APP;
+    const { SECTIONS, PRODUCTS } = CATALOG;
+    const toptable_sections = Object.values(SECTIONS).filter((section) => {
+      let NAME = section.NAME.toLowerCase();
+      return NAME.includes("столешницы");
+    });
 
-    toptableProductsList.value = toptable_sections.map((section, index) => {
-      let list: Array = section.PRODUCTS || []
-      if(list.length > 0)
-        return {
-          NAME: section.NAME,
-          PRODUCTS: list.map(product => {
+    toptableProductsList.value = toptable_sections
+      .map((section, index) => {
+        let list: Array = section.PRODUCTS || [];
+        if (list.length > 0)
+          return {
+            NAME: section.NAME,
+            PRODUCTS: list.map((product) => {
               return PRODUCTS[product];
-          }),
-        }
-    }).filter(product => product);
+            }),
+          };
+      })
+      .filter((product) => product);
 
     return toptableProductsList.value;
   }
-}
+};
 const changeTopMaterialsList = (isToptable: boolean = false) => {
-  if(isToptable) {
+  if (isToptable) {
     materialList.value = getToptableList();
-  }
-  else {
+  } else {
     getMaterialsList();
   }
   currentOption.value = currentOption.value;
-}
-
-
+};
 
 const getMaterialsParts = computed(() => {
   return (_module: Object) => {
@@ -143,18 +144,18 @@ const getMaterialsParts = computed(() => {
       delete result["TOPFASADECOLOR"];
     }
 
-    if(module.value.noBottom) {
-      delete result['BACKWALL']
+    if (module.value.noBottom) {
+      delete result["BACKWALL"];
     }
 
     return result;
   };
 });
 
-const emit = defineEmits(["product-reset"]);
+const emit = defineEmits(["product-reset", "eccentric-action"]);
 
 const reset = (grid) => {
-  UMconstructor?.value?.reset()
+  UMconstructor?.value?.reset();
 };
 
 const getMaterialInfo = (type: CATALOG_TYPE, materialID: number) => {
@@ -189,7 +190,7 @@ const getOption = (part: string) => {
     return;
   }
   currentOption.value = part;
-  if(objectData.value.CONFIG[currentOption.value].TABLE) {
+  if (objectData.value.CONFIG[currentOption.value].TABLE) {
     toptableMode.value = true;
   }
 
@@ -204,10 +205,12 @@ const getCurrentValue = computed(() => {
     case "LEFTSIDECOLOR":
       result = { ...objectData.value.CONFIG[currentOption.value] };
 
-      if (!result.COLOR)
-        result.COLOR = objectData.value.CONFIG.MODULE_COLOR;
+      if (!result.COLOR) result.COLOR = objectData.value.CONFIG.MODULE_COLOR;
 
-      elementSize.value = {FASADE_WIDTH: module.value.depth, FASADE_HEIGHT: module.value.height};
+      elementSize.value = {
+        FASADE_WIDTH: module.value.depth,
+        FASADE_HEIGHT: module.value.height,
+      };
 
       break;
     default:
@@ -232,17 +235,16 @@ const getMaterialsList = () => {
       break;
     case "PROFILECOLOR":
       materialList.value = module.value.profilesConfig.colorsList.map(
-          (colorID) => {
-            return getMaterialInfo("COLOR", colorID);
-          }
+        (colorID) => {
+          return getMaterialInfo("COLOR", colorID);
+        },
       );
       break;
     case "TOPFASADECOLOR":
-      if(toptableMode.value) {
+      if (toptableMode.value) {
         materialList.value = getToptableList();
         break;
-      }
-      else {
+      } else {
         createFacadeData();
         materialList.value = modelState.getCurrentModelFasadesData;
         break;
@@ -266,25 +268,30 @@ const createFacadeData = (fasadeIndex) => {
   });
 };
 
-const setEccentricOption = (props = {PROPS: false, side : false}) => {
-  let {PROPS, side} = props
+const setEccentricOption = (props = { PROPS: false, side: false }) => {
+  let { PROPS, side } = props;
 
-  if((side && PROPS.CONFIG[side]?.COLOR) || (PROPS.CONFIG['LEFTSIDECOLOR']?.COLOR || PROPS.CONFIG['RIGHTSIDECOLOR']?.COLOR)) {
-    PROPS.CONFIG.eccentricOption = true
-  }
-  else {
-    delete PROPS.CONFIG.eccentricOption
+  if (
+    (side && PROPS.CONFIG[side]?.COLOR) ||
+    PROPS.CONFIG["LEFTSIDECOLOR"]?.COLOR ||
+    PROPS.CONFIG["RIGHTSIDECOLOR"]?.COLOR
+  ) {
+    PROPS.CONFIG.eccentricOption = true;
+  } else {
+    delete PROPS.CONFIG.eccentricOption;
   }
 
-  let option = PROPS.CONFIG.OPTIONS.find(item => +item.id === 8390271)
+  let option = PROPS.CONFIG.OPTIONS.find((item) => +item.id === 8390271);
   if (PROPS.CONFIG.eccentricOption && option && !option.active) {
-    checkActive(8390271, true)
+    checkActive({ ID: 8390271 }, true);
   }
-}
+};
 
-const selectOption = (value: Object | number, type: string, palette: Object = false) => {
-  console.log(value, "value", currentOption.value);
-
+const selectOption = (
+  value: Object | number,
+  type: string,
+  palette: Object = false,
+) => {
   switch (currentOption.value) {
     case "MODULE_COLOR":
       objectData.value.CONFIG[currentOption.value] = value.ID;
@@ -300,14 +307,14 @@ const selectOption = (value: Object | number, type: string, palette: Object = fa
       break;
     case "PROFILECOLOR":
       objectData.value.CONFIG["PROFILECOLOR"] = value
-          ? value.ID || value
-          : false;
+        ? value.ID || value
+        : false;
 
       if (!objectData.value.CONFIG["PROFILECOLOR"]) {
         delete objectData.value.CONFIG["PROFILECOLOR"];
       } else {
         module.value.profilesConfig.COLOR =
-            objectData.value.CONFIG["PROFILECOLOR"];
+          objectData.value.CONFIG["PROFILECOLOR"];
         module.value.sections.forEach((section, secIndex) => {
           section.cells.forEach((cell, cellIndex) => {
             if (cell.hiTechProfiles) {
@@ -350,24 +357,28 @@ const selectOption = (value: Object | number, type: string, palette: Object = fa
       let tmp_value = value ? value.ID || value : false;
 
       if (type === "COLOR") {
-
-        if(tmp_value === objectData.value.CONFIG.MODULE_COLOR) {
-          objectData.value.CONFIG[currentOption.value] = {COLOR: false};
-          setEccentricOption({PROPS: objectData.value, side: currentOption.value})
+        if (tmp_value === objectData.value.CONFIG.MODULE_COLOR) {
+          objectData.value.CONFIG[currentOption.value] = { COLOR: false };
+          setEccentricOption({
+            PROPS: objectData.value,
+            side: currentOption.value,
+          });
           break;
         }
 
         if (!tmp_value || tmp_value === 7397)
           objectData.value.CONFIG[currentOption.value]["SHOW"] = false;
-        else
-          objectData.value.CONFIG[currentOption.value]["SHOW"] = true;
+        else objectData.value.CONFIG[currentOption.value]["SHOW"] = true;
       }
 
       objectData.value.CONFIG[currentOption.value][type] = tmp_value;
       if (palette)
         objectData.value.CONFIG[currentOption.value]["PALETTE"] = palette;
 
-      setEccentricOption({PROPS: objectData.value, side: currentOption.value})
+      setEccentricOption({
+        PROPS: objectData.value,
+        side: currentOption.value,
+      });
       break;
     default:
       if (!objectData.value.CONFIG[currentOption.value]) {
@@ -375,36 +386,36 @@ const selectOption = (value: Object | number, type: string, palette: Object = fa
       }
 
       if (type === "COLOR") {
-
-        if(objectData.value.CONFIG[currentOption.value].TABLE) {
-          let {SHOW} = objectData.value.CONFIG[currentOption.value];
-          objectData.value.CONFIG[currentOption.value] = <TFasadeProp>{SHOW}
+        if (objectData.value.CONFIG[currentOption.value].TABLE) {
+          let { SHOW } = objectData.value.CONFIG[currentOption.value];
+          objectData.value.CONFIG[currentOption.value] = <TFasadeProp>{ SHOW };
         }
 
         if (!value || value.ID === 7397)
           objectData.value.CONFIG[currentOption.value]["SHOW"] = false;
-        else
-          objectData.value.CONFIG[currentOption.value]["SHOW"] = true;
-      }
-      else if (type === "TABLE") {
-        if(objectData.value.CONFIG[currentOption.value].COLOR){
-          let {SHOW, TABLE} = objectData.value.CONFIG[currentOption.value];
-          objectData.value.CONFIG[currentOption.value] = <TToptableUMProp>{SHOW, TABLE}
+        else objectData.value.CONFIG[currentOption.value]["SHOW"] = true;
+      } else if (type === "TABLE") {
+        if (objectData.value.CONFIG[currentOption.value].COLOR) {
+          let { SHOW, TABLE } = objectData.value.CONFIG[currentOption.value];
+          objectData.value.CONFIG[currentOption.value] = <TToptableUMProp>{
+            SHOW,
+            TABLE,
+          };
         }
 
         if (!value || !value.ID)
           objectData.value.CONFIG[currentOption.value]["SHOW"] = false;
-        else
-          objectData.value.CONFIG[currentOption.value]["SHOW"] = true;
+        else objectData.value.CONFIG[currentOption.value]["SHOW"] = true;
       }
 
       objectData.value.CONFIG[currentOption.value][type] = value
-          ? value.ID || value
-          : false;
+        ? value.ID || value
+        : false;
       if (palette)
         objectData.value.CONFIG[currentOption.value]["PALETTE"] = palette;
       break;
   }
+  emit("eccentric-action");
   reset();
 };
 
@@ -419,8 +430,8 @@ const getSideProfile = computed(() => {
 const changeProfilesWidth = (onSectionSize) => {
   module.value.sections.forEach((section, secIndex) => {
     let newWidth = onSectionSize
-        ? section.width
-        : section.width + module.value.moduleThickness * 2;
+      ? section.width
+      : section.width + module.value.moduleThickness * 2;
 
     section.cells.forEach((cell, cellIndex) => {
       if (cell.hiTechProfiles) {
@@ -472,7 +483,7 @@ onMounted(() => {
   modelState.createCurrentBackwallData(objectData.value.PRODUCT);
   modelState.createCurrentSidewallData(objectData.value.PRODUCT);
   productData.value = UMconstructor?.value?.UM_STORE.getUMData();
-  elementSize.value = false
+  elementSize.value = false;
 
   // Закрытие при клике вне зоны панели
   document.addEventListener("click", handleOutsideClick);
@@ -488,18 +499,21 @@ onBeforeUnmount(() => {
     <div :class="'UM actions-items--container'">
       <div class="UM config-options">
         <div
-            v-for="(value, part) in getMaterialsParts(objectData)"
-            :key="part"
-            class="UM option-small"
+          v-for="(value, part) in getMaterialsParts(objectData)"
+          :key="part"
+          class="UM option-small"
         >
           <div
-              :class="['UM option-small-item', { active: currentOption === part }]"
-              @click.stop="getOption(part)"
+            :class="[
+              'UM option-small-item',
+              { active: currentOption === part },
+            ]"
+            @click.stop="getOption(part)"
           >
             {{ partsNames[part] }}
 
             <div
-                :class="[
+              :class="[
                 'UM option-small-item-chevron',
                 { active: currentOption === part },
               ]"
@@ -514,20 +528,23 @@ onBeforeUnmount(() => {
 
   <transition name="slide--left" mode="out-in">
     <div
-        class="UM color--left"
-        v-if="currentOption"
-        key="color--left-select"
-        ref="panelRef"
+      class="UM color--left"
+      v-if="currentOption"
+      key="color--left-select"
+      ref="panelRef"
     >
       <div class="UM color--left-select" key="color--left-select">
         <h1 class="UM color__title">{{ partsNames[currentOption] }}</h1>
         <ClosePopUpButton class="UM menu__close" @close="closeMenu()" />
 
-        <p class="UM color__title color__switch" v-if="currentOption === 'PROFILECOLOR'">
+        <p
+          class="UM color__title color__switch"
+          v-if="currentOption === 'PROFILECOLOR'"
+        >
           Профили в размер секции
           <Toggle
-              v-model="module.profilesConfig.onSectionSize"
-              @change="changeProfilesWidth(module.profilesConfig.onSectionSize)"
+            v-model="module.profilesConfig.onSectionSize"
+            @change="changeProfilesWidth(module.profilesConfig.onSectionSize)"
           />
         </p>
 
@@ -536,8 +553,8 @@ onBeforeUnmount(() => {
             Накладка
           </h1>
           <Toggle
-              v-model="toptableMode"
-              @change="changeTopMaterialsList(toptableMode)"
+            v-model="toptableMode"
+            @change="changeTopMaterialsList(toptableMode)"
           />
           <h1 :class="['color__switch__text', { active: toptableMode }]">
             Столешница
@@ -546,38 +563,38 @@ onBeforeUnmount(() => {
 
         <div v-if="currentOption === 'TOPFASADECOLOR' && toptableMode">
           <ToptableSelector
-              :product-list="materialList"
-              :module="module"
-              :UMconstructor="UMconstructor"
-              :type="`TABLE`"
-              @parent-callback="selectOption"
+            :product-list="materialList"
+            :module="module"
+            :UMconstructor="UMconstructor"
+            :type="`TABLE`"
+            @parent-callback="selectOption"
           />
         </div>
         <div v-else>
           <AdvanceCorpusMaterialRedactor
-              class="color--left-select-item"
-              v-if="getCurrentRedactor"
-              :key="currentOption"
-              :element-data="getCurrentValue"
-              :element-index="currentOption"
-              :material-list="materialList"
-              :fasade-size="elementSize"
-              @parent-callback="selectOption"
+            class="color--left-select-item"
+            v-if="getCurrentRedactor"
+            :key="currentOption"
+            :element-data="getCurrentValue"
+            :element-index="currentOption"
+            :material-list="materialList"
+            :fasade-size="elementSize"
+            @parent-callback="selectOption"
           />
           <CorpusMaterialRedactor
-              v-else
-              class="color--left-select-item"
-              :is2Dconstructor="true"
-              :material-list="materialList"
-              :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
-              @parent-callback="selectOption"
+            v-else
+            class="color--left-select-item"
+            :is2Dconstructor="true"
+            :material-list="materialList"
+            :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
+            @parent-callback="selectOption"
           />
         </div>
 
         <HiTechSideprofile
-            v-if="currentOption === 'PROFILECOLOR' && getSideProfile"
-            class="color--left-select-item"
-            :module="module"
+          v-if="currentOption === 'PROFILECOLOR' && getSideProfile"
+          class="color--left-select-item"
+          :module="module"
         />
       </div>
     </div>
@@ -585,7 +602,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped lang="scss">
-.color__switch{
+.color__switch {
   display: flex;
   border: 1px solid #ecebf1;
   border-radius: 10px;
@@ -596,13 +613,12 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   justify-content: space-evenly;
 
-  &__text{
+  &__text {
     color: #a3a9b5;
 
-    &.active{
+    &.active {
       color: #da444c;
     }
   }
 }
-
 </style>

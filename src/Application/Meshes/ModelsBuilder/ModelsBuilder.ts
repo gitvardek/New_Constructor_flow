@@ -46,7 +46,6 @@ export class ModelsBuilder {
         const path = url ?? modelData.file ?? modelData.DAE
         const PROD = this.parent._PRODUCTS[props.PRODUCT]
 
-        console.log(modelData)
 
         let normolized;
 
@@ -87,7 +86,6 @@ export class ModelsBuilder {
                     z: corr_z ? parseFloat(corr_z) : 0
                 }
 
-                console.log(correction)
 
                 if (model.model_type.length === 0) {
 

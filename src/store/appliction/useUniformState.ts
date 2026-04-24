@@ -29,7 +29,6 @@ export const useUniformState = defineStore('UniformState', () => {
         const { CONFIG } = object.userData.PROPS;
         const { UNIFORM_TEXTURE } = CONFIG;
 
-        // console.log(UNIFORM_TEXTURE, '--UNIFORM_TEXTURE');
 
         if (UNIFORM_TEXTURE.group !== null) {
 
@@ -37,7 +36,6 @@ export const useUniformState = defineStore('UniformState', () => {
             const groupColor = UNIFORM_TEXTURE.color
             const existingGroup = preloadGoups.value.find(group => group.id === groupId);
 
-            // console.log(existingGroup, 'existingGroup')
 
             if (existingGroup) {
                 existingGroup.objects.push(object);
@@ -50,7 +48,6 @@ export const useUniformState = defineStore('UniformState', () => {
             }
         }
 
-        // console.log(preloadGoups.value, '--preloadGoups');
     };
 
     const clearUniformGroupMembership = () => {
