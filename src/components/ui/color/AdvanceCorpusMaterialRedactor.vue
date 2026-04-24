@@ -147,7 +147,7 @@ const onSelectMaterial = (data) => {
   // const curFasade = curSection.fasades[cell][row];
   // const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade;
 
-  const selectedSection = umStorage.getSelected("fasades");
+  const selected = umStorage.getSelected("fasades");
 
   //======================================================================
 
