@@ -9,7 +9,7 @@ import {
     FillingObject,
     MANUFACTURER, GridSection, GridCell, GridCellsRow, GridRowExtra, FasadeObject, LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import {TFasadeProp} from "@/types/types.ts";
+import { TFasadeProp } from "@/types/types.ts";
 
 export default class FillingsManager {
     scope: UMconstructorClass
@@ -81,10 +81,16 @@ export default class FillingsManager {
         type: string,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-        const {sec, cell, row, extra, item} = currentfilling
-        const {MAX_SECTION_WIDTH, MIN_SECTION_WIDTH} = this.scope.CONST
-
+        const { sec, cell, row, extra, item } = currentfilling
+        const { MAX_SECTION_WIDTH, MIN_SECTION_WIDTH } = this.scope.CONST
         const section = grid.sections[sec];
+
+        console.log(grid)
+        console.log(section, 'updateFilling')
+
+        if (!section) return
+
+
         const currentCell = section.cells?.[cell];
         const currentRow = currentCell?.cellsRows?.[row];
         const currentExtra = currentRow?.extras?.[extra];
@@ -153,7 +159,7 @@ export default class FillingsManager {
     };
 
     selectCell(sec: number, cell: number | null = null, row: number | null = null, extra: number | null = null, item: number | null = 0) {
-        this.scope.selectCell("fillings", <TSelectedCell>{sec, cell, row, extra, item});
+        this.scope.selectCell("fillings", <TSelectedCell>{ sec, cell, row, extra, item });
     };
 
     createFillingDataToCheck(
@@ -195,7 +201,7 @@ export default class FillingsManager {
     ) {
 
         const product = Object.assign({}, _product);
-        const {sec, cell, row, extra} = this.scope.UM_STORE.getSelected("module")
+        const { sec, cell, row, extra } = this.scope.UM_STORE.getSelected("module")
         const isHiTechProfile = this.scope.APP.PRODUCTS_TYPES[product.productType]?.CODE.includes("hi_tech_profile") || false
         const isBottomHiTechProfile = isHiTechProfile && this.scope.APP.PRODUCTS_TYPES[product.productType]?.CODE.includes("bottom") || false
         const PROPS = this.scope.UM_STORE.getUMData();
@@ -209,6 +215,9 @@ export default class FillingsManager {
         const isVerticalItem = _type === "vertical_shelf"
 
         const currentSection = grid.sections[sec];
+
+        if (!currentSection) return
+
         const currentCell = currentSection.cells?.[cell];
         const currentRow = currentCell?.cellsRows?.[row];
         const currentExtra = currentRow?.extras?.[extra];
@@ -284,7 +293,7 @@ export default class FillingsManager {
         let profileData = {}
         if (isHiTechProfile) {
             if (!grid.profilesConfig) {
-                grid.profilesConfig = {COLOR: product.COLOR[0] != null ? product.COLOR[0] : grid.moduleColor}
+                grid.profilesConfig = { COLOR: product.COLOR[0] != null ? product.COLOR[0] : grid.moduleColor }
                 grid.profilesConfig.colorsList = [...product.COLOR]
                 grid.profilesConfig.onSectionSize = false
 
@@ -368,7 +377,7 @@ export default class FillingsManager {
                     grid.width - 4;
 
             let baseFasade = grid.sections[sec]?.fasades?.[0]?.[0] || currentSection.fasadesDrawers?.[0]
-            if(!baseFasade) {
+            if (!baseFasade) {
                 const PROPS = this.scope.UM_STORE.getUMData();
 
                 const FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
@@ -417,7 +426,7 @@ export default class FillingsManager {
                 position: new THREE.Vector2(baseFasade.position.x, grid.height - (startFillingData.y + startFillingData.height + manufacturerOffset)),
                 material: <TFasadeProp>{
                     ...baseFasade.material,
-                    HANDLES: {...baseFasade.material.HANDLES}
+                    HANDLES: { ...baseFasade.material.HANDLES }
                 },
                 type: "fasade",
                 manufacturerOffset,
@@ -446,14 +455,14 @@ export default class FillingsManager {
             extraIndex,
             reset = false,
         }:
-        {
-            grid: GridModule,
-            secIndex: number,
-            cellIndex: number | undefined,
-            rowIndex: number | undefined,
-            extraIndex: number | undefined,
-            reset: boolean
-        }
+            {
+                grid: GridModule,
+                secIndex: number,
+                cellIndex: number | undefined,
+                rowIndex: number | undefined,
+                extraIndex: number | undefined,
+                reset: boolean
+            }
     ) {
         const sec = grid.sections[secIndex];
         const cell = sec.cells?.[cellIndex];
@@ -470,21 +479,21 @@ export default class FillingsManager {
     }
 
     getFillingObject({
-                         grid = this.scope.UM_STORE.getUMGrid(),
-                         sec = 0,
-                         cell,
-                         row,
-                         extra,
-                         item = 0,
-                     }:
-                     {
-                         grid: GridModule,
-                         sec: number,
-                         item: number,
-                         cell?: number | undefined,
-                         row?: number | undefined,
-                         extra?: number | undefined,
-                     }
+        grid = this.scope.UM_STORE.getUMGrid(),
+        sec = 0,
+        cell,
+        row,
+        extra,
+        item = 0,
+    }:
+        {
+            grid: GridModule,
+            sec: number,
+            item: number,
+            cell?: number | undefined,
+            row?: number | undefined,
+            extra?: number | undefined,
+        }
     ) {
         const curSection = grid.sections[sec];
         const curCell = curSection.cells?.[cell];
@@ -727,7 +736,7 @@ export default class FillingsManager {
         const grid = this.scope.UM_STORE.getUMGrid()
         let result = value - cell.position.y
 
-        if(!isMinMax) {
+        if (!isMinMax) {
             result += (grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness))
         }
 
@@ -852,6 +861,9 @@ export default class FillingsManager {
         rowIndex: number | null = null,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
+
+        console.log('<<<<<FASADS>>>>>')
+
         this.scope.debounce("changeDrawerFasade", () => {
             this.selectCell(secIndex, cellIndex, rowIndex, null, key);
 

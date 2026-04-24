@@ -7,7 +7,7 @@ import createAppRouter from './router'
 import { createPinia, setActivePinia } from 'pinia'
 import { COOKIE_NAMES, getCookie } from './components/authorization/utils/cookieUtils'
 import { useAppData } from './store/appliction/useAppData'
-import {vMaska} from "maska/vue";
+import { vMaska } from "maska/vue";
 import { BASE_DOMAIN } from "@/utils/originalDomain";
 
 const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true'
@@ -122,6 +122,7 @@ async function bootApp() {
 
 
   const app = createApp(App)
+  app.config.warnHandler = () => false
   const pinia = createPinia()
   setActivePinia(pinia)  // Активируем Pinia для глобального доступа к stores
 
@@ -155,7 +156,7 @@ async function bootApp() {
   const appDataStore = useAppData()
   try {
     await appDataStore.initAppData()
-   
+
   } catch (error) {
     console.error('Failed to init app data:', error)
     // Fallback: остаёмся на /auth (или можно push на error-страницу)

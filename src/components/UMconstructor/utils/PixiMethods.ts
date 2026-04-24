@@ -1,11 +1,11 @@
 // @ts-nocheck 31
-import {UM_PARAMS} from "./Const.ts";
-import {Container, Graphics, GraphicsPath, Text, TextStyle} from "pixi.js";
+import { UM_PARAMS } from "./Const.ts";
+import { Container, Graphics, GraphicsPath, Text, TextStyle } from "pixi.js";
 import * as THREE from "three";
-import {MANUFACTURER} from "@/types/constructor2d/interfaсes.ts";
-import {TSelectedCell} from "@/components/UMconstructor/types/UMtypes.ts";
+import { MANUFACTURER } from "@/types/constructor2d/interfaсes.ts";
+import { TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import {useUMStorage} from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
 type TDashedLine = {
     startX: number;
@@ -112,7 +112,7 @@ class Helpers {
         const shapes = sector.shapes;
 
         if (shapes.length === 0) {
-            return {maxX: 0, maxY: 0, minX: 0, minY: 0}; // или другое значение по умолчанию
+            return { maxX: 0, maxY: 0, minX: 0, minY: 0 }; // или другое значение по умолчанию
         }
 
 
@@ -131,7 +131,7 @@ class Helpers {
             }
         }
 
-        return {maxX, maxY, minX, minY};
+        return { maxX, maxY, minX, minY };
     }
 
     getRightSectionWidth(sector, minX) {
@@ -175,239 +175,15 @@ class Helpers {
         return sMax - minY + UM_PARAMS.SECTOR_PADDING
     }
 
-    getValidValue({
-                      topLeft,
-                      topRight,
-                      bottomLeft,
-                      bottomRight,
-                      sectionWidth,
-                      sectionHeight,
-                  }) {
-        // Инициализация значений по умолчанию
-        const tl_width = topLeft.width || 0;
-        const tr_width = topRight.width || 0;
-        const bl_width = bottomLeft.width || 0;
-        const br_width = bottomRight.width || 0;
-        const tl_radius = topLeft.radius || 0;
-        const tr_radius = topRight.radius || 0;
-        const bl_radius = bottomLeft.radius || 0;
-        const br_radius = bottomRight.radius || 0;
-        const tl_corner = topLeft.corner || 0;
-        const tr_corner = topRight.corner || 0;
-        const bl_corner = bottomLeft.corner || 0;
-        const br_corner = bottomRight.corner || 0;
-
-        // Проверка ширины секции относительно всех углов
-        if (
-            sectionWidth <= tl_width ||
-            sectionWidth <= tr_width ||
-            sectionWidth <= bl_width ||
-            sectionWidth <= br_width ||
-            sectionWidth <= tl_radius ||
-            sectionWidth <= tr_radius ||
-            sectionWidth <= bl_radius ||
-            sectionWidth <= br_radius ||
-            sectionWidth <= tl_corner ||
-            sectionWidth <= tr_corner ||
-            sectionWidth <= bl_corner ||
-            sectionWidth <= br_corner
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка пересечения по ширине (между левыми и правыми углами)
-        if (
-            sectionWidth - tl_width <= tr_width ||
-            sectionWidth - tr_width <= tl_width ||
-            sectionWidth - bl_width <= br_width ||
-            sectionWidth - br_width <= bl_width
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка пересечения углов (corner) по ширине
-        if (
-            sectionWidth - tl_corner <= tr_corner ||
-            sectionWidth - tr_corner <= tl_corner ||
-            sectionWidth - bl_corner <= br_corner ||
-            sectionWidth - br_corner <= bl_corner
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка пересечения радиусов по ширине
-        if (
-            sectionWidth - tl_radius <= tr_radius ||
-            sectionWidth - tr_radius <= tl_radius ||
-            sectionWidth - bl_radius <= br_radius ||
-            sectionWidth - br_radius <= bl_radius
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка смешанных пересечений (ширина и радиус)
-        if (
-            sectionWidth - tl_width <= tr_radius ||
-            sectionWidth - tr_width <= tl_radius ||
-            sectionWidth - bl_width <= br_radius ||
-            sectionWidth - br_width <= bl_radius ||
-            sectionWidth - tl_radius <= tr_width ||
-            sectionWidth - tr_radius <= tl_width ||
-            sectionWidth - bl_radius <= br_width ||
-            sectionWidth - br_radius <= bl_width
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка смешанных пересечений (ширина и угол)
-        if (
-            sectionWidth - tl_width <= tr_corner ||
-            sectionWidth - tr_width <= tl_corner ||
-            sectionWidth - bl_width <= br_corner ||
-            sectionWidth - br_width <= bl_corner ||
-            sectionWidth - tl_corner <= tr_width ||
-            sectionWidth - tr_corner <= tl_width ||
-            sectionWidth - bl_corner <= br_width ||
-            sectionWidth - br_corner <= bl_width
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка смешанных пересечений (радиус и угол)
-        if (
-            sectionWidth - tl_radius <= tr_corner ||
-            sectionWidth - tr_radius <= tl_corner ||
-            sectionWidth - bl_radius <= br_corner ||
-            sectionWidth - br_radius <= bl_corner ||
-            sectionWidth - tl_corner <= tr_radius ||
-            sectionWidth - tr_corner <= tl_radius ||
-            sectionWidth - bl_corner <= br_radius ||
-            sectionWidth - br_corner <= bl_radius
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка высоты секции относительно радиусов и углов
-        if (
-            sectionHeight <= tl_radius ||
-            sectionHeight <= tr_radius ||
-            sectionHeight <= bl_radius ||
-            sectionHeight <= br_radius ||
-            sectionHeight <= tl_corner ||
-            sectionHeight <= tr_corner ||
-            sectionHeight <= bl_corner ||
-            sectionHeight <= br_corner
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка пересечения радиусов по высоте (между верхними и нижними углами)
-        if (
-            sectionHeight - tl_radius <= bl_radius ||
-            sectionHeight - tr_radius <= br_radius ||
-            sectionHeight - bl_radius <= tl_radius ||
-            sectionHeight - br_radius <= tr_radius
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка пересечения углов по высоте
-        if (
-            sectionHeight - tl_corner <= bl_corner ||
-            sectionHeight - tr_corner <= br_corner ||
-            sectionHeight - bl_corner <= tl_corner ||
-            sectionHeight - br_corner <= tr_corner
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Проверка смешанных пересечений (радиус и угол) по высоте
-        if (
-            sectionHeight - tl_radius <= bl_corner ||
-            sectionHeight - tr_radius <= br_corner ||
-            sectionHeight - bl_radius <= tl_corner ||
-            sectionHeight - br_radius <= tr_corner ||
-            sectionHeight - tl_corner <= bl_radius ||
-            sectionHeight - tr_corner <= br_radius ||
-            sectionHeight - bl_corner <= tl_radius ||
-            sectionHeight - br_corner <= tr_radius
-        ) {
-            return {
-                tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-                tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-                tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-                error: "101"
-            };
-        }
-
-        // Если все проверки пройдены, возвращаем валидные значения
-        return {
-            tl_width, tr_width, bl_width, br_width,
-            tl_radius, tr_radius, bl_radius, br_radius,
-            tl_corner, tr_corner, bl_corner, br_corner,
-            error: false
-        };
-    }
-
     drawDashedLine({
-                       startX,
-                       startY,
-                       endX,
-                       endY,
-                       dashLength = 5,
-                       gapLength = 2.5,
-                       graphics,
-                   }: TDashedLine) {
+        startX,
+        startY,
+        endX,
+        endY,
+        dashLength = 5,
+        gapLength = 2.5,
+        graphics,
+    }: TDashedLine) {
         // graphics.clear(); // Очищаем предыдущее состояние
 
 
@@ -429,7 +205,7 @@ class Helpers {
             currentPos += dashLength + gapLength;
         }
 
-        graphics.stroke({width: 1, color: '#5D6069'}); // Завершаем отрисовку линии
+        graphics.stroke({ width: 1, color: '#5D6069' }); // Завершаем отрисовку линии
 
         return graphics
 
@@ -462,38 +238,37 @@ class Shape extends Helpers {
     private distanceLabels: Text[] = []; // Для хранения текстовых меток
 
     constructor({
-                    type,
-                    sector,
-                    position,
-                    data,
-                    select,
-                    render,
-                    dementionContainer,
-                    getMmWidth,
-                    getMmHeight,
-                    getPixelHeight,
-                    getPixelWidth,
-                    dragActive,
-                    calcDrawersFasades,
-                    checkLoopsCollision
-                }:
-                {
-                    type: string,
-                    sector: Container,
-                    position?: { x: number, y: number },
-                    data: THoleData,
-                    select?: () => void,
-                    render?: () => void,
-                    getMmHeight?: () => void,
-                    getMmWidth?: () => void,
-                    getPixelHeight?: () => void,
-                    getPixelWidth?: () => void,
-                    calcDrawersFasades?: () => void,
-                    checkLoopsCollision?: () => void,
-                    dementionContainer?: Container,
-                    dragActive: boolean,
-                })
-    {
+        type,
+        sector,
+        position,
+        data,
+        select,
+        render,
+        dementionContainer,
+        getMmWidth,
+        getMmHeight,
+        getPixelHeight,
+        getPixelWidth,
+        dragActive,
+        calcDrawersFasades,
+        checkLoopsCollision
+    }:
+        {
+            type: string,
+            sector: Container,
+            position?: { x: number, y: number },
+            data: THoleData,
+            select?: () => void,
+            render?: () => void,
+            getMmHeight?: () => void,
+            getMmWidth?: () => void,
+            getPixelHeight?: () => void,
+            getPixelWidth?: () => void,
+            calcDrawersFasades?: () => void,
+            checkLoopsCollision?: () => void,
+            dementionContainer?: Container,
+            dragActive: boolean,
+        }) {
         super()
 
         this.sector = sector
@@ -534,10 +309,10 @@ class Shape extends Helpers {
 
         this.graphic.rect(0, 0, this.getPixelWidth(data.width), this.getPixelHeight(data.height))
         this.graphic.fill("#875003")
-        this.graphic.stroke({width: 1, color: "#b86c02", alignment: 1});
+        this.graphic.stroke({ width: 1, color: "#b86c02", alignment: 1 });
         this.highlightGraphics.rect(0, 0, this.getPixelWidth(data.width), this.getPixelHeight(data.height))
         this.highlightGraphics.fill("#b86c02")
-        this.highlightGraphics.stroke({width: 1, color: "#875003", alignment: 1});
+        this.highlightGraphics.stroke({ width: 1, color: "#875003", alignment: 1 });
         this.drawersFasadesOffset = this.getPixelHeight(4)
 
         if (position) {
@@ -581,8 +356,8 @@ class Shape extends Helpers {
     // Настройка перетаскивания
     setupDraggable() {
         let dragging = false;
-        let dragOffset = {x: 0, y: 0};
-        let originalPosition = {x: 0, y: 0};
+        let dragOffset = { x: 0, y: 0 };
+        let originalPosition = { x: 0, y: 0 };
         const self = this;
 
         const pointerdown = (event, graphic) => {
@@ -655,10 +430,10 @@ class Shape extends Helpers {
                         const fasadesDrawers = curentSec.fasadesDrawers ?? [];
                         const sectionSector = fasadesDrawers[0]?.sector?.sections?.[0]
 
-                        if(sectionSector?.children) {
+                        if (sectionSector?.children) {
                             let allShapes = []
                             sectionSector.children.forEach(child => {
-                                if(child.secIndex === self.data.sec && child.shapes)
+                                if (child.secIndex === self.data.sec && child.shapes)
                                     allShapes.push(...child.shapes)
                             })
                             shapes = allShapes
@@ -668,7 +443,7 @@ class Shape extends Helpers {
                     for (const otherShape of shapes) {
                         if ((self !== otherShape && self.data !== otherShape.data) && self.checkOverlap(otherShape)) {
 
-                            if((self.data.fasade && otherShape.data.fasade) && (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
+                            if ((self.data.fasade && otherShape.data.fasade) && (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
                                 continue;
 
                             hasCollisionY = true;
@@ -690,7 +465,7 @@ class Shape extends Helpers {
                                         self.highlightGraphics.position.y = newPos;
 
                                         //if (!self.checkOverlap(otherShape))
-                                            currentY = newPos
+                                        currentY = newPos
 
                                         self.graphic.position.y = adjustedY;
                                         self.highlightGraphics.position.y = adjustedY;
@@ -704,7 +479,7 @@ class Shape extends Helpers {
                                         self.highlightGraphics.position.y = newPos;
 
                                         //if (!self.checkOverlap(otherShape))
-                                            currentY = newPos
+                                        currentY = newPos
 
                                         self.graphic.position.y = adjustedY;
                                         self.highlightGraphics.position.y = adjustedY;
@@ -797,15 +572,15 @@ class Shape extends Helpers {
             if (['loop', 'vertical_shelf'].includes(otherShape.data.type)) {
                 // Проверка наложения прямоугольников
                 verticalCheck = (
-                        (
-                            thisPosX + thisWidth <= otherShapePosX + otherShapeWidth &&
-                            thisPosX + thisWidth >= otherShapePosX
-                        ) ||
-                        (
-                            thisPosX <= otherShapePosX + otherShapeWidth &&
-                            thisPosX >= otherShapePosX
-                        )
+                    (
+                        thisPosX + thisWidth <= otherShapePosX + otherShapeWidth &&
+                        thisPosX + thisWidth >= otherShapePosX
                     ) ||
+                    (
+                        thisPosX <= otherShapePosX + otherShapeWidth &&
+                        thisPosX >= otherShapePosX
+                    )
+                ) ||
                     (
                         (
                             otherShapePosX + otherShapeWidth <= thisPosX + thisWidth &&
@@ -853,15 +628,15 @@ class Shape extends Helpers {
 
             // Проверка наложения прямоугольников
             horizontalCheck = (
-                    (
-                        thisPosY + thisHeight <= otherShapePosY + otherShapeHeight &&
-                        thisPosY + thisHeight >= otherShapePosY
-                    ) ||
-                    (
-                        thisPosY <= otherShapePosY + otherShapeHeight &&
-                        thisPosY >= otherShapePosY
-                    )
+                (
+                    thisPosY + thisHeight <= otherShapePosY + otherShapeHeight &&
+                    thisPosY + thisHeight >= otherShapePosY
                 ) ||
+                (
+                    thisPosY <= otherShapePosY + otherShapeHeight &&
+                    thisPosY >= otherShapePosY
+                )
+            ) ||
                 (
                     (
                         otherShapePosY + otherShapeHeight <= thisPosY + thisHeight &&
@@ -887,7 +662,7 @@ class Shape extends Helpers {
 
         let width = this.width
         let height = this.height
-        if(this.data.fasade) {
+        if (this.data.fasade) {
             let moduleThickness = this.UM_STORE.getUMGrid().moduleThickness
             let top_offset = this.data.fasade.height - this.data.fasade.manufacturerOffset - this.data.height - (moduleThickness - 2)
             height = this.getPixelHeight(this.data.fasade.height - (moduleThickness - 2) * 2)
@@ -918,27 +693,27 @@ class Shape extends Helpers {
         }
         else
             return (
-            (
                 (
-                    pxPos.x + this.width <= this.sectorBounds.x + this.sectorBounds.width &&
-                    pxPos.x + this.width >= this.sectorBounds.x
-                ) ||
+                    (
+                        pxPos.x + this.width <= this.sectorBounds.x + this.sectorBounds.width &&
+                        pxPos.x + this.width >= this.sectorBounds.x
+                    ) ||
+                    (
+                        pxPos.x <= this.sectorBounds.x + this.sectorBounds.width &&
+                        pxPos.x >= this.sectorBounds.x
+                    )
+                ) &&
                 (
-                    pxPos.x <= this.sectorBounds.x + this.sectorBounds.width &&
-                    pxPos.x >= this.sectorBounds.x
+                    (
+                        pxPos.y + this.height <= this.sectorBounds.y + this.sectorBounds.height &&
+                        pxPos.y + this.height >= this.sectorBounds.y
+                    ) ||
+                    (
+                        pxPos.y <= this.sectorBounds.y + this.sectorBounds.height &&
+                        pxPos.y >= this.sectorBounds.y
+                    )
                 )
-            ) &&
-            (
-                (
-                    pxPos.y + this.height <= this.sectorBounds.y + this.sectorBounds.height &&
-                    pxPos.y + this.height >= this.sectorBounds.y
-                ) ||
-                (
-                    pxPos.y <= this.sectorBounds.y + this.sectorBounds.height &&
-                    pxPos.y >= this.sectorBounds.y
-                )
-            )
-        );
+            );
     }
 
     // Вспомогательный метод для отрисовки стрелки (заполненный треугольник)
@@ -1052,7 +827,7 @@ class Shape extends Helpers {
             this.drawArrowhead(graphics, endX, endY, 'left', 5);
 
             let distance = startX - endX
-            const leftText = new Text({text: `${Math.round(this.getMmWidth(distance))} mm`, style: textStyle});
+            const leftText = new Text({ text: `${Math.round(this.getMmWidth(distance))} mm`, style: textStyle });
 
             let widthSize = leftText.getSize()
             if (widthSize.width > distance) {
@@ -1087,7 +862,7 @@ class Shape extends Helpers {
             this.drawArrowhead(graphics, endX, endY, 'right', 5);
 
             let distance = endX - startX
-            const rightText = new Text({text: `${Math.round(this.getMmWidth(distance))} mm`, style: textStyle});
+            const rightText = new Text({ text: `${Math.round(this.getMmWidth(distance))} mm`, style: textStyle });
 
             let widthSize = rightText.getSize()
             if (widthSize.width > distance) {
@@ -1122,7 +897,7 @@ class Shape extends Helpers {
             this.drawArrowhead(graphics, endX, endY, 'up', 5);
 
             let distance = startY - endY
-            const topText = new Text({text: `${Math.round(this.getMmHeight(distance))} mm`, style: textStyle});
+            const topText = new Text({ text: `${Math.round(this.getMmHeight(distance))} mm`, style: textStyle });
 
             let heightSize = topText.getSize()
             if (heightSize.height > distance) {
@@ -1211,6 +986,8 @@ class Section extends Helpers {
         this._drawDimensions = _drawDimensions;
         this.opacity = opacity;
 
+        console.log(data, '<<<<DATA>>>>')
+
         this.createSection();
     }
 
@@ -1219,10 +996,10 @@ class Section extends Helpers {
     }
 
     createFormSection(data) {
-        let bottomLeft = data.bottomLeft ?? {type: 'none'};
-        let bottomRight = data.bottomRight ?? {type: 'none'};
-        let topLeft = data.topLeft ?? {type: 'none'};
-        let topRight = data.topRight ?? {type: 'none'};
+        let bottomLeft = data.bottomLeft ?? { type: 'none' };
+        let bottomRight = data.bottomRight ?? { type: 'none' };
+        let topLeft = data.topLeft ?? { type: 'none' };
+        let topRight = data.topRight ?? { type: 'none' };
         let opacity = this.opacity;
 
         let defCellColor, deffHighlightColor;
@@ -1255,8 +1032,12 @@ class Section extends Helpers {
         this.highlightGraphics.clear();
 
         // Создаем пути для графики
-        const cellPath = this.createPath(topRight, topLeft, bottomRight, bottomLeft);
-        const highlightPath = this.createPath(topRight, topLeft, bottomRight, bottomLeft);
+        const cellPath = this.createPath();
+        const highlightPath = this.createPath();
+
+        if (data.type === "fasade") {
+            console.log(cellPath)
+        }
 
         if (cellPath.error) {
             defCellColor = '#f5caca';
@@ -1264,8 +1045,8 @@ class Section extends Helpers {
         }
 
         // Отрисовываем пути на графике
-        this.cellGraphics.path(cellPath).fill({color: defCellColor, alpha: opacity});
-        this.highlightGraphics.path(highlightPath).fill({color: deffHighlightColor, alpha: opacity});
+        this.cellGraphics.path(cellPath).fill({ color: defCellColor, alpha: opacity });
+        this.highlightGraphics.path(highlightPath).fill({ color: deffHighlightColor, alpha: opacity });
 
         // Отрисовываем размеры
         if (this._drawDimensions) {
@@ -1274,125 +1055,22 @@ class Section extends Helpers {
         }
     }
 
-    createPath(topRight, topLeft, bottomRight, bottomLeft): GraphicsPath {
-        const elems = [topLeft, topRight, bottomLeft, bottomRight];
+    createPath(): GraphicsPath {
 
         const path = new GraphicsPath();
         const x = 0;
         const y = 0;
-
-        const validValue = this.getValidValue({
-            topLeft,
-            topRight,
-            bottomLeft,
-            bottomRight,
-            sectionWidth: this.width,
-            sectionHeight: this.height,
-        });
-
-        const {
-            tl_width, tr_width, bl_width, br_width,
-            tl_radius, tr_radius, bl_radius, br_radius,
-            tl_corner, tr_corner, bl_corner, br_corner,
-            error
-        } = validValue;
-
         // Начинаем с верхнего левого угла
-        if (topLeft.type === 'rounded') {
-            path.lineTo(x, y + tl_radius);
-            path.arcTo(x, y, x + tl_radius, y, tl_radius);
-        } else if (topLeft.type === 'corner') {
-            path.lineTo(x, y + tl_corner);
-            path.lineTo(x + tl_corner, y);
-        } else if (topLeft.type === 'inward') {
-            path.lineTo(x, y + tl_radius);
-            const startX = x + tl_width - tl_radius;
-            const startY = y + tl_radius;
-            const endX = x + tl_width;
-            const endY = y
-            const controlX = x + tl_width;
-            const controlY = y + tl_radius
-            path.lineTo(startX, startY);
-            path.quadraticCurveTo(controlX, controlY, endX, endY);
-            path.lineTo(x + tl_width, y);
-
-        } else {
-            path.moveTo(x, y); // Острый угол
-        }
-
+        path.moveTo(x, y); 
         // Верхний правый угол
-        if (topRight.type === 'rounded') {
-            path.lineTo(x + this.width - tr_radius, y);
-            path.arcTo(x + this.width, y, x + this.width, y + tr_radius, tr_radius);
-        } else if (topRight.type === 'corner') {
-            path.lineTo(x + this.width - tr_corner, y);
-            path.lineTo(x + this.width, y + tr_corner);
-        } else if (topRight.type === 'inward') {
-            path.lineTo(x + this.width - tr_width, y);
-            const endX = x + this.width - (tr_width - tr_radius);
-            const endY = y + tr_radius;
-            const controlX = x + this.width - tr_width;
-            const controlY = y + tr_radius;
-            path.quadraticCurveTo(controlX, controlY, endX, endY);
-            path.lineTo(x + this.width, y + tr_radius);
-        } else {
-            path.lineTo(x + this.width, y); // Острый угол
-        }
+        path.lineTo(x + this.width, y); 
         // Нижний правый угол
-        if (bottomRight.type === 'rounded') {
-            path.lineTo(x + this.width, y + this.height - br_radius);
-            path.arcTo(x + this.width, y + this.height, x + this.width - br_radius, y + this.height, br_radius);
-        } else if (bottomRight.type === 'corner') {
-            path.lineTo(x + this.width, y + this.height - br_corner);
-            path.lineTo(x + this.width - br_corner, y + this.height);
-
-        } else if (bottomRight.type === 'inward') {
-            path.lineTo(x + this.width, y + this.height - br_radius);
-            const startX = x + this.width - (br_width - br_radius);
-            const startY = y + this.height - br_radius;
-            const endX = x + this.width - br_width;
-            const endY = y + this.height;
-            const controlX = x + this.width - br_width;
-            const controlY = y + this.height - br_radius;
-            path.lineTo(startX, startY);
-            path.quadraticCurveTo(controlX, controlY, endX, endY);
-            path.lineTo(x + this.width - br_width, y + this.height);
-        } else {
-            path.lineTo(x + this.width, y + this.height); // Острый угол
-        }
+        path.lineTo(x + this.width, y + this.height); 
         // Нижний левый угол
-        if (bottomLeft.type === 'rounded') {
-            path.lineTo(x + bl_radius, y + this.height);
-            path.arcTo(x, y + this.height, x, y + this.height - bl_radius, bl_radius);
-        } else if (bottomLeft.type === 'corner') {
-            path.lineTo(x + bl_corner, y + this.height);
-            path.lineTo(x, y + this.height - bl_corner);
-        } else if (bottomLeft.type === 'inward') {
-            path.lineTo(x + bl_width, y + this.height);
-            const startX = x + bl_width;
-            const startY = y + this.height;
-            const endX = x + (bl_width - bl_radius);
-            const endY = y + this.height - bl_radius;
-            const controlX = x + bl_width;
-            const controlY = y + this.height - bl_radius;
-            path.lineTo(startX, startY);
-            path.quadraticCurveTo(controlX, controlY, endX, endY);
-            path.lineTo(x, y + this.height - bl_radius);
-        } else {
-            path.lineTo(x, y + this.height); // Острый угол
-        }
-
+        path.lineTo(x, y + this.height);
         // Закрываем путь, возвращаясь к начальной точке
         path.closePath();
-
         // Присваиваем код ошибки
-        path.error = validValue.error;
-
-        elems.forEach(item => {
-            if (item.el) {
-                item.el.error = validValue.error;
-            }
-        });
 
         return path;
     }
@@ -1412,7 +1090,7 @@ class Section extends Helpers {
         textOfDimensions.dimensions = true
 
         // Метка ширины (по центру сверху)
-        const widthText = new Text({text: `${this.data.width} мм`, style: textStyle});
+        const widthText = new Text({ text: `${this.data.width} мм`, style: textStyle });
         widthText.anchor.set(0.5, 0); // Центрируем по горизонтали, привязка к верхнему краю
         widthText.x = x + this.width / 2;
         widthText.y = y + 5; // Смещаем вниз на 10 пикселей от верхней границы
@@ -1427,7 +1105,7 @@ class Section extends Helpers {
         textOfDimensions.addChild(widthText);
 
         // Метка высоты (по центру справа)
-        const heightText = new Text({text: `${this.data.height} мм`, style: textStyle});
+        const heightText = new Text({ text: `${this.data.height} мм`, style: textStyle });
         heightText.anchor.set(1, 0.5); // Привязка к правому краю, центрируем по вертикали
         heightText.rotation = -Math.PI / 2; // Поворот на 90 градусов против часовой
         heightText.x = x + this.width - 10; // Смещаем влево на 10 пикселей от правой границы
@@ -1455,14 +1133,14 @@ class ShapeAdjuster extends Helpers {
     maxPositionAttempts: number = 250
     scope: UMconstructorClass
 
-    constructor({scope, getMmWidth, getMmHeight, getPixelHeight, getPixelWidth}:
-                {
-                    scope: UMconstructorClass,
-                    getMmHeight?: () => void,
-                    getMmWidth?: () => void,
-                    getPixelHeight?: () => void,
-                    getPixelWidth?: () => void,
-                }) {
+    constructor({ scope, getMmWidth, getMmHeight, getPixelHeight, getPixelWidth }:
+        {
+            scope: UMconstructorClass,
+            getMmHeight?: () => void,
+            getMmWidth?: () => void,
+            getPixelHeight?: () => void,
+            getPixelWidth?: () => void,
+        }) {
         super()
         this.scope = scope
         if (getMmWidth)
@@ -1493,7 +1171,7 @@ class ShapeAdjuster extends Helpers {
 
             return acc
 
-        }, {maxX: -0, maxY: -0, minX: 0, minY: 0})
+        }, { maxX: -0, maxY: -0, minX: 0, minY: 0 })
 
         return colBounds
     }
@@ -1503,8 +1181,8 @@ class ShapeAdjuster extends Helpers {
         const bounds = this.getSectorBounds(sector)
 
         const margin = 0;
-        let {width, height} = shape;
-        const {isVerticalItem} = shape.data;
+        let { width, height } = shape;
+        const { isVerticalItem } = shape.data;
 
         const origX = shape.graphic.position.x
         const origY = shape.graphic.position.y
@@ -1527,7 +1205,7 @@ class ShapeAdjuster extends Helpers {
                 ) {
                     shape.graphic.position.x = origX;
                     shape.graphic.position.y = origY;
-                    return {x, y};
+                    return { x, y };
                 }
             }
         } else {
@@ -1573,7 +1251,7 @@ class ShapeAdjuster extends Helpers {
                 ) {
                     shape.graphic.position.x = origX;
                     shape.graphic.position.y = origY;
-                    return {x, y};
+                    return { x, y };
                 }
             }
         }
@@ -1584,7 +1262,7 @@ class ShapeAdjuster extends Helpers {
         return null;
     }
 
-    getClosestPosition(sector, data, inputPosition){
+    getClosestPosition(sector, data, inputPosition) {
 
         if (!sector) {
             return false;
@@ -1602,20 +1280,20 @@ class ShapeAdjuster extends Helpers {
             return false;
         }
 
-  /*      let tempShape = new Shape({
-            type: data.type,
-            sector,
-            position: {x: 0, y: 0},
-            data,
-            getMmWidth: this.getMmWidth,
-            getMmHeight: this.getMmHeight,
-            getPixelWidth: this.getPixelWidth,
-            getPixelHeight: this.getPixelHeight,
-        });*/
+        /*      let tempShape = new Shape({
+                  type: data.type,
+                  sector,
+                  position: {x: 0, y: 0},
+                  data,
+                  getMmWidth: this.getMmWidth,
+                  getMmHeight: this.getMmHeight,
+                  getPixelWidth: this.getPixelWidth,
+                  getPixelHeight: this.getPixelHeight,
+              });*/
 
         /** Проверяем на возможность размещения отверстия */
 
-        let position = this.findClosestPosition(sector, tempShape, {x: this.getPixelWidth(inputPosition.x), y: this.getPixelHeight(inputPosition.y)});
+        let position = this.findClosestPosition(sector, tempShape, { x: this.getPixelWidth(inputPosition.x), y: this.getPixelHeight(inputPosition.y) });
 
         if (!position) {
             return false;
@@ -1632,8 +1310,8 @@ class ShapeAdjuster extends Helpers {
         const bounds = this.getSectorBounds(sector)
 
         const margin = 0;
-        let {width, height} = shape;
-        const {isVerticalItem} = shape.data;
+        let { width, height } = shape;
+        const { isVerticalItem } = shape.data;
 
         const origX = shape.graphic.position.x
         const origY = shape.graphic.position.y
@@ -1656,7 +1334,7 @@ class ShapeAdjuster extends Helpers {
                 ) {
                     shape.graphic.position.x = origX;
                     shape.graphic.position.y = origY;
-                    return {x, y};
+                    return { x, y };
                 }
             }
         }
@@ -1699,8 +1377,8 @@ class ShapeAdjuster extends Helpers {
                 ) {
                     shape.graphic.position.x = origX;
                     shape.graphic.position.y = origY;
-                    findPositionTop = {x, y}
-                   break;
+                    findPositionTop = { x, y }
+                    break;
                 }
             }
 
@@ -1720,7 +1398,7 @@ class ShapeAdjuster extends Helpers {
                 ) {
                     shape.graphic.position.x = origX;
                     shape.graphic.position.y = origY;
-                    findPositionBottom = {x, y}
+                    findPositionBottom = { x, y }
                     break;
                 }
             }
@@ -1745,7 +1423,7 @@ class ShapeAdjuster extends Helpers {
             type: shapeType,
             sector: sector,
             data: shapeData,
-            position: {...shapeData.position},
+            position: { ...shapeData.position },
             getMmWidth: this.getMmWidth,
             getMmHeight: this.getMmHeight,
             getPixelWidth: this.getPixelWidth,
@@ -1811,7 +1489,7 @@ const saveUMGrid = (module) => {
                         object[index] = [key, new THREE.Vector2(value.x, value.y)];
                 }
                 if (key === "size") {
-                    object[index] = [key, {...value}];
+                    object[index] = [key, { ...value }];
                 }
             })
 
@@ -1828,4 +1506,4 @@ const saveUMGrid = (module) => {
 };
 
 
-export {Shape, ShapeAdjuster, Section, saveUMGrid}
+export { Shape, ShapeAdjuster, Section, saveUMGrid }
