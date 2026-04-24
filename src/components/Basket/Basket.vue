@@ -18,7 +18,7 @@
       <ClosePopUpButton
         class="basket-tabs__close-btn"
         @click="closePopup"
-      /> -->
+      /> 
     </div>
 
     <template v-if="activeTab === 'basket'">
