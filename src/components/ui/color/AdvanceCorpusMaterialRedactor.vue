@@ -141,7 +141,7 @@ const onSelectMaterial = (data) => {
 
   /** ============== Данные размера выбранного Фасада ==============*/
 
-  const selectedSection = umStorage.getSelected("fasades");
+  const selected = umStorage.getSelected("fasades");
 
   //======================================================================
 
