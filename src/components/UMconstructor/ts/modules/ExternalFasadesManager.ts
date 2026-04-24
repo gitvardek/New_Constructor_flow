@@ -139,6 +139,7 @@ export default class ExternalFasadesManager {
 
                     drawerFasade.id = index + 1
                     drawerFasade.width = correctSectionFasadeWidth
+                     drawerFasade.position.x = baseFasade.position.x
 
                     if(filling)
                         filling.fasade = drawerFasade
