@@ -224,7 +224,8 @@ function updateRoomStore(this: any): boolean {
 
               const offsetSign =
                 objData.heightDirection ?? wallForObject?.heightDirection ?? 1;
-              const offsetDistanceRatio = 0.3; // чуть меньше половины толщины, одинаково везде
+              // const offsetDistanceRatio = 0.3; // чуть меньше половины толщины, одинаково везде
+               const offsetDistanceRatio = 0.15;
               const offsetDistance =
                 (objData.height ?? wallForObject?.height ?? 0) *
                 10 *
