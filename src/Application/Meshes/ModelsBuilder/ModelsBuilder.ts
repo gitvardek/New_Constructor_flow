@@ -51,18 +51,25 @@ export class ModelsBuilder {
 
         let model
 
-        if (props.CONFIG.SIZE) {
+        const { width = 0, height = 0, depth = 0 } = props.CONFIG.SIZE ?? {}
+        model = this.parent.expressionsReplace(modelData, {
+            "#X#": width,
+            "#Y#": height,
+            "#Z#": depth,
+        })
 
-            const { width, height, depth } = props.CONFIG.SIZE
-            model = this.parent.expressionsReplace(modelData, {
-                "#X#": width,
-                "#Y#": height,
-                "#Z#": depth,
-            })
-        }
-        else {
-            model = modelData
-        }
+        // if (props.CONFIG.SIZE) {
+
+        //     const { width, height, depth } = props.CONFIG.SIZE
+        //     model = this.parent.expressionsReplace(modelData, {
+        //         "#X#": width,
+        //         "#Y#": height,
+        //         "#Z#": depth,
+        //     })
+        // }
+        // else {
+        //     model = modelData
+        // }
 
 
         return new Promise((resolve, reject) => {
@@ -79,7 +86,7 @@ export class ModelsBuilder {
                     ? props.CONFIG.SIZE
                     : null
                 const normolized = this.normalizeUploadedModel(file, model, editSize) as THREE.Object3D;
-                const { corr_z, corr_y, corr_x } = modelData
+                const { corr_z, corr_y, corr_x } = model
                 const correction = {
                     x: corr_x ? parseFloat(corr_x) : 0,
                     y: corr_y ? parseFloat(corr_y) : 0,
