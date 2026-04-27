@@ -926,7 +926,6 @@ export class MeshEvents extends BuildersHelper {
 
     public async createCutFasade(data) {
 
-        return
 
         const { NAME, ID, cutSize } = data.option
         // const isCutFasade = this.cutFasadeId.includes(parseInt(ID))
@@ -1474,7 +1473,7 @@ export class MeshEvents extends BuildersHelper {
         this.events.on('A:RecountShelfs', this.onRecountShelfs);
 
         this.events.on('A:ResizeJoinDepth', this.onResizeJoinDepth);
-        // this.events.on('A:SelectModelOption', this.onCreateCutFasade);
+        this.events.on('A:SelectModelOption', this.onCreateCutFasade);
 
 
 

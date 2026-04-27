@@ -199,9 +199,9 @@ export const useOptions = () => {
                 break;
         }
 
-        // eventBus.emit("A:SelectModelOption", { option, values })
+        eventBus.emit("A:SelectModelOption", { option, values })
 
-             eventBus.emit("A:SelectModelOption")
+        //  eventBus.emit("A:SelectModelOption")
 
         return curOpt.active;
     };
