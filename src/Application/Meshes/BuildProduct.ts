@@ -124,7 +124,7 @@ export class BuildProduct extends BuildersHelper {
                         height: Number(loaded_size.height),
                         depth: Number(loaded_size.depth),
                     };
-                    useContentSizeForDae = true;
+                    // useContentSizeForDae = true;
                 }
                 return this.models_builder.create({
                     props,
