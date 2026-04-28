@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "api:generate-types": "npx openapi-typescript ./public/api/openapi_combined.json -o ./src/api/schema.ts",
     "test:ts": "tsc --noEmit",
-    "build:test": "node build-test.js"
+    "build:test": "node build-test.js",
+    "deploy:dev": "npm run build:no-check && rsync -a /home/bitrix/ext_www/dev.kuhni-vardek.ru/dev_modeller/ /home/bitrix/repo_constructor/backup/dev/$(date +%Y-%m-%d_%H-%M-%S)/ && rsync -a --delete dist/ /home/bitrix/ext_www/dev.kuhni-vardek.ru/dev_modeller/",
+    "deploy:prod": "npm run build:no-check && rsync -a /home/bitrix/www/dev_modeller/ /home/bitrix/repo_constructor/backup/prod/$(date +%Y-%m-%d_%H-%M-%S)/ && rsync -a --delete dist/ /home/bitrix/www/dev_modeller/"
   },
   "dependencies": {
     "@pixi/utils": "^7.4.2",
