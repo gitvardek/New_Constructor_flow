@@ -4,9 +4,11 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useMechanism } from "./Mechanism/useMechanism";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
-import { TRootOptionType } from "@/types/types";
+import { TRootOptionType, TOption } from "@/types/types";
+import { useExpressions } from "../../actions/useExpressions";
 
 const mechanism = useMechanism()
+const { expressionsReplace, calculateFromString } = useExpressions()
 
 
 export const useOptions = () => {
@@ -74,6 +76,8 @@ export const useOptions = () => {
         if (!curOpt)
             return;
 
+        const disabledOptions: typeof OPTIONS = [];
+
         if (values) {
             OPTIONS.forEach(opt => {
                 console.log(opt)
@@ -87,6 +91,7 @@ export const useOptions = () => {
                     opt.id !== curOpt.id) {
 
                     if (opt.active) {
+                        disabledOptions.push(opt);
                         switch (+opt.id) {
                             case 7250452:   //Деревянная царга
                                 delete PROPS.CONFIG.TSARGA
@@ -199,27 +204,30 @@ export const useOptions = () => {
                 break;
         }
 
-        eventBus.emit("A:SelectModelOption", { option, values })
+        eventBus.emit("A:SelectModelOption", { option, values, disabledOptions })
 
         //  eventBus.emit("A:SelectModelOption")
 
         return curOpt.active;
     };
 
-    const checkExeptionOptionForFasade = (options, global) => {
+    const checkExeptionOptionForFasade = (options, props) => {
         const { PROPS } = modelState.getCurrentModel.userData;
         const { FASADE_PROPS } = PROPS.CONFIG
         const prepareColorId = FASADE_PROPS.map(el => {
             return el.COLOR
         })
-        const result = filterGroups(options, prepareColorId, global)
+
+        console.log()
+
+        const result = filterGroups(options, prepareColorId, props)
 
         return result
     }
 
     const filterOptions = () => {
         const data = appData.getAppData
-        const options = data.OPTION
+        const options = data.OPTION as Record<string | number, TRootOptionType>
         const optGroup = data.OPTIONS_GROUP
         const { PROPS } = modelState.getCurrentModel.userData;
         const curOptions = PROPS.CONFIG.OPTIONS
@@ -228,9 +236,10 @@ export const useOptions = () => {
         const curOptionsList = curOptions
             .map(el => {
 
-                const cutSize = getCutSizeOption(el, options[el.id])
+                const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
+                const cutSize = getCutSizeOption(el, cloneOption)
 
-                return { ...options[el.id], active: el.active, visible: el.visible, cutSize: cutSize }
+                return { ...cloneOption, active: el.active, visible: el.visible, cutSize: cutSize }
             })
             .filter(Boolean);
 
@@ -259,9 +268,9 @@ export const useOptions = () => {
         return filtered
     }
 
-    const filterGroups = (groups, incomingIds, global) => {
+    const filterGroups = (groups, incomingIds, props) => {
         const idStrs = incomingIds.map(id => id.toString());
-        const tmp_active_options = global?.slice().filter(item => item.active === true).map(item => {
+        const tmp_active_options = props?.slice().filter(item => item.active === true).map(item => {
             return +item.id
         }) || []
 
@@ -278,8 +287,15 @@ export const useOptions = () => {
 
                 let shouldBeVisible;
                 if (!hasMatching) {
-                    // Если нет совпадений, видимыми остаются только с пустым SHOW_ON_FASADE
-                    shouldBeVisible = !item.SHOW_ON_FASADE || item.SHOW_ON_FASADE.length === 0;
+                    // console.log('MATCH', checkAvailable(item))
+
+                    if (checkAvailable(item)) {
+                        shouldBeVisible = !item.SHOW_ON_FASADE || item.SHOW_ON_FASADE.length === 0;
+                    }
+                    else {
+                        shouldBeVisible = false
+                    }
+
                 } else {
                     // Если есть совпадения, видимыми только те, где есть хотя бы один incomingId в SHOW_ON_FASADE
                     // и ID элемента не входит в его собственный SHOW_ON_WITH
@@ -294,8 +310,10 @@ export const useOptions = () => {
                     }
                 }
 
-                if (global) {
-                    const curOptionInConfig = global.find(el => el.id === item.ID)
+                if (props) {
+                    console.log('PRRR')
+
+                    const curOptionInConfig = props.find(el => el.id === item.ID)
 
                     if (curOptionInConfig) {
                         curOptionInConfig.visible = shouldBeVisible
@@ -333,7 +351,7 @@ export const useOptions = () => {
 
             let visible_contant = modifiedContant.filter(item => item.visible === true)
             if (visible_contant.length) {
-                checkNecessaryOptions(visible_contant, global)
+                checkNecessaryOptions(visible_contant, props)
                 return {
                     ...group,
                     CONTANT: visible_contant
@@ -345,7 +363,7 @@ export const useOptions = () => {
     }
 
     //Обязательная установка хотя бы одной опции активной
-    const checkNecessaryOptions = (contant: any[], global?: any[]) => {
+    const checkNecessaryOptions = (contant: any[], props?: any[]) => {
         if (contant.length > 0) {
             contant.forEach((optionCurrent) => {
                 if (optionCurrent.CLOSE_OTHER_OPTIONS === '1') {
@@ -360,8 +378,8 @@ export const useOptions = () => {
 
                     if (!closeOptions.find(item => item.active)) {
                         optionCurrent.active = true
-                        if (global) {
-                            const curOptionInConfig = global?.find(el => el.id === optionCurrent.ID)
+                        if (props) {
+                            const curOptionInConfig = props?.find(el => el.id === optionCurrent.ID)
                             curOptionInConfig ? curOptionInConfig.active = optionCurrent.active : false
                         }
                         eventBus.emit("A:SelectModelOption")
@@ -369,8 +387,8 @@ export const useOptions = () => {
                 }
             })
         }
-        else if (global?.length) {
-            global.forEach((optionCurrent) => {
+        else if (props?.length) {
+            props.forEach((optionCurrent) => {
                 if (optionCurrent.close === '1') {
                     let closeOptions = []
 
@@ -403,7 +421,13 @@ export const useOptions = () => {
                 let shouldBeVisible: boolean;
                 if (!hasMatching) {
                     // Если нет совпадений, видимыми остаются только с пустым SHOW_ON_FASADE
-                    shouldBeVisible = !item.SHOW_ON_FASADE || item.SHOW_ON_FASADE.length === 0;
+                    // shouldBeVisible = !item.SHOW_ON_FASADE || item.SHOW_ON_FASADE.length === 0;
+                    if (checkAvailable(item)) {
+                        shouldBeVisible = !item.SHOW_ON_FASADE || item.SHOW_ON_FASADE.length === 0;
+                    }
+                    else {
+                        shouldBeVisible = false
+                    }
                 } else {
                     // Если есть совпадения, видимыми только те, где есть хотя бы один incomingId в SHOW_ON_FASADE
                     // и ID элемента не входит в его собственный SHOW_ON_WITH
@@ -423,6 +447,7 @@ export const useOptions = () => {
                     curOptionInConfig.visible = shouldBeVisible
                     if (!shouldBeVisible) {
                         curOptionInConfig.active = false
+                        eventBus.emit("A:SelectModelOption")
                     }
                 }
             });
@@ -430,6 +455,7 @@ export const useOptions = () => {
     };
 
     const resetGlobal = () => {
+
         const { PROPS } = modelState.getCurrentModel.userData;
         const { FASADE_PROPS, OPTIONS } = PROPS.CONFIG
         const prepareColorId = FASADE_PROPS.map(el => {
@@ -460,6 +486,25 @@ export const useOptions = () => {
         }
 
         return null
+
+    }
+
+    const checkAvailable = (options: TRootOptionType) => {
+
+        const { PROPS } = modelState.getCurrentModel.userData;
+        const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize
+
+        const isConditions = options.CONDITIONS
+        if (!isConditions) return options.visible
+
+        const convert = expressionsReplace(isConditions, {
+            "#X#": BODY_WIDTH,
+            "#Y#": BODY_HEIGHT
+        })
+
+        const converted = calculateFromString(convert)
+
+        return converted
 
     }
 

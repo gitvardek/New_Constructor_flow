@@ -146,7 +146,7 @@ export class BuildUniversalModule extends BuildProduct {
 
         /** Добавляем фасад */
         const fasade = Object.keys(CONFIG.FASADE_PROPS).length
-            ? this.fasade_builder.getFasade({
+            ? this.fasade_builder.buildAllFasades({
                 props: PROPS,
                 isUMmodule: !!MODULEGRID,
                 defaultConfig,

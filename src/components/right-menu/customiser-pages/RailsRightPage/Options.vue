@@ -21,6 +21,8 @@ const optionList = ref([]);
 const createList = () => {
   if (!props.umMechanizm) {
     const { data } = createOptionList();
+  
+
     optionList.value = data;
     return;
   }

@@ -156,31 +156,44 @@ export class BuildersHelper extends GlobalsData {
         return obj;
     };
 
-    public expressionsReplace(obj: any, expressions: THREETypes.TObject) {
+    public expressionsReplace<T>(obj: T, expressions: Record<string, number | string>): T {
         if (!expressions || !Object.keys(expressions).length) return obj;
 
-        let objStr: THREETypes.TObject | string | number = obj;
+        const isObject = obj !== null && typeof obj === "object";
 
-        if (typeof obj === "object") {
-            objStr = JSON.stringify(obj);
-        }
+        const replaced = Object.entries(expressions).reduce(
+            (acc, [key, value]) => acc.split(key).join(String(value ?? 0)),
+            isObject ? JSON.stringify(obj) : String(obj)
+        );
 
-        Object.entries(expressions).forEach(([k, v]) => {
-            if (typeof objStr !== "number") {
-                // Защита от undefined/null значений
-                const replacement = v ?? 0;
-                objStr = (objStr as string).split(k).join(String(replacement));
-            }
-        });
-
-        if (typeof obj === "object") {
-            return JSON.parse(objStr as string);
-        } else {
-            return objStr;
-        }
+        return isObject ? JSON.parse(replaced) : replaced as T;
     }
 
-    public calculateFromString(expression) {
+    // public expressionsReplace(obj: any, expressions: THREETypes.TObject) {
+    //     if (!expressions || !Object.keys(expressions).length) return obj;
+
+    //     let objStr: THREETypes.TObject | string | number = obj;
+
+    //     if (typeof obj === "object") {
+    //         objStr = JSON.stringify(obj);
+    //     }
+
+    //     Object.entries(expressions).forEach(([k, v]) => {
+    //         if (typeof objStr !== "number") {
+    //             // Защита от undefined/null значений
+    //             const replacement = v ?? 0;
+    //             objStr = (objStr as string).split(k).join(String(replacement));
+    //         }
+    //     });
+
+    //     if (typeof obj === "object") {
+    //         return JSON.parse(objStr as string);
+    //     } else {
+    //         return objStr;
+    //     }
+    // }
+
+    public calculateFromString<T>(expression: T) {
         try {
             const func = new Function("return " + expression);
             return func();

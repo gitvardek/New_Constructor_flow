@@ -766,7 +766,7 @@ type TUniformTexture = {
   color: NumStr | null
 }
 
-type TOption = {
+export type TOption = {
   id: NumStr | null,
   active: boolean,
   group: NumStr | null,

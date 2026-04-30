@@ -50,16 +50,7 @@ export class ModelsBuilder {
 
         let normolized;
 
-        let model
-
-        // if (props.CONFIG.SIZE) {
-
-        // const { width, height, depth } = props.CONFIG.SIZE
-        // model = this.parent.expressionsReplace(modelData, {
-        //     "#X#": width,
-        //     "#Y#": height,
-        //     "#Z#": depth,
-        // })
+        let model;
 
         const { width = 0, height = 0, depth = 0 } = props.CONFIG.SIZE ?? {}
         model = this.parent.expressionsReplace(modelData, {
@@ -67,12 +58,6 @@ export class ModelsBuilder {
             "#Y#": height,
             "#Z#": depth,
         })
-
-        // }
-        // else {
-        //     model = modelData
-        // }
-
 
         return new Promise((resolve, reject) => {
 

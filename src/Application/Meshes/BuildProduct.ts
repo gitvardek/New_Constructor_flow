@@ -469,7 +469,7 @@ export class BuildProduct extends BuildersHelper {
         const plinth = legsHeight > 0 ? this.plinth_builder.buildPlinth(PROPS, legsHeight) : null;
 
         const fasade = fasadeProps.length
-            ? this.fasade_builder.getFasade({ props: PROPS, defaultConfig, curBodyExceptions, isLoad })
+            ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad })
             : null;
 
         const hasDrawers = fasadeProps.length > 0 && fasadeProps.some(item => item.DRAWER.drawer);

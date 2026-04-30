@@ -123,7 +123,7 @@ export class MeshEvents extends BuildersHelper {
         7: 0
     }
 
-    private readonly EXTRAS_Y_SIZE = new Set<number[]>([2050360, 1059832, 971222, 3140746]);
+    private readonly EXTRAS_Y_SIZE = new Set<number[]>([2050360, 1059832, 971222, 3140746, 77333, 14831]);
 
     constructor(root: THREETypes.TApplication) {
 
@@ -228,7 +228,7 @@ export class MeshEvents extends BuildersHelper {
         const globalMilling = curGlobalOptions[fTypeMap[ELEMENT_TYPE]] ? curGlobalOptions[fTypeMap[ELEMENT_TYPE]].milling : null
 
         const rebuild = (fasadeNdx) => {
-            this.buildProduct.fasade_builder.getFasade(
+            this.buildProduct.fasade_builder.updateFasade(
                 {
                     props: PROPS,
                     model_data: this._MODELS[CONFIG.MODELID],
@@ -926,16 +926,16 @@ export class MeshEvents extends BuildersHelper {
 
     public async createCutFasade(data) {
 
-
+        if (!data) return
         const { NAME, ID, cutSize } = data.option
         // const isCutFasade = this.cutFasadeId.includes(parseInt(ID))
 
         console.log(data, 'createCutFasade')
 
         if (!this._currentMesh) return;
-        if (!cutSize) return
-        const { FASADE } = this._currentMesh.userData.PROPS;
-        this.buildProduct.fasade_builder.createCutFasade({ mesh: FASADE,  })
+        // if (!cutSize) return
+        const { FASADE, FASADE_DEFAULT } = this._currentMesh.userData.PROPS;
+        this.buildProduct.fasade_builder.createCutFasade({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data })
 
     }
 
@@ -1102,11 +1102,11 @@ export class MeshEvents extends BuildersHelper {
 
         currentMesh.userData.obb.halfSize.x = fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
         currentMesh.userData.obb.halfSize.z = fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5;
-        console.log(this)
+
 
         if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
             currentMesh.userData.obb.halfSize.y = data.height * 0.5;
-        }
+        } 
 
         this.root._customBoxHelper!.updateBoxHelper();
 

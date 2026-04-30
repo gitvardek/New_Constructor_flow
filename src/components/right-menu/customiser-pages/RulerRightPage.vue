@@ -5,6 +5,7 @@ import { ref, onMounted, onBeforeMount, watch, computed } from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useConversationActions } from "../actions/useConversationActions";
+import { useOptions } from "./RailsRightPage/useOptions";
 
 import { IFillingConfig } from "@/types/interfases";
 import { _URL } from "@/types/constants";
@@ -45,6 +46,7 @@ type TChelfCount = {
 
 const modelState = useModelState();
 const eventBus = useEventBus();
+const { resetGlobal } = useOptions();
 const { onRsizeConversations, onResizeMillingCheck } = useConversationActions();
 
 const joinDepthResizeData = ref({
@@ -235,6 +237,7 @@ const resizeModel = (value: object) => {
   }
   onRsizeConversations(resizeData.value);
   onResizeMillingCheck();
+  resetGlobal();
 };
 
 const checkFillingConditions = (data, size) => {

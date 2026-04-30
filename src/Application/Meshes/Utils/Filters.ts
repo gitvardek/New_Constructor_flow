@@ -323,6 +323,8 @@ export class Filters extends GlobalsData {
 
     filterOption(option: number[]) {
 
+        console.log('OOOOOO')
+
         let curOptionsList = option
             .map(el => this._OPTION[el])
             .filter(Boolean);
