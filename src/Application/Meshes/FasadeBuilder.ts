@@ -17,12 +17,12 @@ type TFasadePartPosition = {
     TYPE_POSITION: string | null,
 }
 
-type CData = {
+type OptionData = {
     option: THREETypes.TRootOptionType,
     values: boolean
 }
-interface CutData {
-    data: CData,
+interface IncomeOptionData {
+    data: OptionData,
     mesh: THREE.Mesh[]
     defaultMesh: THREE.Mesh[],
     disabledOptions: THREETypes.TOption[] | []
@@ -44,7 +44,10 @@ export class FasadeBuilder {
     useEdgeBuilder: THREETypes.TUseEdgeBuilder
     menuStore: THREETypes.TMenuStore
     handlesBuilder: THREETypes.THandlesBuilder
-    cutIds: string[] = ['4722787', '4722786']
+    cutIds: string[] = ['4722787', '4722786'] // ID опций распила фасадов
+    additiveIds: string[] = ['5819051', '5819050'] // ID щпций присадок фасада
+    additiveMiddleHeight: number = 532
+
 
 
 
@@ -298,7 +301,7 @@ export class FasadeBuilder {
         }
 
         this.uniformeTextureStartData = [];
-        this.checkCutFasade(OPTIONS, FASADE, FASADE_DEFAULT)
+        this.checkFasadeOptions(OPTIONS, FASADE, FASADE_DEFAULT)
         return parent;
     }
 
@@ -379,7 +382,7 @@ export class FasadeBuilder {
             }
 
             this.uniformeTextureStartData = [];
-            this.checkCutFasade(OPTIONS, FASADE, FASADE_DEFAULT)
+            this.checkFasadeOptions(OPTIONS, FASADE, FASADE_DEFAULT)
             return;
         }
 
@@ -475,16 +478,12 @@ export class FasadeBuilder {
 
         this.uniformeTextureStartData = [];
 
-        this.checkCutFasade(OPTIONS, FASADE, FASADE_DEFAULT)
+        this.checkFasadeOptions(OPTIONS, FASADE, FASADE_DEFAULT)
     }
 
     // ---------------------------------------------------------------------------
     // Остальные публичные методы
     // ---------------------------------------------------------------------------
-
-    //------------------------------
-    /** @Распил_фасада */
-    //------------------------------
 
     public createFasade({
         fasade_position,
@@ -679,112 +678,6 @@ export class FasadeBuilder {
         fasade.add(defaultEdge)
 
         return { fasade, fasadeEdge }
-    }
-
-    public createCutFasade(params: CutData) {
-
-        const { data, mesh, defaultMesh } = params;
-        const isActive = data.values;
-        const { disabledOptions = [] } = data
-        const isCutDisabled = disabledOptions.some(item => this.cutIds.includes(item.id));
-
-        const resetMesh = () => {
-            mesh.forEach((m, i) => {
-                if (m.userData.cutPart) {
-                    m.parent?.remove(m.userData.cutPart);
-                    m.userData.cutPart.geometry.dispose();
-                    m.userData.cutPart = null;
-                }
-                if (defaultMesh[i]) {
-                    const prevGeom = m.geometry;
-                    m.geometry = defaultMesh[i].geometry.clone();
-                    if (prevGeom !== defaultMesh[i].geometry) prevGeom.dispose();
-                    m.position.copy(defaultMesh[i].position);
-                }
-            });
-        }
-
-
-
-
-        const option = data.option;
-        const name: string = option?.NAME ?? '';
-        const isVertical = name.includes('вертикали');
-        const isHorizontal = name.includes('горизонтали');
-        const notCut = !isVertical && !isHorizontal
-
-
-        if (isCutDisabled && notCut) {
-            resetMesh();
-            return;
-        }
-
-        if (notCut) {
-            return;
-        }
-
-        if (!isActive) {
-            resetMesh();
-            return;
-        }
-
-        const evaluator = new Evaluator();
-
-        mesh.forEach((m, i) => {
-            if (m.userData.cutPart) {
-                m.parent?.remove(m.userData.cutPart);
-                m.userData.cutPart.geometry.dispose();
-                m.userData.cutPart = null;
-            }
-
-            const defaultGeom = defaultMesh[i]?.geometry;
-            if (!defaultGeom) return;
-
-            const { FASADE_WIDTH, FASADE_HEIGHT, FASADE_DEPTH } = m.userData.trueSize ?? {};
-            if (!FASADE_WIDTH || !FASADE_HEIGHT || !FASADE_DEPTH) return;
-
-            const baseBrush = new Brush(defaultGeom.clone());
-            baseBrush.material = Array.isArray(m.material) ? m.material[0] : m.material;
-            baseBrush.updateMatrixWorld();
-
-            const cutterGeom = isHorizontal
-                ? new THREE.BoxGeometry(FASADE_WIDTH * 2, 20, FASADE_DEPTH * 2)
-                : new THREE.BoxGeometry(20, FASADE_HEIGHT * 2, FASADE_DEPTH * 2);
-
-            const cutterBrush = new Brush(cutterGeom);
-            cutterBrush.updateMatrixWorld();
-
-            const result = evaluator.evaluate(baseBrush, cutterBrush, SUBTRACTION);
-            result.geometry.computeVertexNormals();
-
-            const prevGeom = m.geometry;
-            m.geometry = result.geometry;
-            if (prevGeom !== defaultMesh[i].geometry) prevGeom.dispose();
-
-            baseBrush.geometry.dispose();
-            cutterGeom.dispose();
-        });
-    }
-
-    // ---------------------------------------------------------------------------
-
-
-    private checkCutFasade = (OPTIONS, FASADE, FASADE_DEFAULT) => {
-        this.cutIds.forEach(id => {
-            const isCut = OPTIONS.find(el => el.id === id)
-            if (!isCut) return
-            const cutOption = this._APP.OPTION[isCut.id]
-            if (isCut.active) {
-                this.createCutFasade({
-                    data: {
-                        option: cutOption,
-                        values: true
-                    },
-                    mesh: FASADE,
-                    defaultMesh: FASADE_DEFAULT
-                })
-            }
-        })
     }
 
     private processFasadeCreation({
@@ -1037,9 +930,313 @@ export class FasadeBuilder {
         );
     }
 
+    // ---------------------------------------------------------------------------
+    // Работа с опциями
+    // ---------------------------------------------------------------------------
+
+    public processOptions = (params: IncomeOptionData) => {
+
+        const { data, mesh, defaultMesh } = params;
+        const { disabledOptions = [] } = data
+
+        // Распил
+        const isCutOption = this.cutIds.includes(data.option.ID);
+        const isCutDisabled = disabledOptions.some(item => this.cutIds.includes(item.id));
+        // Присадка
+        const isAdditiveOption = this.additiveIds.includes(data.option.ID);
+        const isAdditiveDisabled = disabledOptions.some(item => this.additiveIds.includes(item.id));
+
+        if (!isCutOption && !isCutDisabled && !isAdditiveOption && !isAdditiveDisabled) return
+
+        if (isCutOption || !isCutOption && isCutDisabled) {
+            this.createCutFasade(params)
+        }
+
+        if (isAdditiveOption || !isAdditiveOption && isAdditiveDisabled) {
+            this.createAdditiveMark(params)
+        }
+
+
+        console.log(isCutOption, isCutDisabled, 'РАСПИЛ');
+        console.log(isAdditiveOption, isAdditiveDisabled, 'ПРИСАДКА')
+
+        return;
+    }
+
+    private checkFasadeOptions = (OPTIONS, FASADE, FASADE_DEFAULT) => {
+        [...this.cutIds, ...this.additiveIds].forEach(id => {
+            const isOption = OPTIONS.find(el => el.id === id)
+            if (!isOption) return
+            const currentOption = this._APP.OPTION[isOption.id]
+            if (isOption.active) {
+                this.processOptions({
+                    data: {
+                        option: currentOption,
+                        values: true
+                    },
+                    mesh: FASADE,
+                    defaultMesh: FASADE_DEFAULT
+                })
+            }
+        })
+
+
+    }
 
     //------------------------------
-    /** @Для переходящего рисунка */
+    /** @Распил_фасада */
+    //------------------------------
+
+    private createCutFasade(params: IncomeOptionData) {
+
+        const { data, mesh, defaultMesh } = params;
+        const isActive = data.values;
+        const { disabledOptions = [] } = data
+        const isCutDisabled = disabledOptions.some(item => this.cutIds.includes(item.id));
+
+        const resetMesh = () => {
+            mesh.forEach((m, i) => {
+                if (m.userData.cutPart) {
+                    m.parent?.remove(m.userData.cutPart);
+                    m.userData.cutPart.geometry.dispose();
+                    m.userData.cutPart = null;
+                }
+                if (defaultMesh[i]) {
+                    const prevGeom = m.geometry;
+                    m.geometry = defaultMesh[i].geometry.clone();
+                    if (prevGeom !== defaultMesh[i].geometry) prevGeom.dispose();
+                    m.position.copy(defaultMesh[i].position);
+                }
+            });
+        }
+
+        const option = data.option;
+        const name: string = option?.NAME ?? '';
+        const isVertical = name.includes('вертикали');
+        const isHorizontal = name.includes('горизонтали');
+        const notCut = !isVertical && !isHorizontal
+
+
+        if (isCutDisabled && notCut) {
+            resetMesh();
+            return;
+        }
+
+        if (notCut) {
+            return;
+        }
+
+        if (!isActive) {
+            resetMesh();
+            return;
+        }
+
+        const evaluator = new Evaluator();
+
+        mesh.forEach((m, i) => {
+            if (m.userData.cutPart) {
+                m.parent?.remove(m.userData.cutPart);
+                m.userData.cutPart.geometry.dispose();
+                m.userData.cutPart = null;
+            }
+
+            const defaultGeom = defaultMesh[i]?.geometry;
+            if (!defaultGeom) return;
+
+            const { FASADE_WIDTH, FASADE_HEIGHT, FASADE_DEPTH } = m.userData.trueSize ?? {};
+            if (!FASADE_WIDTH || !FASADE_HEIGHT || !FASADE_DEPTH) return;
+
+            const baseBrush = new Brush(defaultGeom.clone());
+            baseBrush.material = Array.isArray(m.material) ? m.material[0] : m.material;
+            baseBrush.updateMatrixWorld();
+
+            const cutterGeom = isHorizontal
+                ? new THREE.BoxGeometry(FASADE_WIDTH * 2, 20, FASADE_DEPTH * 2)
+                : new THREE.BoxGeometry(20, FASADE_HEIGHT * 2, FASADE_DEPTH * 2);
+
+            const cutterBrush = new Brush(cutterGeom);
+            cutterBrush.updateMatrixWorld();
+
+            const result = evaluator.evaluate(baseBrush, cutterBrush, SUBTRACTION);
+            result.geometry.computeVertexNormals();
+
+            const prevGeom = m.geometry;
+            m.geometry = result.geometry;
+            if (prevGeom !== defaultMesh[i].geometry) prevGeom.dispose();
+
+            baseBrush.geometry.dispose();
+            cutterGeom.dispose();
+        });
+    }
+
+    //------------------------------
+    /** @Присадки_фасада */
+    //------------------------------
+
+    private createAdditiveMark = (params: IncomeOptionData) => {
+        const { data, mesh } = params;
+        const { disabledOptions = [] } = data;
+        const isActive = data.values;
+        const isAdditiveDisabled = disabledOptions.some(item => this.additiveIds.includes(item.id));
+
+        const removeMarks = () => {
+            mesh.forEach(m => {
+                if (m.userData.additiveMarksGroup) {
+                    m.userData.additiveMarksGroup.traverse(child => {
+                        if (child.isMesh) {
+                            child.geometry.dispose();
+                            if (!Array.isArray(child.material)) child.material.dispose();
+                        }
+                    });
+                    m.remove(m.userData.additiveMarksGroup);
+                    m.userData.additiveMarksGroup = null;
+                }
+            });
+        };
+
+        const option = data.option;
+        const name: string = option?.NAME ?? '';
+        const isVB = name.includes('под VB стяжку');
+        const isEccentric = name.includes('под эксцентрик');
+
+        if (isAdditiveDisabled && !isVB && !isEccentric) {
+            removeMarks();
+            return;
+        }
+
+        if (!isVB && !isEccentric) return;
+
+        if (!isActive) {
+            removeMarks();
+            return;
+        }
+
+        mesh.forEach(m => {
+            if (m.userData.additiveMarksGroup) {
+                m.userData.additiveMarksGroup.traverse(child => {
+                    if (child.isMesh) {
+                        child.geometry.dispose();
+                        if (!Array.isArray(child.material)) child.material.dispose();
+                    }
+                });
+                m.remove(m.userData.additiveMarksGroup);
+                m.userData.additiveMarksGroup = null;
+            }
+
+            const { FASADE_WIDTH, FASADE_HEIGHT, FASADE_DEPTH } = m.userData.trueSize ?? {};
+            if (!FASADE_WIDTH || !FASADE_HEIGHT || !FASADE_DEPTH) return;
+
+            const group = new THREE.Group();
+            const halfX = FASADE_WIDTH * 0.5;
+            const halfY = FASADE_HEIGHT * 0.5;
+            const halfZ = FASADE_DEPTH * 0.5;
+
+            if (isVB) {
+                const material = new THREE.LineBasicMaterial({
+                    color: 0xff0000,
+                    depthTest: false,
+                    depthWrite: false,
+                    transparent: true,
+                    opacity: 1,
+                });
+                const geom = new THREE.CylinderGeometry(10, 10, FASADE_DEPTH, 10);
+                const edges = new THREE.EdgesGeometry(geom)
+
+                const positions = [
+                    [-halfX + 10, halfY - 35, halfZ],
+                    [halfX - 10, halfY - 35, halfZ],
+                    [-halfX + 10, -halfY + 35, halfZ],
+                    [halfX - 10, -halfY + 35, halfZ],
+                ];
+
+                if (FASADE_HEIGHT >= this.additiveMiddleHeight) {
+                    positions.push(
+                        [-halfX + 10, 0, halfZ],
+                        [halfX - 10, 0, halfZ],
+                    );
+                }
+
+                positions.forEach(([x, y, z]) => {
+                    // const mark = new THREE.Mesh(geom, material);
+                    const mark = new THREE.LineSegments(edges, material);
+                    mark.rotation.x = Math.PI * 0.5;
+                    mark.position.set(x, y, z);
+                    mark.renderOrder = 0;
+                    group.add(mark);
+                });
+
+            } else if (isEccentric) {
+                const material = new THREE.LineBasicMaterial({
+                    color: 0x0000ff,
+                    depthTest: false,
+                    depthWrite: false,
+                    transparent: true,
+                    opacity: 1,
+                });
+
+                // Перпендикулярные метки: d=15, длина=FASADE_DEPTH, ось Z
+                const perpGeom = new THREE.CylinderGeometry(10, 10, FASADE_DEPTH, 8);
+                const perpEdges = new THREE.EdgesGeometry(perpGeom)
+
+
+                const perpPositions = [
+                    [-halfX + 26, halfY - 68 + 7.5, halfZ],
+                    [halfX - 26, halfY - 68 + 7.5, halfZ],
+                    [-halfX + 26, -halfY + 68 - 7.5, halfZ],
+                    [halfX - 26, -halfY + 68 - 7.5, halfZ],
+                ];
+
+                perpPositions.forEach(([x, y, z]) => {
+                    // const mark = new THREE.Mesh(perpGeom, material);
+                    const mark = new THREE.LineSegments(perpEdges, material);
+                    mark.rotation.x = Math.PI * 0.5;
+                    mark.position.set(x, y, z);
+                    mark.renderOrder = 0;
+                    group.add(mark);
+                });
+
+                // Параллельные метки: d=10, длина=26, ось Y (в плоскости фасада)
+                const parallelGeom = new THREE.CylinderGeometry(5, 5, 26, 8);
+                const parallelEdges = new THREE.EdgesGeometry(parallelGeom)
+
+                const parallelPositions = [
+                    [-halfX + 13, halfY - 36 + 7.5, halfZ],
+                    [halfX - 13, halfY - 36 + 7.5, halfZ],
+                    [-halfX + 13, halfY - 68 + 7.5, halfZ],
+                    [halfX - 13, halfY - 68 + 7.5, halfZ],
+                    [-halfX + 13, -halfY + 36 - 7.5, halfZ],
+                    [halfX - 13, -halfY + 36 - 7.5, halfZ],
+                    [-halfX + 13, -halfY + 68 - 7.5, halfZ],
+                    [halfX - 13, -halfY + 68 - 7.5, halfZ],
+                ];
+
+                if (FASADE_HEIGHT >= this.additiveMiddleHeight) {
+                    parallelPositions.push(
+                        [-halfX + 13, 0, halfZ],
+                        [halfX - 13, 0, halfZ],
+                    );
+                }
+
+
+                parallelPositions.forEach(([x, y, z]) => {
+                    // const mark = new THREE.Mesh(parallelGeom, material);
+                    const mark = new THREE.LineSegments(parallelEdges, material);
+                    mark.position.set(x, y, z);
+                    mark.rotateZ(Math.PI * 0.5)
+                    mark.renderOrder = 0;
+                    group.add(mark);
+                });
+            }
+
+            m.add(group);
+            m.userData.additiveMarksGroup = group;
+        });
+    }
+
+    // ---------------------------------------------------------------------------
+
+    //------------------------------
+    /** @Для_переходящего_рисунка */
     //------------------------------
 
     private numberingToUniform(FASADE_PROPS, CONFIG, BODY, isUMmodule?: boolean = false) {

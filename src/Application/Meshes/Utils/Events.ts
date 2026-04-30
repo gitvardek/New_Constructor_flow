@@ -105,7 +105,7 @@ export class MeshEvents extends BuildersHelper {
     private onChangeFillingModel: ({ data, mesh }) => void;
     private onRecountShelfs: ({ data, mesh }) => void;
     private onResizeJoinDepth: ({ data, mesh }) => void;
-    private onCreateCutFasade: (data: Record<string, any>) => void
+    private onProcessOptions: (data: Record<string, any>) => void
 
     private searchElementsByType: Record<string, string> = {
         moduleTop: "element_up",
@@ -184,7 +184,7 @@ export class MeshEvents extends BuildersHelper {
 
         this.onRecountShelfs = this.recountShelfs.bind(root)
         this.onResizeJoinDepth = this.resizeJoinDepth.bind(root)
-        this.onCreateCutFasade = this.createCutFasade.bind(root)
+        this.onProcessOptions = this.processOptions.bind(root)
 
         this.addVueEvents();
 
@@ -924,7 +924,7 @@ export class MeshEvents extends BuildersHelper {
         this.events.emit("U:DeliteFasad")
     }
 
-    public async createCutFasade(data) {
+    public async processOptions(data) {
 
         if (!data) return
         const { NAME, ID, cutSize } = data.option
@@ -935,7 +935,8 @@ export class MeshEvents extends BuildersHelper {
         if (!this._currentMesh) return;
         // if (!cutSize) return
         const { FASADE, FASADE_DEFAULT } = this._currentMesh.userData.PROPS;
-        this.buildProduct.fasade_builder.createCutFasade({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data })
+        // this.buildProduct.fasade_builder.createCutFasade({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data })
+        this.buildProduct.fasade_builder.processOptions({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data })
 
     }
 
@@ -1106,7 +1107,7 @@ export class MeshEvents extends BuildersHelper {
 
         if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
             currentMesh.userData.obb.halfSize.y = data.height * 0.5;
-        } 
+        }
 
         this.root._customBoxHelper!.updateBoxHelper();
 
@@ -1421,8 +1422,8 @@ export class MeshEvents extends BuildersHelper {
             this.resizeJoinDepth({ data, mesh })
         }
 
-        this.onCreateCutFasade = (data) => {
-            this.createCutFasade(data)
+        this.onProcessOptions = (data) => {
+            this.processOptions(data)
         }
 
         this.events.on('A:ChangeModuleTexture', this.onChangeModuleTexture);
@@ -1473,7 +1474,7 @@ export class MeshEvents extends BuildersHelper {
         this.events.on('A:RecountShelfs', this.onRecountShelfs);
 
         this.events.on('A:ResizeJoinDepth', this.onResizeJoinDepth);
-        this.events.on('A:SelectModelOption', this.onCreateCutFasade);
+        this.events.on('A:SelectModelOption', this.onProcessOptions);
 
 
 

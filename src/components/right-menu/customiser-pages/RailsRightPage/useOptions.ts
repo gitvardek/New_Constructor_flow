@@ -7,8 +7,8 @@ import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import { TRootOptionType, TOption } from "@/types/types";
 import { useExpressions } from "../../actions/useExpressions";
 
-const mechanism = useMechanism()
-const { expressionsReplace, calculateFromString } = useExpressions()
+const mechanism = useMechanism();
+const { expressionsReplace, calculateFromString } = useExpressions();
 
 
 export const useOptions = () => {
@@ -17,13 +17,13 @@ export const useOptions = () => {
     const modelState = useModelState();
     const eventBus = useEventBus();
     const UM_STORE = useUMStorage();
-    const { weightCalculation, createMeckhanizmList } = mechanism
+    const { weightCalculation, createMeckhanizmList } = mechanism;
 
     const NESTANDART_MODULES = [971222, 1814256]
     const cutOptionsId = [4722787, 4722786];
-    const cutOptionsTempSize = 20
+    const cutOptionsTempSize = 20;
 
-    const mechanismList = createMeckhanizmList()
+    const mechanismList = createMeckhanizmList();
 
     const createOptionList = () => {
 
@@ -44,7 +44,7 @@ export const useOptions = () => {
 
     const checkActive = (option: TRootOptionType, values: boolean) => {
 
-        const { ID: id, cutSize } = option
+        const { ID: id, cutSize } = option;
 
         const { PROPS } = modelState.getCurrentModel.userData;
         const { OPTIONS, MECHANISM_TEMP, ID, SHELFQUANT } = PROPS.CONFIG;
