@@ -4,7 +4,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useMechanism } from "./Mechanism/useMechanism";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
-import { TRootOptionType, TOption } from "@/types/types";
+import { TRootOptionType, TOption, TTotalProps } from "@/types/types";
 import { useExpressions } from "../../actions/useExpressions";
 
 const mechanism = useMechanism();
@@ -19,6 +19,8 @@ export const useOptions = () => {
     const UM_STORE = useUMStorage();
     const { weightCalculation, createMeckhanizmList } = mechanism;
 
+
+    const UNIVERSALE_MODULES = [3954672, 6469966, 9028125]
     const NESTANDART_MODULES = [971222, 1814256]
     const cutOptionsId = [4722787, 4722786];
     const cutOptionsTempSize = 20;
@@ -491,10 +493,11 @@ export const useOptions = () => {
 
     const checkAvailable = (options: TRootOptionType) => {
 
-        const { PROPS } = modelState.getCurrentModel.userData;
+        const PROPS = modelState.getCurrentModel.userData.PROPS as TTotalProp;
         const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize
 
         const isConditions = options.CONDITIONS
+        if (UNIVERSALE_MODULES.includes(PROPS.PRODUCT)) return options.visible
         if (!isConditions) return options.visible
 
         const convert = expressionsReplace(isConditions, {
