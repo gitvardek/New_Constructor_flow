@@ -41,7 +41,7 @@ import MainInput from "@/components/ui/inputs/MainInput.vue";
     flex-direction: column;
     gap: 10px;
     &__title {
-      font-size: 18px;
+      font-size: 1.8rem;
       font-weight: 600;
     }
     .settings-move {
@@ -76,7 +76,7 @@ import MainInput from "@/components/ui/inputs/MainInput.vue";
         align-items: center;
         gap: 5px;
         label {
-          font-size: 9px;
+          font-size: 0.9rem;
           font-weight: 500;
         }
       }

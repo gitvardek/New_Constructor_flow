@@ -405,7 +405,7 @@ const toggleShowAllSubCategories = () => {
 
   &__title {
     font-weight: 600;
-    font-size: 32px;
+    font-size: 3.2rem;
     line-height: 100%;
     letter-spacing: 0%;
     text-align: center;
@@ -456,7 +456,7 @@ const toggleShowAllSubCategories = () => {
       overflow: hidden;
       color: white; /* если есть текст */
       font-family: inherit; /* или укажите нужный шрифт */
-      font-size: 14px; /* примерный размер, подберите под ваш дизайн */
+      font-size: 1.4rem; /* примерный размер, подберите под ваш дизайн */
       transition: background 0.3s ease; /* плавное изменение фона */
       position: absolute;
       top: 5px;
@@ -543,7 +543,7 @@ const toggleShowAllSubCategories = () => {
     background: transparent;
     color: #5d6069;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 1.4rem;
     cursor: pointer;
     transition: all 0.2s;
     margin-top: 10px;
@@ -607,7 +607,7 @@ const toggleShowAllSubCategories = () => {
 
   &__title {
     font-weight: 600;
-    font-size: 17px;
+    font-size: 1.6rem;
     line-height: 100%;
     letter-spacing: 0%;
     color: #5d6069;
@@ -665,7 +665,7 @@ const toggleShowAllSubCategories = () => {
   &__price,
   &__title {
     font-weight: 600;
-    font-size: 18px;
+    font-size: 1.8rem;
     line-height: 100%;
     letter-spacing: 0%;
     color: #111b21;
@@ -693,7 +693,7 @@ const toggleShowAllSubCategories = () => {
     overflow: hidden;
     color: white; /* если есть текст */
     font-family: inherit; /* или укажите нужный шрифт */
-    font-size: 14px; /* примерный размер, подберите под ваш дизайн */
+    font-size: 1.4rem; /* примерный размер, подберите под ваш дизайн */
     transition: background 0.3s ease; /* плавное изменение фона */
   }
 
@@ -720,7 +720,7 @@ const toggleShowAllSubCategories = () => {
   justify-content: center;
   align-items: center;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 1.6rem;
   line-height: 100%;
   letter-spacing: 0%;
   vertical-align: middle;
@@ -735,7 +735,7 @@ const toggleShowAllSubCategories = () => {
     bottom: 3px;
   }
   &__item {
-    font-size: 16px;
+    font-size: 1.6rem;
     line-height: 100%;
     letter-spacing: 0%;
     color: #a3a9b5;

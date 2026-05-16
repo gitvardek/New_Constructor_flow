@@ -73,7 +73,7 @@ const emitCancel = () => {
 
   &__label {
     display: block;
-    font-size: 16px;
+    font-size: 1.6rem;
     margin-bottom: 8px;
     color: $strong-grey;
   }
@@ -84,7 +84,7 @@ const emitCancel = () => {
     border: none;
     border-radius: 10px;
     background-color: $light-stroke;
-    font-size: 16px;
+    font-size: 1.6rem;
     margin-bottom: 16px;
     outline: none;
   }
@@ -99,7 +99,7 @@ const emitCancel = () => {
     gap: 12px;
 
     .btn {
-      font-size: 16px;
+      font-size: 1.6rem;
       border: none;
       padding: 8px 16px;
       border-radius: 8px;

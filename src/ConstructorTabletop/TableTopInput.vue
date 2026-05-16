@@ -77,14 +77,14 @@ const handleBlur = () => {
 <style lang="scss" scoped>
 .actions {
   &-input {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 1.6rem;
     width: 100%;
     max-width: 125px;
     border: none;
     border-radius: 15px;
     background-color: #ecebf1;
     color: #6d6e73;
-    font-size: 1rem;
+    font-size: 1.4rem;
     font-weight: 600;
 
     &:focus {
@@ -115,7 +115,7 @@ const handleBlur = () => {
       transform: translate(0, -50%);
       pointer-events: none;
       z-index: 0;
-      font-size: 0.75rem;
+      font-size: 1.2rem;
       font-weight: 600;
       color: #6d6e73;
     }

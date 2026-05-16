@@ -309,14 +309,14 @@ onBeforeMount(() => {});
 }
 
 .label__title {
-  font-size: 16px;
+  font-size: 1.6rem;
   position: absolute;
   bottom: 0.2rem;
   left: 0.5rem;
 }
 
 .label__text {
-  font-size: 14px;
+  font-size: 1.4rem;
   font-weight: 600;
   color: $strong-grey;
 }
@@ -338,7 +338,7 @@ onBeforeMount(() => {});
   }
 
   &_lable{
-    font-size: 12px;
+    font-size: 1.2rem;
   }
 }
 </style>

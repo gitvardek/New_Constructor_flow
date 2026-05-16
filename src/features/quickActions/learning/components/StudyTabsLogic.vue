@@ -114,7 +114,7 @@ onMounted(async () => {
   gap: 8px;
 }
 .search-label {
-  font-size: 14px;
+  font-size: 1.4rem;
   color: #7b7b7b;
 }
 .search-results {
@@ -128,7 +128,7 @@ onMounted(async () => {
   width: 100%;
   text-align: center;
   color: #7b7b7b;
-  font-size: 14px;
+  font-size: 1.4rem;
   padding: 16px;
 }
 .first-image {

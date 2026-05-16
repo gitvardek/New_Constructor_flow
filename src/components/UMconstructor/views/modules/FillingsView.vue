@@ -527,10 +527,10 @@ watch(
           <div
             :class="[
               'actions-header--container',
-              { active: ndx === selectedFilling.sec - 1 },
+              { active: ndx === selectedFilling.sec},
             ]"
             v-for="(sec, ndx) in module.sections"
-            :key="secIndex"
+            :key="ndx"
             @click="showCurrentCol(ndx)"
           >
             <p class="actions-title actions-title--part">

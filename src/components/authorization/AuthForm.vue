@@ -219,7 +219,7 @@
             width: 100%;
             height: var(--input-height);
             padding: 0 40px 0 20px;
-            font-size: 18px;
+            font-size: 1.8rem;
             background: #f6f5fa;
             border: 1px solid $dark-grey;
             border-radius: var(--border-radius);
@@ -237,14 +237,14 @@
             left: 20px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 14px;
+            font-size: 1.4rem;
             color: $dark-grey;
             pointer-events: none;
             transition: all var(--transition-duration);
             &.active {
               top: 15px;
               transform: translateY(-50%);
-              font-size: 12px;
+              font-size: 1.2rem;
             }
           }
           
@@ -252,7 +252,7 @@
           .auth-form__input:not(:placeholder-shown) + .auth-form__input-placeholder {
             top: 0;
             transform: translateY(-50%);
-            font-size: 12px;
+            font-size: 1.2rem;
             background: white;
             padding: 0 5px;
           }
@@ -276,7 +276,7 @@
       border: none;
       border-radius: var(--border-radius);
       height: 50px;
-      font-size: 16px;
+      font-size: 1.4rem;
       background-color: var(--text-error);;
       color: white;
       cursor: pointer;
@@ -303,7 +303,7 @@
       margin: 20px 0;
       
       .auth-form__link {
-        font-size: 16px;
+        font-size: 1.4rem;
         color: $dark-grey;
         text-decoration: none;
         transition: color var(--transition-duration);

@@ -1641,7 +1641,7 @@ const closeMenu = () => {
 
 
         &__title {
-          font-size: 18px;
+          font-size: 1.8rem;
           font-weight: 600;
 
           -webkit-user-select: none; /* Safari */

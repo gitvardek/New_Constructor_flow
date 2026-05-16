@@ -1968,7 +1968,7 @@ onMounted(() => {
         scroll-behavior: smooth;
 
         &__title {
-          font-size: 18px;
+          font-size: 1.8rem;
           font-weight: 600;
         }
 
@@ -2250,7 +2250,7 @@ onMounted(() => {
         transform: translate(0, -50%);
         pointer-events: none;
         z-index: 0;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         font-weight: 600;
         color: #6d6e73;
       }
@@ -2263,7 +2263,7 @@ onMounted(() => {
     border-radius: 15px;
     background-color: #ffffff;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: bold;
     color: #a3a9b5;
     outline: none;

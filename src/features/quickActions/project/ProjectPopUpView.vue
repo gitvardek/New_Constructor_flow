@@ -655,7 +655,7 @@ onMounted(async () => {
   &__title {
     text-align: center;
     margin-bottom: 30px;
-    font-size: 32px;
+    font-size: 3.2rem;
     font-weight: 600;
   }
 
@@ -778,7 +778,7 @@ onMounted(async () => {
 
         p {
           color: #666;
-          font-size: 16px;
+          font-size: 1.6rem;
         }
       }
 
@@ -793,7 +793,7 @@ onMounted(async () => {
 
         .error-text {
           color: #e74c3c;
-          font-size: 16px;
+          font-size: 1.6rem;
           text-align: center;
         }
       }
@@ -807,7 +807,7 @@ onMounted(async () => {
 
         p {
           color: #666;
-          font-size: 16px;
+          font-size: 1.6rem;
         }
       }
 
@@ -975,7 +975,7 @@ onMounted(async () => {
 
   &__text {
     margin: 0 0 20px;
-    font-size: 16px;
+    font-size: 1.6rem;
     color: #333;
   }
 
@@ -1010,7 +1010,7 @@ onMounted(async () => {
 
   &__tab {
     padding: 12px 24px;
-    font-size: 14px;
+    font-size: 1.4rem;
     font-weight: 500;
     border: none;
     cursor: pointer;

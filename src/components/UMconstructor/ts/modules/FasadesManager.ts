@@ -2,11 +2,11 @@
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import ExternalFasadesManager from "@/components/UMconstructor/ts/modules/ExternalFasadesManager.ts";
-import {FasadeObject, GridModule, LOOPSIDE, TSelectedCell} from "./../../types/UMtypes.ts";
-import {TFasadeProp} from "@/types/types.ts";
+import { FasadeObject, GridModule, LOOPSIDE, TSelectedCell } from "./../../types/UMtypes.ts";
+import { TFasadeProp } from "@/types/types.ts";
 import * as THREE from "three";
-import {TFasadeTrueSizes, TTotalProps} from "@/types/types.ts";
-import {useConversationActions} from "@/components/right-menu/actions/useConversationActions.ts";
+import { TFasadeTrueSizes, TTotalProps } from "@/types/types.ts";
+import { useConversationActions } from "@/components/right-menu/actions/useConversationActions.ts";
 
 
 export default class FasadesManager {
@@ -19,18 +19,24 @@ export default class FasadesManager {
         this.EXTERNAL_FASADES = new ExternalFasadesManager(this);
     }
 
-    createFacadeData (fasadeIndex?: number, _productId?: number) {
-        const productId = _productId || this.scope.MODEL_STATE.getCurrentModel.userData.PROPS.PRODUCT;
-        const {FACADE} = this.scope.MODEL_STATE._PRODUCTS[productId];
+    createFacadeData(fasadeIndex?: number, _productId?: number) {
+        const { PROPS: { FASADE, PRODUCT } } = this.scope.MODEL_STATE.getCurrentModel.userData
+
+        console.log(PRODUCT, FASADE, fasadeIndex, 'createFacadeData')
+          console.trace('createFacadeData')
+
+        const productId = _productId || PRODUCT;
+        const { FACADE } = this.scope.MODEL_STATE._PRODUCTS[productId];
         this.scope.MODEL_STATE.createCurrentModelFasadesData({
             data: FACADE,
             fasadeNdx: fasadeIndex,
             productId,
+            fasadeCount: FASADE.length,
         });
     };
 
-    selectCell(sec: number|null = 0, cell: number | null = null, row: number | null = null) {
-        this.scope.selectCell("fasades", <TSelectedCell>{sec, cell, row});
+    selectCell(sec: number | null = 0, cell: number | null = null, row: number | null = null) {
+        this.scope.selectCell("fasades", <TSelectedCell>{ sec, cell, row });
     };
 
     getFasadePosition(
@@ -39,7 +45,7 @@ export default class FasadesManager {
         productData: TTotalProps = this.scope.UM_STORE.getUMData(),
     ) {
 
-        const PROPS = productData ;
+        const PROPS = productData;
         const grid = _grid;
         let fasadePosition = this.scope.APP.FASADE_POSITION[_position];
 
@@ -62,7 +68,7 @@ export default class FasadesManager {
     getFasadePositionMinMax(fasade: FasadeObject) {
         const fasadeColor = this.scope.APP.FASADE[fasade.material.COLOR]
         const fasadePosition = this.getFasadePosition(fasade.material.POSITION)
-        const {MIN_FASADE_HEIGHT, MAX_FASADE_WIDTH, MIN_FASADE_WIDTH, MIN_SLIDE_DOOR_WIDTH, MAX_SLIDE_DOOR_WIDTH} = this.scope.CONST
+        const { MIN_FASADE_HEIGHT, MAX_FASADE_WIDTH, MIN_FASADE_WIDTH, MIN_SLIDE_DOOR_WIDTH, MAX_SLIDE_DOOR_WIDTH } = this.scope.CONST
         const grid = this.scope.UM_STORE.getUMGrid()
 
         return {
@@ -76,8 +82,8 @@ export default class FasadesManager {
     updateFasades(
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
         PROPS: TTotalProps = this.scope.UM_STORE.getUMData()
-    ){
-        const {PRODUCT} = PROPS
+    ) {
+        const { PRODUCT } = PROPS
 
         let productInfo = this.scope.APP.CATALOG.PRODUCTS[PRODUCT];
         let fasadePosition = this.getFasadePosition(productInfo.FASADE_POSITION[0]);
@@ -109,7 +115,7 @@ export default class FasadesManager {
                         (accumulator, item, index) => accumulator + item.height + (index > 0 ? 4 : 0),
                         0);
 
-                    if(section?.fasadesDrawers?.length > 0){
+                    if (section?.fasadesDrawers?.length > 0) {
                         let drawersFasadesHeight = section.fasadesDrawers.reduce(
                             (accumulator, item, index) => accumulator + item.height + 4,
                             0);
@@ -138,7 +144,7 @@ export default class FasadesManager {
 
                                 const checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                                     segment.material.COLOR,
-                                    <TFasadeTrueSizes>{FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height}
+                                    <TFasadeTrueSizes>{ FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height }
                                 );
 
                                 if (!checkConversation || segment.width < segment.minX || segment.height < segment.minY)
@@ -164,7 +170,7 @@ export default class FasadesManager {
                             let lastSegment = door[door.length - 1];
                             if (lastSegment && !lastSegment.manufacturerOffset) {
 
-                                if(lastSegment.height + deltaHeight <= 0){
+                                if (lastSegment.height + deltaHeight <= 0) {
                                     this.removeFasadeSegment(secIndex, doorIndex, door.length - 1, grid, false)
                                     needReset = true;
                                 }
@@ -173,7 +179,7 @@ export default class FasadesManager {
 
                                     const checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                                         lastSegment.material.COLOR,
-                                        <TFasadeTrueSizes>{FASADE_WIDTH: lastSegment.width, FASADE_HEIGHT: lastSegment.height}
+                                        <TFasadeTrueSizes>{ FASADE_WIDTH: lastSegment.width, FASADE_HEIGHT: lastSegment.height }
                                     );
 
                                     if (!checkConversation || lastSegment.height < lastSegment.minY || lastSegment.width < lastSegment.minX)
@@ -225,7 +231,7 @@ export default class FasadesManager {
 
                         const checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                             segment.material.COLOR,
-                            <TFasadeTrueSizes>{FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height}
+                            <TFasadeTrueSizes>{ FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height }
                         );
 
                         if (!checkConversation || segment.width < segment.minX || segment.height < segment.minY)
@@ -329,14 +335,14 @@ export default class FasadesManager {
         let fasades = section.fasades ? section.fasades[doorNumber] : false;
         let sumHeight = 0
 
-        if(!fasades)
+        if (!fasades)
             return sumHeight;
 
         sumHeight = fasades?.reduce(
             (accumulator, item, index) => accumulator + item.height,
             sumHeight);
 
-        if(section.fasadesDrawers?.length)
+        if (section.fasadesDrawers?.length)
             sumHeight = section.fasadesDrawers?.reduce(
                 (accumulator, item, index) => accumulator + item.height,
                 sumHeight);
@@ -367,7 +373,7 @@ export default class FasadesManager {
         let newFasade = <FasadeObject>{
             ...newDoor,
             id: doorIndex,
-            material: <TFasadeProp>{ ...newDoor.material, HANDLES: {...newDoor.material.HANDLES} },
+            material: <TFasadeProp>{ ...newDoor.material, HANDLES: { ...newDoor.material.HANDLES } },
         };
 
         fasades.push([newFasade]);
@@ -383,7 +389,7 @@ export default class FasadesManager {
 
             let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                 newFasade.material.COLOR,
-                <TFasadeTrueSizes>{FASADE_WIDTH: newFasade.width, FASADE_HEIGHT: newFasade.height}
+                <TFasadeTrueSizes>{ FASADE_WIDTH: newFasade.width, FASADE_HEIGHT: newFasade.height }
             );
             if (!checkConversation || newFasade.width < newFasade.minX || newFasade.height < newFasade.minY)
                 newFasade.error = true;
@@ -403,7 +409,7 @@ export default class FasadesManager {
 
                                 checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                                     segment.material.COLOR,
-                                    <TFasadeTrueSizes>{FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height}
+                                    <TFasadeTrueSizes>{ FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height }
                                 );
                                 if (!checkConversation || segment.width < segment.minX || segment.height < segment.minY)
                                     segment.error = true;
@@ -447,7 +453,7 @@ export default class FasadesManager {
 
                         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                             segment.material.COLOR,
-                            <TFasadeTrueSizes>{FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height}
+                            <TFasadeTrueSizes>{ FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height }
                         );
 
                         if (!checkConversation || segment.width < segment.minX || segment.height < segment.minY)
@@ -510,7 +516,7 @@ export default class FasadesManager {
                 type: "fasade",
                 material: <TFasadeProp>{
                     ...FASADE_PROPS,
-                    HANDLES: {...FASADE_PROPS.HANDLES},
+                    HANDLES: { ...FASADE_PROPS.HANDLES },
                 },
             };
             let fasadeMinMax = this.getFasadePositionMinMax(firstFasade);
@@ -519,7 +525,7 @@ export default class FasadesManager {
 
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
             firstFasade.material.COLOR,
-            <TFasadeTrueSizes>{FASADE_WIDTH: firstFasade.width, FASADE_HEIGHT: firstFasade.height}
+            <TFasadeTrueSizes>{ FASADE_WIDTH: firstFasade.width, FASADE_HEIGHT: firstFasade.height }
         );
         if (!checkConversation || width < firstFasade.minX)
             firstFasade.error = true;
@@ -529,7 +535,7 @@ export default class FasadesManager {
         const newDoor: FasadeObject = {
             ...firstFasade,
             position: newDoorPosition,
-            material: {...firstFasade.material, HANDLES: {...firstFasade.material.HANDLES}},
+            material: { ...firstFasade.material, HANDLES: { ...firstFasade.material.HANDLES } },
         };
 
         let fasPos = this.getFasadePosition(newDoor.material.POSITION);
@@ -539,7 +545,7 @@ export default class FasadesManager {
         let loopsidesList = this.scope.LOOPS.getLoopsideList(secIndex, section.fasades.length, grid);
         let tmp_list = loopsidesList.filter(item => item.ID !== LOOPSIDE['none'])
 
-        if(!grid.isRestrictedModule) {
+        if (!grid.isRestrictedModule) {
             if (!tmp_list.length) {
                 this.scope.callAlert("error", `Нельзя добавить дверь`)
                 return;
@@ -548,7 +554,7 @@ export default class FasadesManager {
 
         newDoor.loopsSide = tmp_list.pop().ID;
 
-        if(!section.loopsSides)
+        if (!section.loopsSides)
             section.loopsSides = {}
 
         section.loopsSides[section.fasades.length] = newDoor.loopsSide;
@@ -560,7 +566,7 @@ export default class FasadesManager {
 
         if (!grid.isSlidingDoors) {
             this.scope.LOOPS.calcLoops(secIndex);
-            if(!section.loops)
+            if (!section.loops)
                 newDoor.loopsSide = LOOPSIDE['none']
         }
 
@@ -588,7 +594,7 @@ export default class FasadesManager {
 
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
             segment.material.COLOR,
-            <TFasadeTrueSizes>{FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height}
+            <TFasadeTrueSizes>{ FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height }
         );
         if (!checkConversation || halfHeight < segment.minY || segment.width < segment.minX)
             segment.error = true;
@@ -600,7 +606,7 @@ export default class FasadesManager {
         segment.height = halfHeight;
 
         // Добавляем новую строку в эту колонку
-        let newFasade = <FasadeObject> {
+        let newFasade = <FasadeObject>{
             ...segment,
             position: grid.isSlidingDoors
                 ? new THREE.Vector3(
@@ -612,7 +618,7 @@ export default class FasadesManager {
                     segment.position.x,
                     segment.position.y + 4 + segment.height + delta
                 ),
-            material: {...segment.material,  HANDLES: {...segment.material.HANDLES}},
+            material: { ...segment.material, HANDLES: { ...segment.material.HANDLES } },
         };
 
         fasades[doorIndex].splice(segmentIndex + 1, 0, newFasade);
@@ -633,15 +639,15 @@ export default class FasadesManager {
         secIndex: number,
         doorIndex: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid()
-    ){
+    ) {
         const current = grid.sections[secIndex].fasades[doorIndex];
         let prev = grid.sections[secIndex].fasades[doorIndex - 1];
         let next = grid.sections[secIndex].fasades[doorIndex + 1];
 
-        if(!next?.length){
+        if (!next?.length) {
             next = false
         }
-        if(!prev?.length){
+        if (!prev?.length) {
             prev = false
         }
 
@@ -661,7 +667,7 @@ export default class FasadesManager {
 
                     let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                         segment.material.COLOR,
-                        <TFasadeTrueSizes>{FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height}
+                        <TFasadeTrueSizes>{ FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height }
                     );
                     if (!checkConversation || segment.width < segment.minX || segment.height < segment.minY)
                         segment.error = true;
@@ -673,7 +679,7 @@ export default class FasadesManager {
 
                     let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                         segment.material.COLOR,
-                        <TFasadeTrueSizes>{FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height}
+                        <TFasadeTrueSizes>{ FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height }
                     );
                     if (!checkConversation || segment.width < segment.minX || segment.height < segment.minY)
                         segment.error = true;
@@ -691,8 +697,8 @@ export default class FasadesManager {
                 delete grid.sections[secIndex].loopsSides[doorIndex];
             }
         }
-        
-        this.selectCell(0,0)
+
+        this.selectCell(0, 0)
         this.scope.reset(grid)
     };
 
@@ -710,14 +716,14 @@ export default class FasadesManager {
         let next = currentSection[segmentIndex + 1];
         if (next) {
             let segmentsDistants = next.position.y - (currentSegment.position.y + currentSegment.height);
-            if(segmentsDistants > 4)
+            if (segmentsDistants > 4)
                 next = undefined;
         }
 
         let prev = currentSection[segmentIndex - 1];
         if (prev) {
             let segmentsDistants = currentSegment.position.y - (prev.position.y + prev.height);
-            if(segmentsDistants > 4)
+            if (segmentsDistants > 4)
                 prev = undefined;
         }
 
@@ -739,14 +745,14 @@ export default class FasadesManager {
         let next = currentSection[segmentIndex + 1];
         if (next) {
             let segmentsDistants = next.position.y - (currentSegment.position.y + currentSegment.height);
-            if(segmentsDistants > 4)
+            if (segmentsDistants > 4)
                 next = undefined;
         }
 
         let prev = currentSection[segmentIndex - 1];
         if (prev) {
             let segmentsDistants = currentSegment.position.y - (prev.position.y + prev.height);
-            if(segmentsDistants > 4)
+            if (segmentsDistants > 4)
                 prev = undefined;
         }
 
@@ -763,7 +769,7 @@ export default class FasadesManager {
         let tmpSegment = next || prev;
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
             tmpSegment.material.COLOR,
-            <TFasadeTrueSizes>{FASADE_WIDTH: tmpSegment.width, FASADE_HEIGHT: tmpSegment.height}
+            <TFasadeTrueSizes>{ FASADE_WIDTH: tmpSegment.width, FASADE_HEIGHT: tmpSegment.height }
         );
 
         if (!checkConversation || tmpSegment.width < tmpSegment.minX || tmpSegment.height < tmpSegment.minY)
@@ -783,9 +789,9 @@ export default class FasadesManager {
         }
 
         // Обновляем текущий сектор
-        this.selectCell(secIndex,0, 0)
+        this.selectCell(secIndex, 0, 0)
 
-        if(reset)
+        if (reset)
             this.scope.reset(grid)
     };
 
@@ -823,13 +829,13 @@ export default class FasadesManager {
 
                 if (nextCell) {
                     let segmentsDistants = nextCell.position.y - (curCell.position.y + curCell.height);
-                    if(segmentsDistants > 4)
+                    if (segmentsDistants > 4)
                         nextCell = undefined;
                 }
 
                 if (prevCell) {
                     let segmentsDistants = curCell.position.y - (prevCell.position.y + prevCell.height);
-                    if(segmentsDistants > 4)
+                    if (segmentsDistants > 4)
                         prevCell = undefined;
                 }
 
@@ -839,7 +845,7 @@ export default class FasadesManager {
 
                 let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                     curCell.material.COLOR,
-                    <TFasadeTrueSizes>{FASADE_WIDTH: curCell.width, FASADE_HEIGHT: curCell.height}
+                    <TFasadeTrueSizes>{ FASADE_WIDTH: curCell.width, FASADE_HEIGHT: curCell.height }
                 );
 
                 if (!checkConversation || curCell.width < curCell.minX || curCell.height < curCell.minY)
@@ -857,7 +863,7 @@ export default class FasadesManager {
                 let tmpSegment = prevCell || nextCell || {};
                 checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                     tmpSegment.material.COLOR,
-                    <TFasadeTrueSizes>{FASADE_WIDTH: tmpSegment.width, FASADE_HEIGHT: tmpSegment.height}
+                    <TFasadeTrueSizes>{ FASADE_WIDTH: tmpSegment.width, FASADE_HEIGHT: tmpSegment.height }
                 );
                 if (
                     !checkConversation ||
@@ -875,10 +881,10 @@ export default class FasadesManager {
     changeLoopside(
         secIndex: number,
         fasade: FasadeObject,
-        newSide: number|string,
+        newSide: number | string,
         doorIndex: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
-        ) {
+    ) {
         fasade.loopsSide = typeof newSide === "string" ? parseInt(newSide) : newSide;
 
         // if(!grid.sections[secIndex].loopsSides){
@@ -890,7 +896,7 @@ export default class FasadesManager {
         //     (item) => (item.loopsSide = fasade.loopsSide)
         // );
 
-        if(grid.profilesConfig?.sideProfile)
+        if (grid.profilesConfig?.sideProfile)
             this.scope.PROFILES.changeProfileSide(LOOPSIDE[fasade.loopsSide]?.includes("left") ? "left" : "right", grid)
 
         this.scope.reset(grid);
@@ -901,7 +907,7 @@ export default class FasadesManager {
         doorIndex: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-        if(grid.isRestrictedModule) {
+        if (grid.isRestrictedModule) {
             let moduleFasadesCount = 0;
             grid.sections.forEach(section => {
                 moduleFasadesCount += section.fasades.length

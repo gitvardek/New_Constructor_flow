@@ -43,11 +43,11 @@ import OpenFacadeButton from "@/components/ui/buttons/right-menu/controller/Open
 import CollisionButton from "@/components/ui/buttons/right-menu/controller/CollisionButton.vue";
 import CutButton from "@/components/ui/buttons/right-menu/controller/CutButton.vue";
 import PinButton from "@/components/ui/buttons/right-menu/controller/PinButton.vue";
-//import ModalUM2Dconstructor from "@/components/2DmoduleConstructor/ModalUM2Dconstructor.vue";
 import UMconstructor from "@/components/UMconstructor/UMconstructor.vue";
 
 import GenericLoader from "@/components/ui/loader/GenericLoader.vue";
 import TransformController from "@/components/ui/transformController/TransformController.vue";
+import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
 
 import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
 import { useMenuStore } from "@/store/appStore/useMenuStore";
@@ -716,6 +716,10 @@ const deliteTable = () => {
   modelState.setCurrentRaspilParent(false);
 };
 
+const changeCameraPos = (value: number) => {
+  eventBus.emit("A:ChangeCameraPos", value);
+};
+
 defineExpose({
   VerdekConstructor,
   closeTableRedactor,
@@ -853,6 +857,13 @@ watch(
         </div>
       </div>
     </div>
+  </div>
+  <div class="camera-controller">
+    <DirectionControl
+      :type="'centerOnly'"
+      :fontSize="20"
+      @changeDirectionPos="changeCameraPos"
+    />
   </div>
   <transition name="controller-toggle">
     <TransformController
@@ -1017,7 +1028,7 @@ watch(
   }
 
   &_text {
-    font-size: 12px;
+    font-size: 1.2rem;
   }
 }
 
@@ -1100,7 +1111,7 @@ watch(
 }
 
 .distance-label {
-  font-size: 12px;
+  font-size: 1.2rem;
   font-weight: 400;
   color: black;
 
@@ -1111,7 +1122,7 @@ watch(
 }
 
 .dimension-label {
-  font-size: 12px;
+  font-size: 1.2rem;
   font-weight: 400;
   color: black;
 }
@@ -1219,6 +1230,14 @@ watch(
         color: $strong-grey;
       }
     }
+  }
+}
+
+.camera {
+  &-controller {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
   }
 }
 </style>

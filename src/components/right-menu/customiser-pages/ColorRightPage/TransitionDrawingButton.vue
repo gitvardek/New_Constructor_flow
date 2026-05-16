@@ -51,7 +51,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
   border: none;
   color: $strong-grey;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 1.6rem;
   font-weight: 600;
   color: $strong-grey;
   display: flex;

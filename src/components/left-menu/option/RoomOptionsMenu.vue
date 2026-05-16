@@ -753,7 +753,7 @@ watch(shadows, () => toggleShadow(shadows.value));
   }
 
   &__text {
-    font-size: 15px;
+    font-size: 1.4rem;
     font-weight: 600;
     color: $strong-grey;
     cursor: pointer;

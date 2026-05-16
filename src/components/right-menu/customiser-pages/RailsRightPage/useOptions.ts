@@ -5,7 +5,7 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { useMechanism } from "./Mechanism/useMechanism";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import { TRootOptionType, TOption, TTotalProps } from "@/types/types";
-import { useExpressions } from "../../actions/useExpressions";
+import { useExpressions } from "../../../../utils/useExpressions";
 
 const mechanism = useMechanism();
 const { expressionsReplace, calculateFromString } = useExpressions();
@@ -20,7 +20,7 @@ export const useOptions = () => {
     const { weightCalculation, createMeckhanizmList } = mechanism;
 
 
-    const UNIVERSALE_MODULES = [3954672, 6469966, 9028125]
+    const UNIVERSALE_MODULES = [3954672, 6469966, 9028125, 5168676]
     const NESTANDART_MODULES = [971222, 1814256]
     const cutOptionsId = [4722787, 4722786];
     const cutOptionsTempSize = 20;

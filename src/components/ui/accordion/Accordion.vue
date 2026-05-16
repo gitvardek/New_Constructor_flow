@@ -70,6 +70,7 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 1.6rem;
   }
 
   &__icon {
@@ -96,6 +97,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(-10px);
     transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
+      font-size: 1.6rem;
 
     &--open {
       opacity: 1;

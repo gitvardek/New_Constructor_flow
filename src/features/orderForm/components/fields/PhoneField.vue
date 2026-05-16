@@ -59,7 +59,7 @@ const phoneValue = computed({
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 14px;
+  font-size: 1.4rem;
   line-height: 1;
   font-weight: 500;
   color: #272727;
@@ -79,7 +79,7 @@ const phoneValue = computed({
   border-radius: 8px;
   background: #fff;
   color: #131313;
-  font-size: 14px;
+  font-size: 1.4rem;
   outline: none;
   margin: 0;
 }

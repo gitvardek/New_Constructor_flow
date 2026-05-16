@@ -368,7 +368,7 @@
     }
 
     &-title {
-      font-size: 1rem;
+      font-size: 1.4rem;
       color: #a3a9b5;
       display: flex;
       flex-direction: row;
@@ -391,7 +391,7 @@
       border-radius: 15px;
       background-color: #ecebf1;
       color: #6d6e73;
-      font-size: 1rem;
+      font-size: 1.4rem;
       font-weight: 600;
 
       &:focus {
@@ -410,7 +410,7 @@
           transform: translate(0, -50%);
           pointer-events: none;
           z-index: 0;
-          font-size: 0.75rem;
+          font-size: 0.8rem;
           font-weight: 600;
           color: #6d6e73;
         }
@@ -423,7 +423,7 @@
       border-radius: 15px;
       background-color: #ffffff;
       cursor: pointer;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: bold;
       color: #a3a9b5;
       outline: none;
@@ -522,7 +522,7 @@
     right: 15px;
     color: white;
     background: #fc1a1a;
-    font-size: 1rem;
+    font-size: 1.4rem;
   }
 
   .save-btn {
@@ -532,7 +532,7 @@
     right: 175px;
     color: white;
     background: #33de0c;
-    font-size: 1rem;
+    font-size: 1.4rem;
   }
 
   .splitter {
@@ -560,7 +560,7 @@
         &-error-message {
           display: flex;
           align-items: center;
-          font-size: 16px;
+          font-size: 1.6rem;
           font-weight: 600;
           border: 1px solid #ecebf1;
           border-radius: 15px;
@@ -653,7 +653,7 @@
           }
 
           &__title {
-            font-size: 18px;
+            font-size: 1.8rem;
             font-weight: 600;
 
             -webkit-user-select: none; /* Safari */
@@ -779,7 +779,7 @@
             scroll-behavior: smooth;
 
             &__title {
-              font-size: 18px;
+              font-size: 1.8rem;
               font-weight: 600;
             }
 
@@ -920,7 +920,7 @@
       border-radius: 15px;
       flex-direction: column;
       cursor: pointer;
-      font-size: 18px;
+      font-size: 1.8rem;
       font-weight: 600;
       color: #a3a9b5;
 
@@ -947,7 +947,7 @@
         align-content: center;
 
         &-chevron {
-          font-size: 1rem;
+          font-size: 1.4rem;
           transform: rotate(-180deg);
 
           &.active {
@@ -1089,7 +1089,7 @@
           gap: 10px;
 
           &__title {
-            font-size: 15px;
+            font-size: 1.4rem;
             font-weight: 500;
 
             -webkit-user-select: none; /* Safari */
@@ -1149,7 +1149,7 @@
           gap: 10px;
 
           &__title {
-            font-size: 15px;
+            font-size: 1.4rem;
             font-weight: 500;
           }
         }

@@ -39,12 +39,12 @@ const { sendReport, isSubmitting, hasError } = useReport();
 
   &__title {
     margin-bottom: 5px;
-    font-size: 32px;
+    font-size: 3.2rem;
     font-weight: 600;
   }
 
   &__text {
-    font-size: 18px;
+    font-size: 1.8rem;
     color: $dark-grey;
   }
 
@@ -53,7 +53,7 @@ const { sendReport, isSubmitting, hasError } = useReport();
   }
 
   .error__message {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: #dc3545;
     margin: 8px 0 12px;
     min-height: 20px;
@@ -62,7 +62,7 @@ const { sendReport, isSubmitting, hasError } = useReport();
   .error__button {
     width: 132px;
     height: 50px;
-    font-size: 16px;
+    font-size: 1.6rem;
     font-weight: 500;
     border: none;
     border-radius: 15px;

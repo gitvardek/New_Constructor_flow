@@ -198,7 +198,7 @@ onUnmounted(() => {
   &__title {
     max-width: 50%;
     margin-right: 50px;
-    font-size: 18px;
+    font-size: 1.8rem;
     font-weight: 600;
   }
   &-links {

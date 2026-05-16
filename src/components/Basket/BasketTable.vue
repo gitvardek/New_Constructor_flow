@@ -56,6 +56,7 @@ const { oldPrice, isFeedbackProject } = useConfigStore();
   border-radius: 12px;
   padding: 20px;
   border: 1px solid #eee;
+  font-size: 1.4rem;
   &--height {
     // min-height: 57vh;
     height: 100%;
@@ -74,7 +75,7 @@ const { oldPrice, isFeedbackProject } = useConfigStore();
     grid-template-columns: 150px 1fr 120px 120px 120px 120px 42px;
     gap: 10px;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 1.4rem;
     color: #a3a9b5;
     border-bottom: 1px solid #eee;
     padding-bottom: 6px;

@@ -16,8 +16,12 @@ interface Props {
 }
 
 const kromkaActions = useKromkaActions();
-const { getCurretKromkaList, getKromkaActive, checkKromkaActive, getCurretKromkaListUM } =
-  kromkaActions;
+const {
+  getCurretKromkaList,
+  getKromkaActive,
+  checkKromkaActive,
+  getCurretKromkaListUM,
+} = kromkaActions;
 
 const props = withDefaults(defineProps<Props>(), {
   step: 1,
@@ -87,8 +91,7 @@ const profileData = computed(() => {
 onBeforeMount(() => {
   if (props.isUM) {
     getCurretKromkaListUM(props.currentSection?.TABLE);
-  }
-  else {
+  } else {
     getCurretKromkaList();
   } // profileDataParse.value = props.profileData();
 });
@@ -97,14 +100,13 @@ watch(
   () => props,
   () => {
     // console.log("serviseData");
-  }
+  },
 );
 </script>
 
 <template>
   <div class="splitter-container--cut">
-
-    <div v-if="!isUM">
+    <div class="splitter-container--cut-wraper" v-if="!isUM">
       <div :class="['splitter-container--cut-header', getContainerHeight]">
         <h3 class="splitter-title">Услуги</h3>
         <button class="actions-btn actions-icon" @click="toggleCutServise">
@@ -114,34 +116,38 @@ watch(
 
       <div :class="['splitter-container--cut-servise', getContainerHeight]">
         <div
-            v-for="(item, key) in props.serviseData"
-            :key="key + item.NAME"
-            :class="['cut-servise--item', { error: item.error }]"
+          v-for="(item, key) in props.serviseData"
+          :key="key + item.NAME"
+          :class="['cut-servise--item', { error: item.error }]"
         >
           <div
-              :class="['cut-servise--wrapper', { error: item.error }]"
-              v-if="item.visible"
+            :class="['cut-servise--wrapper', { error: item.error }]"
+            v-if="item.visible"
           >
             <label class="control control-checkbox">
               <input
-                  type="checkbox"
-                  :checked="item.value"
-                  @change="cutChacked($event, item)"
+                type="checkbox"
+                :checked="item.value"
+                @change="cutChacked($event, item)"
               />
               <span class="control_indicator"></span>
               <span class="text-lg text-gray-800 font-medium">{{
-                  item.NAME
-                }}</span>
+                item.NAME
+              }}</span>
             </label>
 
             <Tooltip
-                v-if="item.error"
-                :theme="'dark'"
-                :content="`${SERVISE_ERRORS[item.error]}`"
+              v-if="item.error"
+              :theme="'dark'"
+              :content="`${SERVISE_ERRORS[item.error]}`"
             >
               <template #trigger>
                 <button class="actions-btn actions-icon">
-                  <img class="actions-icon--help" src="/icons/help.svg" alt="" />
+                  <img
+                    class="actions-icon--help"
+                    src="/icons/help.svg"
+                    alt=""
+                  />
                 </button>
               </template>
               <template #content> </template>
@@ -152,14 +158,14 @@ watch(
             <p class="actions-title">Ширина</p>
             <div class="actions-input--container">
               <MainInput
-                  :inputClass="'actions-input'"
-                  v-model="item.EURO_WIDTH"
-                  :min="200"
-                  :max="getMaxWidth"
-                  :type="'number'"
-                  @update:modelValue="
-                (newValue) => updateEuroWidth(newValue, item.NAME)
-              "
+                :inputClass="'actions-input'"
+                v-model="item.EURO_WIDTH"
+                :min="200"
+                :max="getMaxWidth"
+                :type="'number'"
+                @update:modelValue="
+                  (newValue) => updateEuroWidth(newValue, item.NAME)
+                "
               />
             </div>
           </div>
@@ -212,15 +218,28 @@ watch(
 .splitter {
   &-container {
     &--cut {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      overflow-y: auto;
+      &-wraper {
+        max-height: calc(100% - 250px);
+        min-height: 30vw;
+        overflow-y: auto;
+      }
       &-servise {
+        // display: flex;
+        // flex-direction: column;
+        // padding: 0 10px 10px 10px;
+        // gap: 5px;
+        // overflow-y: scroll;
+
         display: flex;
         flex-direction: column;
-        padding: 0 10px 10px 10px;
-        gap: 5px;
-        overflow-y: scroll;
-
-        // height: 100%;
-        // max-height: 60%;
+        flex: 1; /* занимает всё оставшееся место */
+        gap: 0.3rem;
+        overflow-y: auto;
+        min-height: 0;
 
         border-bottom: 1px solid #ecebf1;
 

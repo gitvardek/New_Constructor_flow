@@ -349,6 +349,7 @@ export class MeshEvents extends BuildersHelper {
 
         const { CONFIG, FASADE, FASADE_DEFAULT, ELEMENT_TYPE } = meshData.userData.PROPS;
         const { FASADE_PROPS, UNIFORM_TEXTURE } = CONFIG;
+        console.log('BEFORE:', JSON.stringify(FASADE_PROPS))
 
         const incomingModel = data.MODEL;
         const fasade = FASADE[fasadeNdx] ?? FASADE_DEFAULT[fasadeNdx];
@@ -364,89 +365,102 @@ export class MeshEvents extends BuildersHelper {
             this.removeFromUniformGroup(meshData);
         }
 
-        this.resetFasade({ fasadeNdx, incomingModel, totalFasad: meshData });
+        await this.resetFasade({ fasadeNdx, incomingModel, totalFasad: meshData });
 
+        // const apply = async () => {
+        //     this.handleShowcaseChange(CONFIG, fasadeProp, fasadeNdx, incomingModel, meshData);
+        //     if (this.tryApplyPalette(data, fasadeNdx, fasadeProp)) return
+        //     if (this.tryApplyTexture(data, fasade, fasadeProp)) return
+        //     this.applyAlumColor(data, fasade, fasadeProp, fasadeNdx);
 
-        const apply = async () => {
-            this.handleShowcaseChange(CONFIG, fasadeProp, fasadeNdx, incomingModel, meshData);
-            if (this.tryApplyPalette(data, fasadeNdx, fasadeProp)) return
-            if (this.tryApplyTexture(data, fasade, fasadeProp)) return
-            this.applyAlumColor(data, fasade, fasadeProp, fasadeNdx);
+        // }
 
-        }
-        await apply();
+        this.buildProduct.fasade_builder.applyFasadeChange({
+            data,
+            fasadeNdx,
+            fasadeProp,
+            fasade,
+            fasadeDefault: FASADE_DEFAULT[fasadeNdx],
+            incomingModel,
+            CONFIG,
+        });
+        // await apply();
+
         if (drowMode) {
             const edgeMeshID = FASADE[fasadeNdx].userData.edgeID
             const edgeMesh = FASADE[fasadeNdx].parent.getObjectById(edgeMeshID)
             this.useEdgeBuilder.drawingMode(drowMode, FASADE[fasadeNdx])
             this.useEdgeBuilder.drawingMode(drowMode, edgeMesh)
         }
+
+
     }
 
     private removeFromUniformGroup(product: THREE.Object3D) {
         this.buildUniformTexture.removeFromUniformGroup(product);
     }
 
-    private handleShowcaseChange(CONFIG: any, fasadeProp: any, fasadeNdx: number, incomingModel: any, mesh: THREE.Object3D) {
-        const { SHOWCASE } = CONFIG;
-        const milling = fasadeProp.MILLING
-        const fasadeShowcase = CONFIG.FASADE_POSITIONS[fasadeNdx].SHOWCASE === 1
-        const handleType = CONFIG.FASADE_PROPS[fasadeNdx].TYPE
+    // private handleShowcaseChange(CONFIG: any, fasadeProp: any, fasadeNdx: number, incomingModel: any, mesh: THREE.Object3D) {
+    //     const { SHOWCASE } = CONFIG;
+    //     const milling = fasadeProp.MILLING
+    //     const fasadeShowcase = CONFIG.FASADE_POSITIONS[fasadeNdx].SHOWCASE === 1
+    //     const handleType = CONFIG.FASADE_PROPS[fasadeNdx].TYPE
 
-        if (incomingModel) {
-            const action = this.modelState.getCurrentFasadeTypesAction(handleType)
-            // console.log('==== ❌ SHOWCASE ALUM ❌ ====')
-            this.changeShowcase({ data: incomingModel, fasadeNdx, action, mesh: mesh });
-        } else if (SHOWCASE.length > 0 && fasadeShowcase) {
-            // console.log('==== ❌ SHOWCASE CLASSIK❌ ====')
-            this.changeShowcase({ data: SHOWCASE[0], fasadeNdx, mesh: mesh });
-        }
+    //     if (incomingModel) {
+    //         const action = this.modelState.getCurrentFasadeTypesAction(handleType)
+    //         // console.log('==== ❌ SHOWCASE ALUM ❌ ====')
+    //         this.changeShowcase({ data: incomingModel, fasadeNdx, action, mesh: mesh });
+    //     } else if (SHOWCASE.length > 0 && fasadeShowcase) {
+    //         // console.log('==== ❌ SHOWCASE CLASSIK❌ ====')
+    //         this.changeShowcase({ data: SHOWCASE[0], fasadeNdx, mesh: mesh });
+    //     }
 
-        return
-    }
+    //     return
+    // }
 
-    private tryApplyPalette(data: any, fasadeNdx: number, fasadeProp: any): boolean {
-        if (!data.PALETTE?.[0]) return false;
-        fasadeProp.COLOR = data.ID;
-        this.modelState.createCurrentPaletteData(data.ID);
-        const palette = Object.keys(this.modelState.getCurrentPaletteData)[0];
-        this.changePaletteColor({ data: palette, fasadeNdx });
-        return true;
-    }
+    // private tryApplyPalette(data: any, fasadeNdx: number, fasadeProp: any): boolean {
+    //     if (!data.PALETTE?.[0]) return false;
+    //     fasadeProp.COLOR = data.ID;
+    //     this.modelState.createCurrentPaletteData(data.ID);
+    //     const palette = Object.keys(this.modelState.getCurrentPaletteData)[0];
+    //     this.changePaletteColor({ data: palette, fasadeNdx });
+    //     return true;
+    // }
 
-    private tryApplyTexture(data: any, fasade: any, fasadeProp: any): boolean {
-        if (data.COLOR) return false;
+    // private tryApplyTexture(data: any, fasade: any, fasadeProp: any): boolean {
+    //     return true
+    //     if (data.COLOR) return false;
 
-        console.log(data, '=== TEXTURE_DATA ====')
+    //     console.log(data, '=== TEXTURE_DATA ====')
 
-        fasade.visible = true;
-        fasade.traverse((child: THREE.Object3D) => {
-            // Пропускаем меш чертежа
-            if ((child.userData && child.userData.edge) || child.parent?.userData?.edge) {
-                return
-            }
-            if (child instanceof THREE.Mesh) {
+    //     fasade.visible = true;
+    //     fasade.traverse((child: THREE.Object3D) => {
+    //         // Пропускаем меш чертежа
+    //         if ((child.userData && child.userData.edge) || child.parent?.userData?.edge) {
+    //             return
+    //         }
+    //         if (child instanceof THREE.Mesh) {
 
-                this.changeColor({
-                    object: child,
-                    url: data.TEXTURE,
-                    textureSize: { x: data.TEXTURE_WIDTH, y: data.TEXTURE_HEIGHT }
-                });
-                fasade.userData.backupMaterial = child.material;
-            }
-        });
+    //             this.changeColor({
+    //                 object: child,
+    //                 url: data.TEXTURE,
+    //                 textureSize: { x: data.TEXTURE_WIDTH, y: data.TEXTURE_HEIGHT }
+    //             });
+    //             fasade.userData.backupMaterial = child.material;
+    //         }
+    //     });
 
-        Object.assign(fasadeProp, { SHOW: true, COLOR: data.ID, PALETTE: null });
-        // fasade.userData.SHOW = true
-        fasade.userData.SHOW = fasade.visible
-        return true;
-    }
+    //     Object.assign(fasadeProp, { SHOW: true, COLOR: data.ID, PALETTE: null });
+    //     // fasade.userData.SHOW = true
+    //     fasade.userData.SHOW = fasade.visible
+    //     return true;
+    // }
 
-    private applyAlumColor(data: any, fasade: any, fasadeProp: any, fasadeNdx: number) {
-        this.createAlumColor({ data, fasadeNdx });
-        Object.assign(fasadeProp, { SHOW: fasade.visible, COLOR: data.ID, PALETTE: null });
-        fasade.userData.SHOW = fasade.visible
-    }
+    // private applyAlumColor(data: any, fasade: any, fasadeProp: any, fasadeNdx: number) {
+    //     this.createAlumColor({ data, fasadeNdx });
+    //     Object.assign(fasadeProp, { SHOW: fasade.visible, COLOR: data.ID, PALETTE: null });
+    //     fasade.userData.SHOW = fasade.visible
+    // }
 
     public async changeFasade({ data, fasadeNdx }: TDataWithNdx) {
 
@@ -480,7 +494,7 @@ export class MeshEvents extends BuildersHelper {
 
                 if (FASADE.length === 0) return;
 
-                // Обрабатываем все фасады последовательно или параллельно — выбирай
+                // Обрабатываем все фасады последовательно или параллельно
                 await Promise.all(
                     FASADE.map(async (fasade, fasadeNdx) => {
                         const { SHOWCASE } = FASADE_POSITIONS[fasadeNdx];

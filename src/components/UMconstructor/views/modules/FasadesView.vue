@@ -136,8 +136,17 @@ const openFasadeSelector = (
 
   if (isOpenHandleSelector.value) closeMenu();
 
+  const productId = UMconstructor.value.MODEL_STATE.getCurrentModel.userData.PROPS.PRODUCT;
+  const exeptModel = UMconstructor.value.MODEL_STATE._FASADE_EXCEPTIONS[productId]
+
   /** @Создание_данных_для_выбранного_фасада */
-  createFacadeData(row === null ? undefined : row);
+  if(exeptModel){
+     createFacadeData(cell);
+    console.log(UMconstructor.value.UM_STORE.getUMGrid(), "productId", cell, row)
+  }
+  else{
+      createFacadeData(row === null ? undefined : row);
+  }
 
   if (
     currentFasadeMaterial.value &&

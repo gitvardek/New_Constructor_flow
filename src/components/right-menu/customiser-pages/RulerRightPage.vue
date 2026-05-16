@@ -6,6 +6,7 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useConversationActions } from "../actions/useConversationActions";
 import { useOptions } from "./RailsRightPage/useOptions";
+import { useExpressions } from "../../../utils/useExpressions";
 
 import { IFillingConfig } from "@/types/interfases";
 import { _URL } from "@/types/constants";
@@ -48,6 +49,7 @@ const modelState = useModelState();
 const eventBus = useEventBus();
 const { resetGlobal } = useOptions();
 const { onRsizeConversations, onResizeMillingCheck } = useConversationActions();
+const { expressionsReplace, calculateFromString } = useExpressions();
 
 const joinDepthResizeData = ref({
   width: 0,
@@ -242,7 +244,7 @@ const resizeModel = (value: object) => {
 
 const checkFillingConditions = (data, size) => {
   const { width, height, depth } = size;
-  const extensionsPrepare = modelState.expressionsReplace(
+  const extensionsPrepare = expressionsReplace(
     modelState._FILLING[data].CONDITIONS,
     {
       "#Y#": height,
@@ -251,7 +253,7 @@ const checkFillingConditions = (data, size) => {
     },
   );
 
-  return modelState.calculateFromString(extensionsPrepare);
+  return calculateFromString(extensionsPrepare);
 };
 
 onBeforeMount(() => {
@@ -445,7 +447,7 @@ watch(
   border: 1px solid $stroke;
   border-radius: 15px;
   &__title {
-    font-size: 18px;
+    font-size: 1.8rem;
     font-weight: 600;
   }
   &__refactor {
@@ -505,7 +507,7 @@ watch(
     border: none;
     border-radius: 15px;
 
-    font-size: 16px;
+    font-size: 1.6rem;
     font-weight: 600;
     font-size: small;
 

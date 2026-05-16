@@ -128,12 +128,12 @@
       letter-spacing: 0%;
       vertical-align: middle;
       &-title {
-        font-size: 32px;
+        font-size: 3.2rem;
         margin-top: 1rem;
         margin-bottom: 20px;
       }
       &-name {
-        font-size: 16px;
+        font-size: 1.4rem;
 
       }
     }
@@ -228,7 +228,7 @@
     display: flex;
     justify-content: center;
     gap: 8px;
-    font-size: 26px;
+    font-size: 2.6rem;
     font-weight: 500;
     color: #fFf;
   }

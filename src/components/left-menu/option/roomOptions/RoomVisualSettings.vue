@@ -113,6 +113,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   border: 1px solid $dark-grey;
   border-radius: 15px;
   background-color:$white ;
+  font-size: 1.4rem;
 
   &__contant {
     display: flex;
@@ -158,7 +159,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
 }
 
 .label__text {
-  font-size: 15px;
+  font-size: 1.5rem;
   font-weight: 600;
   color: $strong-grey;
 }

@@ -49,8 +49,6 @@ export class FasadeBuilder {
     additiveMiddleHeight: number = 532
 
 
-
-
     constructor(parent: THREETypes.TBuildProduct) {
         this.parent = parent
         // this.modelState = parent.root._builderContext.modelState
@@ -228,7 +226,7 @@ export class FasadeBuilder {
 
             // Подготовка данных до создания меша
             const curFasadeList = this.parent.modelState.createFlatFasadeData({
-                data: currentProduct.FACADE, fasadeNdx: key, def: true
+                data: currentProduct.FACADE, fasadeNdx: key, def: true, productId: PRODUCT, fasadeCount: FASADE_PROPS.length
             });
             fasadeData.COLOR = curFasadeList.includes(color) ? color : 7397;
             fasadeData.SHOW = curBodyExceptions ? true : fasadeData.COLOR !== 7397;
@@ -388,10 +386,19 @@ export class FasadeBuilder {
 
         // Подготовка данных фасада
         const curFasadeList = this.parent.modelState.createFlatFasadeData({
-            data: currentProduct.FACADE, fasadeNdx, def: true
+            data: currentProduct.FACADE,
+            fasadeNdx,
+            def: true,
+            productId: PRODUCT,
+            fasadeCount: FASADE_PROPS.length
         });
+
+        console.log('curFasadeList', curFasadeList.includes(color))
+
         fasadeData.COLOR = curFasadeList.includes(color) ? color : 7397;
         fasadeData.SHOW = curBodyExceptions ? true : fasadeData.COLOR !== 7397;
+
+        console.log(fasadeData.COLOR, ' fasadeData.COLOR')
 
         if (fasadeData.SHOW && haveShowcase && !fasadeData.ALUM) {
             fasadeData.SHOWCASE = fasadeData.SHOWCASE ?? SHOWCASE[0] ?? deffShowcase;
@@ -479,7 +486,119 @@ export class FasadeBuilder {
         this.uniformeTextureStartData = [];
 
         this.checkFasadeOptions(OPTIONS, FASADE, FASADE_DEFAULT)
+
+        console.log(fasadeData, 'AFTER')
     }
+
+    // ---------------------------------------------------------------------------
+    // Public: применение изменений поверхности одного фасада (вызывается из Events)
+    // ---------------------------------------------------------------------------
+
+    public applyFasadeChange({
+        data,
+        fasadeNdx,
+        fasadeProp,
+        fasade,
+        fasadeDefault,
+        incomingModel,
+        CONFIG,
+    }: {
+        data: any,
+        fasadeNdx: number,
+        fasadeProp: any,
+        fasade: THREE.Object3D,
+        fasadeDefault: THREE.Object3D,
+        incomingModel: any,
+        CONFIG: any,
+    }): void {
+        this._tryApplyShowcaseChange(CONFIG, fasadeProp, fasadeNdx, incomingModel, fasade, fasadeDefault);
+        if (this._tryApplyPalette(data, fasadeProp, fasade)) return;
+        if (this._tryApplyTexture(data, fasade, fasadeProp)) return;
+        this._tryApplyAlumColor(data, fasade, fasadeProp);
+    }
+
+    private _tryApplyShowcaseChange(
+        CONFIG: any,
+        fasadeProp: any,
+        fasadeNdx: number,
+        incomingModel: any,
+        fasade: THREE.Object3D,
+        fasadeDefault: THREE.Object3D
+    ): void {
+        const { SHOWCASE, FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
+        const fasadeShowcase = FASADE_POSITIONS[fasadeNdx].SHOWCASE === 1;
+        const handleType = FASADE_PROPS[fasadeNdx].TYPE;
+        const { ALUM } = fasadeProp;
+        const fasadePosition = fasade.userData.trueSize;
+
+        const applyShowcase = (showcaseData: any, action?: any) => {
+            this.parent.showcase_builder.createShowcase({
+                fasade,
+                fasadePosition,
+                data: showcaseData,
+                defaultGeometry: fasadeDefault,
+                alum: ALUM,
+                curFasadeData: fasadeProp,
+                action,
+            });
+            FASADE_PROPS[fasadeNdx].SHOW = fasade.visible;
+            FASADE_PROPS[fasadeNdx].GLASS = FASADE_PROPS[fasadeNdx].GLASS ?? '76033';
+        };
+
+        if (incomingModel) {
+            const action = this.modelState.getCurrentFasadeTypesAction(handleType);
+            applyShowcase(incomingModel, action);
+        } else if (SHOWCASE.length > 0 && fasadeShowcase) {
+            applyShowcase(SHOWCASE[0]);
+        }
+    }
+
+    private _tryApplyPalette(data: any, fasadeProp: any, fasade: THREE.Object3D): boolean {
+        if (!data.PALETTE?.[0]) return false;
+        fasadeProp.COLOR = data.ID;
+        this.modelState.createCurrentPaletteData(data.ID);
+        const palette = Object.keys(this.modelState.getCurrentPaletteData)[0];
+        this.parent.palette_bulider.createPaletteColor({ fasade, data: palette, fasadeProps: fasadeProp });
+        return true;
+    }
+
+    private _tryApplyTexture(data: any, fasade: THREE.Object3D, fasadeProp: any): boolean {
+        const { COLOR: COLOR_ID } = fasadeProp
+        const { _FASADE } = this.modelState
+        const incomeData = _FASADE[COLOR_ID]
+
+
+        if (incomeData.COLOR) return false;
+        if (COLOR_ID === 7397) {
+            Object.assign(fasadeProp, { SHOW: false, COLOR: incomeData.ID, PALETTE: null });
+            fasade.userData.SHOW = fasade.visible;
+            return true;
+        }
+
+        fasade.visible = true;
+        fasade.traverse((child: THREE.Object3D) => {
+            if ((child.userData && child.userData.edge) || child.parent?.userData?.edge) return;
+            if (child instanceof THREE.Mesh) {
+                this.parent.changeColor({
+                    object: child,
+                    url: incomeData.TEXTURE,
+                    textureSize: { x: incomeData.TEXTURE_WIDTH, y: incomeData.TEXTURE_HEIGHT },
+                });
+                fasade.userData.backupMaterial = child.material;
+            }
+        });
+
+        Object.assign(fasadeProp, { SHOW: true, COLOR: incomeData.ID, PALETTE: null });
+        fasade.userData.SHOW = fasade.visible;
+        return true;
+    }
+
+    private _tryApplyAlumColor(data: any, fasade: THREE.Object3D, fasadeProp: any): void {
+        this.parent.alum_builder.createAlum({ fasade, data });
+        Object.assign(fasadeProp, { SHOW: fasade.visible, COLOR: data.ID, PALETTE: null });
+        fasade.userData.SHOW = fasade.visible;
+    }
+
 
     // ---------------------------------------------------------------------------
     // Остальные публичные методы

@@ -101,14 +101,14 @@ watch(
     gap: 10px;
 
     &__title {
-      font-size: 15px;
+      font-size: 1.5rem;
       font-weight: 500;
     }
   }
 }
 
 .color__title {
-  font-size: 18px;
+  font-size: 1.8rem;
   margin: 0;
 }
 </style>

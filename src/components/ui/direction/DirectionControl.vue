@@ -15,9 +15,8 @@ import MainButton from "../ui/buttons/MainButton.vue";
 import { FasadeTextAlignAction } from "@/types/types";
 import { useDerectionAction } from "./useDerectionAction";
 
-const derectionAction = useDerectionAction();
-const { getControlsData, setType, setHandlePosition, actions } =
-  derectionAction;
+const { getControlsData, setType, setHandlePosition, actions } = useDerectionAction()
+
 
 type TDirection = {
   btnShow: string;
@@ -31,6 +30,7 @@ type TDirection = {
 
 type TDirectionMap = {
   rotateMap: number[];
+  centerOnly:number[];
 };
 type TDirectionController = TDirection[];
 

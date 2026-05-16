@@ -1,10 +1,7 @@
-// import { useModelState } from "@/store/appliction/useModelState";
-// import { useEventBus } from "@/store/appliction/useEventBus";
-// import { useToast } from "@/features/toaster/useToast";
-// import { TFasadeGroupSize } from "@/store/appliction/useModelState";
-// import type { Object3D } from 'three'
-// import { TTotalProps, TFasadeItem, TFasadeTrueSizes, TFasadeConversation, TMillingRestrictItem, TConfig } from "@/types/types";
 
+type TFormula = {
+    'eco': (id: number, count: number) => boolean
+}
 
 export const useExpressions = () => {
 
@@ -31,9 +28,31 @@ export const useExpressions = () => {
         }
     }
 
+    const getException = (type: keyof TFormula) => {
+        const formulas: TFormula = {
+            eco: (id: number, count: number) => {
+                if (id === 0) return true;                      // всегда первый
+                if (count > 2 && id === count - 1) return true; // последний если > 2
+                if (count === 5 && id === 2) return true;       // средний только для 5
+                return false;
+            }
+        };
+
+        const key = type?.toLowerCase() as keyof TFormula;
+
+
+        if (!(key in formulas)) {
+            console.warn(`getException: unknown type "${type}"`);
+            return null;
+        }
+
+        return formulas[key];
+    };
+
     return {
         expressionsReplace,
-        calculateFromString
+        calculateFromString,
+        getException
     }
 
 }

@@ -436,7 +436,7 @@ onMounted(() => {
 
     &__title {
       font-weight: 600;
-      font-size: 32px;
+      font-size: 3.2rem;
       line-height: 100%;
       text-align: center;
     }
@@ -467,7 +467,7 @@ onMounted(() => {
       display: flex;
       flex-direction: row;
       gap: 1rem;
-      font-size: 18px;
+      font-size: 1.8rem;
       border-bottom: 2px solid;
       padding-bottom: 10px;
       margin-bottom: 10px;
@@ -478,7 +478,7 @@ onMounted(() => {
       }
 
       &-time {
-        font-size: 12px;
+        font-size: 1.2rem;
         opacity: 0.7;
         margin-top: 2px;
       }
@@ -512,14 +512,14 @@ onMounted(() => {
     }
 
     &-name {
-      font-size: 14px;
+      font-size: 1.4rem;
       font-weight: 500;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     &-size {
-      font-size: 12px;
+      font-size: 1.2rem;
       opacity: 0.7;
       margin-top: 2px;
     }
@@ -589,7 +589,7 @@ onMounted(() => {
     &__label {
       display: block;
       font-family: "Open Sans", "Arial", sans-serif;
-      font-size: 14px;
+      font-size: 1.4rem;
       line-height: 19px;
       letter-spacing: 0.04em;
       color: #8C8C8C;

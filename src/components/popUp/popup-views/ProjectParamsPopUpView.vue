@@ -87,7 +87,7 @@ const onCreate = async () => {
 
   &__label {
     display: block;
-    font-size: 16px;
+    font-size: 1.6rem;
     margin-bottom: 8px;
     color: $strong-grey;
     padding-right: 28px;
@@ -113,7 +113,7 @@ const onCreate = async () => {
   }
 
   &__field-label {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: $strong-grey;
   }
 
@@ -123,7 +123,7 @@ const onCreate = async () => {
     border: none;
     border-radius: 10px;
     background-color: $light-stroke;
-    font-size: 16px;
+    font-size: 1.6rem;
     outline: none;
     box-sizing: border-box;
   }
@@ -134,7 +134,7 @@ const onCreate = async () => {
     gap: 12px;
 
     .btn {
-      font-size: 16px;
+      font-size: 1.6rem;
       border: none;
       padding: 8px 16px;
       border-radius: 8px;

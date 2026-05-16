@@ -269,7 +269,7 @@ const onDrop = (event: DragEvent) => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 14px;
+  font-size: 1.4rem;
   font-weight: 500;
   color: #272727;
   line-height: 1;
@@ -292,7 +292,7 @@ const onDrop = (event: DragEvent) => {
   border-radius: 8px;
   background: #fff;
   color: #131313;
-  font-size: 14px;
+  font-size: 1.4rem;
   cursor: pointer;
   margin: 0;
 }
@@ -309,7 +309,7 @@ const onDrop = (event: DragEvent) => {
   justify-content: center;
   background: rgba(255, 255, 255, 0.7);
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 1.2rem;
   color: #4a90e2;
   pointer-events: none;
   z-index: 2;
@@ -318,19 +318,19 @@ const onDrop = (event: DragEvent) => {
 .order-file-field__hint {
   margin: 0;
   color: #5d6069;
-  font-size: 12px;
+  font-size: 1.2rem;
 }
 
 .order-file-field__error {
   margin: 0;
   color: #bf353d;
-  font-size: 12px;
+  font-size: 1.2rem;
 }
 
 .order-file-field__list {
   margin: 0;
   padding-left: 14px;
-  font-size: 11px;
+  font-size: 1.2rem;
   color: #272727;
 }
 
@@ -354,7 +354,7 @@ const onDrop = (event: DragEvent) => {
   background: #fff;
   padding: 3px 8px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 1.2rem;
   color: #131313;
   align-self: center;
   line-height: 1.1;

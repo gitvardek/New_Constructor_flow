@@ -399,7 +399,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
       width: 100%;
       &__title {
         font-weight: 600;
-        font-size: 32px;
+        font-size: 3.2rem;
         line-height: 100%;
         letter-spacing: 0%;
         text-align: center;
@@ -429,6 +429,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
       align-items: center;
       flex-wrap: wrap;
       gap: 20px;
+      font-size: 1.4rem;
       
       @media (max-width: 768px) {
         flex-direction: column-reverse;
@@ -614,7 +615,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
       border: none;
       border-radius: 20px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 1.4rem;
       transition: all 0.3s ease;
       
       &:hover {
@@ -636,8 +637,8 @@ watch(() => useBasketStore().basketData, (newValue) => {
     align-items: center;
 
     &__tab {
-      padding: 12px 24px;
-      font-size: 14px;
+      padding: 1.2rem 2.4rem;
+      font-size: 1.4rem;
       font-weight: 500;
       border: none;
       cursor: pointer;
@@ -675,6 +676,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
     align-items: center;
     gap: 20px;
     flex-wrap: wrap;
+    font-size: 1.4rem;
 
     @media (max-width: 768px) {
       flex-direction: column-reverse;
@@ -685,7 +687,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
   .order-footer__title {
     margin: 0 0 6px;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 1.4rem;
     color: #272727;
   }
 

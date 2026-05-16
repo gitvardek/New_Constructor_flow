@@ -183,7 +183,7 @@ watch(
   width: 100% !important;
   height: 50px;
   min-height: 50px;
-  font-size: 16px;
+  font-size: 1.6rem;
   padding: 0 32px;
   box-sizing: border-box;
   &.right-menu {

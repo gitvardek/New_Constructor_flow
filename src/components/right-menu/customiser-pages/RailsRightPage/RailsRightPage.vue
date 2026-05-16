@@ -84,7 +84,7 @@ onBeforeMount(() => {
 
   &__title {
     margin-right: 50px;
-    font-size: 18px;
+    font-size: 1.8rem;
     font-weight: 600;
     color: #a3a9b5;
   }

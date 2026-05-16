@@ -173,7 +173,7 @@ onMounted(() => {
     position: absolute;
     bottom: 2rem;
     margin: 0;
-    font-size: 1rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: #333;
     padding: 0.35rem 0.75rem;

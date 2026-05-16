@@ -199,7 +199,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="options-design">
+      <div class="options-design options-design--list">
         <h1 class="options__title">Товары</h1>
 
         <div class="goods-items" @click="openPopup('catalog')">
@@ -257,9 +257,9 @@ onUnmounted(() => {
             }"
             @click="showTechMenu(item.ID, item.PRODUCTS)"
           >
-            <S2DAppartSVG class="goods-item__image" />
+            <!-- <S2DAppartSVG class="goods-item__image" /> -->
             <p class="goods-item__title">{{ item.NAME }}</p>
-            <div class="radial-sphere"></div>
+            <!-- <div class="radial-sphere"></div> -->
           </div>
         </div>
       </div>
@@ -277,13 +277,6 @@ onUnmounted(() => {
         ref="roomOptionsRef"
       />
     </transition>
-
-    <div class="options__camera">
-      <h1 class="options__title">Позиция камеры</h1>
-      <div class="options__camera--container">
-        <DirectionControl @changeDirectionPos="changeCameraPos" />
-      </div>
-    </div>
   </section>
 </template>
 
@@ -293,7 +286,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 315px;
+  max-width: 29rem;
   height: 100%;
   border-right: 1px solid $light-stroke;
   background-color: $bg;
@@ -304,6 +297,10 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    &--list {
+      height: 100vh; /* или height: calc(100vh - высота_хедера) */
+      overflow: hidden;
+    }
   }
   &__title {
     margin-bottom: 10px;
@@ -349,11 +346,7 @@ onUnmounted(() => {
     position: relative;
     background: $bg;
     transform-style: preserve-3d;
-
-    // @media screen and (min-width: 1329px) {
-    //   padding: 10px 20px;
-    // }
-
+    overflow: hidden;
     .room {
       display: flex;
       gap: 15px;
@@ -374,11 +367,13 @@ onUnmounted(() => {
         box-shadow: 0px 0px 10px 0px #3030301a;
         z-index: 1;
         border-radius: 15px;
+    
 
         &__container {
           display: flex;
           flex-direction: column;
           gap: 15px;
+          font-size: 1.4rem;
 
           .room-select {
             display: flex;
@@ -411,7 +406,7 @@ onUnmounted(() => {
                 }
 
                 .label__text {
-                  font-size: 15px;
+                  font-size: 1.4rem;
                   font-weight: 600;
                   color: $strong-grey;
                 }
@@ -448,7 +443,7 @@ onUnmounted(() => {
                   }
 
                   .label__text {
-                    font-size: 15px;
+                    font-size: 1.4rem;
                     font-weight: 600;
                     color: $strong-grey;
                   }
@@ -503,7 +498,7 @@ onUnmounted(() => {
             gap: 10px;
 
             &__title {
-              font-size: 15px;
+              font-size: 1.4rem;
               font-weight: 500;
             }
           }
@@ -515,50 +510,15 @@ onUnmounted(() => {
       }
     }
   }
-  &__camera {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    padding: 0px 10px;
-    margin-bottom: auto;
-    background: $bg;
-
-    transition-property: opacity, filter;
-    transition-duration: 0.3s;
-    transition-timing-function: ease;
-
-    &--container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    @media screen and (min-width: 1329px) {
-      padding: 0 20px;
-    }
-  }
-}
-
-.icon {
-  font-size: var(--font);
-}
-
-.button {
-  &__rounded {
-    padding: var(--value);
-  }
 }
 
 .goods {
-  max-height: 30vh;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  flex: 1; /* занимает всё оставшееся место */
+  gap: 0.3rem;
   overflow-y: auto;
-
-  // @media screen and (min-width: 1329px) {
-  //   max-height: 30vh;
-  // }
+  min-height: 0;
 
   &-items {
     min-height: 48px;
@@ -571,6 +531,7 @@ onUnmounted(() => {
     transition: 0.15s ease-in-out;
 
     &__title {
+        font-size: 1.4rem;
       z-index: 5;
       transition: 0.15s;
     }
@@ -581,6 +542,7 @@ onUnmounted(() => {
 
     &.active {
       .goods-item__title {
+
         color: $white;
       }
 
@@ -592,44 +554,38 @@ onUnmounted(() => {
   }
 
   &-item {
-    min-height: 50px;
     position: relative;
     display: flex;
     align-items: center;
     gap: 25px;
-    padding: 0 15px;
+    padding: 1rem 1.5rem;
     cursor: pointer;
-    transition: 0.15s ease-in-out;
+    transition: 0.25s ease;
+    background-color: $bg;
+    border-radius: 4rem;
+
+    @media (hover: hover) {
+      &:hover {
+         background-color:$red;
+         color: $white;
+      }
+    }
+
+    &.active {
+       background-color:$red;
+      .goods-item__title {
+        color: $white;
+      }
+    }
 
     &__title {
+      font-size: 1.4rem;
       z-index: 5;
       transition: 0.15s;
     }
 
     &__image {
       z-index: 5;
-    }
-  }
-
-  .goods-item {
-    min-height: 50px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 25px;
-    padding: 0 15px;
-    cursor: pointer;
-    transition: 0.15s ease-in-out;
-
-    &.active {
-      .goods-item__title {
-        color: $white;
-      }
-
-      .radial-sphere {
-        max-width: 300px;
-        background: $red;
-      }
     }
   }
 }
@@ -676,5 +632,6 @@ onUnmounted(() => {
   border-radius: 15px;
   padding: 10px 15px;
   background-color: $stroke;
+  font-size: 1.4rem;
 }
 </style>

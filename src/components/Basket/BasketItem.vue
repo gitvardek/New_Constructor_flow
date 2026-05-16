@@ -519,91 +519,91 @@ const shouldShowPropValue = (key: string, propVal: any) => {
   return propDef && propDef.type && propDef.type !== "PRODUCT";
 };
 
-// const formatPropValue = (key: string, propVal: any, item: any) => {
-//   const propDef = getPropDefinition(key);
-//   console.log('propValpropVal', propVal);
-
-//   if (propDef && propDef.type === 'PRODUCTS') {
-//     if (propVal.ID) {
-//       return propVal.VALUE === null
-//         ? getProductInfo(propVal.ID).NAME
-//         : `${getProductInfo(propVal.ID).NAME} - поз. ${propVal.VALUE} мм.`;
-//     } else {
-//       return getProductInfo(propVal).NAME;
-//     }
-//   }
-
-//   if(item?.product.TYPE=== 'scene') {
-//     if (typeof propVal === 'object' && propVal !== null) {
-//       let getListValue = '';
-//       Object.entries(propVal).forEach(([key, value]) => {
-//         if (typeof value === 'object' && value !== null) {
-//           value = JSON.stringify(value);
-//         }
-//         getListValue += `<li><strong>${key}:</strong> ${value}</li>`;
-//       });
-
-//       const ul = document.createElement('ul');
-//       ul.innerHTML = getListValue;
-//       console.log(ul);
-//       return ul; // возвращаем DOM элемент
-//     }
-//     console.log('тип')
-
-//     return getTypeName(propDef?.type, propVal.COLOR);
-//   }
-//   return getTypeName(propDef?.type, propVal);
-// };
-
-const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
+const formatPropValue = (key: string, propVal: any, item: any) => {
   const propDef = getPropDefinition(key);
+  console.log('propValpropVal', propVal);
 
-  if (propDef && propDef.type === "PRODUCTS") {
+  if (propDef && propDef.type === 'PRODUCTS') {
     if (propVal.ID) {
       return propVal.VALUE === null
         ? getProductInfo(propVal.ID).NAME
-        : // : `${getProductInfo(propVal.ID).NAME} - поз. ${propVal.ADDITIVES} мм.`;
-          `${getProductInfo(propVal.ID).NAME}`;
+        : `${getProductInfo(propVal.ID).NAME} - поз. ${propVal.VALUE} мм.`;
     } else {
       return getProductInfo(propVal).NAME;
     }
   }
 
-  if (item?.product.TYPE === "scene") {
-    if (typeof propVal === "object" && propVal !== null) {
-      // Вместо создания DOM элемента, возвращаем HTML строку
-      let listValue = "";
-      const count = ++index;
+  if(item?.product.TYPE=== 'scene') {
+    if (typeof propVal === 'object' && propVal !== null) {
+      let getListValue = '';
       Object.entries(propVal).forEach(([key, value]) => {
-        if (typeof value === "object" && value !== null) {
+        if (typeof value === 'object' && value !== null) {
           value = JSON.stringify(value);
         }
-
-        if (
-          key !== "HANDLES" &&
-          getTypeName(key, value, item?.product.TYPE, index) &&
-          getPropLabel(key) &&
-          !isFeedbackProject
-        ) {
-          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE, index)}</li>`; // ${getTypeName(key, value)}
-        }
-        if (
-          key !== "HANDLES" &&
-          getTypeName(key, value, item?.product.TYPE) &&
-          getPropLabel(key) &&
-          isFeedbackProject
-        ) {
-          listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE, index)} ${getArticleByFasadId(propVal?.article)}</li>`; // ${getTypeName(key, value)}
-        }
+        getListValue += `<li><strong>${key}:</strong> ${value}</li>`;
       });
 
-      // Возвращаем HTML строку, а не DOM элемент
-      return `<ul>${listValue}</ul>`;
+      const ul = document.createElement('ul');
+      ul.innerHTML = getListValue;
+      console.log(ul);
+      return ul; // возвращаем DOM элемент
     }
-  }
+    console.log('тип')
 
+    return getTypeName(propDef?.type, propVal.COLOR);
+  }
   return getTypeName(propDef?.type, propVal);
 };
+
+// const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
+//   const propDef = getPropDefinition(key);
+
+//   if (propDef && propDef.type === "PRODUCTS") {
+//     if (propVal.ID) {
+//       return propVal.VALUE === null
+//         ? getProductInfo(propVal.ID).NAME
+//         : // : `${getProductInfo(propVal.ID).NAME} - поз. ${propVal.ADDITIVES} мм.`;
+//           `${getProductInfo(propVal.ID).NAME}`;
+//     } else {
+//       return getProductInfo(propVal).NAME;
+//     }
+//   }
+
+//   if (item?.product.TYPE === "scene") {
+//     if (typeof propVal === "object" && propVal !== null) {
+//       // Вместо создания DOM элемента, возвращаем HTML строку
+//       let listValue = "";
+//       const count = ++index;
+//       Object.entries(propVal).forEach(([key, value]) => {
+//         if (typeof value === "object" && value !== null) {
+//           value = JSON.stringify(value);
+//         }
+
+//         if (
+//           key !== "HANDLES" &&
+//           getTypeName(key, value, item?.product.TYPE, index) &&
+//           getPropLabel(key) &&
+//           !isFeedbackProject
+//         ) {
+//           listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE, index)}</li>`; // ${getTypeName(key, value)}
+//         }
+//         if (
+//           key !== "HANDLES" &&
+//           getTypeName(key, value, item?.product.TYPE) &&
+//           getPropLabel(key) &&
+//           isFeedbackProject
+//         ) {
+//           listValue += `<li>${getPropLabel(key)} ${index}: ${getTypeName(key, value, item?.product.TYPE, index)} ${getArticleByFasadId(propVal?.article)}</li>`; // ${getTypeName(key, value)}
+//         }
+//       });
+
+//       // Возвращаем HTML строку, а не DOM элемент
+//       return `<ul>${listValue}</ul>`;
+//     }
+//   }
+
+//   return getTypeName(propDef?.type, propVal);
+// };
 
 const getWidthFasadesToSIZESProp = () => {};
 
@@ -1170,7 +1170,7 @@ const renderDescription = (data) => {
 
   &__product h3 {
     color: #111b21;
-    font-size: 15px;
+    font-size: 1.4rem;
     margin-bottom: 4px;
   }
 
@@ -1179,7 +1179,7 @@ const renderDescription = (data) => {
     color: #111b21;
     &-lable {
       font-weight: 600;
-      font-size: 15px;
+      font-size: 1.4rem;
       line-height: 100%;
       letter-spacing: 0%;
       color: #a3a9b5 !important;
@@ -1204,7 +1204,7 @@ const renderDescription = (data) => {
     li {
       position: relative;
       margin-bottom: 4px;
-      font-size: 0.9rem;
+      font-size: 1.4rem;
       font-weight: 600;
       line-height: 100%;
       letter-spacing: 0%;
@@ -1242,7 +1242,7 @@ const renderDescription = (data) => {
       border: 1px solid #ecebf1;
       font-weight: 500;
       font-style: Medium;
-      font-size: 15px;
+      font-size: 1.4rem;
       line-height: 100%;
       letter-spacing: 0%;
       vertical-align: middle;
@@ -1258,7 +1258,7 @@ const renderDescription = (data) => {
   &__price {
     font-weight: 500;
     font-style: Medium;
-    font-size: 15px;
+    font-size: 1.4rem;
     line-height: 100%;
     letter-spacing: 0%;
     vertical-align: middle;

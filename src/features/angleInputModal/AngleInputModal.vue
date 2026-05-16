@@ -106,7 +106,7 @@ onUnmounted(() => {
   padding: 12px;
 
   &__title {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: #212121;
     margin-bottom: 8px;
   }
@@ -117,7 +117,7 @@ onUnmounted(() => {
     border: 1px solid #d6d6d6;
     border-radius: 6px;
     padding: 8px 10px;
-    font-size: 14px;
+    font-size: 1.4rem;
     margin-bottom: 10px;
 
     &:disabled {
@@ -138,7 +138,7 @@ onUnmounted(() => {
     border-radius: 6px;
     padding: 6px 10px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1.4rem;
 
     &--apply {
       border-color: #4285f4;

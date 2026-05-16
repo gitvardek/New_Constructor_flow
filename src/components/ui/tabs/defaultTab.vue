@@ -86,7 +86,7 @@ defineExpose({
 button {
   border: none;
   border-radius: 15px;
-  font-size: 16px;
+  font-size: 1.6rem;
   padding: 10px 20px;
   min-width: 60px;
   font-weight: 600;

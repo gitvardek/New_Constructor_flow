@@ -262,6 +262,7 @@ const getMaterialsList = () => {
 };
 
 const createFacadeData = (fasadeIndex) => {
+
   const productId = modelState.getCurrentModel.userData.PROPS.PRODUCT;
   const { FACADE } = modelState._PRODUCTS[productId];
   modelState.createCurrentModelFasadesData({

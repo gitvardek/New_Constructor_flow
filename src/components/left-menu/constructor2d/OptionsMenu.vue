@@ -1,44 +1,39 @@
 <script setup lang="ts">
 //@ts-nocheck
-import { 
-  ref,
-  computed,
-  onMounted,
-  onUnmounted
-} from 'vue'
+import { ref, computed, onMounted, onUnmounted } from "vue";
 // import { MathUtils } from "three";
 import S2DAppartSVG from "@/components/ui/svg/left-menu/S2DAppartSVG.vue";
 import RoomPlaneSVG from "@/components/ui/svg/left-menu/RoomPlaneSVG.vue";
 
 import { useC2DLeftMenuStore } from "@/store/constructor2d/store/useLeftMenuStore";
-import { catalogSections } from '@/store/constructor2d/data/useCatalogSectionsData';
+import { catalogSections } from "@/store/constructor2d/data/useCatalogSectionsData";
 
-import RoomManager from '../roomManager/RoomManager.vue';
-import RoomList from '../option/roomOptions/RoomList.vue';
+import RoomManager from "../roomManager/RoomManager.vue";
+import RoomList from "../option/roomOptions/RoomList.vue";
 
 import { usePopupStore } from "@/store/appStore/popUpsStore";
-import CatalogSVG from '@/components/ui/svg/CatalogSVG.vue';
+import CatalogSVG from "@/components/ui/svg/CatalogSVG.vue";
 
-import ClosePopUpButton from '@/components/ui/svg/ClosePopUpButton.vue';
+import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 
-import { useRoomState } from '@/store/appliction/useRoomState';
-import { useSchemeTransition } from '@/store/canvasMerge/schemeTransition';
-import { useConstructor2DHistory } from '@/store/constructor2d/useConstructor2DHistory';
-import { nextTick } from 'vue';
+import { useRoomState } from "@/store/appliction/useRoomState";
+import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
+import { useConstructor2DHistory } from "@/store/constructor2d/useConstructor2DHistory";
+import { nextTick } from "vue";
 
-import { storeToRefs } from 'pinia';
+import { storeToRefs } from "pinia";
 
 const roomState = useRoomState();
 const schemeTransition = useSchemeTransition();
 const constructor2DHistory = useConstructor2DHistory();
 const { getRooms, getRoomId } = storeToRefs(roomState);
-  
+
 const popupStore = usePopupStore();
 
 const deleteRoom = (value: number) => {
   roomState.removeRoom(value);
   // Синхронизируем список комнат в schemeTransition
-  roomState.routConvertData('/2d');
+  roomState.routConvertData("/2d");
   const c2d = window.C2D;
   if (c2d?.layers?.planner && c2d?.layers?.doorsAndWindows) {
     c2d.layers.planner.init(true);
@@ -54,7 +49,7 @@ const deleteRoom = (value: number) => {
 };
 
 const toggleRoomParams = () => {
-  popupStore.openPopup('roomParams');
+  popupStore.openPopup("roomParams");
 };
 
 const constructor2dMenu = useC2DLeftMenuStore();
@@ -67,11 +62,11 @@ const roomsList = computed(() => getRooms.value || []);
 const currentRoomId = computed(() => getRoomId.value);
 // Получаем секции "Двери" и "Окна"
 const doorSection = computed(() => {
-  return catalogSections.find((el) => el.nameMode === 'door');
+  return catalogSections.find((el) => el.nameMode === "door");
 });
 
 const windowSection = computed(() => {
-  return catalogSections.find((el) => el.nameMode === 'window');
+  return catalogSections.find((el) => el.nameMode === "window");
 });
 
 // Объединяем товары из обеих секций
@@ -87,27 +82,30 @@ const doorsAndWindowsGoods = computed(() => {
 });
 
 let img = new Image();
-img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+img.src =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=";
 
 // Функция для обработки кликов по элементам товаров
 let handleGoodClick = (event: Event) => {
-  const target = (event.target as HTMLElement).closest('.goods-item'); // Ищем ближайший родительский .goods-item
+  const target = (event.target as HTMLElement).closest(".goods-item"); // Ищем ближайший родительский .goods-item
   if (target) {
     const id = target.dataset.id;
 
     menuItemActive.value = menuItemActive.value === id ? null : id;
     goodItemActive.value = null;
 
-    const activeSection = catalogSections.find((el) => el.id === menuItemActive.value);
-    constructor2dMenu.setInteractionMode(activeSection?.nameMode || '');
+    const activeSection = catalogSections.find(
+      (el) => el.id === menuItemActive.value,
+    );
+    constructor2dMenu.setInteractionMode(activeSection?.nameMode || "");
   }
 };
 
 let goodItemDrag = (e: DragEvent): void => {
-  const target = (e.target as HTMLElement).closest('.goods-list-item__icon'); // Ищем ближайший родительский .goods-list-item__icon
-  if(target){
+  const target = (e.target as HTMLElement).closest(".goods-list-item__icon"); // Ищем ближайший родительский .goods-list-item__icon
+  if (target) {
     const id = target.dataset.id;
-    
+
     // Ищем товар во всех секциях каталога по id
     let item = null;
     for (const section of catalogSections) {
@@ -119,44 +117,43 @@ let goodItemDrag = (e: DragEvent): void => {
       // Если товар найден, выполняются следующие действия:
       // Устанавливаем идентификатор текущего активного товара.
       goodItemActive.value = id;
-      
+
       // Находим секцию, к которой принадлежит товар
-      const section = catalogSections.find(s => s.goods?.some(g => g.id === id));
-      
+      const section = catalogSections.find((s) =>
+        s.goods?.some((g) => g.id === id),
+      );
+
       // Устанавливаем режим взаимодействия для секции
       if (section) {
         constructor2dMenu.setInteractionMode(section.nameMode);
       }
-      
+
       // Вызываем метод `setGoodActive`, чтобы отметить товар активным в меню конструктора.
       constructor2dMenu.setGoodActive(item.nameMode);
-      
+
       // Настраиваем данные для перетаскивания (drag-and-drop).
-      e.dataTransfer?.setData('good', item.nameMode); // Передаём имя модели товара.
+      e.dataTransfer?.setData("good", item.nameMode); // Передаём имя модели товара.
       e.dataTransfer.setDragImage(img, 0, 0);
     }
   }
-}
+};
 
 // если добавляется компонент в DOM
 onMounted(() => {
-  console.log('BACKBACKBACKBACK')
-  document.addEventListener('click', handleGoodClick);
-  document.addEventListener('dragstart', goodItemDrag);
-  
+  console.log("BACKBACKBACKBACK");
+  document.addEventListener("click", handleGoodClick);
+  document.addEventListener("dragstart", goodItemDrag);
 });
 
 // если удаляется компонент из DOM
 onUnmounted(() => {
-
-  document.removeEventListener('click', handleGoodClick);
-  document.removeEventListener('dragstart', goodItemDrag);
+  document.removeEventListener("click", handleGoodClick);
+  document.removeEventListener("dragstart", goodItemDrag);
   handleGoodClick = null;
   goodItemDrag = null;
   img = null;
-  constructor2dMenu.setInteractionMode(''); // Сброс режима взаимодействия
-  constructor2dMenu.setGoodActive(''); // Сброс активного товара
-  
+  constructor2dMenu.setInteractionMode(""); // Сброс режима взаимодействия
+  constructor2dMenu.setGoodActive(""); // Сброс активного товара
 });
 
 const openPopup = (popupName: keyof typeof popupStore.popups) => {
@@ -167,10 +164,10 @@ const openPopup = (popupName: keyof typeof popupStore.popups) => {
 const switchRoom = async (roomId: string | number) => {
   // Устанавливаем выбранную комнату как текущую активную
   roomState.setCurrentRoomId(roomId);
-  
+
   // Ждем обновления состояния
   await nextTick();
-  
+
   // Переинициализируем Planner и DoorsAndWindows с новой комнатой
   const c2d = window.C2D;
   if (c2d?.layers) {
@@ -179,16 +176,13 @@ const switchRoom = async (roomId: string | number) => {
     // Очищаем активные точки стен (синие точки с углом)
     c2d.layers.startPointActiveObject?.activate(false);
     c2d.layers.arrowRulerActiveObject?.clearGraphic();
-    
+
     if (c2d.layers.planner && c2d.layers.doorsAndWindows) {
       c2d.layers.planner.init(true);
       c2d.layers.doorsAndWindows.init(true);
     }
   }
-  
 };
-
-
 </script>
 
 <template>
@@ -197,10 +191,7 @@ const switchRoom = async (roomId: string | number) => {
       <div class="options-design">
         <h1 class="options__title">Проектирование</h1>
         <div class="goods">
-          <div
-            class="goods-item"
-            @click="toggleRoomParams"
-          >
+          <div class="goods-item" @click="toggleRoomParams">
             <S2DAppartSVG class="goods-item__image" />
             <p class="goods-item__title">Параметры помещения</p>
             <div class="radial-sphere"></div>
@@ -217,16 +208,21 @@ const switchRoom = async (roomId: string | number) => {
         </div> -->
         <!-- Отображаем содержимое вкладок Двери и Окна -->
         <div class="goods-list">
-          <div 
-            class="goods-list-item" 
-            v-for="(gItem, i) in doorsAndWindowsGoods" 
-            :key="gItem.id || i">
-            <div 
-              class="goods-list-item__icon" 
+          <div
+            class="goods-list-item"
+            v-for="(gItem, i) in doorsAndWindowsGoods"
+            :key="gItem.id || i"
+          >
+            <div
+              class="goods-list-item__icon"
               :class="gItem.id === goodItemActive ? 'active' : ''"
-              draggable="true" 
-              :data-id="gItem.id">
-              <img v-if="gItem.icon !== ''" :src="`/dev_modeller/images/${gItem.icon}`">
+              draggable="true"
+              :data-id="gItem.id"
+            >
+              <img
+                v-if="gItem.icon !== ''"
+                :src="`/dev_modeller/images/${gItem.icon}`"
+              />
             </div>
             <p>{{ gItem.name }}</p>
           </div>
@@ -246,10 +242,10 @@ const switchRoom = async (roomId: string | number) => {
   transform-style: preserve-3d;
   z-index: 1;
   -webkit-user-select: none; /* Safari и старые версии Chrome */
-  -moz-user-select: none;    /* Firefox */
-  -ms-user-select: none;     /* Internet Explorer 10+ */
-  user-select: none;  
-  
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer 10+ */
+  user-select: none;
+
   &__container {
     display: flex;
     flex-direction: column;
@@ -260,7 +256,7 @@ const switchRoom = async (roomId: string | number) => {
     // transform-style: preserve-3d;
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 0;
@@ -349,6 +345,7 @@ const switchRoom = async (roomId: string | number) => {
           &__title {
             z-index: 5;
             transition: 0.15s;
+            font-size: 1.4rem;
           }
 
           &__image {
@@ -378,7 +375,7 @@ const switchRoom = async (roomId: string | number) => {
               max-width: 300px;
               background: $red;
             }
-            
+
             .goods-item__image {
               svg {
                 path {
@@ -386,9 +383,7 @@ const switchRoom = async (roomId: string | number) => {
                 }
               }
             }
-            
           }
-          
         }
       }
 
@@ -400,7 +395,7 @@ const switchRoom = async (roomId: string | number) => {
         padding-top: 0px;
         gap: 8px;
 
-        &-item{
+        &-item {
           margin-right: 4px;
           margin-bottom: 4px;
           display: flex;
@@ -408,10 +403,10 @@ const switchRoom = async (roomId: string | number) => {
           align-items: center;
           gap: 5px;
 
-          &__icon{
+          &__icon {
             width: 120px;
             height: 120px;
-            border: 1px solid #A3A9B5;
+            border: 1px solid #a3a9b5;
             border-radius: 10px;
             background-color: #ffffff;
             overflow: hidden;
@@ -424,16 +419,16 @@ const switchRoom = async (roomId: string | number) => {
             }
           }
 
-          &__icon.active{
-            border: 1px solid #DA444C;
+          &__icon.active {
+            border: 1px solid #da444c;
           }
 
-          &:hover{
+          &:hover {
             cursor: pointer;
           }
 
           p {
-            font-size: 12px;
+            font-size: 1.2rem;
             text-align: center;
             margin: 0;
           }
@@ -444,8 +439,6 @@ const switchRoom = async (roomId: string | number) => {
         }
       }
     }
-
-
 
     .room {
       display: flex;
@@ -522,46 +515,46 @@ const switchRoom = async (roomId: string | number) => {
 }
 
 .project-item {
-        width: 100%;
-        max-width: 200px;
-        height: 200px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-direction: column;
-        border-radius: 16px;
-        background-color: $bg;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: 2px solid transparent;
+  width: 100%;
+  max-width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: column;
+  border-radius: 16px;
+  background-color: $bg;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
 
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
-        &.active {
-          border-color: $red;
-          box-shadow: 0 4px 12px $red;
-        }
+  &.active {
+    border-color: $red;
+    box-shadow: 0 4px 12px $red;
+  }
 
-        .item__image {
-          margin: 0;
-          width: 100%;
-          height: 200px;
-          object-fit: cover;
-        }
+  .item__image {
+    margin: 0;
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
 
-        .item-info {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 3px 10px;
-          box-sizing: border-box;
-        }
-      }
+  .item-info {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 10px;
+    box-sizing: border-box;
+  }
+}
 
 .info-id {
   width: 100%;
@@ -583,5 +576,4 @@ const switchRoom = async (roomId: string | number) => {
   flex-shrink: 0;
   cursor: pointer;
 }
-
 </style>

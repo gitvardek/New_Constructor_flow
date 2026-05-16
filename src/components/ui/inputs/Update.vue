@@ -73,7 +73,7 @@
   
     &__label {
       display: block;
-      font-size: 16px;
+      font-size: 1.6rem;
       margin-bottom: 8px;
       color: $strong-grey;
     }
@@ -89,7 +89,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 16px;
+      font-size: 1.6rem;
       color: $strong-grey;
     }
   
@@ -99,7 +99,7 @@
       gap: 12px;
   
       .btn {
-        font-size: 16px;
+        font-size: 1.6rem;
         border: none;
         padding: 8px 16px;
         border-radius: 8px;

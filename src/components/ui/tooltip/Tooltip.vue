@@ -96,7 +96,7 @@ $arrow-size: 6px;
   color: $light-text;
   padding: 8px 12px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 1.4rem;
   white-space: nowrap;
   z-index: 1000;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);

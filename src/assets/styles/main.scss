@@ -12,6 +12,7 @@ body,
   padding: 0;
   overflow: hidden;
   font-family: "Gilroy";
+  font-size:  calc(62.5%)
 }
 
 body {
@@ -46,14 +47,20 @@ button {
 button {
   outline: none;
   cursor: pointer;
+  font-size: 1.4rem;
   &:focus {
     outline: none;
   }
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 1.8rem;
   font-weight: 600;
+}
+
+h3{
+   font-size: 1.6rem;
+    font-weight: 600;
 }
 
 input {
@@ -207,6 +214,8 @@ p {
     }
   }
 }
+
+
 
 .button {
   &__rounded {
@@ -362,6 +371,10 @@ p {
       }
     }
   }
+}
+
+.toast{
+  font-size: 1.4rem;
 }
 
 ::-webkit-scrollbar {

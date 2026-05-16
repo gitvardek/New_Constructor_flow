@@ -62,7 +62,7 @@ const {
   MIN_SECTION_WIDTH,
   MIN_SECTION_HEIGHT,
   SECTOR_PADDING,
-  PART_MIN_SIZE
+  PART_MIN_SIZE,
 } = CUTTER_PARAMS;
 
 let shapeAdjuster = null;
@@ -200,7 +200,8 @@ const addVerticalCut = (colIndex) => {
   const column = grid.value[colIndex];
   const halfWidth = column[0].width / 2;
 
-  if (halfWidth < PART_MIN_SIZE || !((column[0].width / 2) % step.value == 0)) return;
+  if (halfWidth < PART_MIN_SIZE || !((column[0].width / 2) % step.value == 0))
+    return;
 
   // Обновляем ширину текущей колонки
   column.forEach((row) => {
@@ -731,7 +732,8 @@ const updateRoundCutDiameter = (value, colIndex, rowIndex) => {
 
   const prevValue = row.roundCut.radius;
   let newValue = parseInt(value);
-  newValue = newValue > 600 ? 600 : newValue < PART_MIN_SIZE ? PART_MIN_SIZE : newValue;
+  newValue =
+    newValue > 600 ? 600 : newValue < PART_MIN_SIZE ? PART_MIN_SIZE : newValue;
 
   const shapeData = {
     radius: newValue,
@@ -766,7 +768,8 @@ const updateHole = (event, key, type, holeType) => {
 
   // let newValue = parseInt(event.target.value);
   let newValue = parseInt(event);
-  newValue = newValue > 600 ? 600 : newValue < PART_MIN_SIZE ? PART_MIN_SIZE : newValue;
+  newValue =
+    newValue > 600 ? 600 : newValue < PART_MIN_SIZE ? PART_MIN_SIZE : newValue;
 
   const holeData = JSON.parse(JSON.stringify(currenthole));
   holeData[type] = newValue;
@@ -1092,6 +1095,10 @@ const saveGrid = () => {
   return data;
 };
 
+const isCuterMax = computed(() => ({
+    'disabled': grid.value.length >= 4 
+}));
+
 defineExpose({
   saveGrid,
 });
@@ -1358,11 +1365,12 @@ onBeforeUnmount(() => {
               <article class="actions-items actions-items--right">
                 <div class="actions-items--right-items">
                   <button
-                    class="actions-btn actions-btn--default"
+                    :class="['actions-btn actions-btn--default', isCuterMax]"
                     @click="addVerticalCut(colIndex)"
                   >
                     Верт.распил
                   </button>
+
 
                   <!-------------------------- @НА ДАННЫЙ МОМЕНТ НЕТ ЦЕНООБРАЗОВАНИЯ ------------------------>
 
@@ -1729,7 +1737,7 @@ onBeforeUnmount(() => {
   }
 
   &-title {
-    font-size: 1rem;
+    font-size: 1.4rem;
     color: #a3a9b5;
 
     // &--part {
@@ -1746,14 +1754,14 @@ onBeforeUnmount(() => {
   }
 
   &-input {
-    padding: 0.5rem 1rem;
+    padding: 0.8rem 1.6rem;
     width: 100%;
     max-width: 125px;
     border: none;
     border-radius: 15px;
     background-color: #ecebf1;
     color: #6d6e73;
-    font-size: 1rem;
+    font-size: 1.4rem;
     font-weight: 600;
 
     &:focus {
@@ -1772,7 +1780,7 @@ onBeforeUnmount(() => {
         transform: translate(0, -50%);
         pointer-events: none;
         z-index: 0;
-        font-size: 0.75rem;
+        font-size: 1.2rem;
         font-weight: 600;
         color: #6d6e73;
       }
@@ -1785,7 +1793,7 @@ onBeforeUnmount(() => {
     border-radius: 15px;
     background-color: #ffffff;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 1.2rem;
     font-weight: bold;
     color: #5d6069;
     outline: none;
@@ -1825,6 +1833,10 @@ onBeforeUnmount(() => {
           background-color: #da444c;
         }
       }
+    }
+    &.disabled{
+      pointer-events: none;
+      background-color: $light-stroke;
     }
   }
 
@@ -1890,6 +1902,7 @@ onBeforeUnmount(() => {
     max-width: 25vw;
     z-index: 1;
     right: 5rem;
+    font-size: 1.4rem;
   }
 }
 .control-checkbox {

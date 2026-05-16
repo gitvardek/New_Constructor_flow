@@ -322,7 +322,7 @@ onMounted(() => {
 
     &__title {
       font-weight: 600;
-      font-size: 30px;
+      font-size: 3.0rem;
       line-height: 100%;
       text-align: center;
     }
@@ -406,7 +406,7 @@ onMounted(() => {
       &__label {
         display: block;
         font-family: "Open Sans", "Arial", sans-serif;
-        font-size: 14px;
+        font-size: 1.4rem;
         line-height: 19px;
         letter-spacing: 0.04em;
         color: #8C8C8C;

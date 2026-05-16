@@ -9,6 +9,7 @@ import { MILLINGS, additionalMillingKeys, MILLING_HANDLE_KEYS, INTEGRATE_HANDE_E
 import { number } from "yup";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useExpressions } from "@/utils/useExpressions";
 
 export type TFasadeGroupSize = {
 
@@ -72,8 +73,9 @@ export type TMillingListItem = {
 
 const UM_store = useUMStorage()
 export const useModelState = defineStore('ModelState', () => {
+    const { getException } = useExpressions();
 
-    const appStore = useAppData()
+    const appStore = useAppData();
     const _APP = computed(() => appStore.getAppData || {})
 
     const _COLOR = computed(() => _APP.value.COLOR || [])
@@ -99,6 +101,7 @@ export const useModelState = defineStore('ModelState', () => {
     const _HANDLES = computed(() => _APP.value.HANDLES || [])
     const _HEM = computed(() => _APP.value.HEM || [])
     const _WALL = computed(() => _APP.value.WALL || [])
+    const _FASADE_EXCEPTIONS = computed(() => _APP.value.FASADE_EXCEPTIONS || [])
 
     // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 
@@ -132,7 +135,7 @@ export const useModelState = defineStore('ModelState', () => {
     const transformControls = ref<boolean>(false)
     const transformControlsName = ref<string>("Позиционирование")
     const transformControlSnapAngles = ref<number[]>([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
-    const currentControlSnapAngle = ref<number>(1)
+    const currentControlSnapAngle = ref<number>(45)
 
     const setCurrentModel = (object: THREE.Object3D | any) => {
 
@@ -361,15 +364,18 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** ------- Работа с фасадами -------- */
 
-    const createCurrentModelFasadesData = ({ data, def, fasadeNdx, productId }: { data: number[], def?: boolean, fasadeNdx?: number, productId?: number }) => {
-        const defaultFasade = def ?? false
+    const createCurrentModelFasadesData = ({ data, def, fasadeNdx, fasadeCount, productId }: { data: number[], def?: boolean, fasadeNdx?: number, fasadeCount?: number | boolean, productId?: number | boolean }) => {
+        clearCurrentModelFasadesData();
 
+        const defaultFasade = def ?? false
         const groupedFasades: Record<string, number> = {};
-        let exception = !defaultFasade ? 'Без фасада' : ''
+        let nonFasades = !defaultFasade ? 'Без фасада' : ''
+        const exception = _FASADE_EXCEPTIONS.value[productId]
         let haveShowCase = null;
 
+        console.trace()
 
-        if (fasadeNdx !== undefined && productId !== undefined) {
+        if (fasadeNdx !== undefined && productId) {
 
             let fasadePosData = null;
             const product = _PRODUCTS.value[productId]
@@ -443,21 +449,58 @@ export const useModelState = defineStore('ModelState', () => {
         }
 
 
-        ).filter(group => group.FASADES.length > 0 && group.NAME !== exception).sort((a, b) => a.SORT - b.SORT);
+        ).filter(group => group.FASADES.length > 0 && group.NAME !== nonFasades).sort((a, b) => a.SORT - b.SORT);
+
+        if (exception) {
+            const { fasade, type } = exception;
+            const key = type?.toLowerCase()
+            const fasadeIds = fasade.map(Number);
+            const formula = getException(key)
+
+            if (!formula) {
+                console.warn(`Unknown exception type: "${key}"`);
+            }
+
+            const handlers = {
+                eco: () => {
+                    return formula(fasadeNdx, fasadeCount);
+                }
+            };
+
+            const handler = handlers[key]();
+
+            const isFiltered = handler ? filterByFasadesArray(result, fasadeIds) : result
+
+            console.log(result, isFiltered, handler, fasadeNdx,  'OOOPPP')
+
+            currentModelFasadesData.value = isFiltered
+            return isFiltered
+        }
 
         if (defaultFasade) {
             return result
         }
 
+        console.log(result)
         currentModelFasadesData.value = result
     }
 
-    const createFlatFasadeData = ({ data, def, fasadeNdx }) => {
-        const list = createCurrentModelFasadesData({ data, def, fasadeNdx })
+    const createFlatFasadeData = ({ data, def, fasadeNdx, fasadeCount = false, productId = false }) => {
+        const list = createCurrentModelFasadesData({ data, def, fasadeNdx, productId, fasadeCount })
         const flated = list?.map(el => el.FASADES).flat()
         return flated
-
     }
+
+    const filterByFasadesArray = (arr: any[], numbers: number[]) => {
+        const numbersSet = new Set(numbers);
+        return arr
+            .map(item => ({
+                ...item,
+                FASADES: item.FASADES.filter((id: number) => !numbersSet.has(id))
+            }))
+            .filter(item => item.FASADES.length > 0);
+    };
+
 
     const clearCurrentModelFasadesData = () => {
         currentModelFasadesData.value = []
@@ -806,46 +849,6 @@ export const useModelState = defineStore('ModelState', () => {
 
     }
 
-
-    //================== helpers ==================
-
-    const expressionsReplace = (obj: any, expressions: THREETypes.TObject) => {
-
-        if (!expressions || !Object.keys(expressions).length) return obj;
-
-        let objStr: THREETypes.TObject | string | number = obj;
-
-        // Преобразуем объект в строку, если это объект
-        if (typeof obj == "object") {
-            objStr = JSON.stringify(obj);
-        }
-
-        // Заменяем выражения
-        Object.entries(expressions).forEach(([k, v]) => {
-            if (typeof objStr != "number") {
-                objStr = objStr.split(k).join(v);
-            }
-        });
-
-        // Возвращаем объект или строку
-        if (typeof obj == "object") {
-            return JSON.parse(objStr as string);
-        } else {
-            return objStr;
-        }
-    };
-
-    const calculateFromString = (expression) => {
-        try {
-            const func = new Function("return " + expression);
-            return func();
-        } catch (error) {
-            console.log(expression, '---"Недопустимое выражение!"')
-
-            return "Недопустимое выражение!";
-        }
-    }
-
     return {
         _APP,
         _FASADE,
@@ -863,6 +866,9 @@ export const useModelState = defineStore('ModelState', () => {
         _PALETTE,
         _PATINA,
         _WALL,
+        _FASADE_EXCEPTIONS,
+        _COLOR,
+
 
         getModels,
 
@@ -916,10 +922,6 @@ export const useModelState = defineStore('ModelState', () => {
 
         getOptions,
 
-
-        /** Helpers */
-        expressionsReplace,
-        calculateFromString
     }
 
 });

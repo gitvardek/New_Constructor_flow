@@ -111,7 +111,7 @@ const onApply = () => {
 
   &__label {
     display: block;
-    font-size: 16px;
+    font-size: 1.6rem;
     margin-bottom: 8px;
     color: $strong-grey;
     padding-right: 28px;
@@ -137,7 +137,7 @@ const onApply = () => {
   }
 
   &__field-label {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: $strong-grey;
   }
 
@@ -147,7 +147,7 @@ const onApply = () => {
     border: none;
     border-radius: 10px;
     background-color: $light-stroke;
-    font-size: 16px;
+    font-size: 1.6rem;
     outline: none;
     box-sizing: border-box;
   }
@@ -158,7 +158,7 @@ const onApply = () => {
     gap: 12px;
 
     .btn {
-      font-size: 16px;
+      font-size: 1.6rem;
       border: none;
       padding: 8px 16px;
       border-radius: 8px;

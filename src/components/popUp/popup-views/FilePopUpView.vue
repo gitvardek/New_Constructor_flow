@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
 
   &__title {
     font-weight: 600;
-    font-size: 20px;
+    font-size: 2.0rem;
     text-align: center;
     max-width: 70%;
     overflow: hidden;
@@ -194,12 +194,12 @@ onBeforeUnmount(() => {
   }
 
   &__loader {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: #666;
   }
 
   &__message {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: #555;
     text-align: center;
     padding: 10px 0;
@@ -233,7 +233,7 @@ onBeforeUnmount(() => {
     border-radius: 8px;
     background: #f6f6f6;
     font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
-    font-size: 13px;
+    font-size: 1.4rem;
     line-height: 1.4;
     overflow: auto;
     white-space: pre-wrap;

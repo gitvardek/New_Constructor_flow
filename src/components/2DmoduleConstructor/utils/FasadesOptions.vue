@@ -1505,7 +1505,7 @@ const closeMenu = () => {
       &-error-message {
         display: flex;
         align-items: center;
-        font-size: 16px;
+        font-size: 1.6rem;
         font-weight: 600;
         border: 1px solid #ecebf1;
         border-radius: 15px;
@@ -1573,7 +1573,7 @@ const closeMenu = () => {
         margin-right: 10px;
 
         &__title {
-          font-size: 18px;
+          font-size: 1.8rem;
           font-weight: 600;
 
           -webkit-user-select: none; /* Safari */
@@ -2021,7 +2021,7 @@ const closeMenu = () => {
       gap: 10px;
 
       &__title {
-        font-size: 15px;
+        font-size: 1.5rem;
         font-weight: 500;
 
         -webkit-user-select: none; /* Safari */

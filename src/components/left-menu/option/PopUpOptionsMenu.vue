@@ -187,8 +187,13 @@ onBeforeMount(()=>{
   box-shadow: 0px 0px 10px 0px #3030301a;
   z-index: -1;
   border-radius: 15px;
+  font-size: 1.4rem;
   // transition: 0.5s ease-in-out;
   // transform: translateZ(-10px);
+
+  &-isempty{
+    font-size: 1.4rem;
+  }
 
   &__container {
     max-height: 80vh;
@@ -214,7 +219,7 @@ onBeforeMount(()=>{
       transition-timing-function: ease;
 
       &__title {
-        font-size: 15px;
+        font-size: 1.4rem;
         font-weight: 500;
       }
       .popup-items-picture {
