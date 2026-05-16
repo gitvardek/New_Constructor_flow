@@ -224,7 +224,7 @@ watch(
       overflow-y: auto;
       &-wraper {
         max-height: calc(100% - 250px);
-        min-height: 30vw;
+        min-height: 50vh;
         overflow-y: auto;
       }
       &-servise {
