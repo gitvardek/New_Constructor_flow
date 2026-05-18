@@ -7,7 +7,7 @@ import Plinth from "./Plinth/Plinth.vue";
 
 import defaultTab from "@/components/ui/tabs/defaultTab.vue";
 import { Tab } from "@/components/ui/tabs/defaultTab.vue";
-import { useFigureRightPage, IFigureItems } from "./useFigureRightPage";
+import { useFigureRightPage, IFigureItems } from "../../../../utils/useFigureRightPage";
 
 interface ITabChangeParams {
   index: number;

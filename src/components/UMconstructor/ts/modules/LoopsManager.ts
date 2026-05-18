@@ -390,7 +390,7 @@ export default class LoopsManager {
         const sectionRight = grid.sections[secIndex + 1] || false;
         const isDoors = currSection.fasades?.length > 1
 
-        // console.log(segment, `${sectionLeft} лево`, `${sectionRight} право`, 'ИНДЕКС CEGMENT')
+        console.log(segment, `${sectionLeft} лево`, `${sectionRight} право`, 'ИНДЕКС CEGMENT')
 
         const productInfo = this.scope.APP.CATALOG.PRODUCTS[grid.productID];
 
@@ -430,6 +430,8 @@ export default class LoopsManager {
                 if (!section) return true;
                 if (section.fasades.length === 0) return true;
                 const fasades = section.fasades[0] as any[];
+                console.log(fasades)
+
                 const { loopsSide } = fasades[fasades.length - 1];
                 const loops = [...new Set(fasades.map(el => el.loopsSide))]
                 const hasCommon = loopsList.some(item => loops.includes(item));

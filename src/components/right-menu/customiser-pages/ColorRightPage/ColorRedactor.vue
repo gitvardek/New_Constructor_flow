@@ -110,6 +110,7 @@ const onSearchChange = (e) => {
   width: 95%;
   border-radius: 15px;
   padding: 10px 15px;
+  font-size: 1.4rem;
 }
 
 .list {

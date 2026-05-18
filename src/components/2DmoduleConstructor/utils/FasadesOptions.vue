@@ -20,7 +20,7 @@ import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import {TFasadeTrueSizes} from "@/types/types.ts";
 import {useConversationActions} from "@/components/right-menu/actions/useConversationActions.ts";
 import Handles from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/Handles.vue";
-import { useFigureRightPage, IFigureItems} from "@/components/right-menu/customiser-pages/FigureRightPage/useFigureRightPage.ts";
+import { useFigureRightPage, IFigureItems} from "@/utils/useFigureRightPage";
 
 const props = defineProps({
   module: {

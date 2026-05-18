@@ -192,9 +192,9 @@ onUnmounted(() => {
             :class="{ active: menuStore.openMenus == 'roomPar' }"
             @click="showRoomParMenu"
           >
-            <S2DAppartSVG class="goods-item__image" />
+            <!-- <S2DAppartSVG class="goods-item__image" /> -->
             <p class="goods-item__title">Параметры помещения</p>
-            <div class="radial-sphere"></div>
+            <!-- <div class="radial-sphere"></div> -->
           </div>
         </div>
       </div>
@@ -475,6 +475,7 @@ onUnmounted(() => {
         z-index: 1;
         border-radius: 15px;
         transition: 0.5s ease-in-out;
+        font-size: 1.4rem;
 
         .menu__close {
           position: absolute;
@@ -627,11 +628,11 @@ onUnmounted(() => {
   transition: 0.15s;
 }
 
-.search {
-  width: 95%;
-  border-radius: 15px;
-  padding: 10px 15px;
-  background-color: $stroke;
-  font-size: 1.4rem;
-}
+// .search {
+//   width: 95%;
+//   border-radius: 15px;
+//   padding: 10px 15px;
+//   background-color: $stroke;
+//   font-size: 1.4rem;
+// }
 </style>

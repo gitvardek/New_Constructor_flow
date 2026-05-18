@@ -9,7 +9,7 @@ import ConfigurationOption from "@/components/right-menu/customiser-pages/ColorR
 import Handles from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/Handles.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { computed, onBeforeUnmount, onMounted, ref, toRefs, watch } from "vue";
-import { useFigureRightPage } from "@/components/right-menu/customiser-pages/FigureRightPage/useFigureRightPage.ts";
+import { useFigureRightPage } from "@/utils/useFigureRightPage";
 import {
   FillingObject,
   GridCell,

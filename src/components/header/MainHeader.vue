@@ -561,9 +561,12 @@ onBeforeUnmount(() => {
   <section class="header">
     <div class="header__container">
       <div class="header-main">
-        <router-link to="/" class="header-link">
+        <!-- <router-link to="/" class="header-link">
           <img class="header-link__logo" src="@/assets/img/logo.png" />
-        </router-link>
+        </router-link> -->
+        <div class="header-link">
+               <img class="header-link__logo" src="@/assets/img/logo.png" />
+        </div>
         <div class="header-main-ui">
           <div
             :class="['history', 'history__btns', getHistoruBtnsState]"

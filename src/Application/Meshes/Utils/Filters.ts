@@ -5,7 +5,7 @@ import { GlobalsData } from "./Globals"
 import { useAppData } from "@/store/appliction/useAppData"
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from "@/store/appliction/useModelState"
-import { unwatchFile } from "fs"
+import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons"
 
 import { TFasadeProp, IProductFull, FasadeTextAlignAction } from "@/types/types"
 
@@ -16,6 +16,7 @@ export class Filters extends GlobalsData {
 
     private project = useSceneState().getCurrentProjectParams;
     private modelState = useModelState()
+    private roomOptions = useRoomOptions()
 
     constructor(root: THREETypes.TApplication) {
         super();
@@ -58,6 +59,8 @@ export class Filters extends GlobalsData {
     }
 
     filterFasadePosition(params: THREETypes.TObject, product: THREETypes.TObject) {
+
+        const roomOptions = this.roomOptions.getGlobalOptions;
 
         const { FASADE_PROPS, ELEMENT_TYPE, FASADE_SIZE, FILLING, MODELID, MODEL } = params
 
@@ -167,7 +170,7 @@ export class Filters extends GlobalsData {
                 PATINA: null,
                 TYPE: null,
                 HANDLES: {
-                    id: handles!,
+                    id: roomOptions.handles.id!,
                     position: handlerPosition,
                     drawer: fasadePosition.drawer
                 },
@@ -179,14 +182,6 @@ export class Filters extends GlobalsData {
                             min: sizesData?.SIZE_EDIT_WIDTH_MIN ?? null,
                             max: sizesData?.SIZE_EDIT_WIDTH_MAX ?? null
                         }
-                        // if (ismanualSizes) {
-                        //     return {
-                        //         FASADE_WIDTH: sizesData.WIDTH,
-                        //         min: sizesData.SIZE_EDIT_WIDTH_MIN,
-                        //         max: sizesData.SIZE_EDIT_WIDTH_MAX
-                        //     }
-                        // }
-                        // return {}
                     })()
                 },
                 DRAWER: {

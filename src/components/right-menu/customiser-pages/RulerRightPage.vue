@@ -471,6 +471,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 10px;
+  font-size: 1.4rem;
   .size-item {
     width: 33%;
   }

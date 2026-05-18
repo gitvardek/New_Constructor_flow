@@ -29,25 +29,25 @@ export interface IFigureFasade {
 
 export const useFigureRightPage = () => {
 
-    const appData = useAppData()
+    const _APP = useAppData()
     const modelState = useModelState();
 
     const createHandlesList = () => {
         const { PROPS } = modelState.getCurrentModel!.userData
         const ptoductId = PROPS.PRODUCT
 
-        const data = appData.getAppData
-        const { PRODUCTS } = data.CATALOG
+        // const data = appData.getAppData
+        const { PRODUCTS } = _APP.getAppData.CATALOG
         const { HANDLES } = PRODUCTS[ptoductId]
 
-        const handlesTempList = HANDLES[0] != null ? HANDLES : data.HANDLES
+        const handlesTempList = HANDLES[0] != null ? HANDLES : _APP.getAppData.HANDLES
         // const handlesMap: Record<number, THandlesItem> = {};
         const handlesMap: THandlesItem[] = []
 
-        if(Array.isArray(handlesTempList)) {
+        if (Array.isArray(handlesTempList)) {
             handlesTempList.forEach((el, key) => {
                 const product = PRODUCTS[el];
-                if(product) {
+                if (product) {
                     const temp = {
                         ID: product.ID,
                         PREVIEW_PICTURE: product.PREVIEW_PICTURE,
@@ -77,9 +77,28 @@ export const useFigureRightPage = () => {
 
     }
 
+    const createDefaultHandleList = () => {
+        const handlesMap: THandlesItem[] = []
+        const { CATALOG: { PRODUCTS }, HANDLES } = _APP.getAppData;
+        for (const el in HANDLES) {
+            const product = PRODUCTS[el];
+            const temp = {
+                ID: product.ID,
+                PREVIEW_PICTURE: product.PREVIEW_PICTURE,
+                models: product.models[0],
+                NAME: product.NAME
+            }
+            // handlesMap[el] = temp
+            handlesMap.push(temp)
+        }
+
+        return handlesMap
+
+    }
+
     const createSurfaceList = (figureData) => {
-        const _data = appData.getAppData
-        const { FASADE, CATALOG, POSITION_HANDLES } = _data
+        // const _data = appData.getAppData
+        const { FASADE, CATALOG, POSITION_HANDLES } = _APP.getAppData
         const { PRODUCTS } = CATALOG
         const { PROPS } = modelState.getCurrentModel.userData;
         const { PRODUCT } = PROPS
@@ -109,8 +128,8 @@ export const useFigureRightPage = () => {
             };
         }
 
-        if(figureData) {
-            const {data, segmentIndex} = figureData
+        if (figureData) {
+            const { data, segmentIndex } = figureData
             calcHandles(segmentIndex, data)
         }
         else {
@@ -139,6 +158,6 @@ export const useFigureRightPage = () => {
         }
     ]
 
-    return { figureItems, createSurfaceList, createHandlesList, createPlinthData }
+    return { figureItems, createSurfaceList, createHandlesList, createPlinthData, createDefaultHandleList }
 
 }

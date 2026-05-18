@@ -95,7 +95,7 @@ export class MeshEvents extends BuildersHelper {
     private onDeliteUniformGroup: (id: number) => void
 
     private onAddHandle: ({ data, fasadeNdx }: TDataWithNdx) => void
-    private onDeliteHandle: ({ data, fasadeNdx }: TDataWithNdx) => void
+    private onDeleteHandle: ({ data, fasadeNdx }: TDataWithNdx) => void
     private onChangeHandlePos: ({ data, fasadeNdx }: TDataWithNdx) => void
     private onChangePlinth: () => void
 
@@ -106,6 +106,7 @@ export class MeshEvents extends BuildersHelper {
     private onRecountShelfs: ({ data, mesh }) => void;
     private onResizeJoinDepth: ({ data, mesh }) => void;
     private onProcessOptions: (data: Record<string, any>) => void
+    private onChangeTotalHandles: (data: number) => void
 
     private searchElementsByType: Record<string, string> = {
         moduleTop: "element_up",
@@ -174,7 +175,7 @@ export class MeshEvents extends BuildersHelper {
         this.onDeliteFasade = this.deliteFasade.bind(root);
 
         this.onAddHandle = this.addHandle.bind(root);
-        this.onDeliteHandle = this.deliteHandle.bind(root);
+        this.onDeleteHandle = this.deleteHandle.bind(root);
         this.onChangeHandlePos = this.changeHandlePos.bind(root);
         this.onChangePlinth = this.changePlinth.bind(root)
 
@@ -185,6 +186,7 @@ export class MeshEvents extends BuildersHelper {
         this.onRecountShelfs = this.recountShelfs.bind(root)
         this.onResizeJoinDepth = this.resizeJoinDepth.bind(root)
         this.onProcessOptions = this.processOptions.bind(root)
+        this.onChangeTotalHandles = this.changeTotalHandles.bind(root)
 
         this.addVueEvents();
 
@@ -244,19 +246,6 @@ export class MeshEvents extends BuildersHelper {
         }
 
         if (incomingModel) return
-
-
-        // if (FASADE_PROPS[fasadeNdx].MILLING != null) {
-
-        //     FASADE[fasadeNdx].geometry = FASADE_DEFAULT[fasadeNdx].geometry.clone()
-        //     FASADE[fasadeNdx].userData.millingMaterial = null
-        //     if (globalMilling) {
-        //         console.log(globalMilling, 'globalMilling')
-
-        //         FASADE_PROPS[fasadeNdx].MILLING = globalMilling
-        //     }
-        //     FASADE_PROPS[fasadeNdx].PATINA = null
-        // }
     }
 
     //------------------
@@ -367,14 +356,6 @@ export class MeshEvents extends BuildersHelper {
 
         await this.resetFasade({ fasadeNdx, incomingModel, totalFasad: meshData });
 
-        // const apply = async () => {
-        //     this.handleShowcaseChange(CONFIG, fasadeProp, fasadeNdx, incomingModel, meshData);
-        //     if (this.tryApplyPalette(data, fasadeNdx, fasadeProp)) return
-        //     if (this.tryApplyTexture(data, fasade, fasadeProp)) return
-        //     this.applyAlumColor(data, fasade, fasadeProp, fasadeNdx);
-
-        // }
-
         this.buildProduct.fasade_builder.applyFasadeChange({
             data,
             fasadeNdx,
@@ -384,7 +365,6 @@ export class MeshEvents extends BuildersHelper {
             incomingModel,
             CONFIG,
         });
-        // await apply();
 
         if (drowMode) {
             const edgeMeshID = FASADE[fasadeNdx].userData.edgeID
@@ -392,75 +372,11 @@ export class MeshEvents extends BuildersHelper {
             this.useEdgeBuilder.drawingMode(drowMode, FASADE[fasadeNdx])
             this.useEdgeBuilder.drawingMode(drowMode, edgeMesh)
         }
-
-
     }
 
     private removeFromUniformGroup(product: THREE.Object3D) {
         this.buildUniformTexture.removeFromUniformGroup(product);
     }
-
-    // private handleShowcaseChange(CONFIG: any, fasadeProp: any, fasadeNdx: number, incomingModel: any, mesh: THREE.Object3D) {
-    //     const { SHOWCASE } = CONFIG;
-    //     const milling = fasadeProp.MILLING
-    //     const fasadeShowcase = CONFIG.FASADE_POSITIONS[fasadeNdx].SHOWCASE === 1
-    //     const handleType = CONFIG.FASADE_PROPS[fasadeNdx].TYPE
-
-    //     if (incomingModel) {
-    //         const action = this.modelState.getCurrentFasadeTypesAction(handleType)
-    //         // console.log('==== ❌ SHOWCASE ALUM ❌ ====')
-    //         this.changeShowcase({ data: incomingModel, fasadeNdx, action, mesh: mesh });
-    //     } else if (SHOWCASE.length > 0 && fasadeShowcase) {
-    //         // console.log('==== ❌ SHOWCASE CLASSIK❌ ====')
-    //         this.changeShowcase({ data: SHOWCASE[0], fasadeNdx, mesh: mesh });
-    //     }
-
-    //     return
-    // }
-
-    // private tryApplyPalette(data: any, fasadeNdx: number, fasadeProp: any): boolean {
-    //     if (!data.PALETTE?.[0]) return false;
-    //     fasadeProp.COLOR = data.ID;
-    //     this.modelState.createCurrentPaletteData(data.ID);
-    //     const palette = Object.keys(this.modelState.getCurrentPaletteData)[0];
-    //     this.changePaletteColor({ data: palette, fasadeNdx });
-    //     return true;
-    // }
-
-    // private tryApplyTexture(data: any, fasade: any, fasadeProp: any): boolean {
-    //     return true
-    //     if (data.COLOR) return false;
-
-    //     console.log(data, '=== TEXTURE_DATA ====')
-
-    //     fasade.visible = true;
-    //     fasade.traverse((child: THREE.Object3D) => {
-    //         // Пропускаем меш чертежа
-    //         if ((child.userData && child.userData.edge) || child.parent?.userData?.edge) {
-    //             return
-    //         }
-    //         if (child instanceof THREE.Mesh) {
-
-    //             this.changeColor({
-    //                 object: child,
-    //                 url: data.TEXTURE,
-    //                 textureSize: { x: data.TEXTURE_WIDTH, y: data.TEXTURE_HEIGHT }
-    //             });
-    //             fasade.userData.backupMaterial = child.material;
-    //         }
-    //     });
-
-    //     Object.assign(fasadeProp, { SHOW: true, COLOR: data.ID, PALETTE: null });
-    //     // fasade.userData.SHOW = true
-    //     fasade.userData.SHOW = fasade.visible
-    //     return true;
-    // }
-
-    // private applyAlumColor(data: any, fasade: any, fasadeProp: any, fasadeNdx: number) {
-    //     this.createAlumColor({ data, fasadeNdx });
-    //     Object.assign(fasadeProp, { SHOW: fasade.visible, COLOR: data.ID, PALETTE: null });
-    //     fasade.userData.SHOW = fasade.visible
-    // }
 
     public async changeFasade({ data, fasadeNdx }: TDataWithNdx) {
 
@@ -958,7 +874,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Универсальный_модуль  */
     //------------------
 
-    updateUMModel(data: object) {
+    public updateUMModel(data: object) {
 
         if (!this._currentMesh)
             return
@@ -1045,7 +961,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Изменение_размеров_модели  */
     //------------------
 
-    async changeModelSize({ data, mesh, type }: TResizeModel) {
+    public async changeModelSize({ data, mesh, type }: TResizeModel) {
         const currentMesh = mesh ?? this._currentMesh;
         if (!currentMesh) return;
 
@@ -1134,7 +1050,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Изменение_позиционирования_модели  */
     //------------------
 
-    async changeRootModel({ data, mesh }) {
+    public async changeRootModel({ data, mesh }) {
         if (!this._currentMesh) return
 
         const currentMesh = mesh ? mesh : this._currentMesh
@@ -1160,7 +1076,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Изменение_компановки_модели  */
     //------------------
 
-    async changeFillingModel({ data, mesh }) {
+    public async changeFillingModel({ data, mesh }) {
         if (!this._currentMesh) return
 
         const currentMesh = mesh ? mesh : this._currentMesh
@@ -1184,7 +1100,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Изменение_количества_полок  */
     //------------------
 
-    async recountShelfs({ data, mesh }) {
+    public async recountShelfs({ data, mesh }) {
 
         const currentMesh = mesh ? mesh : this._currentMesh
         if (!currentMesh) return
@@ -1203,7 +1119,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Изменение_размера  */
     //------------------
 
-    async resizeJoinDepth({ data, mesh }) {
+    public async resizeJoinDepth({ data, mesh }) {
 
         const currentMesh = mesh ? mesh : this._currentMesh
         if (!currentMesh) return
@@ -1221,7 +1137,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Вращение  */
     //------------------
 
-    async changeRotation(actionId: number) {
+    public async changeRotation(actionId: number) {
 
         const currentMesh = this._currentMesh
         if (!currentMesh) return
@@ -1242,7 +1158,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Ручки  */
     //------------------
 
-    async createHandle({ data, fasadeNdx }: TDataCreateHandle) {
+    public async createHandle({ data, fasadeNdx }: TDataCreateHandle) {
         if (!this._currentMesh) return;
         const product = this._currentMesh;
 
@@ -1252,11 +1168,11 @@ export class MeshEvents extends BuildersHelper {
         const curFasadeMesh = FASADE[fasadeNdx]
 
         await this.handlesBuilder.createHandle(data, curFasadeMesh, curFasadData)
-        curFasadData.HANDLES.id = data.id
+        // curFasadData.HANDLES.id = data.id
 
     }
 
-    async addHandle({ data, fasadeNdx }: TDataCreateHandle) {
+    public async addHandle({ data, fasadeNdx }: TDataCreateHandle) {
         if (!this._currentMesh)
             return;
 
@@ -1267,7 +1183,7 @@ export class MeshEvents extends BuildersHelper {
 
     }
 
-    async removeHandle({ data, fasadeNdx }: TDataWithNdx) {
+    public async removeHandle({ data, fasadeNdx }: TDataWithNdx) {
 
         if (!this._currentMesh || !data) return;
         const product = this._currentMesh;
@@ -1276,18 +1192,18 @@ export class MeshEvents extends BuildersHelper {
         const curFasadeMesh = FASADE[fasadeNdx]
         const curFasad = FASADE_PROPS[fasadeNdx]
 
-        await this.handlesBuilder.deliteHandle(curFasadeMesh)
+        await this.handlesBuilder.deleteHandle(curFasadeMesh)
         curFasad.HANDLES.id = data.ID
     }
 
-    async deliteHandle({ data, fasadeNdx }: TDataWithNdx) {
+    public async deleteHandle({ data, fasadeNdx }: TDataWithNdx) {
         if (!this._currentMesh || !data) return;
         await this.removeHandle({ data, fasadeNdx });
         this.events.emit('U:RemoveHandle')
 
     }
 
-    async changeHandlePos({ data, fasadeNdx }: TDataWithNdx) {
+    public async changeHandlePos({ data, fasadeNdx }: TDataWithNdx) {
         if (!this._currentMesh) return;
         const product = this._currentMesh;
         const { FASADE, CONFIG } = product.userData.PROPS;
@@ -1299,6 +1215,19 @@ export class MeshEvents extends BuildersHelper {
 
         await this.handlesBuilder.getHandlesPosition(data, handle, curFasadeMesh);
         curFasadData.HANDLES.position = data
+    }
+
+    public async changeTotalHandles(data) {
+
+        const topElements: THREE.Object3D[] = this.scene.getObjectsByProperty('elementType', "element_up");
+        const bottomElements: THREE.Object3D[] = this.scene.getObjectsByProperty('elementType', "element_down");
+        const totalElements: THREE.Object3D[] = [...topElements, ...bottomElements]
+
+
+        await this.buildProduct.handles_builder.changeTotalHandles(totalElements, data);
+        setTimeout(() => {
+            this.events.emit('A:GlobalParamsSelect');
+        }, 10)
     }
 
     //------------------
@@ -1404,8 +1333,8 @@ export class MeshEvents extends BuildersHelper {
             this.addHandle(data)
         }
 
-        this.onDeliteHandle = (fasad_ndx) => {
-            this.deliteHandle(fasad_ndx)
+        this.onDeleteHandle = (fasad_ndx) => {
+            this.deleteHandle(fasad_ndx)
         }
 
         this.onChangeHandlePos = (data) => {
@@ -1438,6 +1367,10 @@ export class MeshEvents extends BuildersHelper {
 
         this.onProcessOptions = (data) => {
             this.processOptions(data)
+        }
+
+        this.onChangeTotalHandles = (data) => {
+            this.changeTotalHandles(data)
         }
 
         this.events.on('A:ChangeModuleTexture', this.onChangeModuleTexture);
@@ -1476,7 +1409,7 @@ export class MeshEvents extends BuildersHelper {
         this.events.on('A:UM-update', this.onUpdateUMModel)
 
         this.events.on('A:AddHandle', this.onAddHandle)
-        this.events.on('A:DeliteHandle', this.onDeliteHandle)
+        this.events.on('A:DeleteHandle', this.onDeleteHandle)
         this.events.on('A:ChangeHandlePose', this.onChangeHandlePos)
         this.events.on('A:ChangePlinthColor', this.onChangePlinth)
 
@@ -1489,6 +1422,7 @@ export class MeshEvents extends BuildersHelper {
 
         this.events.on('A:ResizeJoinDepth', this.onResizeJoinDepth);
         this.events.on('A:SelectModelOption', this.onProcessOptions);
+        this.events.on('A:ChangeHandlesTotal', this.onChangeTotalHandles)
 
 
 
@@ -1521,7 +1455,7 @@ export class MeshEvents extends BuildersHelper {
         this.events.off('A:Delite-Fasad', this.onDeliteFasade)
 
         this.events.off('A:AddHandle', this.onAddHandle)
-        this.events.off('A:DeliteHandle', this.onDeliteHandle)
+        this.events.off('A:DeleteHandle', this.onDeleteHandle)
 
         // this.alumTextures = null
         this.millings = null

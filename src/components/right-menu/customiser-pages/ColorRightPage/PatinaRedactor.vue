@@ -61,11 +61,11 @@ const changePatina = (patina) => {
   border-radius: 15px;
   padding: 10px 10px 0px 10px;
 }
-.search {
-  width: 95%;
-  border-radius: 15px;
-  padding: 10px 15px;
-}
+// .search {
+//   width: 95%;
+//   border-radius: 15px;
+//   padding: 10px 15px;
+// }
 
 .list {
   height: 100%;

@@ -65,6 +65,7 @@ const {
   getDefaultPalitData,
   getDefaultMillingData,
   getTotalPlinthColorData,
+  getDefaultHandlresData,
 
   getHeightClamp,
   getQuality,
@@ -113,6 +114,7 @@ const visualData = ref<any>({
   walls: null,
   floor: null,
   plinth: null,
+  handle: null,
 });
 
 const optionsType = ref<TTextureActionMap>({
@@ -127,6 +129,7 @@ const optionsType = ref<TTextureActionMap>({
   millingTotal: "A:ChangeMillingTotal",
   plinth: "A:ChangePlinthBody",
   plinthColor: "A:ChangePlinthColor",
+  handles: "A:ChangeHandlesTotal",
 });
 
 const globalOptions = ref<TOptionsMap | null>(null);
@@ -162,16 +165,16 @@ const prepareOptions = () => {
     walls: getWallsTextures(),
     floor: getFloorTextures(),
     plinth: getDefaultTotalPlinthData(),
+    handles: getDefaultHandlresData(),
   };
 
   globalOptions.value = getGlobalOptions;
 
-  // console.log(globalOptions.value, '========= getHeightClamp')
+  console.log(globalOptions.value, "========= getHeightClamp");
 
   const { fasadsBottom, fasadsTop, plinth } = globalOptions.value;
 
   prepareExtras([fasadsBottom, fasadsTop, plinth]);
-
 
   clampHeight.value = getHeightClamp;
   quality.value = getQuality;
@@ -187,17 +190,6 @@ const prepareExtras = (arr: TOptionItem[]) => {
   const extaras = {};
   for (const el in arr) {
     const option = arr[el];
-    // const { isPalitte, isMilling, isPlinth } = checkExtras(option.id);
-    // switch (option.prefix) {
-    //   case "fasadsTop":
-    //   case "fasadsBottom":
-    //     option.millingData = isMilling;
-    //     option.palitteData = isPalitte;
-    //     break;
-    //   case "plinth":
-    //     option.plinthData = isPlinth;
-    // }
-    console.log(option, "--> option <--");
   }
 };
 
@@ -205,10 +197,6 @@ const checkExtras = (
   fasadeId?: number | string,
   curOption?: string,
 ): TExtras => {
-  console.log(fasadeId, "====> checkExtras");
-
-  // const defaultId = globalOptions.value![curOption];
-
   const id = curOption?.id ?? fasadeId;
 
   const palitte = getDefaultPalitData(id!);
@@ -273,6 +261,8 @@ const toggleRefraction = (value: boolean) => {
 const getOption = (value: keyof TTextureActionMap, title: string) => {
   currentOption.value = value;
 
+  console.log(value)
+
   switch (value) {
     case "plinth":
       optionsData.value = {
@@ -328,6 +318,13 @@ const getOption = (value: keyof TTextureActionMap, title: string) => {
     // case "tableTop":
     //   optionsData.value = Object.values(visualData.value.table);
     //   break;
+    case "handles":
+      optionsData.value = {
+        type: "handles",
+        data: visualData.value.handles,
+      };
+      currentRedactor.value = false;
+      break;
   }
   currentOptionLable.value = title;
   extrasSelect.value = false;
@@ -384,8 +381,6 @@ const selectOption = (
 
   const curOption = globalOptions.value![type];
   const curOptionId = extras ? curOption.id : value.ID;
-
-  console.log(curOption, "-------- curOption");
 
   const { isPalitte, isMilling, isPlinth } = checkExtras(curOptionId, type);
 

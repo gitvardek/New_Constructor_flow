@@ -142,7 +142,8 @@ export type TOptionItem = {
   millingData?: TMilling[] | null
   plinthTitle?: string,
   plinthSurfase?: number | string | null,
-  plinthData?: TFasadeItem[] | null
+  plinthData?: TFasadeItem[] | null,
+  handlesData?: IProductFull[]
 };
 
 export type TLightRange = {
@@ -159,8 +160,9 @@ export type TOptionsMap = {
   // palitteBottom?: TOptionItem;
   fasadsTop: TOptionItem;
   fasadsBottom: TOptionItem;
-  tableTop: TOptionItem
-  plinth: TOptionItem
+  tableTop: TOptionItem;
+  plinth: TOptionItem;
+  handles: TOptionItem;
 };
 
 export type TTextureActionMap = {
@@ -175,6 +177,7 @@ export type TTextureActionMap = {
   millingTotal: "A:ChangeMillingTotal",
   plinth: "A:ChangePlinthBody",
   plinthColor: "A:ChangePlinthColor"
+  handles: "A:ChangeHandlesTotal"
 
 };
 
@@ -309,6 +312,7 @@ export type TDefaultOptionsConfig = {
   fasadsBottom: TOptionItem;
   tableTop: TOptionItem
   plinth: TOptionItem
+  handles: TOptionItem
 }
 
 //------------------

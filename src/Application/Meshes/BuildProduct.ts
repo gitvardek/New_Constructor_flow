@@ -910,7 +910,7 @@ export class BuildProduct extends BuildersHelper {
 
     /** Дефолтные глобальные значения цвета фасада/модуля */
     getDefaultOptionsConfig(): THREETypes.TDefaultOptionsConfig {
-        const { moduleTop, moduleBottom, fasadsTop, fasadsBottom, tableTop, plinth } =
+        const { moduleTop, moduleBottom, fasadsTop, fasadsBottom, tableTop, plinth, handles } =
             this.roomOptions.getGlobalOptions;
 
         return {
@@ -927,6 +927,7 @@ export class BuildProduct extends BuildersHelper {
             fasadsBottom,
             tableTop,
             plinth,
+            handles
         };
     }
 }

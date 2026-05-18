@@ -16,7 +16,7 @@ import {
   LOOPSIDE,
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import { TFasadeProp, TFasadeTrueSizes } from "@/types/types.ts";
-import { useFigureRightPage } from "@/components/right-menu/customiser-pages/FigureRightPage/useFigureRightPage.ts";
+import { useFigureRightPage } from "@/utils/useFigureRightPage";
 import { useMechanism } from "@/components/right-menu/customiser-pages/RailsRightPage/Mechanism/useMechanism";
 
 const props = defineProps({
@@ -632,18 +632,18 @@ watch(
         </div>
 
         <div
-          v-for="(section, secIndex) in module.sections"
-          :key="secIndex"
+          v-for="(section, secNdx) in module.sections"
+          :key="secNdx"
           class="actions-items--wrapper"
         >
-          <div v-if="selectedFasade.sec === secIndex">
+          <div v-if="selectedFasade.sec === secNdx">
             <div
               v-if="
                 section.fasades.length < 1 ||
                 ((!module.isHiTech || !module.profilesConfig?.sideProfile) &&
                   section.fasades.length < 2 &&
                   UMconstructor.FASADES.checkAddDoor(
-                    secIndex,
+                    secNdx,
                     section.fasades.length - 1,
                     module,
                   ))
@@ -654,7 +654,7 @@ watch(
                 <div class="actions-items--right-items">
                   <button
                     :class="['actions-btn actions-btn--default']"
-                    @click="UMconstructor.FASADES.addDoor(secIndex, module)"
+                    @click="UMconstructor.FASADES.addDoor(secNdx, module)"
                   >
                     Добавить дверь
                   </button>
@@ -666,7 +666,7 @@ watch(
               v-for="(door, doorIndex) in section.fasades"
               :key="doorIndex"
               :class="'actions-container'"
-              :id="`fasade_${secIndex}_${doorIndex}`"
+              :id="`fasade_${secNdx}_${doorIndex}`"
             >
               <div
                 class="actions-header"
@@ -683,7 +683,7 @@ watch(
                       class="actions-btn actions-icon"
                       @click="
                         UMconstructor.FASADES.deleteDoor(
-                          secIndex,
+                          secNdx,
                           doorIndex,
                           module,
                         )
@@ -703,7 +703,7 @@ watch(
                     Высота сегментов:
                     {{
                       UMconstructor.FASADES.calcSumHeightDoorSegmentes(
-                        secIndex,
+                        secNdx,
                         doorIndex,
                         module,
                       )
@@ -720,7 +720,7 @@ watch(
                   v-for="(segment, segmentIndex) in door"
                   :key="segmentIndex"
                   :class="'actions-items--container'"
-                  :id="`fasade_${secIndex}_${doorIndex}_${segmentIndex}`"
+                  :id="`fasade_${secNdx}_${doorIndex}_${segmentIndex}`"
                 >
                   <details
                     class="item-group"
@@ -731,7 +731,7 @@ watch(
                   >
                     <summary>
                       <h3 class="item-group__title">
-                        Сегмент №{{ secIndex + 1 }}.{{ doorIndex + 1 }}.{{
+                        Сегмент №{{ secNdx + 1 }}.{{ doorIndex + 1 }}.{{
                           segment.id /*segmentIndex + 1*/
                         }}
                       </h3>
@@ -768,7 +768,7 @@ watch(
                                   :value="segment.height"
                                   :disabled="
                                     !UMconstructor.FASADES.checkRemoveFasadeSegment(
-                                      secIndex,
+                                      secNdx,
                                       doorIndex,
                                       segmentIndex,
                                       module,
@@ -777,7 +777,7 @@ watch(
                                   @input="
                                     UMconstructor.FASADES.updateFasadeHeight(
                                       $event.target.value,
-                                      secIndex,
+                                      secNdx,
                                       doorIndex,
                                       segmentIndex,
                                       module,
@@ -808,7 +808,7 @@ watch(
                                   "
                                   @change="
                                     changeLoopside(
-                                      secIndex,
+                                      secNdx,
                                       segment,
                                       $event,
                                       doorIndex,
@@ -816,13 +816,13 @@ watch(
                                     )
                                   "
                                   :disabled="
-                                    getLoopsideList(secIndex, doorIndex, module)
+                                    getLoopsideList(secNdx, doorIndex, module)
                                       .length < 2
                                   "
                                 >
                                   <option
                                     v-for="(side, key) in getLoopsideList(
-                                      secIndex,
+                                      secNdx,
                                       doorIndex,
                                       module,
                                       segment.id,
@@ -866,7 +866,7 @@ watch(
                             :class="['actions-btn actions-btn--default']"
                             @click="
                               UMconstructor.FASADES.splitFasade(
-                                secIndex,
+                                secNdx,
                                 doorIndex,
                                 segmentIndex,
                                 module,
@@ -880,7 +880,7 @@ watch(
                             v-if="
                               door.length > 1 &&
                               UMconstructor.FASADES.checkRemoveFasadeSegment(
-                                secIndex,
+                                secNdx,
                                 doorIndex,
                                 segmentIndex,
                                 module,
@@ -889,7 +889,7 @@ watch(
                             class="actions-btn actions-btn--default"
                             @click="
                               UMconstructor.FASADES.removeFasadeSegment(
-                                secIndex,
+                                secNdx,
                                 doorIndex,
                                 segmentIndex,
                                 module,
@@ -906,7 +906,7 @@ watch(
                               {
                                 active:
                                   isOpenMaterialSelector &&
-                                  currentFasadeMaterial.sec === secIndex &&
+                                  currentFasadeMaterial.sec === secNdx &&
                                   currentFasadeMaterial.cell === doorIndex &&
                                   currentFasadeMaterial.row === segmentIndex,
                               },
@@ -930,7 +930,7 @@ watch(
                             "
                             @click.stop="
                               openFasadeSelector(
-                                secIndex,
+                                secNdx,
                                 doorIndex,
                                 segmentIndex,
                               )
@@ -948,7 +948,7 @@ watch(
                             :class="[
                               {
                                 active:
-                                  currentHandle.sec === secIndex &&
+                                  currentHandle.sec === secNdx &&
                                   currentHandle.cell === doorIndex &&
                                   currentHandle.row === segmentIndex,
                               },
@@ -965,7 +965,7 @@ watch(
                             "
                             @click.stop="
                               openHandleSelector(
-                                secIndex,
+                                secNdx,
                                 doorIndex,
                                 segmentIndex,
                               )

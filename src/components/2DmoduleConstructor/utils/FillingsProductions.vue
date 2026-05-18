@@ -16,7 +16,7 @@ import ConfigurationOption from "@/components/right-menu/customiser-pages/ColorR
 import {useModelState} from "@/store/appliction/useModelState.ts";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import Handles from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/Handles.vue";
-import {useFigureRightPage} from "@/components/right-menu/customiser-pages/FigureRightPage/useFigureRightPage.ts";
+import {useFigureRightPage} from "@/utils/useFigureRightPage";
 import {UniversalGeometryBuilder} from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import {useToast} from "@/features/toaster/useToast.ts";
 

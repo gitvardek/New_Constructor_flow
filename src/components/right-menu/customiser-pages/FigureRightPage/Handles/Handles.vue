@@ -3,7 +3,7 @@
 import { ref, onBeforeMount, computed, nextTick } from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { Tab } from "@/components/ui/tabs/defaultTab.vue";
-import { THandlesItem } from "../useFigureRightPage";
+import { THandlesItem } from "@/utils/useFigureRightPage";
 import { TFasadeProp, FasadeTextAlignAction } from "@/types/types";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useHandlesAction } from "./useHandlesAction";
@@ -164,7 +164,7 @@ const onDeleteHandle = () => {
   if (props.is2Dconstructor) {
     callback(false, "handle");
   } else {
-    eventBus.emit("A:DeliteHandle", {
+    eventBus.emit("A:DeleteHandle", {
       data: curHandleData,
       fasadeNdx: figureFasad.value.ndx,
     });

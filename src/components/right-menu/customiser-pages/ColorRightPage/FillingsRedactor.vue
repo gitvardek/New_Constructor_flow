@@ -150,11 +150,12 @@ const onSearchChange = (e) => {
   padding: 10px 10px 0px 10px;
 }
 
-.search {
-  width: 95%;
-  border-radius: 15px;
-  padding: 10px 15px;
-}
+// .search {
+//   width: 95%;
+//   border-radius: 15px;
+//   padding: 10px 15px;
+//   font-size: 1.4rem;
+// }
 
 .list {
   height: 100%;

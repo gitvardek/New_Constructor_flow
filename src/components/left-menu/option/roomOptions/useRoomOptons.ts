@@ -10,6 +10,7 @@ import { useAppData } from "@/store/appliction/useAppData";
 import { useModelState } from '@/store/appliction/useModelState';
 import { useSceneState } from '@/store/appliction/useSceneState';
 import { useRoomState } from '@/store/appliction/useRoomState';
+import { useFigureRightPage } from '@/utils/useFigureRightPage';
 
 
 
@@ -21,10 +22,14 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     const APP = computed(() => appStore.getAppData || {})
     const _WALL = computed(() => APP.value.WALL || {})
     const _FLOOR = computed(() => APP.value.FLOOR || {})
+    const _HANDLES = computed(() => APP.value.HANDLES || {})
 
     const sceneState = useSceneState();
     const modelState = useModelState()
     const roomState = useRoomState();
+    const handleMethods = useFigureRightPage();
+
+
     const startParams = computed(() => sceneState.getStartProgectParams)
     // const currentSceneParams = sceneState.getCurrentProjectParams
 
@@ -77,7 +82,8 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
         wall: 'default_wall',
         floor: 'default_floor',
         tableTop: 'default_table_model',
-        plinth: 'default_plinth_body'
+        plinth: 'default_plinth_body',
+        handles: 'default_handles'
     }
 
     /** Для сохранения проекта */
@@ -89,7 +95,8 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
         wall: 'default_wall',
         floor: 'default_floor',
         tableTop: 'default_table_model',
-        plinth: 'default_plinth_body'
+        plinth: 'default_plinth_body',
+        handles: 'default_handles'
     }
 
     // Вместо статичной деструктуризации:
@@ -106,6 +113,7 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     let defaultMillingTop = ref(startParams.value?.default_milling_top)
     let defaultPlinthBody = ref(startParams.value?.default_plinth_body)
     let defaultPlinthColor = ref(startParams.value?.default_plinth_color)
+    let defaultHandles = ref(startParams.value?.default_handles)
 
     const globalOptions = ref<TOptionsMap>({
         wall: {
@@ -172,7 +180,15 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
             label: 'Для всех комнат',
             plinthTitle: 'Тип фасада цокольных планок',
             prefix: 'plinth',
-        }
+        },
+
+        handles: {
+            id: defaultHandles.value,
+            global: false,
+            title: "Тип ручек",
+            label: 'Для всех комнат'
+        },
+
 
     });
 
@@ -267,6 +283,10 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
         );
 
         return defaultTableTopData
+    }
+
+    const getDefaultHandlresData = () => {
+        return handleMethods.createDefaultHandleList();
     }
 
     //--------------------------------------------------
@@ -399,6 +419,8 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     }
 
     const getGlobalOptions = computed(() => {
+        console.log(globalOptions.value)
+
         return globalOptions.value
     })
 
@@ -524,11 +546,15 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
                 label: 'Для всех комнат',
                 plinthTitle: 'Тип фасада цокольных планок',
                 prefix: 'plinth',
-            }
+            },
+            handles: {
+                id: newParams.default_handles ?? startParams.value.default_handles,
+                global: false,
+                title: "Тип ручек",
+                label: 'Для всех комнат'
+            },
 
         }
-
-        console.log(newParams, 'GGGGGHHHHH')
     })
 
     return {
@@ -547,6 +573,7 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
         getDefaultPalitData,
         getDefaultMillingData,
         getDefaultTotalPlinthData,
+        getDefaultHandlresData,
         getTotalPlinthColorData,
 
         getGlobalOptions,

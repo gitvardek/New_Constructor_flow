@@ -165,9 +165,11 @@ export class FasadeBuilder {
         }
 
         // Ручки
-        if (fasadeData.HANDLES.id !== this.handlesBuilder.clearId) {
+        if (fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
             const handleId = fasadeData.HANDLES.id;
             const handleModel = this._APP.CATALOG.PRODUCTS[handleId].models[0];
+            console.log(this._APP.CATALOG.PRODUCTS[handleId], 'this._APP.CATALOG.PRODUCTS[handleId]')
+
             this.handlesBuilder.createHandle({ id: handleId, model: handleModel }, mesh, fasadeData);
         }
 
@@ -486,8 +488,6 @@ export class FasadeBuilder {
         this.uniformeTextureStartData = [];
 
         this.checkFasadeOptions(OPTIONS, FASADE, FASADE_DEFAULT)
-
-        console.log(fasadeData, 'AFTER')
     }
 
     // ---------------------------------------------------------------------------

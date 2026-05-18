@@ -13,7 +13,7 @@ import {
 import { useModelState } from "@/store/appliction/useModelState";
 import { useRoomOptions } from "./useRoomOptons";
 
-const { _FASADE, _MILLING, _PRODUCTS, _PALETTE } = useModelState();
+const { _FASADE, _MILLING, _PRODUCTS, _PALETTE, } = useModelState();
 const { _WALL, _FLOOR } = useRoomOptions();
 
 enum EGlobalDataMap {
@@ -27,6 +27,7 @@ enum EGlobalDataMap {
   plinthSurfase = _FASADE,
   palitte = _PALETTE,
   milling = _MILLING,
+  handles = _PRODUCTS
 }
 
 interface Props {
@@ -86,8 +87,6 @@ const plinthSelect = (
   key: keyof TOptionsMap,
   plinthData: TFasadeItem[]
 ) => {
-  console.log(plinthTitle, key, plinthData, "--- PLINT ---");
-
   emit("toPlinthSelect", plinthTitle, key, plinthData);
 };
 
@@ -126,7 +125,9 @@ const getOptionData = computed(() => {
   };
 });
 
-onBeforeMount(() => {});
+onBeforeMount(() => {
+  console.log(props.options)
+});
 </script>
 
 <template>
