@@ -300,9 +300,16 @@ export class Filters extends GlobalsData {
         const getFilteredData = (data, profile = false) => {
             const filtered = data.filter(el => this._USLUGI[el])
 
-            return filtered.reduce((acc, el) => {
+            return filtered.reduce((acc, el, index, array) => {
+
+
+
                 const visible = this._USLUGI[el].ID != 98683 // ID Услуги распил
                 let value = profile && el === profileExept
+                if (profile && array.length < 2) {
+                    value = true
+                }
+
                 acc.push({ ...this._USLUGI[el], visible: visible, value: value })
                 return acc
 
@@ -311,6 +318,8 @@ export class Filters extends GlobalsData {
 
         const uslugi = getFilteredData(product_uslugi)
         const profile = getFilteredData(product_data.profile, true)
+
+        console.log(profile)
 
         return { uslugi, profile }
 

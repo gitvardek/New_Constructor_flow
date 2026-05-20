@@ -225,7 +225,7 @@ watch(
       &-wraper {
         max-height: calc(100% - 250px);
         min-height: 50vh;
-        overflow-y: auto;
+        overflow:hidden;
       }
       &-servise {
         // display: flex;

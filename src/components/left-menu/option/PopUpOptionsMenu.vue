@@ -18,22 +18,14 @@ const { getAppData } = useAppData();
 const { getArticleByProductId, isFeedbackProject } = useConfigStore();
 
 const exeption = ref([
-  1516913,
-  1516914,
-  6051066,
-  81768,
-  2370182,
-  81772,
-  11451679,
+  1516913, 1516914, 6051066, 81768, 2370182, 81772, 11451679,
 ]); //3140746, 971222, 1814256б 166757
 
 const props = defineProps<{
   filteredData: Array<any>;
 }>();
 
-const emit = defineEmits([
-  "close-menu",
-]);
+const emit = defineEmits(["close-menu"]);
 
 const currentProductInfo = ref({
   title: "",
@@ -81,7 +73,7 @@ const onDrag = (event: any, model: { [key: string]: any } | string) => {
 
 const closeMenu = (menuType: MenuType) => {
   menuStore.closeMenu(menuType);
-  emit('close-menu')
+  emit("close-menu");
 };
 
 const openPopup = async (item) => {
@@ -128,9 +120,9 @@ const closeInfoPopup = () => {
   };
 };
 
-onBeforeMount(()=>{
-  console.log(props.filteredData)
-})
+onBeforeMount(() => {
+  console.log(props.filteredData);
+});
 </script>
 
 <template>
@@ -138,7 +130,7 @@ onBeforeMount(()=>{
     <h1 class="popup__title">Основное</h1>
     <ClosePopUpButton class="menu__close" @close="closeMenu('tech')" />
     <div
-      v-if="menuStore.catalogFilterProductsId || props.filteredData.length>0"
+      v-if="menuStore.catalogFilterProductsId || props.filteredData.length > 0"
       class="options-popup__container"
     >
       <div
@@ -159,7 +151,12 @@ onBeforeMount(()=>{
             class="popup-items__image"
           />
         </div>
-        <p class="popup-items__title">{{ item.NAME }} <span v-if='isFeedbackProject'>{{ getArticleByProductId(item?.ID) }}</span></p>
+        <p class="popup-items__title">
+          {{ item.NAME }}
+          <span v-if="isFeedbackProject">{{
+            getArticleByProductId(item?.ID)
+          }}</span>
+        </p>
       </div>
     </div>
     <div v-else class="options-popup-isempty">
@@ -175,36 +172,42 @@ onBeforeMount(()=>{
 
 <style lang="scss" scoped>
 .options-popup {
-  width: max-content;
-  max-width: 575px;
-  min-width: 210px;
+  max-width: 40rem;
   position: absolute;
-  top: 15px;
+  // top: 15px;
   // left: -840px;
   left: 320px;
-  padding: 15px;
+  padding: 0.5rem;
   background: $white;
   box-shadow: 0px 0px 10px 0px #3030301a;
   z-index: -1;
-  border-radius: 15px;
+  border-radius: 0.5rem;
   font-size: 1.4rem;
   // transition: 0.5s ease-in-out;
   // transform: translateZ(-10px);
 
-  &-isempty{
+  &-isempty {
     font-size: 1.4rem;
   }
 
   &__container {
-    max-height: 80vh;
-    display: flex;
-    flex-wrap: wrap;
+    // display: flex;
+    // flex-wrap: wrap;
+    // gap: 12px;
+    // flex: 1;
+    display: grid;
+    grid-template-columns: repeat(
+      3,
+      1fr
+    ); /* Создает ровно 4 колонки одинаковой ширины */
     gap: 10px;
-    overflow: auto;
+    padding: 0.5rem;
+    padding-right: 0.85rem;
+    overflow-y: auto;
 
     .popup-items {
-      width: 167px;
-      min-height: 240px;
+      width: 10rem;
+      // min-height: 7.5rem;
       display: flex;
       flex-direction: column;
       padding: 10px;
@@ -226,13 +229,13 @@ onBeforeMount(()=>{
         position: relative;
         .popup-items__question {
           position: absolute;
-          top: 10px;
-          right: 5px;
+          top: 0px;
+          right: 0px;
           cursor: pointer;
         }
         .popup-items__image {
-          height: 150px;
-          width: 150px;
+          height: 6rem;
+          width: 6rem;
           padding: 10px;
           background: #ffffff;
           border-radius: 15px;
@@ -249,7 +252,10 @@ onBeforeMount(()=>{
   }
 
   &.active {
-    left: 330px;
+    left: 29rem;
+    overflow-y: auto;
+    min-height: 0;
+    height: calc(100vh - 90px);
   }
 }
 </style>

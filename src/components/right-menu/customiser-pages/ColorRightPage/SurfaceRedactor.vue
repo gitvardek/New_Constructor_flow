@@ -171,7 +171,28 @@ const checkTransitionTexture = (id: number) => {
         v-for="materials in props.materialList"
         class="list__details"
       >
-        <Accordion>
+        <div>
+          <h3>{{ materials.NAME }}</h3>
+        </div>
+        <ul class="list__details_contant">
+          <li v-for="id in materials.FASADES">
+            <div
+              class="item"
+              @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)"
+            >
+              <img
+                class="item__img"
+                :src="_URL + _FASADE[id].PREVIEW_PICTURE"
+                alt=""
+              />
+              <!-- <div class="item__name">
+                <p>{{ _FASADE[id].NAME }}</p>
+              </div> -->
+            </div>
+          </li>
+        </ul>
+
+        <!-- <Accordion>
           <template #title>
             <p>{{ materials.NAME }}</p>
           </template>
@@ -192,7 +213,7 @@ const checkTransitionTexture = (id: number) => {
               </div>
             </li>
           </ul>
-        </Accordion>
+        </Accordion> -->
       </li>
       <!--
 
@@ -241,12 +262,16 @@ const checkTransitionTexture = (id: number) => {
   max-height: calc(85vh - 110px);
   margin-top: 10px;
   padding-right: 10px;
-  box-sizing: border-box;
   overflow-y: scroll;
-  box-sizing: border-box;
 
   &__details {
     border-radius: 15px;
+    &_contant{
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+
 
     @media (hover: hover) {
       &:hover {
@@ -261,18 +286,18 @@ const checkTransitionTexture = (id: number) => {
   flex-direction: row;
   align-items: center;
   cursor: pointer;
-  padding: 10px;
+  padding: 5px;
   // height: 60px;
   border-radius: 15px;
   background-color: $bg;
-  margin-top: 10px;
-  margin-right: 8px;
+  margin-top: 5px;
+  margin-right:5px;
   transition-property: background-color;
   transition-duration: 0.25s;
   transition-timing-function: ease;
 
   &__img {
-    height: 60px;
+    height: 45px;
     padding: 5px;
     border-radius: 15px;
     background-color: $white;

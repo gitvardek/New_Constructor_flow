@@ -65,7 +65,7 @@ const handleSelect = (material: any) => {
             :style="{ backgroundColor: `#${material.HTML}` }"
             v-else
           ></div>
-          <p class="item__name">{{ material.NAME }}</p>
+          <!-- <p class="item__name">{{ material.NAME }}</p> -->
         </li>
       </ul>
     </div>
@@ -85,6 +85,8 @@ const handleSelect = (material: any) => {
   }
 
   &__list {
+    display: flex;
+    flex-wrap: wrap;
     margin-top: 10px;
     height: 100%;
     max-height: calc(85vh - 110px);
@@ -125,8 +127,8 @@ const handleSelect = (material: any) => {
     // height: 100%;
     // max-height: 60px;
     // max-width: 60px;
-    height: 60px;
-    width: 60px;
+    height: 45px;
+    width: 45px;
     padding: 5px;
     border-radius: 15px;
     background-color: $white;
@@ -137,8 +139,8 @@ const handleSelect = (material: any) => {
     margin-left: 30px;
   }
   &__color {
-    height: 60px;
-    width: 60px;
+    height: 45px;
+    width: 45px;
     border-radius: 12px;
     cursor: pointer;
   }

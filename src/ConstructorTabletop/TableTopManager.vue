@@ -437,7 +437,13 @@ const createProfileServices = () => {
   const { PROFILE, USLUGI } = PROPS.CONFIG;
   if (!tempProfile.value.length > 0) return null;
 
+  console.log(tempProfile.value, 'tempProfile.value')
+
   const activeProfile = tempProfile.value.find((prof) => prof.value);
+
+  console.log(activeProfile, 'activeProfile')
+
+  console.log(modelState._PROFILE, '_PROFILE')
 
   const curProfileData = Object.values(modelState._PROFILE).find(
     (el) => el.PROFILE == activeProfile.ID,
