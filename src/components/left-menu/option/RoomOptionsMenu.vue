@@ -617,9 +617,9 @@ watch(shadows, () => toggleShadow(shadows.value));
   display: flex;
   gap: 5px;
   position: absolute;
-  top: 15px;
-  left: 320px;
-  max-height: calc(100vh - 120px);
+  top: 0;
+  left: 290px;
+  height: calc(100vh - 90px);
   z-index: -1;
   user-select: none;
 
@@ -655,7 +655,7 @@ watch(shadows, () => toggleShadow(shadows.value));
   }
 
   &-popup {
-    width: 570px;
+    width: 400px;
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -669,7 +669,7 @@ watch(shadows, () => toggleShadow(shadows.value));
     border-radius: 15px;
 
     &__container {
-      max-height: 80vh;
+      height: calc(100vh - 90px);
       display: flex;
       flex-direction: column;
       gap: 15px;
@@ -684,7 +684,7 @@ watch(shadows, () => toggleShadow(shadows.value));
   border: 1px solid $dark-grey;
   border-radius: 15px;
 
-  &__contant {
+  &__content {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -722,7 +722,7 @@ watch(shadows, () => toggleShadow(shadows.value));
 }
 
 .accordion {
-  &__contant {
+  &__content {
     padding-top: 0.5rem;
     border-top: 1px solid $dark-grey;
   }

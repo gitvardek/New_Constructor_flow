@@ -857,7 +857,7 @@ onBeforeUnmount(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__contant">
+            <ul class="accordion__contnt">
               <li
                 class="accordion__text"
                 v-for="(size, key) in fasadeSizeList"
@@ -962,7 +962,7 @@ onBeforeUnmount(() => {
   gap: 15px;
   border: 1px solid $stroke;
   border-radius: 10px;
-  padding: 15px;
+  padding: 5px;
   max-height: 100vh;
   overflow: hidden;
   box-sizing: border-box;
@@ -1022,7 +1022,7 @@ onBeforeUnmount(() => {
   transition-property: box-shadow;
   transition-duration: 0.25s;
   transition-timing-function: ease;
-  &__contant {
+  &__contnt {
     padding-top: 0.5rem;
     border-top: 1px solid #a3a9b5;
   }

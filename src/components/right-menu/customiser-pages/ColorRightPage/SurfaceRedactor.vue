@@ -15,7 +15,9 @@ import { useAppData } from "@/store/appliction/useAppData";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { _URL } from "@/types/constants";
 
+
 import Accordion from "@/components/ui/accordion/Accordion.vue";
+import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 import { TTotalProps } from "@/types/types";
 type TSurface = "fasade" | "module";
 
@@ -156,172 +158,58 @@ const checkTransitionTexture = (id: number) => {
 </script>
 
 <template>
-  <div class="relative__wrapper">
-    <input
-      class="search"
-      type="text"
-      placeholder="Поиск"
-      @input="onSearchChange"
-    />
+  <div class="material-config__wrapper">
+    <input class="search" type="text" placeholder="Поиск" @input="onSearchChange" />
 
-    <ul class="list">
+    <ul class="material-config_list">
       <!-- Все возможные материалы -->
-      <li
-        v-if="!isSearch"
-        v-for="materials in props.materialList"
-        class="list__details"
-      >
+      <li v-if="!isSearch" v-for="materials in props.materialList" class="material-config_list__details">
         <div>
-          <h3>{{ materials.NAME }}</h3>
+          <h3 class="material-config_title">{{ materials.NAME }}</h3>
         </div>
-        <ul class="list__details_contant">
-          <li v-for="id in materials.FASADES">
-            <div
-              class="item"
-              @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)"
-            >
-              <img
-                class="item__img"
-                :src="_URL + _FASADE[id].PREVIEW_PICTURE"
-                alt=""
-              />
-              <!-- <div class="item__name">
-                <p>{{ _FASADE[id].NAME }}</p>
-              </div> -->
-            </div>
-          </li>
-        </ul>
-
-        <!-- <Accordion>
-          <template #title>
-            <p>{{ materials.NAME }}</p>
-          </template>
-          <ul class="list__details_contant">
-            <li v-for="id in materials.FASADES">
-              <div
-                class="item"
-                @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)"
-              >
-                <img
-                  class="item__img"
-                  :src="_URL + _FASADE[id].PREVIEW_PICTURE"
-                  alt=""
-                />
-                <div class="item__name">
+        <ul class="material-config_list__details_content">
+          <li class="material-config_item" v-for="(id, index) in materials.FASADES" :key="index">
+            <Tooltip :position="top" :theme="'dark'">
+              <template #trigger>
+                <div @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)">
+                  <img class="material-config_item__img" :src="_URL + _FASADE[id].PREVIEW_PICTURE" alt="" />
+                </div>
+              </template>
+              <template #content>
+                <div class="material-config_item__tool">
+                  <img class="material-config_item__img tool" :src="_URL + _FASADE[id].DETAIL_PICTURE" alt="" />
                   <p>{{ _FASADE[id].NAME }}</p>
                 </div>
-              </div>
-            </li>
-          </ul>
-        </Accordion> -->
-      </li>
-      <!--
+              </template>
 
-      -->
+            </Tooltip>
+          </li>
+
+        </ul>
+
+      </li>
+
       <!-- отфильтрованные материалы-->
-      <ul v-else v-for="id in filteredMaterialList">
-        <li
-          class="item"
-          @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)"
-        >
-          <img
-            class="item__img"
-            :src="_URL + _FASADE[id].PREVIEW_PICTURE"
-            alt=""
-          />
-          <div class="item__name">
+      <Tooltip v-else v-for="(id, index) in filteredMaterialList" :key="index" :position="top" :theme="'dark'">
+        <template #trigger>
+          <li>
+            <div class="item" @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)">
+              <img class="item__img" :src="_URL + _FASADE[id].PREVIEW_PICTURE" alt="" />
+
+            </div>
+          </li>
+        </template>
+        <template #content>
+          <div class="item__tool">
+            <img class="item__img tool" :src="_URL + _FASADE[id].DETAIL_PICTURE" alt="" />
             <p>{{ _FASADE[id].NAME }}</p>
           </div>
-        </li>
-      </ul>
+        </template>
+      </Tooltip>
     </ul>
   </div>
 </template>
 
 <style scoped lang="scss">
-.relative__wrapper {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  max-height: 100vh;
-  overflow: hidden;
-  margin-right: 0px;
-  border: 1px solid grey;
-  border-radius: 15px;
-  padding: 10px 10px 0px 10px;
-}
 
-// .search {
-//   width: 95%;
-//   border-radius: 15px;
-//   padding: 10px 15px;
-// }
-
-.list {
-  height: 100%;
-  max-height: calc(85vh - 110px);
-  margin-top: 10px;
-  padding-right: 10px;
-  overflow-y: scroll;
-
-  &__details {
-    border-radius: 15px;
-    &_contant{
-      display: flex;
-      flex-wrap: wrap;
-    }
-
-
-
-    @media (hover: hover) {
-      &:hover {
-        background: $bg;
-      }
-    }
-  }
-}
-
-.item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  cursor: pointer;
-  padding: 5px;
-  // height: 60px;
-  border-radius: 15px;
-  background-color: $bg;
-  margin-top: 5px;
-  margin-right:5px;
-  transition-property: background-color;
-  transition-duration: 0.25s;
-  transition-timing-function: ease;
-
-  &__img {
-    height: 45px;
-    padding: 5px;
-    border-radius: 15px;
-    background-color: $white;
-    // margin-left: 10px;
-  }
-
-  &__name {
-    margin-left: 30px;
-  }
-  @media (hover: hover) {
-    &:hover {
-      background-color: $stroke;
-    }
-  }
-}
 </style>
-
-<!-- .search { position: absolute; top: 10px; height: 40px; width: 95%;
-border-radius: 5px; padding-left: 15px; } .list { overflow: scroll; height:
-100%; margin-top: 40px; padding-right: 10px; &__details { &_contant {
-margin-top: 10px; } } } .list { position: relative; &::-webkit-scrollbar {
-width: 5px; } &::-webkit-scrollbar-thumb { background-color: #888; /* Color of
-the thumb */ border-radius: 5px; /* Rounded corners */ } } .item { display:
-flex; flex-direction: row; align-items: center; cursor: pointer; height: 60px;
-border-radius: 15px; background-color: #e7e7e7; margin-bottom: 4px; &__img {
-height: 45px; width: 45px; border-radius: 10px; margin-left: 10px; padding: 5px;
-background-color: $white; } &__name { margin-left: 30px; } } -->

@@ -503,26 +503,17 @@ onBeforeUnmount(() => {
   <div class="UM actions-wrapper">
     <div :class="'UM actions-items--container'">
       <div class="UM config-options">
-        <div
-          v-for="(value, part) in getMaterialsParts(objectData)"
-          :key="part"
-          class="UM option-small"
-        >
-          <div
-            :class="[
-              'UM option-small-item',
-              { active: currentOption === part },
-            ]"
-            @click.stop="getOption(part)"
-          >
+        <div v-for="(value, part) in getMaterialsParts(objectData)" :key="part" class="UM option-small">
+          <div :class="[
+            'UM option-small-item',
+            { active: currentOption === part },
+          ]" @click.stop="getOption(part)">
             {{ partsNames[part] }}
 
-            <div
-              :class="[
-                'UM option-small-item-chevron',
-                { active: currentOption === part },
-              ]"
-            >
+            <div :class="[
+              'UM option-small-item-chevron',
+              { active: currentOption === part },
+            ]">
               ❯
             </div>
           </div>
@@ -532,75 +523,42 @@ onBeforeUnmount(() => {
   </div>
 
   <transition name="slide--left" mode="out-in">
-    <div
-      class="UM color--left"
-      v-if="currentOption"
-      key="color--left-select"
-      ref="panelRef"
-    >
+    <div class="UM color--left" v-if="currentOption" key="color--left-select" ref="panelRef">
       <div class="UM color--left-select" key="color--left-select">
         <h1 class="UM color__title">{{ partsNames[currentOption] }}</h1>
         <ClosePopUpButton class="UM menu__close" @close="closeMenu()" />
 
-        <p
-          class="UM color__title color__switch"
-          v-if="currentOption === 'PROFILECOLOR'"
-        >
+        <p class="UM color__title color__switch" v-if="currentOption === 'PROFILECOLOR'">
           Профили в размер секции
-          <Toggle
-            v-model="module.profilesConfig.onSectionSize"
-            @change="changeProfilesWidth(module.profilesConfig.onSectionSize)"
-          />
+          <Toggle v-model="module.profilesConfig.onSectionSize"
+            @change="changeProfilesWidth(module.profilesConfig.onSectionSize)" />
         </p>
 
         <div class="color__switch" v-if="currentOption === 'TOPFASADECOLOR'">
           <h1 :class="['color__switch__text', { active: !toptableMode }]">
             Накладка
           </h1>
-          <Toggle
-            v-model="toptableMode"
-            @change="changeTopMaterialsList(toptableMode)"
-          />
+          <Toggle v-model="toptableMode" @change="changeTopMaterialsList(toptableMode)" />
           <h1 :class="['color__switch__text', { active: toptableMode }]">
             Столешница
           </h1>
         </div>
 
         <div v-if="currentOption === 'TOPFASADECOLOR' && toptableMode">
-          <ToptableSelector
-            :product-list="materialList"
-            :module="module"
-            :UMconstructor="UMconstructor"
-            :type="`TABLE`"
-            @parent-callback="selectOption"
-          />
+          <ToptableSelector :product-list="materialList" :module="module" :UMconstructor="UMconstructor" :type="`TABLE`"
+            @parent-callback="selectOption" />
         </div>
         <div v-else>
-          <AdvanceCorpusMaterialRedactor
-            class="color--left-select-item"
-            v-if="getCurrentRedactor"
-            :key="currentOption"
-            :element-data="getCurrentValue"
-            :element-index="currentOption"
-            :material-list="materialList"
-            :fasade-size="elementSize"
-            @parent-callback="selectOption"
-          />
-          <CorpusMaterialRedactor
-            v-else
-            class="color--left-select-item"
-            :is2Dconstructor="true"
-            :material-list="materialList"
-            :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
-            @parent-callback="selectOption"
-          />
+          <AdvanceCorpusMaterialRedactor class="color--left-select-item" v-if="getCurrentRedactor" :key="currentOption"
+            :element-data="getCurrentValue" :element-index="currentOption" :material-list="materialList"
+            :fasade-size="elementSize" @parent-callback="selectOption" />
+          <CorpusMaterialRedactor v-else class="color--left-select-item" :is2Dconstructor="true"
+            :material-list="materialList" :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
+            @parent-callback="selectOption" />
         </div>
 
-        <HiTechSideprofile
-          v-if="currentOption === 'PROFILECOLOR' && getSideProfile"
-          class="color--left-select-item"
-          :module="module"
-        />
+        <HiTechSideprofile v-if="currentOption === 'PROFILECOLOR' && getSideProfile" class="color--left-select-item"
+          :module="module" />
       </div>
     </div>
   </transition>
@@ -626,4 +584,5 @@ onBeforeUnmount(() => {
     }
   }
 }
+
 </style>

@@ -137,7 +137,11 @@ onUnmounted(() => {
     <div v-if="customiserStore.isCustomiserOpen" class="customiser">
       <div class="customiser__container">
         <div class="customiser-header">
-          <p class="customiser__title">{{ getName }}</p>
+          <div class="customiser__title">
+            <p class="customiser__name">{{ getName }}</p>
+            <img src="@/assets/svg/right-menu/close.svg" class="close__button" @click="closeCustomiser" />
+          </div>
+
           <div class="customiser__actions">
             <div class="customiser-links">
               <!-- Rework -->
@@ -147,11 +151,7 @@ onUnmounted(() => {
               <FigureButton v-if="buttonVisibles.figure" />
               <!-- <HammerButton /> -->
             </div>
-            <img
-              src="@/assets/svg/right-menu/close.svg"
-              class="close__button"
-              @click="closeCustomiser"
-            />
+
           </div>
         </div>
 
@@ -167,40 +167,55 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .customiser {
   width: 100%;
-  max-height: 85vh;
-  max-width: 551px;
+  max-width: 40rem;
   position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 1rem;
+  top: 0px;
+  right: 0px;
+  padding: 0.7rem;
   background: $white;
   box-shadow: 0px 0px 10px 0px #3030301a;
   z-index: 10;
-  border-radius: 15px;
+  border-radius: 5px;
   // transition: 0.5s ease-in-out;
   // transform: translateZ(-10px);
   // box-sizing: border-box;
   overflow: hidden;
 
-  user-select: none; /* Стандартное */
-  -webkit-user-select: none; /* Safari, Chrome */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
+  /* Стандартное */
+  -webkit-user-select: none;
+  /* Safari, Chrome */
+  -moz-user-select: none;
+  /* Firefox */
+  -ms-user-select: none;
+  /* Internet Explorer/Edge */
 
   &-header {
     width: 100%;
     display: flex;
     align-items: flex-start;
+    flex-direction: column;
+    gap: 1rem;
     justify-content: space-between;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #ecebf1;
   }
+
   &__title {
-    max-width: 50%;
-    margin-right: 50px;
+    display: flex;
+    gap: 2rem;
+    width: 100%;
+    justify-content: space-between;
+
+  }
+
+  &__name {
+    // max-width: 50%;
+    // margin-right: 50px;
     font-size: 1.8rem;
     font-weight: 600;
   }
+
   &-links {
     display: flex;
     align-items: center;
@@ -210,17 +225,20 @@ onUnmounted(() => {
   &__container {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    max-height: 85vh;
-    padding-bottom: 25px;
+    gap: 1rem;
+    height: calc(100vh - 90px);
+    padding-bottom: 10px;
   }
 
   &__actions {
     display: flex;
     gap: 2rem;
   }
+
   .close__button {
     cursor: pointer;
+    width: 25px;
+    height: 25px;
   }
 }
 </style>

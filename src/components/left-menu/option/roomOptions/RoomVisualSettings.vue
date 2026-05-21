@@ -47,7 +47,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   <div class="visual">
     <h3 class="visual__title">Свет и тени</h3>
 
-    <div class="visual__contant">
+    <div class="visual__content">
       <div class="visual__top">
         <div class="visual__top--left">
           <Accordion>
@@ -59,7 +59,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
             </template>
 
             <template #params="{ onToggle }">
-              <ul class="accordion__contant">
+              <ul class="accordion__content">
                 <li
                   class="label__text"
                   v-for="(param, key) in quality"
@@ -115,7 +115,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   background-color:$white ;
   font-size: 1.4rem;
 
-  &__contant {
+  &__content {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -159,12 +159,12 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
 }
 
 .label__text {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: $strong-grey;
 }
 
-.accordion__contant {
+.accordion__content {
   padding-top: 0.5rem;
   border-top: 1px solid $dark-grey;
 }

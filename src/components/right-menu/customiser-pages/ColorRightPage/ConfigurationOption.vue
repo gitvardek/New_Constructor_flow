@@ -113,10 +113,10 @@ const deleteChoise = (event) => {
   // height: 100%;
   width: 100%;
 
-  max-width: 150px;
+  max-width: 8.5rem;
   // max-height: 200px;
-  padding: 10px;
-  gap: 10px;
+  padding: 0.5rem;;
+  gap: 0.3rem;
   border-radius: 15px;
   box-shadow: 4px 4px 4px 4px rgba(34, 60, 80, 0.11);
   overflow: hidden;
@@ -153,7 +153,8 @@ const deleteChoise = (event) => {
   }
 
   &__img {
-    height: 50px;
+    height: 45px;
+    width: 45px;
     padding: 5px;
     cursor: pointer;
     box-shadow: 0px 0px 6px 0px rgba(48, 48, 48, 0.1019607843);
@@ -161,8 +162,8 @@ const deleteChoise = (event) => {
   }
 
   &__color {
-    height: 40px;
-    width: 40px;
+    height: 45px;
+    width: 45px;
     border-radius: 12px;
     cursor: pointer;
   }
@@ -178,16 +179,16 @@ const deleteChoise = (event) => {
 
   &__title {
     color: rgb(131, 133, 135);
-    font-size: small;
+    font-size: 1rem;
     // flex: 2;
 
     @media (min-height: 1000px) {
-      font-size: medium;
+      font-size: 1.2rem;
     }
   }
 
   &__name {
-    font-size: small;
+    font-size: 1.2rem;
     // line-height: 14px;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -198,10 +199,6 @@ const deleteChoise = (event) => {
     overflow: hidden;
     text-overflow: ellipsis;
 
-    @media (min-height: 1000px) {
-      font-size: medium;
-      // line-height: 10px;
-    }
   }
 }
 
@@ -210,13 +207,4 @@ const deleteChoise = (event) => {
   background-color: rgba(228, 140, 140, 0.133);
 }
 
-@media screen and (min-width: 1000px) {
-  .config {
-    &__img,
-    &__color {
-      height: 60px;
-      width: 60px;
-    }
-  }
-}
 </style>

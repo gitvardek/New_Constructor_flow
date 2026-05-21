@@ -98,7 +98,7 @@ onMounted(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__contant">
+            <ul class="accordion__content">
               <li
                 v-for="(data, index) in getTransformControlSnapAngles"
                 :key="index + data"
@@ -126,7 +126,7 @@ onMounted(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__contant">
+            <ul class="accordion__content">
               <li
                 v-for="(data, index) in controllerValue"
                 :key="index + data.name"
@@ -201,7 +201,7 @@ onMounted(() => {
     gap: 10rem;
   }
 
-  &__contant {
+  &__content {
     padding-top: 0.5rem;
     border-top: 1px solid #a3a9b5;
   }

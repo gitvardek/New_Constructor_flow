@@ -243,14 +243,14 @@ onUnmounted(() => {
     @select_material="checkTransition"
   />
 
-  <GroupsManager v-if="isGroupsManagerActive" />
+  <!-- <GroupsManager v-if="isGroupsManagerActive" /> -->
 </template>
 
 <style lang="scss" module>
-.container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
+// .container {
+//   display: flex;
+//   align-items: center;
+//   justify-content: space-between;
+//   gap: 10px;
+// }
 </style>

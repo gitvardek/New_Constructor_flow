@@ -227,7 +227,7 @@ onUnmounted(() => {
             </p>
           </template>
           <template #params="{ onToggle }">
-            <ul class="list__details_contant">
+            <ul class="list__details_content">
               <li v-for="(section, key) in catalogSectionsType" :key="key">
                 <div
                   class="list__item"
@@ -592,12 +592,6 @@ onUnmounted(() => {
 }
 
 .list {
-  &__details_contant {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-top: 5px;
-  }
   &__item {
     color: $black;
     cursor: pointer;

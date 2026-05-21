@@ -87,7 +87,7 @@ button {
   border: none;
   border-radius: 15px;
   font-size: 1.6rem;
-  padding: 10px 20px;
+  padding: 0.5rem 1rem;
   min-width: 60px;
   font-weight: 600;
   font-size: small;

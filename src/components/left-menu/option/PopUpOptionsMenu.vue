@@ -206,7 +206,7 @@ onBeforeMount(() => {
     overflow-y: auto;
 
     .popup-items {
-      width: 10rem;
+      width: 11rem;
       // min-height: 7.5rem;
       display: flex;
       flex-direction: column;
@@ -222,7 +222,7 @@ onBeforeMount(() => {
       transition-timing-function: ease;
 
       &__title {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         font-weight: 500;
       }
       .popup-items-picture {
@@ -236,7 +236,7 @@ onBeforeMount(() => {
         .popup-items__image {
           height: 6rem;
           width: 6rem;
-          padding: 10px;
+          padding: 3px;
           background: #ffffff;
           border-radius: 15px;
           object-fit: contain;

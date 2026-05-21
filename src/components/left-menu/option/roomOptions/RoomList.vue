@@ -28,13 +28,10 @@ function handleDeleteRoom(id: number) {
 <template>
   <div class="room-select">
     <div v-for="room in props.rooms" :key="room.id" class="room-select__item">
-      <button
-        :class="[
-          'button__filled button__filled--text',
-          { active: room.id === props.currentRoomId },
-        ]"
-        @click="handleLoadRoom(room.id)"
-      >
+      <button :class="[
+        'button__filled button__filled--text',
+        { active: room.id === props.currentRoomId },
+      ]" @click="handleLoadRoom(room.id)">
         <span>{{ room.label }}</span>
       </button>
 
@@ -66,6 +63,12 @@ function handleDeleteRoom(id: number) {
 }
 
 .button__filled {
+  padding: 15px;
+
+  &--text {
+    padding: 15px;
+  }
+
   &.active {
     color: $white;
     background-color: $red;

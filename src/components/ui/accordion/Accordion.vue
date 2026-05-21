@@ -70,7 +70,7 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 1.6rem;
+    font-size: 1.4rem;
   }
 
   &__icon {

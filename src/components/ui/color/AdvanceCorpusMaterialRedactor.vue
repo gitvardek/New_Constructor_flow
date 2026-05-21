@@ -986,7 +986,7 @@ onBeforeUnmount(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__contant">
+            <ul class="accordion__content">
               <li
                 class="accordion__text"
                 v-for="(size, key) in fasadeSizeList"
@@ -1182,7 +1182,7 @@ onBeforeUnmount(() => {
   -ms-user-select: none; /* IE 10+ и Edge */
   user-select: none; /* Стандарт: Chrome, Firefox, Opera, Edge */
 
-  &__contant {
+  &__content {
     padding-top: 0.5rem;
     border-top: 1px solid #a3a9b5;
   }

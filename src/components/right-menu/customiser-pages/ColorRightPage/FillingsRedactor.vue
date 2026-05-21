@@ -75,7 +75,7 @@ const onSearchChange = (e) => {
 </script>
 
 <template>
-  <div class="relative__wrapper">
+  <div class="material-config__wrapper">
     <input
         class="search"
         type="text"
@@ -83,29 +83,29 @@ const onSearchChange = (e) => {
         @input="onSearchChange"
     />
 
-    <ul class="list">
+    <ul class="material-config_list">
       <!-- Все возможные материалы -->
       <li
           v-if="!isSearch"
           v-for="products in props.productList"
-          class="list__details"
+          class="material-config_list__details"
       >
         <Accordion>
           <template #title>
             <p>{{ products.NAME }}</p>
           </template>
-          <ul class="list__details_contant">
+          <ul class="material-config_list__details_content">
             <li v-for="item in products.PRODUCTS">
               <div
-                  class="item"
+                  class="material-config_item"
                   @click="changeFilling(item, item.ID)"
               >
                 <img
-                    class="item__img"
+                    class="material-config_item__img"
                     :src="_URL + item.PREVIEW_PICTURE"
                     alt=""
                 />
-                <div class="item__name">
+                <div class="material-config_item__name">
                   <p>{{ item.NAME }}</p>
                 </div>
               </div>
@@ -138,75 +138,4 @@ const onSearchChange = (e) => {
 
 <style scoped lang="scss">
 
-.relative__wrapper {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  max-height: 40vh;
-  overflow: hidden;
-  margin-right: 0px;
-  border: 1px solid grey;
-  border-radius: 15px;
-  padding: 10px 10px 0px 10px;
-}
-
-// .search {
-//   width: 95%;
-//   border-radius: 15px;
-//   padding: 10px 15px;
-//   font-size: 1.4rem;
-// }
-
-.list {
-  height: 100%;
-  max-height: calc(85vh - 110px);
-  margin-top: 10px;
-  padding-right: 10px;
-  box-sizing: border-box;
-  overflow-y: scroll;
-  box-sizing: border-box;
-
-  &__details {
-    border-radius: 15px;
-
-    @media (hover: hover) {
-      &:hover {
-        background: $bg;
-      }
-    }
-  }
-}
-
-.item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  cursor: pointer;
-  padding: 10px;
-  // height: 60px;
-  border-radius: 15px;
-  background-color: $bg;
-  margin-top: 10px;
-  margin-right: 8px;
-  transition-property: background-color;
-  transition-duration: 0.25s;
-  transition-timing-function: ease;
-
-  &__img {
-    height: 60px;
-    padding: 5px;
-    border-radius: 15px;
-    background-color: $white;
-    // margin-left: 10px;
-  }
-
-  &__name {
-    margin-left: 30px;
-  }
-  @media (hover: hover) {
-    &:hover {
-      background-color: $stroke;
-    }
-  }
-}
 </style>

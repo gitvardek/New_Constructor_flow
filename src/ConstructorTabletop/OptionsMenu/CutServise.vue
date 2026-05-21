@@ -115,39 +115,21 @@ watch(
       </div>
 
       <div :class="['splitter-container--cut-servise', getContainerHeight]">
-        <div
-          v-for="(item, key) in props.serviseData"
-          :key="key + item.NAME"
-          :class="['cut-servise--item', { error: item.error }]"
-        >
-          <div
-            :class="['cut-servise--wrapper', { error: item.error }]"
-            v-if="item.visible"
-          >
+        <div v-for="(item, key) in props.serviseData" :key="key + item.NAME"
+          :class="['cut-servise--item', { error: item.error }]">
+          <div :class="['cut-servise--wrapper', { error: item.error }]" v-if="item.visible">
             <label class="control control-checkbox">
-              <input
-                type="checkbox"
-                :checked="item.value"
-                @change="cutChacked($event, item)"
-              />
+              <input type="checkbox" :checked="item.value" @change="cutChacked($event, item)" />
               <span class="control_indicator"></span>
               <span class="text-lg text-gray-800 font-medium">{{
                 item.NAME
               }}</span>
             </label>
 
-            <Tooltip
-              v-if="item.error"
-              :theme="'dark'"
-              :content="`${SERVISE_ERRORS[item.error]}`"
-            >
+            <Tooltip v-if="item.error" :theme="'dark'" :content="`${SERVISE_ERRORS[item.error]}`">
               <template #trigger>
                 <button class="actions-btn actions-icon">
-                  <img
-                    class="actions-icon--help"
-                    src="/icons/help.svg"
-                    alt=""
-                  />
+                  <img class="actions-icon--help" src="/icons/help.svg" alt="" />
                 </button>
               </template>
               <template #content> </template>
@@ -157,48 +139,28 @@ watch(
           <div class="actions-inputs" v-if="item.EURO_WIDTH && item.value">
             <p class="actions-title">Ширина</p>
             <div class="actions-input--container">
-              <MainInput
-                :inputClass="'actions-input'"
-                v-model="item.EURO_WIDTH"
-                :min="200"
-                :max="getMaxWidth"
-                :type="'number'"
-                @update:modelValue="
+              <MainInput :inputClass="'actions-input'" v-model="item.EURO_WIDTH" :min="200" :max="getMaxWidth"
+                :type="'number'" @update:modelValue="
                   (newValue) => updateEuroWidth(newValue, item.NAME)
-                "
-              />
+                " />
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div
-      class="splitter-container--cut-header"
-      v-if="props.profileData?.length > 0"
-    >
+    <div class="splitter-container--cut-header" v-if="props.profileData?.length > 0">
       <div class="splitter-container--cut-header">
         <h3 class="splitter-title">Профиль</h3>
       </div>
     </div>
 
-    <div
-      class="splitter-container--cut-servise"
-      v-if="props.profileData?.length > 0"
-    >
-      <div
-        class="'cut-servise--item'"
-        v-for="(profile, key, ndx) in props.profileData"
-        :key="profile.NAME + ndx"
-      >
+    <div class="splitter-container--cut-servise" v-if="props.profileData?.length > 0">
+      <div class="'cut-servise--item'" v-for="(profile, key, ndx) in props.profileData" :key="profile.NAME + ndx">
         <div :class="['cut-servise--wrapper']">
           <label class="control control-checkbox">
-            <input
-              type="checkbox"
-              :checked="profile.value"
-              :disabled="profile.ID === 251698 && profile.value"
-              @change="profileChacked($event, profile)"
-            />
+            <input type="checkbox" :checked="profile.value" :disabled="profile.ID === 251698 && profile.value"
+              @change="profileChacked($event, profile)" />
             <span class="control_indicator"></span>
             <span class="text-lg text-gray-800 font-medium">{{
               profile.NAME
@@ -222,11 +184,15 @@ watch(
       flex-direction: column;
       overflow: hidden;
       overflow-y: auto;
+
       &-wraper {
         max-height: calc(100% - 250px);
         min-height: 50vh;
-        overflow:hidden;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
+
       &-servise {
         // display: flex;
         // flex-direction: column;
@@ -236,7 +202,8 @@ watch(
 
         display: flex;
         flex-direction: column;
-        flex: 1; /* занимает всё оставшееся место */
+        flex: 1;
+        /* занимает всё оставшееся место */
         gap: 0.3rem;
         overflow-y: auto;
         min-height: 0;
@@ -273,6 +240,7 @@ watch(
     flex-direction: column;
     // padding: 0 5px 5px 5px;
     border-radius: 5px;
+
     &.error {
       background-color: #d56b6b32;
     }

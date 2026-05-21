@@ -77,7 +77,7 @@ const filteredFigure = computed(() => {
 
 <style lang="scss" scoped>
 .figure {
-  height: calc(100vh - 220px);
+  height: calc(100vh - 180px);
   display: flex;
   flex-direction: column;
   gap: 10px;

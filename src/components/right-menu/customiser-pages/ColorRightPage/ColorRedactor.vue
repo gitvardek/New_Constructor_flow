@@ -4,6 +4,8 @@
 import { defineProps, defineEmits, onMounted, computed, ref } from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
+import Accordion from "@/components/ui/accordion/Accordion.vue";
+import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 
 const eventBus = useEventBus();
 const modelState = useModelState();
@@ -54,104 +56,36 @@ const onSearchChange = (e) => {
 </script>
 
 <template>
-  <div class="relative__wrapper">
-    <input
-      class="search"
-      type="text"
-      placeholder="Поиск"
-      @input="onSearchChange"
-    />
+  <div class="material-config__wrapper">
+    <input class="search" type="text" placeholder="Поиск" @input="onSearchChange" />
+    <div class="material-config_list">
+      <ul class="material-config_list__details_content">
+        <li v-for="color in isSearch ? filteredPaletteList : Object.values(props.paletteList)" :key="color.HTML">
 
-    <!---->
-    <ul class="list">
-      <!-- Все виды цветов -->
-      <li
-        class="item"
-        v-if="!isSearch"
-        v-for="color in Object.values(props.paletteList)"
-        @click="changePaletteColor(color)"
-      >
-        <div
-          class="item__color"
-          :style="{ backgroundColor: `#${color.HTML}` }"
-        ></div>
-        <div class="item__name">{{ color.NAME }}</div>
-      </li>
-      <!-- Отфильтрованные в поиске -->
-      <li
-        class="item"
-        v-else
-        v-for="color in filteredPaletteList"
-        @click="changePaletteColor(color)"
-      >
-        <div
-          class="item__color"
-          :style="{ backgroundColor: `#${color.HTML}` }"
-        ></div>
-        <div class="item__name">{{ color.NAME }}</div>
-      </li>
-    </ul>
+          <Tooltip :key="index" :position="top" :theme="'dark'">
+
+            <template #trigger>
+              <div class="material-config_item" @click="changePaletteColor(color)">
+                <div class="material-config_item__html" :style="{ backgroundColor: `#${color.HTML}` }"></div>
+              </div>
+            </template>
+
+            <template #content>
+              <div class="material-config_item__tool">
+                <div class="material-config_item__img tool" :style="{ backgroundColor: `#${color.HTML}` }"></div>
+                <p>{{ color.NAME }}</p>
+              </div>
+            </template>
+
+          </Tooltip>
+
+        </li>
+      </ul>
+    </div>
+
   </div>
 </template>
 
-<style lang="scss" scoped>
-.relative__wrapper {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  max-height: 100vh;
-  overflow: hidden;
-  margin-right: 0px;
-  border: 1px solid grey;
-  border-radius: 15px;
-  padding: 10px 10px 0px 10px;
-}
-.search {
-  width: 95%;
-  border-radius: 15px;
-  padding: 10px 15px;
-  font-size: 1.4rem;
-}
+<style scoped lang="scss">
 
-.list {
-  height: 100%;
-  max-height: calc(85vh - 110px);
-  margin-top: 10px;
-  padding-right: 10px;
-  box-sizing: border-box;
-  overflow-y: scroll;
-  box-sizing: border-box;
-}
-
-.item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  cursor: pointer;
-  padding: 10px;
-  // height: 60px;
-  border-radius: 15px;
-  background-color: $bg;
-  margin-bottom: 8px;
-  margin-right: 8px;
-  transition-property: background-color;
-  transition-duration: 0.25s;
-  transition-timing-function: ease;
-
-  &__color {
-    height: 45px;
-    width: 45px;
-    margin-left: 10px;
-    border-radius: 5px;
-  }
-
-  &__name {
-    margin-left: 15px;
-  }
-  @media (hover: hover) {
-    &:hover {
-      background-color: $stroke;
-    }
-  }
-}
 </style>

@@ -651,6 +651,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  font-size: 1.4rem;
 
   &__title {
     text-align: center;

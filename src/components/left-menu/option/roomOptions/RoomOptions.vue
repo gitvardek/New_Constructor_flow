@@ -222,7 +222,7 @@ onBeforeMount(() => {
         </div>
       </div>
 
-      <div class="option__checkbox">
+      <!-- <div class="option__checkbox">
         <label class="control control-checkbox">
           <input
             type="checkbox"
@@ -232,7 +232,7 @@ onBeforeMount(() => {
           <span class="control_indicator"></span>
           <span class="control_lable">{{ item.label }}</span>
         </label>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -302,22 +302,22 @@ onBeforeMount(() => {
 }
 
 .label__img {
-  height: 60px;
-  width: 60px;
+  height:45px;
+  width:45px;
   padding: 5px;
   border-radius: 15px;
   background-color: #ffffff;
 }
 
 .label__title {
-  font-size: 1.6rem;
+  font-size: 1.2rem;
   position: absolute;
   bottom: 0.2rem;
   left: 0.5rem;
 }
 
 .label__text {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: $strong-grey;
 }
@@ -339,7 +339,7 @@ onBeforeMount(() => {
   }
 
   &_lable{
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
 }
 </style>

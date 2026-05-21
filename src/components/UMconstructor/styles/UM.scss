@@ -1,13 +1,19 @@
 .UM {
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none;     /* IE 10+ и Edge */
-  user-select: none;    
-  font-size: 1.4rem;     /* Стандарт: Chrome, Firefox, Opera, Edge */
+  -webkit-user-select: none;
+  /* Safari */
+  -ms-user-select: none;
+  /* IE 10+ и Edge */
+  user-select: none;
+  font-size: 1.4rem;
+  /* Стандарт: Chrome, Firefox, Opera, Edge */
 
   .constructor2d {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10+ и Edge */
-    user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* IE 10+ и Edge */
+    user-select: none;
+    /* Стандарт: Chrome, Firefox, Opera, Edge */
 
     &-wrapper {
       display: flex;
@@ -18,7 +24,7 @@
       height: 95vh;
 
       font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS",
-      sans-serif;
+        sans-serif;
     }
 
     &-container {
@@ -53,6 +59,7 @@
             align-items: center;
             align-content: space-between;
             margin-top: 5px;
+
             &-item {
               padding-bottom: 15px;
             }
@@ -133,7 +140,7 @@
     }
   }
 
-  .work-mode-selector{
+  .work-mode-selector {
     width: 100%;
 
     display: flex;
@@ -144,15 +151,21 @@
   }
 
   .no-select {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10+ и Edge */
-    user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* IE 10+ и Edge */
+    user-select: none;
+    /* Стандарт: Chrome, Firefox, Opera, Edge */
   }
 
   .actions {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10+ и Edge */
-    user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* IE 10+ и Edge */
+    user-select: none;
+    /* Стандарт: Chrome, Firefox, Opera, Edge */
 
     &-wrapper {
       display: flex;
@@ -199,9 +212,12 @@
     }
 
     &-header {
-      -webkit-user-select: none; /* Safari */
-      -ms-user-select: none;     /* IE 10+ и Edge */
-      user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+      -webkit-user-select: none;
+      /* Safari */
+      -ms-user-select: none;
+      /* IE 10+ и Edge */
+      user-select: none;
+      /* Стандарт: Chrome, Firefox, Opera, Edge */
 
       display: flex;
       align-items: center;
@@ -230,7 +246,7 @@
         }
       }
 
-      &-row{
+      &-row {
         display: flex;
         flex-direction: row;
         justify-content: flex-start;
@@ -238,7 +254,7 @@
         width: 100%;
       }
 
-      &-column{
+      &-column {
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -257,7 +273,7 @@
         flex-direction: column;
         overflow-y: scroll;
         overflow-x: hidden;
-      max-height: 70vh;
+        max-height: 70vh;
 
         width: 100%;
         padding: 0 0 1rem 0;
@@ -337,7 +353,7 @@
               margin-left: 5px;
             }
 
-            &-counter{
+            &-counter {
               width: 45px;
               padding-left: 10px;
             }
@@ -434,7 +450,9 @@
         transition-property: background-color, color, border;
         transition-timing-function: ease;
         transition-duration: 0.25s;
+
         @media (hover: hover) {
+
           /* when hover is supported */
           &:hover {
             color: white;
@@ -465,6 +483,7 @@
         transition-duration: 0.25s;
 
         @media (hover: hover) {
+
           /* when hover is supported */
           &:hover {
             color: white;
@@ -478,10 +497,11 @@
       border: none;
       background-color: transparent;
 
-      &--delete{
+      &--delete {
         width: 18px;
         height: 18px;
       }
+
       &--close,
       &--help {
         width: 18px;
@@ -537,9 +557,12 @@
   }
 
   .splitter {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10+ и Edge */
-    user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* IE 10+ и Edge */
+    user-select: none;
+    /* Стандарт: Chrome, Firefox, Opera, Edge */
 
     &-container {
       &--product {
@@ -657,9 +680,12 @@
             font-size: 1.8rem;
             font-weight: 600;
 
-            -webkit-user-select: none; /* Safari */
-            -ms-user-select: none;     /* IE 10+ и Edge */
-            user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+            -webkit-user-select: none;
+            /* Safari */
+            -ms-user-select: none;
+            /* IE 10+ и Edge */
+            user-select: none;
+            /* Стандарт: Chrome, Firefox, Opera, Edge */
           }
 
           &-color {
@@ -689,6 +715,7 @@
             }
 
             @media (hover: hover) {
+
               /* when hover is supported */
               &:hover {
                 color: white;
@@ -811,6 +838,7 @@
               }
 
               @media (hover: hover) {
+
                 /* when hover is supported */
                 &:hover {
                   color: white;
@@ -826,9 +854,12 @@
   }
 
   .accordion {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10+ и Edge */
-    user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* IE 10+ и Edge */
+    user-select: none;
+    /* Стандарт: Chrome, Firefox, Opera, Edge */
     gap: 1vh;
     border: unset;
 
@@ -837,7 +868,9 @@
       padding: 15px 50px 15px 15px;
       border: 1px solid #a3a9b5;
       border-radius: 15px;
+
       @media (hover: hover) {
+
         /* when hover is supported */
         &:hover {
           border-color: #da444c;
@@ -889,9 +922,12 @@
   }
 
   .option {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10+ и Edge */
-    user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* IE 10+ и Edge */
+    user-select: none;
+    /* Стандарт: Chrome, Firefox, Opera, Edge */
 
     &-label {
       display: flex;
@@ -925,9 +961,12 @@
       font-weight: 600;
       color: #a3a9b5;
 
-      -webkit-user-select: none; /* Safari */
-      -ms-user-select: none;     /* IE 10+ и Edge */
-      user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+      -webkit-user-select: none;
+      /* Safari */
+      -ms-user-select: none;
+      /* IE 10+ и Edge */
+      user-select: none;
+      /* Стандарт: Chrome, Firefox, Opera, Edge */
 
       @media (hover: hover) {
         &:hover {
@@ -991,9 +1030,12 @@
   }
 
   .config {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10+ и Edge */
-    user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* IE 10+ и Edge */
+    user-select: none;
+    /* Стандарт: Chrome, Firefox, Opera, Edge */
 
     &-options {
       display: flex;
@@ -1053,9 +1095,12 @@
   }
 
   .color {
-    -webkit-user-select: none; /* Safari */
-    -ms-user-select: none;     /* IE 10+ и Edge */
-    user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+    -webkit-user-select: none;
+    /* Safari */
+    -ms-user-select: none;
+    /* IE 10+ и Edge */
+    user-select: none;
+    /* Стандарт: Chrome, Firefox, Opera, Edge */
 
     &--right {
       &-select {
@@ -1093,9 +1138,12 @@
             font-size: 1.4rem;
             font-weight: 500;
 
-            -webkit-user-select: none; /* Safari */
-            -ms-user-select: none;     /* IE 10+ и Edge */
-            user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+            -webkit-user-select: none;
+            /* Safari */
+            -ms-user-select: none;
+            /* IE 10+ и Edge */
+            user-select: none;
+            /* Стандарт: Chrome, Firefox, Opera, Edge */
           }
         }
       }
@@ -1115,9 +1163,12 @@
 
       z-index: 0;
 
-      -webkit-user-select: none; /* Safari */
-      -ms-user-select: none;     /* IE 10+ и Edge */
-      user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+      -webkit-user-select: none;
+      /* Safari */
+      -ms-user-select: none;
+      /* IE 10+ и Edge */
+      user-select: none;
+      /* Стандарт: Chrome, Firefox, Opera, Edge */
 
       &-select {
         right: unset;
@@ -1126,7 +1177,7 @@
         width: 100%;
 
         max-height: 96vh;
-        overflow-y: scroll;
+        // overflow-y: scroll;
 
         gap: 1rem;
         padding: 15px;
@@ -1143,7 +1194,7 @@
 
         &-item {
           width: 100%;
-          height: 100%;
+          height: calc(100vh - 150px);
           display: flex;
           padding: 10px;
           border-radius: 15px;
@@ -1158,4 +1209,3 @@
     }
   }
 }
-

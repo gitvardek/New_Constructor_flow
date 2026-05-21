@@ -72,8 +72,9 @@ watch(
 <style lang="scss" scoped>
 .color-select {
   position: absolute;
-  left: 575px;
+  left: 40rem;
   width: 100%;
+  height: calc(100vh - 90px);
   max-width: 373px;
   display: flex;
   flex-direction: column;
