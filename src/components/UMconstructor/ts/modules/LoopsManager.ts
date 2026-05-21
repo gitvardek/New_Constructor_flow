@@ -374,15 +374,16 @@ export default class LoopsManager {
         return loops;
     }
 
-
     getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) {
 
-        // console.log(this.scope.UM_STORE.getSelected("fasades").row)
 
         const { row } = this.scope.UM_STORE.getSelected("fasades")
 
-        const rightLoopsList = [LOOPSIDE["right"], LOOPSIDE["right_on_partition"], 14981055]
-        const leftLoopsList = [LOOPSIDE["left"], LOOPSIDE["left_on_partition"], 14981055]
+        // const rightLoopsList = [LOOPSIDE["right"], LOOPSIDE["right_on_partition"], 14981055] 
+        // const leftLoopsList = [LOOPSIDE["left"], LOOPSIDE["left_on_partition"], 14981055]
+
+        const rightLoopsList = [LOOPSIDE["right"], LOOPSIDE["right_on_partition"]] /** ДЛЯ МАСТЕРА  */
+        const leftLoopsList = [LOOPSIDE["left"], LOOPSIDE["left_on_partition"]] /** ДЛЯ МАСТЕРА  */
 
 
         const currSection = grid.sections[secIndex];
@@ -390,14 +391,16 @@ export default class LoopsManager {
         const sectionRight = grid.sections[secIndex + 1] || false;
         const isDoors = currSection.fasades?.length > 1
 
-        console.log(segment, `${sectionLeft} лево`, `${sectionRight} право`, 'ИНДЕКС CEGMENT')
 
         const productInfo = this.scope.APP.CATALOG.PRODUCTS[grid.productID];
 
         const loopsData = this.scope.APP.LOOPSIDE
-        const MokLoop = [...productInfo.LOOPSIDE, 14981055]
+        // const MokLoop = [...productInfo.LOOPSIDE, 14981055] /** ДЛЯ МАСТЕРА  */
+        const MokLoop = [...productInfo.LOOPSIDE]
 
         const topPossibles = () => {
+
+            return false /** ДЛЯ МАСТЕРА  */
 
             if (isDoors) return false;
             if (currSection.fasades.length === 0) return false;
@@ -416,7 +419,6 @@ export default class LoopsManager {
                 return section.fasades.length < 2 && !loopsList.includes(loopsSide);
             };
 
-
             return (
                 !isDoors &&
                 canAddTopPosition(sectionLeft, rightLoopsList) &&
@@ -430,13 +432,10 @@ export default class LoopsManager {
                 if (!section) return true;
                 if (section.fasades.length === 0) return true;
                 const fasades = section.fasades[0] as any[];
-                console.log(fasades)
-
                 const { loopsSide } = fasades[fasades.length - 1];
                 const loops = [...new Set(fasades.map(el => el.loopsSide))]
                 const hasCommon = loopsList.some(item => loops.includes(item));
 
-                console.log(hasCommon, 'SIDE')
 
                 // return section.fasades.length < 2 && !loopsList.includes(loopsSide);
                 return section.fasades.length < 2 && !hasCommon;
@@ -448,7 +447,6 @@ export default class LoopsManager {
 
         const topIsPossible = topPossibles()
 
-        console.log(topIsPossible)
 
         let list = [];
         let tmp = {};
@@ -456,7 +454,7 @@ export default class LoopsManager {
         if (grid.isRestrictedModule) {
             tmp[LOOPSIDE["left"]] = loopsData[LOOPSIDE["left"]];
             tmp[LOOPSIDE["right"]] = loopsData[LOOPSIDE["right"]];
-            tmp[LOOPSIDE["top"]] = loopsData[LOOPSIDE["top"]];
+            // tmp[LOOPSIDE["top"]] = loopsData[LOOPSIDE["top"]];  /** ДЛЯ МАСТЕРА  */
         }
         else {
             // productInfo.LOOPSIDE.forEach((type) => {
@@ -469,186 +467,280 @@ export default class LoopsManager {
 
         const currSectionLoops = currSection.loopsSides ?? 13864508;
 
-        if (topIsPossible) {
 
-            console.log('ВЕРХ')
+        /** ДЛЯ МАСТЕРА  */
+        // if (topIsPossible) {
 
 
-            const fasadeHeight = segment ? currSection.fasades[0][segment - 1]?.height : false
 
-            if (typeof fasadeHeight === 'number' && fasadeHeight > 450 || segment != currSection.fasades[0]?.length) {
-                delete tmp[LOOPSIDE["top"]];
-            }
+        //     const fasadeHeight = segment ? currSection.fasades[0][segment - 1]?.height : false
 
-            if (sectionLeft) {
+        //     if (typeof fasadeHeight === 'number' && fasadeHeight > 450 || segment != currSection.fasades[0]?.length) {
+        //         delete tmp[LOOPSIDE["top"]];
+        //     }
 
-                const isLeftDoors = sectionLeft.fasades?.length > 1
-                delete tmp[LOOPSIDE["left"]];
-                if (!isLeftDoors) {
-                    tmp[LOOPSIDE["left_on_partition"]] = loopsData[LOOPSIDE["left_on_partition"]];
-                } else {
-                    delete tmp[LOOPSIDE["top"]];
+        //     if (sectionLeft) {
+
+        //         const isLeftDoors = sectionLeft.fasades?.length > 1
+        //         delete tmp[LOOPSIDE["left"]];
+        //         if (!isLeftDoors) {
+        //             tmp[LOOPSIDE["left_on_partition"]] = loopsData[LOOPSIDE["left_on_partition"]];
+        //         } else {
+        //             delete tmp[LOOPSIDE["top"]];
+        //         }
+        //     }
+
+        //     if (sectionRight) {
+
+        //         const isRightDoors = sectionRight.fasades?.length > 1
+        //         delete tmp[LOOPSIDE["right"]];
+        //         if (!isRightDoors) {
+        //             tmp[LOOPSIDE["right_on_partition"]] = loopsData[LOOPSIDE["right_on_partition"]];
+
+        //         } else {
+        //             delete tmp[LOOPSIDE["top"]];
+        //         }
+
+        //     }
+
+        // }
+
+        // else if (isDoors) {
+        //     // else {
+        //     delete tmp[LOOPSIDE["top"]];
+        //     switch (doorIndex) {
+        //         case 0:
+        //             if (grid.sections[secIndex].fasades[1]) {
+        //                 delete tmp[LOOPSIDE["right"]];
+        //             }
+
+        //             if (sectionLeft) {
+
+
+        //                 const sectionLeftLoops = sectionLeft.loopsSides || {};
+
+        //                 if (!grid.isRestrictedModule) {
+        //                     if (
+        //                         sectionLeftLoops[1] ||
+        //                         rightLoopsList.includes(
+        //                             sectionLeftLoops[0]
+        //                         )
+        //                     ) {
+        //                         delete tmp[LOOPSIDE["left_on_partition"]];
+        //                     }
+        //                     else {
+        //                         tmp[LOOPSIDE["left_on_partition"]] =
+        //                             loopsData[LOOPSIDE["left_on_partition"]];
+        //                     }
+        //                 }
+
+        //                 delete tmp[LOOPSIDE["left"]];
+        //             }
+
+        //             if (sectionRight) {
+
+
+        //                 const sectionRightLoops = sectionRight.loopsSides || {};
+
+        //                 if (!grid.isRestrictedModule) {
+        //                     if (
+        //                         sectionRightLoops[1] ||
+        //                         leftLoopsList.includes(
+        //                             sectionRightLoops[0]
+        //                         )
+        //                     ) {
+        //                         delete tmp[LOOPSIDE["right_on_partition"]];
+        //                     } else {
+        //                         tmp[LOOPSIDE["right_on_partition"]] =
+        //                             loopsData[LOOPSIDE["right_on_partition"]];
+        //                     }
+        //                 }
+
+        //                 delete tmp[LOOPSIDE["right"]];
+        //             }
+
+        //             break;
+        //         case 1:
+        //             if (sectionLeft) {
+
+
+        //                 const sectionLeftLoops = sectionLeft.loopsSides || {};
+
+        //                 if (!grid.isRestrictedModule) {
+        //                     if (
+        //                         sectionLeftLoops[1] ||
+        //                         rightLoopsList.includes(
+        //                             sectionLeftLoops[0]
+        //                         )
+        //                     ) {
+        //                         delete tmp[LOOPSIDE["left_on_partition"]];
+        //                     } else {
+        //                         tmp[LOOPSIDE["left_on_partition"]] =
+        //                             loopsData[LOOPSIDE["left_on_partition"]];
+        //                     }
+        //                 }
+
+        //                 delete tmp[LOOPSIDE["left"]];
+        //             }
+
+        //             if (sectionRight) {
+
+
+        //                 const sectionRightLoops = sectionRight.loopsSides || {};
+
+        //                 if (!grid.isRestrictedModule) {
+        //                     if (
+        //                         sectionRightLoops[1] ||
+        //                         leftLoopsList.includes(
+        //                             sectionRightLoops[0]
+        //                         )
+        //                     ) {
+        //                         delete tmp[LOOPSIDE["right_on_partition"]];
+        //                     } else {
+        //                         tmp[LOOPSIDE["right_on_partition"]] =
+        //                             loopsData[LOOPSIDE["right_on_partition"]];
+        //                     }
+        //                 }
+
+        //                 delete tmp[LOOPSIDE["right"]];
+        //             }
+
+        //             //delete tmp[LOOPSIDE["left"]]
+        //             delete tmp[currSectionLoops[0]];
+
+        //             break;
+        //     }
+        // }
+
+        // else {
+        //     delete tmp[LOOPSIDE["top"]];
+        //     if (sectionLeft) {
+
+        //         delete tmp[LOOPSIDE["left"]];
+        //         const isLeftDoors = sectionLeft.fasades?.length > 1
+        //         const leftPossible = sidePossibles(sectionLeft, rightLoopsList)
+        //         if (leftPossible) {
+        //             tmp[LOOPSIDE["left_on_partition"]] = loopsData[LOOPSIDE["left_on_partition"]];
+        //         }
+        //     }
+        //     if (sectionRight) {
+
+        //         delete tmp[LOOPSIDE["right"]];
+        //         const isRightDoors = sectionRight.fasades?.length > 1
+        //         const rightPossible = sidePossibles(sectionRight, leftLoopsList)
+        //         if (rightPossible) {
+        //             tmp[LOOPSIDE["right_on_partition"]] = loopsData[LOOPSIDE["right_on_partition"]];
+        //         }
+        //     }
+
+
+        // }
+
+        switch (doorIndex) {
+            case 0:
+                if (grid.sections[secIndex].fasades[1]) {
+                    delete tmp[LOOPSIDE["right"]];
                 }
-                // console.log(isLeftDoors, 'ЛЕВАЯ СЕКЦИЯ TOP')
-            }
 
-            if (sectionRight) {
+                if (sectionLeft) {
 
-                const isRightDoors = sectionRight.fasades?.length > 1
-                delete tmp[LOOPSIDE["right"]];
-                if (!isRightDoors) {
-                    tmp[LOOPSIDE["right_on_partition"]] = loopsData[LOOPSIDE["right_on_partition"]];
 
-                } else {
-                    delete tmp[LOOPSIDE["top"]];
+                    const sectionLeftLoops = sectionLeft.loopsSides || {};
+
+                    if (!grid.isRestrictedModule) {
+                        if (
+                            sectionLeftLoops[1] ||
+                            rightLoopsList.includes(
+                                sectionLeftLoops[0]
+                            )
+                        ) {
+                            delete tmp[LOOPSIDE["left_on_partition"]];
+                        }
+                        else {
+                            tmp[LOOPSIDE["left_on_partition"]] =
+                                loopsData[LOOPSIDE["left_on_partition"]];
+                        }
+                    }
+
+                    delete tmp[LOOPSIDE["left"]];
                 }
 
-                // console.log(isRightDoors, 'ПРАВАЯ СЕКЦИЯ TOP')
-            }
+                if (sectionRight) {
 
-        }
 
-        else if (isDoors) {
-            console.log('DOORS')
-            // else {
-            delete tmp[LOOPSIDE["top"]];
-            switch (doorIndex) {
-                case 0:
-                    if (grid.sections[secIndex].fasades[1]) {
-                        delete tmp[LOOPSIDE["right"]];
-                    }
+                    const sectionRightLoops = sectionRight.loopsSides || {};
 
-                    if (sectionLeft) {
-
-                        // console.log(sectionLeft, 'ЛЕВАЯ СЕКЦИЯ 0')
-
-                        const sectionLeftLoops = sectionLeft.loopsSides || {};
-
-                        if (!grid.isRestrictedModule) {
-                            if (
-                                sectionLeftLoops[1] ||
-                                rightLoopsList.includes(
-                                    sectionLeftLoops[0]
-                                )
-                            ) {
-                                delete tmp[LOOPSIDE["left_on_partition"]];
-                            }
-                            else {
-                                tmp[LOOPSIDE["left_on_partition"]] =
-                                    loopsData[LOOPSIDE["left_on_partition"]];
-                            }
+                    if (!grid.isRestrictedModule) {
+                        if (
+                            sectionRightLoops[1] ||
+                            leftLoopsList.includes(
+                                sectionRightLoops[0]
+                            )
+                        ) {
+                            delete tmp[LOOPSIDE["right_on_partition"]];
+                        } else {
+                            tmp[LOOPSIDE["right_on_partition"]] =
+                                loopsData[LOOPSIDE["right_on_partition"]];
                         }
-
-                        delete tmp[LOOPSIDE["left"]];
                     }
 
-                    if (sectionRight) {
-
-                        console.log(sectionRight, 'ПРАВАЯ СЕКЦИЯ 0')
-
-                        const sectionRightLoops = sectionRight.loopsSides || {};
-
-                        if (!grid.isRestrictedModule) {
-                            if (
-                                sectionRightLoops[1] ||
-                                leftLoopsList.includes(
-                                    sectionRightLoops[0]
-                                )
-                            ) {
-                                delete tmp[LOOPSIDE["right_on_partition"]];
-                            } else {
-                                tmp[LOOPSIDE["right_on_partition"]] =
-                                    loopsData[LOOPSIDE["right_on_partition"]];
-                            }
-                        }
-
-                        delete tmp[LOOPSIDE["right"]];
-                    }
-
-                    break;
-                case 1:
-                    if (sectionLeft) {
-
-                        // console.log(sectionLeft, 'ЛЕВАЯ СЕКЦИЯ 1')
-
-                        const sectionLeftLoops = sectionLeft.loopsSides || {};
-
-                        if (!grid.isRestrictedModule) {
-                            if (
-                                sectionLeftLoops[1] ||
-                                rightLoopsList.includes(
-                                    sectionLeftLoops[0]
-                                )
-                            ) {
-                                delete tmp[LOOPSIDE["left_on_partition"]];
-                            } else {
-                                tmp[LOOPSIDE["left_on_partition"]] =
-                                    loopsData[LOOPSIDE["left_on_partition"]];
-                            }
-                        }
-
-                        delete tmp[LOOPSIDE["left"]];
-                    }
-
-                    if (sectionRight) {
-
-                        console.log(sectionRight, 'ПРАВАЯ СЕКЦИЯ 1')
-
-                        const sectionRightLoops = sectionRight.loopsSides || {};
-
-                        if (!grid.isRestrictedModule) {
-                            if (
-                                sectionRightLoops[1] ||
-                                leftLoopsList.includes(
-                                    sectionRightLoops[0]
-                                )
-                            ) {
-                                delete tmp[LOOPSIDE["right_on_partition"]];
-                            } else {
-                                tmp[LOOPSIDE["right_on_partition"]] =
-                                    loopsData[LOOPSIDE["right_on_partition"]];
-                            }
-                        }
-
-                        delete tmp[LOOPSIDE["right"]];
-                    }
-
-                    //delete tmp[LOOPSIDE["left"]]
-                    delete tmp[currSectionLoops[0]];
-
-                    break;
-            }
-        }
-
-        else {
-            delete tmp[LOOPSIDE["top"]];
-            if (sectionLeft) {
-                console.log('ЛЕВАЯ', segment)
-
-                delete tmp[LOOPSIDE["left"]];
-                const isLeftDoors = sectionLeft.fasades?.length > 1
-                const leftPossible = sidePossibles(sectionLeft, rightLoopsList)
-                if (leftPossible) {
-                    tmp[LOOPSIDE["left_on_partition"]] = loopsData[LOOPSIDE["left_on_partition"]];
+                    delete tmp[LOOPSIDE["right"]];
                 }
-            }
-            if (sectionRight) {
-                console.log('ПРАВАЯ', segment)
 
-                delete tmp[LOOPSIDE["right"]];
-                const isRightDoors = sectionRight.fasades?.length > 1
-                const rightPossible = sidePossibles(sectionRight, leftLoopsList)
-                if (rightPossible) {
-                    tmp[LOOPSIDE["right_on_partition"]] = loopsData[LOOPSIDE["right_on_partition"]];
+                break;
+            case 1:
+                if (sectionLeft) {
+
+
+                    const sectionLeftLoops = sectionLeft.loopsSides || {};
+
+                    if (!grid.isRestrictedModule) {
+                        if (
+                            sectionLeftLoops[1] ||
+                            rightLoopsList.includes(
+                                sectionLeftLoops[0]
+                            )
+                        ) {
+                            delete tmp[LOOPSIDE["left_on_partition"]];
+                        } else {
+                            tmp[LOOPSIDE["left_on_partition"]] =
+                                loopsData[LOOPSIDE["left_on_partition"]];
+                        }
+                    }
+
+                    delete tmp[LOOPSIDE["left"]];
                 }
-            }
+
+                if (sectionRight) {
 
 
+                    const sectionRightLoops = sectionRight.loopsSides || {};
+
+                    if (!grid.isRestrictedModule) {
+                        if (
+                            sectionRightLoops[1] ||
+                            leftLoopsList.includes(
+                                sectionRightLoops[0]
+                            )
+                        ) {
+                            delete tmp[LOOPSIDE["right_on_partition"]];
+                        } else {
+                            tmp[LOOPSIDE["right_on_partition"]] =
+                                loopsData[LOOPSIDE["right_on_partition"]];
+                        }
+                    }
+
+                    delete tmp[LOOPSIDE["right"]];
+                }
+
+                //delete tmp[LOOPSIDE["left"]]
+                delete tmp[currSectionLoops[0]];
+
+                break;
         }
 
         list = Object.values(tmp);
 
-        // console.log(secIndex, list, '<====== list ======>')
         return list;
     };
 }

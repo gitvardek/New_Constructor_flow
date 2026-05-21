@@ -8,13 +8,15 @@
       >
         Корзина
       </button>
+    <!-- ================    /** ДЛЯ МАСТЕРА  */ ================ 
       <button
         class="basket-tabs__tab"
         :class="{ 'basket-tabs__tab--active': activeTab === 'order' }"
         @click="activeTab = 'order'"
       >
         Форма заказа
-      </button>
+      </button> 
+    ========================================================== -->
       <ClosePopUpButton
         class="basket-tabs__close-btn"
         @click="closePopup"

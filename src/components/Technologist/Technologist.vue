@@ -766,6 +766,7 @@ const getNavData = () => {
   height: 85vh;
   overflow-x: hidden;
   overflow-y: auto;
+  font-size: 1.4rem;
 
   &-header {
     display: flex;
