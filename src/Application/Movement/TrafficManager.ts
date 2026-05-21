@@ -103,12 +103,12 @@ export class TrafficManager {
                 roomContant: this.room._roomContant
             })
 
-            console.log('OBJ_', object);
-            console.log('OBJ_PROPS', object.userData.PROPS);
-            console.log('OBJ_CONFIG', object.userData.PROPS.CONFIG);
+            // console.log('OBJ_', object);
+            // console.log('OBJ_PROPS', object.userData.PROPS);
+            // console.log('OBJ_CONFIG', object.userData.PROPS.CONFIG);
 
             // console.log('object.userData.PROPS.PRODUCT', object.userData.PROPS.PRODUCT)
-            console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
+            // console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
             // Обновление корзины при простом выборе/перемещении не требуется
 
             if (object.userData.elementType !== 'raspil' && !object.userData.disableRaycast) {

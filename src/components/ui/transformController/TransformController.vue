@@ -98,7 +98,7 @@ onMounted(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__content">
+            <ul class="quality-list">
               <li
                 v-for="(data, index) in getTransformControlSnapAngles"
                 :key="index + data"
@@ -126,7 +126,7 @@ onMounted(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__content">
+            <ul class="quality-list">
               <li
                 v-for="(data, index) in controllerValue"
                 :key="index + data.name"
@@ -201,11 +201,6 @@ onMounted(() => {
     gap: 10rem;
   }
 
-  &__content {
-    padding-top: 0.5rem;
-    border-top: 1px solid #a3a9b5;
-  }
-
   &__text {
     cursor: pointer;
     transition-property: color;
@@ -218,5 +213,9 @@ onMounted(() => {
       }
     }
   }
+}
+.quality-list {
+  padding-top: 0.5rem;
+  border-top: 1px solid $dark-grey;
 }
 </style>
