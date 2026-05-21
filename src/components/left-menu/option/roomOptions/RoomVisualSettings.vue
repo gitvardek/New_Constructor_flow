@@ -164,11 +164,6 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   color: $strong-grey;
 }
 
-// .accordion__content {
-//   padding-top: 0.5rem;
-//   border-top: 1px solid $dark-grey;
-// }
-
 .quality-list {
   padding-top: 0.5rem;
   border-top: 1px solid $dark-grey;
