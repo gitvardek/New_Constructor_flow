@@ -22,7 +22,6 @@ export default class FasadesManager {
     createFacadeData(fasadeIndex?: number, _productId?: number) {
         const { PROPS: { FASADE, PRODUCT } } = this.scope.MODEL_STATE.getCurrentModel.userData
 
-        console.log(PRODUCT, FASADE, fasadeIndex, 'createFacadeData')
           console.trace('createFacadeData')
 
         const productId = _productId || PRODUCT;

@@ -433,8 +433,7 @@ const loadProject = async (id: string | number) => {
     if (projectData) {
       projectState.resetState();
       projectState.setInitialState(projectData);
-      console.log(projectData, "----PROD");
-
+      
       try {
         schemeTransition.clearStore();
         // Очищаем текущую комнату перед загрузкой нового проекта

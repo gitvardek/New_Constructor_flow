@@ -31,7 +31,6 @@ const createList = () => {
 };
 
 const changeValue = (event: InputEvent, option: TRootOptionType) => {
-  console.log(option)
 
   if (!props.umMechanizm) {
     const check = event.target!.checked;

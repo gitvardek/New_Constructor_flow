@@ -131,8 +131,6 @@ export class BuildersHelper extends GlobalsData {
         size.height ||= parseFloat(resolvedHeight);
         size.depth ||= parseFloat(productData.depth);
 
-        console.log(size, ' == Size ==')
-
         return size;
     }
 

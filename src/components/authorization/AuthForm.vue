@@ -147,7 +147,6 @@
 
   const handleSubmit = async () => {
     try {
-      console.log(authForm.value.login, authForm.value.password)
 
       await authStore.login({
         login: authForm.value.login,

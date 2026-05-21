@@ -100,7 +100,6 @@ const changeFasadeTexture = (data: { [key: string]: any }, id, fasadeNdx) => {
   const { MILLING_CONVERSATION } = FASADE_PROPS[fasadeNdx];
   const { trueSize } = FASADE[fasadeNdx].userData;
 
-  console.log(trueSize, "--trueSize");
   let { ID, NAME, DETAIL_PICTURE, PREVIEW_PICTURE, MATERIAL, PATINA } = data;
 
   modelState.createCurrentPaletteData(ID);

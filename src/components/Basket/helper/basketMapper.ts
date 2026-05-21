@@ -5,10 +5,8 @@ import { useAppData } from "@/store/appliction/useAppData"
 
 const appDataStore = useAppData()
 
-console.log('appDataStore.getAppData', appDataStore.getAppData)
-
 function createFacadeProps(objProps: any): IBasketFacade[] {
-  console.log('SHHHH')
+
 
   return objProps.CONFIG.FASADE_PROPS
     ? objProps.CONFIG.FASADE_PROPS.map((fp: any, index: number) => {
@@ -67,8 +65,6 @@ function createBodyProps(objProps: any) {
   const isSizeEditStepHeight = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_HEIGHT;
   const isSizeEditStepDepth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_DEPTH;
 
-  console.log('isSizeEdit', isSizeEdit);
-  console.log('isSizeStepEdit', isSizeEditStepWidth, isSizeEditStepHeight, isSizeEditStepDepth);
   if (isSizeEdit === "obligatory") {
     if (isSizeEditStepWidth) {
       sizeObj.WIDTH = objProps.CONFIG.SIZE.width;
@@ -307,7 +303,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
   const { CONFIG } = newModuleObject;
   const sectionCount = Object.keys(CONFIG.SECTIONS).length;
-  console.log('CONFIG', CONFIG, sectionCount)
 
   const legacyProps = {
     SIZEEDITWIDTH: CONFIG.SIZE?.width || 0,
@@ -374,7 +369,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
   }
   else {
     const result = {}
-    console.log('sections', CONFIG.MODULEGRID.sections)
+
     CONFIG.MODULEGRID.sections.forEach((section, number) => {
       const sectionNumber = number + 1;
       const sectionKey = `SECTIONS${sectionNumber}`;
@@ -385,7 +380,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
 
-      console.log('sectionKey', sectionKey);
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = {};
       result[fasadesMillingKey] = {};
@@ -592,8 +586,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
           height: el.height,
           width: el.width,
           serviseData: el.serviseData.filter(el => el.value).map(el => {
-            console.log(el, 'IN BUSKET')
-            console.log(el.separated == '0', 'IN separated')
 
             if (el.separated == '0') return
             if (el.width) {
@@ -612,8 +604,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
         }
       })
     }
-
-    console.log(props.RASPIL)
 
     // props.PROFILE = '251698';
     props.PROFILE = objProps.CONFIG.PROFILE.filter(el => el.value === true)[0]?.ID

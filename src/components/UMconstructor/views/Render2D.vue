@@ -1208,8 +1208,6 @@ const createFilling = (data, sector) => {
   let sectorXMMPos = getMmWidth(sector.position.x);
   let sectorYMMPos = getMmHeight(sector.position.y);
 
-  console.log(sectorXMMPos, '<<<<sectorXMMPos>>>>')
-
   if (
     !data.isProfile &&
     !data.isVerticalItem &&

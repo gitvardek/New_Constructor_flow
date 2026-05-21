@@ -151,9 +151,6 @@ export class Filters extends GlobalsData {
             const sizesData = this._FASADESIZE[sizes]
             const ismanualSizes = this._FASADESIZE[sizes]?.NAME.includes("Нестандарт")
 
-
-            console.log(ismanualSizes, this._FASADESIZE[sizes], "Нестандарт")
-
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
                 COLOR: this.project.default_fasade_color!,
@@ -319,15 +316,11 @@ export class Filters extends GlobalsData {
         const uslugi = getFilteredData(product_uslugi)
         const profile = getFilteredData(product_data.profile, true)
 
-        console.log(profile)
-
         return { uslugi, profile }
 
     }
 
     filterOption(option: number[]) {
-
-        console.log('OOOOOO')
 
         let curOptionsList = option
             .map(el => this._OPTION[el])

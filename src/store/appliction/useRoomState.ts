@@ -81,7 +81,6 @@ export const useRoomState = defineStore('RoomState', () => {
       room.basket = basket;
 
       convertDataTo2DConstuctor()
-      console.log(   room.params, '== rooms ==')
 
       return
     }

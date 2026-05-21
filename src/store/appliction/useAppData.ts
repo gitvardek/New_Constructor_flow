@@ -40,11 +40,11 @@ export const useAppData = defineStore('AppData', () => {
     const contentType = response.headers.get('content-type')
     if (contentType?.includes('application/json')) {
       const data = await response.json()
-      console.log('Полученные JSON данные:', data.DATA)
+
       return data.DATA
     } else {
       const text = await response.text()
-      console.log('Полученные текстовые данные:', text)
+
       return null
     }
   }

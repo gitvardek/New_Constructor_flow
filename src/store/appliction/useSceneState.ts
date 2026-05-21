@@ -126,8 +126,6 @@ export const useSceneState = defineStore('SceneState', () => {
 
     const loadProjectFromData = async (newProject: IProjectParams) => {
 
-        console.log(newProject, 'newProject')
-
         startProjectParams.value = newProject
 
         startParamsClone.value = newProject

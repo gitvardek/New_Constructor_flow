@@ -582,8 +582,7 @@ const getArticleCodeForSegment = (_segment: any, _key: string) => {
 };
 
 const hasError = (value: any, propsError: any) => {
-  // Логика проверки ошибки
-  console.log(propsError);
+
   // return propsError && propsError.includes(value);
   if (!propsError || !Array.isArray(propsError)) return false;
 
@@ -598,8 +597,6 @@ const getTypeName = (
 ) => {
   // Получаем имя из store данных
   // console.log('data', appData.value, type, value, mainType);
-
-  console.log(index, "type");
 
   if (value && typeof value === "object" && value.NAME) {
     return value.NAME;
@@ -627,7 +624,6 @@ const getTypeName = (
   }
 
   if (mainType === "umscene" && typeof value === "object") {
-    console.log();
     return appData.value[type][value["1"][0]]?.NAME;
   }
 
@@ -766,7 +762,6 @@ function updateQuantity(id: string, type: string) {
 }
 
 const deleteProductInBusket = (id: string, type: string) => {
-  console.log(id, type);
   basketStore.removeFromBasket(id, type);
   if (type === "scene" || type === "umscene") {
     useEventBus().emit("A:RemoveModelFromBasket", {
@@ -780,11 +775,7 @@ const deleteProductInBusket = (id: string, type: string) => {
 // -------------- сцена
 
 const formatPropSceneValue = (key: string, propVal: any) => {
-  console.log("propVal", propVal);
-  console.log("key", key);
-  // if (typeof secondItem === 'object' && secondItem !== null && !Array.isArray(secondItem)) {
-  //   console.log('Второй элемент - объект:', secondItem);
-  // }
+
   const propDef = getPropDefinition(key);
   return getTypeName(propDef?.type, propVal);
 };
@@ -898,7 +889,6 @@ const renderDescription = (data) => {
       result.push({ key: "Горизонт", value: value });
     }
     if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
-      console.log("МЕХАНИЗМЫ", key, value, getPropDefinition(key)?.NAME);
 
       if (key === "OPTION" && value.length) {
         value.forEach((el) => {
@@ -922,7 +912,6 @@ const renderDescription = (data) => {
         ].find((item) => key.includes(item))
       ) {
         if (Array.isArray(value)) {
-          console.log(key, value, "value");
 
           let items = [];
 
@@ -935,7 +924,6 @@ const renderDescription = (data) => {
             });
           } else {
             value.forEach((el) => {
-              console.log(el, "-------el");
 
               items.push({
                 key: `
@@ -971,11 +959,10 @@ const renderDescription = (data) => {
         key !== "DOORS"
       ) {
         for (const [doorNumber, doorData] of Object.entries(value)) {
-          console.log("1 уровень ", doorNumber, doorData);
+
           // Для каждой двери перебираем её части (обычно только часть "1")
           for (const [partNumber, partData] of Object.entries(doorData)) {
             // Каждая часть может содержать несколько элементов (0, 1 и т.д.)
-            console.log("2 уровень ", partNumber, partData);
 
             const description =
               appData.value[getPropDefinition(key)?.type][partData].NAME ||

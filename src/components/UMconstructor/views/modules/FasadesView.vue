@@ -309,8 +309,6 @@ const createMechanizmList = (segment) => {
   const { height, width, material } = segment;
   const { PRODUCT, CONFIG } = UMconstructor.value.UM_STORE.getUMData();
 
-  console.log(segment, "segment");
-
   const tempData = {
     userData: {
       UM: true,
@@ -336,7 +334,6 @@ const createMechanizmList = (segment) => {
   isOpenHandleSelector.value = false;
   isOpenMaterialSelector.value = false;
 
-  console.log(list, tempData, "Meckhanizm LIST");
 };
 
 onMounted(() => {

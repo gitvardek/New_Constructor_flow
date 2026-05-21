@@ -257,9 +257,8 @@ export class MeshEvents extends BuildersHelper {
         const product = currentMesh ?? this._currentMesh;
         const { CONFIG, SHELF, BODY, JSON_FILLINGS } = product.userData.PROPS;
         const { ID } = CONFIG;
-        const productData = this._PRODUCTS[ID]
+        const productData = this._PRODUCTS[ID];
 
-        console.log(productData, 'ID');
         [BODY, ...(SHELF ?? []), ...(JSON_FILLINGS ?? [])].forEach((obj) => {
             if (obj instanceof THREE.Object3D) {
                 obj?.traverse((child: THREE.Object3D) => {
@@ -310,7 +309,6 @@ export class MeshEvents extends BuildersHelper {
 
         if (Array.isArray(elementsList) && elementsList[0]) {
             elementsList.forEach(async (el) => {
-                console.log(el)
 
                 const { PROPS } = el.userData
                 const { PRODUCT } = PROPS
@@ -338,7 +336,6 @@ export class MeshEvents extends BuildersHelper {
 
         const { CONFIG, FASADE, FASADE_DEFAULT, ELEMENT_TYPE } = meshData.userData.PROPS;
         const { FASADE_PROPS, UNIFORM_TEXTURE } = CONFIG;
-        console.log('BEFORE:', JSON.stringify(FASADE_PROPS))
 
         const incomingModel = data.MODEL;
         const fasade = FASADE[fasadeNdx] ?? FASADE_DEFAULT[fasadeNdx];
@@ -859,8 +856,6 @@ export class MeshEvents extends BuildersHelper {
         if (!data) return
         const { NAME, ID, cutSize } = data.option
         // const isCutFasade = this.cutFasadeId.includes(parseInt(ID))
-
-        console.log(data, 'createCutFasade')
 
         if (!this._currentMesh) return;
         // if (!cutSize) return

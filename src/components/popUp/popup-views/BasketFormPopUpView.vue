@@ -198,23 +198,10 @@ const handleSubmit = async () => {
     cityID: ''
   })
 
-  console.log('Ответ сервера:', response.DATA.type);
+
   response.DATA.type === 'success' ?  toaster.success("Заявка успешно отправлена") : toaster.error("Ошибка при отправке заявки");
   closePopup();
 
-  console.log('Отправка данных:', {
-    project_img: screenshot.value,
-    // project_img: '',
-    project_name: form.projectName,
-    project:projectData,
-    config: configData,
-    style: styleData,
-    fio: form.clientName,
-    phone: form.clientPhone,
-    comment: form.comment,
-    basket: basket.value,
-    cityID: ''
-  });
   isLoading.value = false;
   // Здесь будет логика отправки формы
   // await sendFormData(form);

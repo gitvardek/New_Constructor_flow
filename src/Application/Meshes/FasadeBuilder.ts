@@ -168,7 +168,6 @@ export class FasadeBuilder {
         if (fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
             const handleId = fasadeData.HANDLES.id;
             const handleModel = this._APP.CATALOG.PRODUCTS[handleId].models[0];
-            console.log(this._APP.CATALOG.PRODUCTS[handleId], 'this._APP.CATALOG.PRODUCTS[handleId]')
 
             this.handlesBuilder.createHandle({ id: handleId, model: handleModel }, mesh, fasadeData);
         }
@@ -395,12 +394,9 @@ export class FasadeBuilder {
             fasadeCount: FASADE_PROPS.length
         });
 
-        console.log('curFasadeList', curFasadeList.includes(color))
-
         fasadeData.COLOR = curFasadeList.includes(color) ? color : 7397;
         fasadeData.SHOW = curBodyExceptions ? true : fasadeData.COLOR !== 7397;
 
-        console.log(fasadeData.COLOR, ' fasadeData.COLOR')
 
         if (fasadeData.SHOW && haveShowcase && !fasadeData.ALUM) {
             fasadeData.SHOWCASE = fasadeData.SHOWCASE ?? SHOWCASE[0] ?? deffShowcase;
@@ -1074,10 +1070,6 @@ export class FasadeBuilder {
         if (isAdditiveOption || !isAdditiveOption && isAdditiveDisabled) {
             this.createAdditiveMark(params)
         }
-
-
-        console.log(isCutOption, isCutDisabled, 'РАСПИЛ');
-        console.log(isAdditiveOption, isAdditiveDisabled, 'ПРИСАДКА')
 
         return;
     }

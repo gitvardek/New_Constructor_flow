@@ -92,8 +92,6 @@ export const useConversationActions = () => {
     }
 
     const checkFasadeConversations = (fasadeId: number, size: TFasadeTrueSizes) => {
-        console.log('СТРАУС')
-
         const curModel = modelState.getCurrentModel
         const { FASADE_WIDTH, FASADE_HEIGHT } = size
         const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel)
@@ -161,7 +159,6 @@ export const useConversationActions = () => {
 
         const match = (_MILLING_SIZE_RESTRICT as TMillingRestrictItem[]).find(
             (item) => {
-                console.log(item, 'aaaa')
 
                 return item.FASADE.includes(fasadeId)
             }

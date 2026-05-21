@@ -225,8 +225,6 @@ export class BuildProduct extends BuildersHelper {
         // const aabb = new THREE.Box3().setFromObject(parent_group);
         // const obb = new OBB().fromBox3(aabb);
 
-        console.log(product, '<<<<<<product>>>>>>')
-
         const aabb = product?.userData.aabb;
         const obb = product?.userData.obb;
         const productSize = new THREE.Vector3();
@@ -494,8 +492,6 @@ export class BuildProduct extends BuildersHelper {
             part.position.y = y;
         });
 
-        console.log(body, ' === body ===')
-
         if (body) {
             body.position.set(move.x, baseY, move.z);
             body.visible = !curBodyExceptions;
@@ -530,8 +526,6 @@ export class BuildProduct extends BuildersHelper {
         if (sourceForBounds) this.setBounds(total, sourceForBounds, size, CONFIG);
 
         if (drowMode) this.useEdgeBuilder.drawingMode(drowMode, total);
-
-        console.log(isTopTable, '<<<<isTopTable>>>>')
         total.userData.isTopTable = isTopTable
 
         return total;
@@ -585,8 +579,6 @@ export class BuildProduct extends BuildersHelper {
             : resolveColorId();
 
         CONFIG.MODULE_COLOR = isRoomElement ? wallTextureId : moduleColorId;
-
-        console.log(moduleColorId, '❌ === isRoomElement === ❌')
 
         const moduleColorObject = isRoomElement ?
             this._WALL[wallTextureId] :

@@ -190,9 +190,6 @@ export class JsonBuilder {
                 this.convert(data.position.z)
             )
 
-            console.log(this.convert(data.position.x),
-                this.convert(data.position.y),
-                this.convert(data.position.z), 'ПОЗИЦИЯ!')
         }
 
         if (data.id === 'back' && data.position) {
@@ -206,9 +203,6 @@ export class JsonBuilder {
                 this.convert(data.rotation.z)
             )
 
-            console.log(this.convert(data.rotation.x),
-                this.convert(data.rotation.y),
-                this.convert(data.rotation.z), 'ПОЗИЦИЯ!')
         }
 
         if (!data.geometry) {

@@ -208,8 +208,6 @@ export default class DoorsAndWindows {
 
       dataObjsects.forEach((object: any) => { // добавляем объекты на холст
 
-        console.log(object)
-
         const NameObjects: string | null = this.parent.IDObjects.find((item: { id: string | number; name: string; }) => item.id === object.id)?.name ?? null;
         if (!NameObjects) {
           console.warn(`Object with id ${object.id} not found in IDObjects`);

@@ -14,13 +14,13 @@ const getBaseFromSubdomain = async () =>  {
 
   const pathname = window.location.pathname;
   const parts = pathname.split('/');
-  console.log('parts', parts)
+
   const isURL = await AuthService.getCheckURL(parts[2]);
   // const authStore = useAuthStore();
   // console.log('parts', authStore)
   if (parts && parts.length > 2 && isURL.DATA) {
   // if (parts.length > 2 && parts[2] !== '2d' && parts[2] !== '3d' && parts[2] !== 'auth') {
-    console.log(parts.length);
+
     // authStore.setCheckout(isURL.DATA)
     return `/dev_modeller/${parts[2]}`;
   } else {
@@ -94,11 +94,10 @@ async function createAppRouter() {
       return;
     }
     
-    console.log('!!!to:', to)
+
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
     const expirationTime = getCookie(COOKIE_NAMES.TOKEN_EXPIRATION);
-    console.log('COOKIE_NAMES.AUTH_TOKEN', COOKIE_NAMES.AUTH_TOKEN)
-    console.log('COOKIE_NAMES.TOKEN_EXPIRATION', COOKIE_NAMES.TOKEN_EXPIRATION)
+
     const appDataStore = useAppData()
     const authStore = useAuthStore()
   
@@ -107,11 +106,7 @@ async function createAppRouter() {
     if (token && expirationTime) {
       const expirationTimestamp = parseInt(expirationTime);
       if (Date.now() > expirationTimestamp) {
-        console.log('Токен просрочен! Удаляю...', {
-          currentTime: new Date().toLocaleString(),
-          expirationTime: new Date(expirationTimestamp).toLocaleString(),
-          timeDiff: Math.round((Date.now() - expirationTimestamp) / 1000 / 60) + ' минут'
-        });
+
         // Удаляем просроченные куки
         document.cookie = `${COOKIE_NAMES.AUTH_TOKEN}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
         document.cookie = `${COOKIE_NAMES.TOKEN_EXPIRATION}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
@@ -120,7 +115,7 @@ async function createAppRouter() {
       } else {
         const secondsLeft = Math.round((expirationTimestamp - Date.now()) / 1000);
         const hoursLeft = Math.round(secondsLeft / 3600);
-        console.log(`Токен действителен еще ${secondsLeft} сек. (${hoursLeft} часов)`);
+
         // next('/2d');
       }
     }
@@ -137,19 +132,18 @@ async function createAppRouter() {
   
     } else {
       // В остальных случаях разрешаем переход
-      console.log('!!!to1:', to)
+
       // console.log(next())
       next()
     }
   });
   
   router.afterEach((to, from) => {
-    console.log('to', to)
-    console.log('from', from)
+
     // document.querySelector('#main-loader').style.display = 'none';
     // Здесь выполняется код после завершения навигации.
     // 'to' - новый маршрут, 'from' - старый маршрут.
-    console.log(`Переход на страницу ${to.path} завершен.`);
+
   });
 
   return router

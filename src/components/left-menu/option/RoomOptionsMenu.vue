@@ -137,7 +137,6 @@ const globalOptions = ref<TOptionsMap | null>(null);
 const currentRedactor = ref<boolean>(false);
 
 onBeforeMount(() => {
-  console.log(roomState.getRooms);
   prepareOptions();
 });
 
@@ -169,8 +168,6 @@ const prepareOptions = () => {
   };
 
   globalOptions.value = getGlobalOptions;
-
-  console.log(globalOptions.value, "========= getHeightClamp");
 
   const { fasadsBottom, fasadsTop, plinth } = globalOptions.value;
 
@@ -260,8 +257,6 @@ const toggleRefraction = (value: boolean) => {
 
 const getOption = (value: keyof TTextureActionMap, title: string) => {
   currentOption.value = value;
-
-  console.log(value)
 
   switch (value) {
     case "plinth":

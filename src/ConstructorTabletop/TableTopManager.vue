@@ -437,13 +437,7 @@ const createProfileServices = () => {
   const { PROFILE, USLUGI } = PROPS.CONFIG;
   if (!tempProfile.value.length > 0) return null;
 
-  console.log(tempProfile.value, 'tempProfile.value')
-
   const activeProfile = tempProfile.value.find((prof) => prof.value);
-
-  console.log(activeProfile, 'activeProfile')
-
-  console.log(modelState._PROFILE, '_PROFILE')
 
   const curProfileData = Object.values(modelState._PROFILE).find(
     (el) => el.PROFILE == activeProfile.ID,
@@ -573,7 +567,6 @@ const updateGlobalService = (value, item, USLUGI) => {
     globalService.value = value;
   }
 
-  console.log(tempUslugi.value, "tempUslugi.value");
 };
 
 /** @Обновляет_локальный_сервис_в_текущей_секции_с_логикой_позиционирования */
@@ -1015,8 +1008,6 @@ const createServiseData = () => {
     return acc;
   }, []);
 
-  console.log(convertParams, "convertParams");
-
   return convertParams;
 };
 
@@ -1110,10 +1101,6 @@ defineExpose({
 });
 
 onBeforeMount(() => {
-  console.log(
-    modelState.getCurrentRaspilParent,
-    "==== getCurrentRaspilParent ====",
-  );
 
   const parent = modelState.getCurrentRaspilParent;
   const { PROPS } = parent.userData;
@@ -1140,10 +1127,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  console.log(
-    modelState.getCurrentRaspilParent,
-    "==== getCurrentRaspilParent ====",
-  );
 
   shapeAdjuster = null;
   grid.value = null;

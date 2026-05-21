@@ -82,7 +82,6 @@ export const useOptions = () => {
 
         if (values) {
             OPTIONS.forEach(opt => {
-                console.log(opt)
                 if (
                     opt.group === curOpt.group &&
                     opt.close === curOpt.close &&
@@ -220,8 +219,6 @@ export const useOptions = () => {
             return el.COLOR
         })
 
-        console.log()
-
         const result = filterGroups(options, prepareColorId, props)
 
         return result
@@ -313,8 +310,6 @@ export const useOptions = () => {
                 }
 
                 if (props) {
-                    console.log('PRRR')
-
                     const curOptionInConfig = props.find(el => el.id === item.ID)
 
                     if (curOptionInConfig) {

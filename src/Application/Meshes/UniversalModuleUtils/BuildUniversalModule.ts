@@ -805,8 +805,6 @@ export class BuildUniversalModule extends BuildProduct {
         let start_position = this.getStartPosition(size)
 
         const create = (dae, secIndex, doorKey, loopCoord) => {
-            console.log(loopCoord, 'LOOPP COORD')
-
 
             let loopGroup = new THREE.Object3D();
 
@@ -817,8 +815,6 @@ export class BuildUniversalModule extends BuildProduct {
             loop.width = loop_size.x;
             loop.height = loop_size.y;
             loop.depth = loop_size.z;
-
-            console.log(loop.width)
 
             const loopside = loopCoord.side
             const rightSide = LOOPSIDE[loopside] === 'right' || LOOPSIDE[loopside] === 'right_on_partition'

@@ -665,7 +665,6 @@ const prepareFasadeSizeList = () => {
 };
 
 const changeFasadeSize = async (data: TFasadeSize) => {
-  console.log("AUF");
 
   currentSize.value = data;
   const curData = productData.value;
@@ -765,15 +764,12 @@ onBeforeMount(() => {
   //     ? fasadeSizeList.value[0].WIDTH
   //     : null;
 
-  console.log(positionList, "defaultWidth");
-
   incomeSize.value = {
     width: curSize?.params?.FASADE_WIDTH ?? null,
     min: curSize?.params?.min ?? null,
     max: curSize?.params?.max ?? null,
   };
 
-  console.log(curSize, "curSize");
 });
 
 onMounted(() => {

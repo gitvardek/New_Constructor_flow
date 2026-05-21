@@ -140,7 +140,7 @@ let goodItemDrag = (e: DragEvent): void => {
 
 // если добавляется компонент в DOM
 onMounted(() => {
-  console.log("BACKBACKBACKBACK");
+
   document.addEventListener("click", handleGoodClick);
   document.addEventListener("dragstart", goodItemDrag);
 });

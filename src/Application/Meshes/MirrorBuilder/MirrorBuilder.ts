@@ -13,7 +13,6 @@ export class MirrorBuilder {
         const bodyMaterial = new MeshStandardMaterial()
         await this.parent.getMaterial({ material: bodyMaterial, url: material.TEXTURE })
 
-        console.log(material, 'bodyMaterial')
         const mirrorMaterial = new MeshPhysicalMaterial({
             color: new Color(`#ffffff`),
             metalness: 0.85,

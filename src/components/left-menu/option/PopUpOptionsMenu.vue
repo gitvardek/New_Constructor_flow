@@ -77,7 +77,7 @@ const closeMenu = (menuType: MenuType) => {
 };
 
 const openPopup = async (item) => {
-  console.log(getAppData, "getAppData");
+
   try {
     const { data } = await axios.post(`/api/modeller/product/getbyid/`, {
       ID: item.ID,
@@ -121,7 +121,7 @@ const closeInfoPopup = () => {
 };
 
 onBeforeMount(() => {
-  console.log(props.filteredData);
+
 });
 </script>
 

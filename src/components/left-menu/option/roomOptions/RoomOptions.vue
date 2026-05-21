@@ -69,8 +69,6 @@ const palitteSelect = (
   key: keyof TOptionsMap,
   palitteData: TPalitte[]
 ) => {
-  console.log(palitteTitle, key, palitteData)
-
   emit("toPalitteSelect", palitteTitle, key, palitteData);
 };
 
@@ -126,7 +124,6 @@ const getOptionData = computed(() => {
 });
 
 onBeforeMount(() => {
-  console.log(props.options)
 });
 </script>
 

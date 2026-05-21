@@ -419,7 +419,6 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     }
 
     const getGlobalOptions = computed(() => {
-        console.log(globalOptions.value)
 
         return globalOptions.value
     })

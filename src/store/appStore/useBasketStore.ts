@@ -165,7 +165,7 @@ export const useBasketStore = defineStore('basket', () => {
   }
 
   const syncBasket = async (): Promise<IBasketResponse | null> => {
-    console.log('mainConstructor.value', mainConstructor.value)
+
     const currentHandlesData = countHandles(mainConstructor.value)
     const data = currentHandlesData.length > 0 
         ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)] 
@@ -174,16 +174,16 @@ export const useBasketStore = defineStore('basket', () => {
     if (result) {
       basketData.value = result
     }
-    console.log('basketData.value', basketData.value)
+
     return result
   }
   const syncBasketMulti = async (data): Promise<IBasketResponse | null> => {
-    console.log('mainConstructor.value', mainConstructor.value)
+
     const result = await syncBasketWithServer(data)
     if (result) {
       basketData.value = result
     }
-    console.log('basketData.value', basketData.value)
+
     return result
   }
   const syncBasketDelay = async (): Promise<IBasketResponse | null> => {

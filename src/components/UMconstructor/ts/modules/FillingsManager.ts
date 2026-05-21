@@ -85,9 +85,6 @@ export default class FillingsManager {
         const { MAX_SECTION_WIDTH, MIN_SECTION_WIDTH } = this.scope.CONST
         const section = grid.sections[sec];
 
-        console.log(grid)
-        console.log(section, 'updateFilling')
-
         if (!section) return
 
 
@@ -861,8 +858,6 @@ export default class FillingsManager {
         rowIndex: number | null = null,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-
-        console.log('<<<<<FASADS>>>>>')
 
         this.scope.debounce("changeDrawerFasade", () => {
             this.selectCell(secIndex, cellIndex, rowIndex, null, key);

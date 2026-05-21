@@ -257,8 +257,6 @@ export class Room extends BuildersHelper {
         this.roomState.tempRoomUpdate(materialId, 'wall')
         this.wallTextureId = materialId
 
-        console.log(materialId)
-
     }
 
     updateFloorMaterial(materialId: number | string) {

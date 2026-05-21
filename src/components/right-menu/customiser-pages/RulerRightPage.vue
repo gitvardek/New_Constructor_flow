@@ -111,7 +111,6 @@ const updateFillingModel = (filling: TFillingData) => {
   const { userData } = modelState.getCurrentModel;
   const { SHELFQUANT } = userData.PROPS.CONFIG;
 
-  console.log(modelState._FILLING[filling.id], "_FILLING");
   const incomeShelfcount = modelState._FILLING[filling.id].SHELFQUANT;
   const maxCount = isNumber(incomeShelfcount)
     ? incomeShelfcount
@@ -220,8 +219,8 @@ const resizeModel = (value: object) => {
 
   if (curModel?.name === "MODEL") return;
 
-  console.log(curModel);
   /** @Проверка_FILLING */
+  
   if (fillingList.value?.length > 0) {
     fillingList.value.forEach((el, key) => {
       el.extensions = modelState._FILLING[el.id].CONDITIONS

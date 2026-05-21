@@ -369,7 +369,6 @@ export default class DimensionDisplay {
 
     // уничтожение менеджера отображения размеров
     this.app = null;
-    console.log('DimensionDisplay destroyed');
 
   }
 

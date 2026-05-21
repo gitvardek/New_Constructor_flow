@@ -99,7 +99,6 @@ export default class LoopsManager {
 
         fasades.forEach((fasade, key) => {
 
-            console.log(fasade, 'fasade')
 
             const { width, height } = fasade
 
@@ -119,8 +118,6 @@ export default class LoopsManager {
             const right = LOOPSIDE[fasade.loopsSide]?.includes("right") || hasTop && !top && notTopLoop && notTopLoop?.includes("right")
 
             const isDefault = hasTop && !top && !notTopLoop
-
-            console.log(LOOPSIDE[fasade.loopsSide])
 
             if (left || right) {
                 fasade.material.MECHANISM = null
@@ -214,8 +211,6 @@ export default class LoopsManager {
                 // fasadeLoops.coords = fasadeLoops.coords.map((item) => parseInt(item))
                 allLoops.push(fasadeLoops)
         })
-
-        console.log(allLoops, 'allLoops')
 
         return allLoops
     }

@@ -230,14 +230,14 @@ const setLocalActivateValue = () => {
 };
 
 const controlsActivate = (value) => {
-  console.log(value, "value");
+
   transformControlsValue.value = value;
   try {
     if (product.value?.userData.MOUSE_POSITION) {
       controllerPositionData.value = product.value?.userData.MOUSE_POSITION;
     }
   } catch (e) {
-    console.log("❌ Не удалось найти параметр MOUSE_POSITION", e);
+    console.log("Не удалось найти параметр MOUSE_POSITION", e);
   }
 };
 
@@ -658,13 +658,9 @@ const openTableRedactor = () => {
 
   isModalOpen.value = true;
 
-  console.log(product.value);
-
   const parent = userData.groupId
     ? APP!._scene!.getObjectByProperty("id", userData.groupId)
     : product.value;
-
-  console.log(parent, "parent");
 
   if (parent) {
     modelState.setCurrentRaspilParent(parent);

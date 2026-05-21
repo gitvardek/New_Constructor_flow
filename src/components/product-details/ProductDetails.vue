@@ -27,7 +27,7 @@
   // Обработчики для демонстрации альтернативного подхода
   const clickHandler = (e) => {
     e.preventDefault();
-    console.log('Add to cart clicked');
+
     // Логика добавления в корзину
   };
   // const clickQuantity = (e) => {
@@ -72,10 +72,9 @@
   // }
 
   const inputHandler = (e) => {
-    console.log('Form input changed:', e.target);
+
     const formElement = e.currentTarget;
-    console.log(formElement);
-    console.log(formElement.type);
+
     catalogStore.fetchProductPrice(formElement);
     // if(formElement.type !== "range") {
     // }
