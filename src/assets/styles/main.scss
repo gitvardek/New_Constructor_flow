@@ -4,6 +4,12 @@
 @use "checkbox.scss";
 @use "colors.scss" as *;
 
+:root {
+  --header-height: 6rem;
+  --modal-large-height: 95vh;
+  --modal-large-width: 95vw;
+}
+
 html,
 body,
 #app {
@@ -68,6 +74,7 @@ input {
   margin: 0;
   bottom: 0;
   font-family: "Gilroy";
+  font-size: 1.4rem;
   border: none;
   background-color: $bg;
   border-radius: 15px;
@@ -114,8 +121,8 @@ p {
 }
 
 .light-radial__button {
-  width: 50px;
-  height: 50px;
+  width: 35px;
+  height: 35px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -159,8 +166,7 @@ p {
 }
 
 .black-radial__button {
-  width: 50px;
-  height: 50px;
+  padding: 0.8rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -171,8 +177,9 @@ p {
 }
 
 .grey-radial__button {
-  width: 50px;
-  height: 50px;
+  // width: 35px;
+  // height: 35px;
+  padding: 1.7rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -180,10 +187,22 @@ p {
   border-radius: 360px;
   background: $stroke;
   cursor: pointer;
+  transition-property: border-color, background-color;
+  ;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
 
   &.bask {
-    width: 42px;
-    height: 42px;
+    padding: 1rem;
+    transition-property: background-color;
+    transition-duration: 0.25s;
+    transition-timing-function: ease;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: $dark-stroke;
+      }
+    }
   }
 
   svg {
@@ -309,9 +328,18 @@ p {
     &__name {
       margin-left: 30px;
     }
+
+    @media (hover: hover) {
+      &:hover {
+        color: #000000;
+        background-color: $dark-stroke;
+        border-color: #000000;
+      }
+    }
+
   }
 
-  &_title{
+  &_title {
     margin-left: 5px;
   }
 
@@ -339,7 +367,7 @@ p {
 
 .button {
   &__rounded {
-    padding: 25px;
+    padding: 1.7rem;
     background-color: transparent;
     border: 1px solid $dark-grey;
     border-radius: 100px;
@@ -409,6 +437,10 @@ p {
   background-color: $stroke;
   border-radius: 360px;
   cursor: pointer;
+  transition-property: background-color fill border-color; 
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+
 
   &.active {
     background-color: $red;
@@ -423,6 +455,26 @@ p {
           fill: $white;
         }
       }
+    }
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: $red;
+
+      svg {
+        path {
+          fill: $white;
+        }
+
+        g {
+          path {
+            fill: $white;
+          }
+        }
+      }
+
+
     }
   }
 }

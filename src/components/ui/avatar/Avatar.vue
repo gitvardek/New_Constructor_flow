@@ -104,8 +104,8 @@ const imageStyle = computed(() => ({
 const initialsStyle = computed(() => ({
   backgroundColor: generateColorFromName(authStore.userData.name),
   color: '#ffffff',
-  width: '48px',
-  height: '48px',
+  width: '35px',
+  height: '35px',
   fontSize: authStore.userInitials.length > 2 ? '14px' : '18px',
   fontWeight: '600',
   display: 'flex',

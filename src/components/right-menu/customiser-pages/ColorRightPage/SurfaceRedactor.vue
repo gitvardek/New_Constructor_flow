@@ -193,15 +193,15 @@ const checkTransitionTexture = (id: number) => {
       <Tooltip v-else v-for="(id, index) in filteredMaterialList" :key="index" :position="top" :theme="'dark'">
         <template #trigger>
           <li>
-            <div class="item" @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)">
-              <img class="item__img" :src="_URL + _FASADE[id].PREVIEW_PICTURE" alt="" />
+            <div class="material-config_item" @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)">
+              <img class="material-config_item__img" :src="_URL + _FASADE[id].PREVIEW_PICTURE" alt="" />
 
             </div>
           </li>
         </template>
         <template #content>
-          <div class="item__tool">
-            <img class="item__img tool" :src="_URL + _FASADE[id].DETAIL_PICTURE" alt="" />
+          <div class="material-config_item__tool">
+            <img class="material-config_item__img tool" :src="_URL + _FASADE[id].DETAIL_PICTURE" alt="" />
             <p>{{ _FASADE[id].NAME }}</p>
           </div>
         </template>

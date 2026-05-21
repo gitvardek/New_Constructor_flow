@@ -31,12 +31,12 @@ const props = withDefaults(
   }
 );
 
-// === Emits ===
+
 const emit = defineEmits<{
   (e: "update:modelValue", value: number): void;
 }>();
 
-// === Refs ===
+
 const range = ref<HTMLInputElement | null>(null);
 
 /**
@@ -93,7 +93,7 @@ onMounted(() => {
     $red 0%,
     $red var(--progress, 50%),
     $stroke var(--progress, 50%),
-    $stroke 100%
+    $light-stroke 100%
   );
   outline: none;
   transition: background 0.2s ease;

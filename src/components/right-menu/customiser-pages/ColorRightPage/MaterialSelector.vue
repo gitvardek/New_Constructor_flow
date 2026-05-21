@@ -58,7 +58,7 @@ const handleSelect = (material: any) => {
 
             <template #content>
               <div class="material-config_item__tool">
-                <img class="material-config_item__img tool" :src="_URL + material.DETAIL_PICTURE" alt="" />
+                <img class="material-config_item__img tool" :src="_URL + material.PREVIEW_PICTURE" alt="" />
                 <p>{{ material.NAME }}</p>
               </div>
             </template>

@@ -209,8 +209,8 @@ defineExpose({
 .modal {
   &--tableTop {
     border: none;
-    width: 95vw;
-    height: 95vh;
+    max-height: var(--modal-large-height);
+    max-width: var(--modal-large-width);
     display: none;
     border-radius: 8px;
     overflow: hidden;

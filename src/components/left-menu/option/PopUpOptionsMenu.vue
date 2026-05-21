@@ -255,7 +255,7 @@ onBeforeMount(() => {
     left: 29rem;
     overflow-y: auto;
     min-height: 0;
-    height: calc(100vh - 90px);
+    height: calc(100vh - var(--header-height));
   }
 }
 </style>

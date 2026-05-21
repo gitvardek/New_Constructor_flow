@@ -1158,7 +1158,7 @@
       height: 100%;
       width: 100%;
       max-width: 373px;
-      max-height: 95vh;
+      max-height: var(--modal-large-height);
       overflow: hidden;
 
       z-index: 0;
@@ -1176,7 +1176,7 @@
         flex-direction: column;
         width: 100%;
 
-        max-height: 96vh;
+        max-height: var(--modal-large-height);
         // overflow-y: scroll;
 
         gap: 1rem;

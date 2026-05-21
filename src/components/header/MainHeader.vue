@@ -657,7 +657,7 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .header {
   width: 100%;
-  height: 90px;
+  height: var(--header-height);
   display: flex;
   align-items: center;
   border-bottom: 1px solid $light-stroke;
@@ -691,8 +691,8 @@ onBeforeUnmount(() => {
 }
 
 .header-utilitys-basket {
-  width: 201px;
-  height: 50px;
+  width: 150px;
+  height: 3.5rem;
   display: flex;
   border: 1.2px solid $black;
   border-radius: 50px;
@@ -705,7 +705,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
 }
 
 .header-main {
@@ -713,12 +713,14 @@ onBeforeUnmount(() => {
   max-width: 665px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
 
   &-ui {
     width: 100%;
     display: flex;
     align-items: center;
     gap: 30px;
+    justify-content: end;
 
     .header-ui-group {
       display: flex;
@@ -729,11 +731,13 @@ onBeforeUnmount(() => {
 
 .header-link {
   width: 100%;
-  max-width: 315px;
+  max-width: 125px;
 
   &__logo {
-    width: 154px;
-    height: 61px;
+    // width: 154px;
+    // height: 61px;
+    width: 100%;
+    height: 100%;
   }
 }
 .history {

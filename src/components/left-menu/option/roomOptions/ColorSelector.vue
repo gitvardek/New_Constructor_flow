@@ -74,7 +74,7 @@ watch(
   position: absolute;
   left: 40rem;
   width: 100%;
-  height: calc(100vh - 90px);
+  height: calc(100vh - var(--header-height));
   max-width: 373px;
   display: flex;
   flex-direction: column;

@@ -44,7 +44,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .main__container {
   width: 100%;
-  height: calc(100% - 91px);
+  height: calc(100% - var(--header-height));
   display: flex;
   flex-wrap: nowrap;
   position: relative;

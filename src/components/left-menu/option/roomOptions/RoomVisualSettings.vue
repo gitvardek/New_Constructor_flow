@@ -59,7 +59,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
             </template>
 
             <template #params="{ onToggle }">
-              <ul class="accordion__content">
+              <ul class="quality-list">
                 <li
                   class="label__text"
                   v-for="(param, key) in quality"
@@ -164,7 +164,12 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   color: $strong-grey;
 }
 
-.accordion__content {
+// .accordion__content {
+//   padding-top: 0.5rem;
+//   border-top: 1px solid $dark-grey;
+// }
+
+.quality-list {
   padding-top: 0.5rem;
   border-top: 1px solid $dark-grey;
 }

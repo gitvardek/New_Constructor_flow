@@ -619,7 +619,7 @@ watch(shadows, () => toggleShadow(shadows.value));
   position: absolute;
   top: 0;
   left: 290px;
-  height: calc(100vh - 90px);
+  height: calc(100vh - var(--header-height));
   z-index: -1;
   user-select: none;
 
@@ -669,7 +669,7 @@ watch(shadows, () => toggleShadow(shadows.value));
     border-radius: 15px;
 
     &__container {
-      height: calc(100vh - 90px);
+      height: calc(100vh - var(--header-height));
       display: flex;
       flex-direction: column;
       gap: 15px;

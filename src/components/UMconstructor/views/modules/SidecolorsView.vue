@@ -584,5 +584,8 @@ onBeforeUnmount(() => {
     }
   }
 }
+.container{
+  max-height: calc(var(--modal-large-height) - 115px)
+}
 
 </style>

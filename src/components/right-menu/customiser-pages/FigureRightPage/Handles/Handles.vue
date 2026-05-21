@@ -214,7 +214,7 @@ const checkControllerVisible = computed(() => {
     position: relative;
     max-height: 100vh;
     overflow: hidden;
-    margin-bottom: 2.5rem;
+    margin-bottom: 0.5rem;
     border: 1px solid #ecebf1;
     border-radius: 10px;
     padding: 5px;
