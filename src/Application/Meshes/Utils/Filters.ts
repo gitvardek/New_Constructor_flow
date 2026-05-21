@@ -17,6 +17,7 @@ export class Filters extends GlobalsData {
     private project = useSceneState().getCurrentProjectParams;
     private modelState = useModelState()
     private roomOptions = useRoomOptions()
+    private readonly emptyHandleID = 69920
 
     constructor(root: THREETypes.TApplication) {
         super();
@@ -66,7 +67,10 @@ export class Filters extends GlobalsData {
 
         FASADE_PROPS.length = 0;
 
+        console.log(product.HANDLES, 'product')
+
         let sortFasadePositionList = [];
+
         const fasadePositionList = product.FASADE_POSITION
 
         if (!fasadePositionList) return
@@ -78,6 +82,17 @@ export class Filters extends GlobalsData {
             []);
 
         params.FASADE_TYPE = fasadeTypeSorted
+
+        // product.HANDLES[0] != null && product.HANDLES.includes(roomOptions.handles.id) ? roomOptions.handles.id : this.emptyHandleID
+
+        const handleExists = product.HANDLES[0] != null;
+        const handleIncluded = product.HANDLES.includes(roomOptions.handles.id);
+
+        const defaultHandleId = handleExists && !handleIncluded
+            ? this.emptyHandleID
+            : roomOptions.handles.id;
+
+        console.log(defaultHandleId, 'defaultHandleId')
 
         const hasDrower = fasadeSorted.some(el => {
             return this._FASADE_POSITION[el].drawer
@@ -170,7 +185,7 @@ export class Filters extends GlobalsData {
                 PATINA: null,
                 TYPE: null,
                 HANDLES: {
-                    id: roomOptions.handles.id!,
+                    id: defaultHandleId,
                     position: handlerPosition,
                     drawer: fasadePosition.drawer
                 },
