@@ -859,9 +859,6 @@ export class MeshEvents extends BuildersHelper {
         if (!data) return
         const { NAME, ID, cutSize } = data.option
         // const isCutFasade = this.cutFasadeId.includes(parseInt(ID))
-
-        console.log(data, 'createCutFasade')
-
         if (!this._currentMesh) return;
         // if (!cutSize) return
         const { FASADE, FASADE_DEFAULT } = this._currentMesh.userData.PROPS;

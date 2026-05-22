@@ -8,7 +8,6 @@ import { createPinia, setActivePinia } from 'pinia'
 import { COOKIE_NAMES, getCookie } from './components/authorization/utils/cookieUtils'
 import { useAppData } from './store/appliction/useAppData'
 import { vMaska } from "maska/vue";
-import { BASE_DOMAIN } from "@/utils/originalDomain";
 
 const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true'
 

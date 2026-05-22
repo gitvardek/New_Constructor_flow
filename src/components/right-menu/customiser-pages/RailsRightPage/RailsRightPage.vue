@@ -17,7 +17,7 @@ const createList = () => {
 };
 
 const changeValue = (event: InputEvent, option: TRootOptionType) => {
-  // console.log('AUF', id)
+
 
   const check = event.target!.checked;
   event.target.checked = checkActive(option, check);

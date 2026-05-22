@@ -108,7 +108,7 @@ export class Filters extends GlobalsData {
         }
 
         //Фильтрация фасадов на принадлежность текущей компоновке
-        if (FILLING)
+        if (FILLING) {
             sortFasadePositionList = sortFasadePositionList.filter((value, index) => {
 
 
@@ -121,16 +121,23 @@ export class Filters extends GlobalsData {
                 else
                     return value
             })
+        }
+
 
         sortFasadePositionList.forEach((fasade: number, key: number) => {
 
             const curFasade = fasade.ID ? fasade.ID : fasade
+
             const fasadePosition = this._FASADE_POSITION[curFasade]
+
             const fasadePositionType = fasadePosition.fasade_type
+
             let handlerPosition = null
 
             const prodTypeData = this._FASADETYPE[params.FASADE_TYPE[key]]
+
             const fasTypeData = this._FASADETYPE[fasadePositionType[0]]
+
 
             const handleInDorPosition = () => {
 

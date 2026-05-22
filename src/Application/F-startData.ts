@@ -137,7 +137,7 @@ const START_PROJECT_PARAMS = {
     default_palit_top: null,
     default_handles: 69920,
     default_overlay_id: [63040, 7014884, 1944070, 1944063, 3922338, 6051066],
-    default_plinth_body: 2757992, //70096
+    default_plinth_body: 70096, //70096
     default_plinth_color: null,
     default_showcase: 1013628,
     default_milling: 2462671,
