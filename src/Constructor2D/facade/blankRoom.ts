@@ -165,7 +165,7 @@ const jsonBlank = `{
         1944063,
         3922338
     ],
-    "default_plinth_body": 70096,
+    "default_plinth_body": 2757992,
     "default_plinth_color": null
 }`
 const projectData = JSON.parse(jsonBlank)
