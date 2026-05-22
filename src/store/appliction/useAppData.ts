@@ -16,7 +16,7 @@ const DEV_APP_DATA_STUB = {
 export const useAppData = defineStore('AppData', () => {
 
 
-  console.log('START APP')
+  console.log('START APP CHECK')
 
 
   const appData = ref<{ [key: string]: any }>({})
