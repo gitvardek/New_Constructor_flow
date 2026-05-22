@@ -373,8 +373,6 @@ export const useModelState = defineStore('ModelState', () => {
         const exception = _FASADE_EXCEPTIONS.value[productId]
         let haveShowCase = null;
 
-        console.trace()
-
         if (fasadeNdx !== undefined && productId) {
 
             let fasadePosData = null;

@@ -130,8 +130,6 @@ export class MeshEvents extends BuildersHelper {
 
         super(root)
 
-        // console.trace('MeshEvents')
-
         this.root = root;
         this.scene = root._scene!;
         this.resources = root._resources!;

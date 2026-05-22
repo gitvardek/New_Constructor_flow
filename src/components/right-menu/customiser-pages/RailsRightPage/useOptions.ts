@@ -188,6 +188,7 @@ export const useOptions = () => {
                 else {
                     UM_STORE.noLoops = false
                 }
+                break;
             case 5738924:   //Без дна
                 if (curOpt.active) {
                     PROPS.CONFIG.BACKWALL = { COLOR: false, SHOW: false };
