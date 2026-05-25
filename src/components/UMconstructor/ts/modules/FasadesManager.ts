@@ -23,7 +23,7 @@ export default class FasadesManager {
         const { PROPS: { FASADE, PRODUCT } } = this.scope.MODEL_STATE.getCurrentModel.userData
 
         console.log(PRODUCT, FASADE, fasadeIndex, 'createFacadeData')
-          console.trace('createFacadeData')
+        console.trace('createFacadeData')
 
         const productId = _productId || PRODUCT;
         const { FACADE } = this.scope.MODEL_STATE._PRODUCTS[productId];
@@ -471,7 +471,8 @@ export default class FasadesManager {
 
     addDoor(
         secIndex: number,
-        grid: GridModule = this.scope.UM_STORE.getUMGrid()
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
+        reset: boolean = true,
     ) {
         const PROPS = this.scope.UM_STORE.getUMData();
 
@@ -565,13 +566,16 @@ export default class FasadesManager {
         }
 
         if (!grid.isSlidingDoors) {
-            this.scope.LOOPS.calcLoops(secIndex);
+            this.scope.LOOPS.calcLoops(secIndex, grid);
             if (!section.loops)
                 newDoor.loopsSide = LOOPSIDE['none']
         }
 
         // Обновляем рендер
-        this.scope.reset(grid)
+        if (reset) {
+            this.scope.reset(grid)
+        }
+
     };
 
     splitFasade(

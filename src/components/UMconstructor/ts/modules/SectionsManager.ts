@@ -2,6 +2,7 @@
 
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 import * as THREE from "three";
 import {
     GridModule,
@@ -90,6 +91,23 @@ export default class SectionsManager {
             grid.sections[secIndex + 1].fasades.push(lastDoor);
         }
 
+        // if (grid.productID === UM_PARAMS.RASPASHNOY_ID && !grid.isSlidingDoors && section?.fasades?.length > 0) {
+        //     for (let i = 0; i < count; i++) {
+        //         const newSecIndex = secIndex + 1 + i;
+        //         if (!grid.sections[newSecIndex].fasades?.length) {
+        //             this.scope.FASADES.addDoor(newSecIndex, grid, false);
+        //         }
+        //     }
+        // }
+
+        if (!grid.isSlidingDoors && section?.fasades?.length > 0) {
+            for (let i = 0; i < count; i++) {
+                const newSecIndex = secIndex + 1 + i;
+                if (!grid.sections[newSecIndex].fasades?.length) {
+                    this.scope.FASADES.addDoor(newSecIndex, grid, false);
+                }
+            }
+        }
 
         if (reset)
             this.scope.reset(grid)

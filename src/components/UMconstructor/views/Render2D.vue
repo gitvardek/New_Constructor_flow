@@ -89,7 +89,7 @@ const fasades: Graphics[] = [];
 const loops: Container[] = [];
 const handles: Container[] = [];
 
-const RASPASHNOY_ID = ref<number>(1942652)
+const RASPASHNOY_ID = UM_PARAMS.RASPASHNOY_ID
 const {
   CONST_MAX_AREA_WIDTH,
   CONST_MAX_AREA_HEIGHT,
@@ -1451,6 +1451,7 @@ const createVerticalCut = ({
   dashVert.stroke({ width: 1, color: "#5D6069" });
 
   divider.dev_name = `dev${divider.uid}`;
+  
 
   divider.position.set(
     _cell.xOffset + pxWidth - getPixelWidth(2),
@@ -1735,7 +1736,7 @@ const toggleFillingColor = (
 function onVerticalDragStart(event) {
 
   const module = props.module;
-  if (module.productID === RASPASHNOY_ID.value) return
+  if (module.productID === RASPASHNOY_ID) return
 
   // event.stopPropagation();
   cursorCheck = true;

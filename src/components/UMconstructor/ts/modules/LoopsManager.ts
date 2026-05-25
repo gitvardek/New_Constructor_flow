@@ -4,6 +4,7 @@ import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass
 import { ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/types/constructor2d/interfaсes.ts";
 import * as THREE from "three";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
+import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 
 type TSizze = {
@@ -737,6 +738,11 @@ export default class LoopsManager {
                 delete tmp[currSectionLoops[0]];
 
                 break;
+        }
+
+        if (grid.productID === UM_PARAMS.RASPASHNOY_ID) {
+            delete tmp[LOOPSIDE["left_on_partition"]];
+            delete tmp[LOOPSIDE["right_on_partition"]];
         }
 
         list = Object.values(tmp);

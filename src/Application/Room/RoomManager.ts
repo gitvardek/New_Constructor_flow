@@ -22,7 +22,7 @@ import { SetObject } from '../Utils/SetObject';
 import { GeometryBuilder } from '../Meshes/GeometryBuilder';
 import { Room } from './Room';
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
-import { saveUMGrid } from "@/components/2DmoduleConstructor/utils/Methods.ts";
+import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 // import CreateShape from '../2DScene/CreateShape';
 
 
@@ -119,7 +119,7 @@ export class RoomManager extends Room {
         intersects.forEach(object => {
 
             if (!object.userData?.current && object.visible) {
-                
+
                 const center = object.userData.aabb.getCenter(new THREE.Vector3())
                 const obb = object.userData.obb.clone()
                 // obb.center.copy(object.position)
