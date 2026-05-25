@@ -1734,11 +1734,9 @@ const toggleFillingColor = (
 // Обработчик для вертикального перетаскивания (между колонками)
 function onVerticalDragStart(event) {
 
-
   const module = props.module;
-
   if (module.productID === RASPASHNOY_ID.value) return
-  console.log(module, 'onVerticalDragStart module')
+
   // event.stopPropagation();
   cursorCheck = true;
   const sectionIndex = this.section;
