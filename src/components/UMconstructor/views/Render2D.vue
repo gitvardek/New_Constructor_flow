@@ -89,6 +89,7 @@ const fasades: Graphics[] = [];
 const loops: Container[] = [];
 const handles: Container[] = [];
 
+const RASPASHNOY_ID = ref<number>(1942652)
 const {
   CONST_MAX_AREA_WIDTH,
   CONST_MAX_AREA_HEIGHT,
@@ -468,8 +469,8 @@ const renderGrid = (_moduleGrid) => {
                   cellRow.maxY = Math.max(
                     0,
                     cellRow.position.y +
-                      cellRow.height -
-                      (moduleGrid.height - maxY),
+                    cellRow.height -
+                    (moduleGrid.height - maxY),
                   );
                 }
                 if (minX > 0) {
@@ -1015,7 +1016,7 @@ const createSector = ({
     gridType === mode.value,
     opacity,
   );
-  
+
   const selected =
     gridType === "fasades"
       ? selectedFasade
@@ -1732,7 +1733,12 @@ const toggleFillingColor = (
 
 // Обработчик для вертикального перетаскивания (между колонками)
 function onVerticalDragStart(event) {
+
+
   const module = props.module;
+
+  if (module.productID === RASPASHNOY_ID.value) return
+  console.log(module, 'onVerticalDragStart module')
   // event.stopPropagation();
   cursorCheck = true;
   const sectionIndex = this.section;
@@ -1869,6 +1875,8 @@ function onHorizontalDragStart(event) {
   // event.stopPropagation();
 
   const module = props.module;
+  console.log(module, 'onHorizontalDragStart module')
+
   // event.stopPropagation();
   cursorCheck = true;
   const sectionIndex = this.section;
@@ -2088,7 +2096,7 @@ function dragMove(event) {
       let prev = props.module.sections[secIndex - 1];
 
       let nextSection = next || prev;
-fillings
+      fillings
       let delta1 = section.width - newLeftWidth;
       let deltaPos1 = next ? -delta1 / 2 : delta1 / 2;
       section.width = newLeftWidth;
@@ -3347,10 +3355,7 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    class="visualization-interactive"
-    :style="`height:${areaHeight}px width:${areaWidth}px`"
-  >
+  <div class="visualization-interactive" :style="`height:${areaHeight}px width:${areaWidth}px`">
     <canvas ref="canvasContainer"></canvas>
   </div>
   <!-- :style="'height:getMaxAreaHeight'" -->
