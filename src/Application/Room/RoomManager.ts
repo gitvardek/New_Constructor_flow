@@ -22,7 +22,7 @@ import { SetObject } from '../Utils/SetObject';
 import { GeometryBuilder } from '../Meshes/GeometryBuilder';
 import { Room } from './Room';
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
-import { saveUMGrid } from "@/components/2DmoduleConstructor/utils/Methods.ts";
+import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 // import CreateShape from '../2DScene/CreateShape';
 
 

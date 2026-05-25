@@ -1,18 +1,18 @@
 //@ts-nocheck
 
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
-import {UM_PARAMS} from "./../utils/Const.ts";
+import { UM_PARAMS } from "./../utils/Const.ts";
 import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManager.ts";
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
 import SidecolorsManager from "@/components/UMconstructor/ts/modules/SidecolorsManager.ts";
 import SectionsManager from "@/components/UMconstructor/ts/modules/SectionsManager.ts";
 import LoopsManager from "@/components/UMconstructor/ts/modules/LoopsManager.ts";
-import {useUMStorage} from "@/store/appStore/UniversalModule/useUMStorage.ts";
-import {useAppData} from "@/store/appliction/useAppData.ts";
-import {useToast} from "@/features/toaster/useToast.ts";
-import {Ref, ref} from "vue";
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useAppData } from "@/store/appliction/useAppData.ts";
+import { useToast } from "@/features/toaster/useToast.ts";
+import { Ref, ref } from "vue";
 
-import {saveUMGrid, ShapeAdjuster} from "@/components/UMconstructor/utils/PixiMethods.ts";
+import { saveUMGrid, ShapeAdjuster } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import {
     alertType,
     constructorMode,
@@ -23,16 +23,16 @@ import {
     GridRowExtra,
     GridSection, TSelectedCell
 } from "./../types/UMtypes.ts";
-import {TTotalProps} from "@/types/types.ts";
+import { TTotalProps } from "@/types/types.ts";
 
 import * as THREE from "three";
-import {FasadeObject, LOOPSIDE} from "@/types/constructor2d/interfaсes.ts";
-import {TFasadeProp} from "@/types/types.ts";
-import {UniversalGeometryBuilder} from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
+import { FasadeObject, LOOPSIDE } from "@/types/constructor2d/interfaсes.ts";
+import { TFasadeProp } from "@/types/types.ts";
+import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import OptionsManager from "@/components/UMconstructor/ts/modules/OptionsManager.ts";
-import {useModelState} from "@/store/appliction/useModelState.ts";
+import { useModelState } from "@/store/appliction/useModelState.ts";
 import Render2D from "@/components/UMconstructor/views/Render2D.vue";
-import {Application} from "@/Application/Core/Application.ts";
+import { Application } from "@/Application/Core/Application.ts";
 import UMconstructor from "@/components/UMconstructor/UMconstructor.vue";
 
 export default class UMconstructorClass {
@@ -64,14 +64,14 @@ export default class UMconstructorClass {
         this.PROFILES = new ProfilesManager(this)
         this.SECTIONS = new SectionsManager(this)
         this.SIDECOLORS = new SidecolorsManager(this)
-        this.SHAPE_ADJUSTER = new ShapeAdjuster({scope: this})
+        this.SHAPE_ADJUSTER = new ShapeAdjuster({ scope: this })
         this.OPTIONS = new OptionsManager(this)
         this.DEBOUNCES = {}
     }
 
     selectCell(type: constructorMode, newSelected: TSelectedCell) {
         this.UM_STORE.setSelected(type, newSelected);
-        this.RENDER_REF.selectCell( type, newSelected);
+        this.RENDER_REF.selectCell(type, newSelected);
     };
 
     debounce(timerKey: string, callback: Function, wait: number) {
@@ -85,7 +85,7 @@ export default class UMconstructorClass {
         }, wait)
     }
 
-    createUMgrid(productData: TTotalProps, size: {width: number, height: number, depth: number}) {
+    createUMgrid(productData: TTotalProps, size: { width: number, height: number, depth: number }) {
         if (productData) {
             const {
                 MIN_FASADE_HEIGHT,
@@ -96,7 +96,7 @@ export default class UMconstructorClass {
             } = this.CONST;
 
             const PROPS = productData.PROPS;
-            const {width, height, depth} = size;
+            const { width, height, depth } = size;
             let result
             if (!PROPS.CONFIG.MODULEGRID || !Object.keys(PROPS.CONFIG.MODULEGRID).length) {
 
@@ -146,10 +146,10 @@ export default class UMconstructorClass {
                     isSlidingDoors,
                 }
 
-                if(PROPS.CONFIG.isHiTech)
+                if (PROPS.CONFIG.isHiTech)
                     _module.isHiTech = true
 
-                if(PROPS.CONFIG.isRestrictedModule)
+                if (PROPS.CONFIG.isRestrictedModule)
                     _module.isRestrictedModule = true
 
                 result = _module
@@ -198,7 +198,7 @@ export default class UMconstructorClass {
                 }
                 else {
 
-                    if(_module.isRestrictedModule) {
+                    if (_module.isRestrictedModule) {
                         let fasade_width = (FASADE.FASADE_WIDTH / 2) - 2
                         fasades = [
                             [
@@ -223,7 +223,7 @@ export default class UMconstructorClass {
                                     id: 1,
                                     width: fasade_width,
                                     height: FASADE.FASADE_HEIGHT,
-                                    position: new THREE.Vector2(FASADE.POSITION_X + fasade_width + 4 , FASADE.POSITION_Y),
+                                    position: new THREE.Vector2(FASADE.POSITION_X + fasade_width + 4, FASADE.POSITION_Y),
                                     material: <TFasadeProp>{
                                         ...FASADE_PROPS
                                     },
@@ -260,11 +260,11 @@ export default class UMconstructorClass {
 
                     section.fasades = fasades
                     this.LOOPS.calcLoops(0, _module)
-                    section.loopsSides = {0: LOOPSIDE["left"]}
+                    section.loopsSides = { 0: LOOPSIDE["left"] }
                 }
 
             }
-            else 
+            else
                 result = PROPS.CONFIG.MODULEGRID
 
             return result
@@ -280,24 +280,24 @@ export default class UMconstructorClass {
         return +productData.CONFIG.SIZE_EDIT[`SIZE_EDIT_` + dimension + `_` + minmax];
     }
 
-    setRenderRef(ref: Ref){
+    setRenderRef(ref: Ref) {
         this.RENDER_REF = ref
     }
 
-    setAlertRef(ref: Ref){
+    setAlertRef(ref: Ref) {
         this.ALERT_FOOTER_REF = ref
     }
 
-    callAlert(type: alertType, message: string){
-        if(type)
+    callAlert(type: alertType, message: string) {
+        if (type)
             this.AlERT[type](message, this.ALERT_FOOTER_REF)
     }
 
-    setShapeAdjuster(SHAPE_ADJUSTER: ShapeAdjuster){
+    setShapeAdjuster(SHAPE_ADJUSTER: ShapeAdjuster) {
         this.SHAPE_ADJUSTER = SHAPE_ADJUSTER
     }
 
-    updateHorizont(value){
+    updateHorizont(value) {
         this.debounce('horizont', () => {
             const PROPS = this.UM_STORE.getUMData();
             const grid = this.UM_STORE.getUMGrid()
@@ -332,7 +332,7 @@ export default class UMconstructorClass {
         }, 1000)
     };
 
-    updateTotalWidth(value){
+    updateTotalWidth(value) {
         this.debounce('totalWidth', () => {
             const grid = this.UM_STORE.getUMGrid()
 
@@ -359,11 +359,11 @@ export default class UMconstructorClass {
         }, 1000)
     };
 
-    checkSideColorsConversations(){
+    checkSideColorsConversations() {
         const PROPS = this.UM_STORE.getUMData();
-        let {CONFIG} = PROPS
+        let { CONFIG } = PROPS
 
-        if(CONFIG['RIGHTSIDECOLOR']?.COLOR) {
+        if (CONFIG['RIGHTSIDECOLOR']?.COLOR) {
             let check = this.FASADES.FASADES_CONVERSATION.checkFasadeConversations(CONFIG['RIGHTSIDECOLOR'].COLOR, {
                 FASADE_WIDTH: this.UM_STORE.totalDepth,
                 FASADE_HEIGHT: this.UM_STORE.totalHeight
@@ -375,7 +375,7 @@ export default class UMconstructorClass {
             }
         }
 
-        if(CONFIG['LEFTSIDECOLOR']?.COLOR) {
+        if (CONFIG['LEFTSIDECOLOR']?.COLOR) {
             let check = this.FASADES.FASADES_CONVERSATION.checkFasadeConversations(CONFIG['LEFTSIDECOLOR'].COLOR, {
                 FASADE_WIDTH: this.UM_STORE.totalDepth,
                 FASADE_HEIGHT: this.UM_STORE.totalHeight
@@ -396,7 +396,7 @@ export default class UMconstructorClass {
             let profileData = {}
 
             if (!grid.profilesConfig) {
-                grid.profilesConfig = {COLOR: product.COLOR[0] != null ? product.COLOR[0] : grid.moduleColor}
+                grid.profilesConfig = { COLOR: product.COLOR[0] != null ? product.COLOR[0] : grid.moduleColor }
                 grid.profilesConfig.colorsList = [...product.COLOR]
                 productData.CONFIG['PROFILECOLOR'] = grid.profilesConfig.COLOR
             }
@@ -411,13 +411,13 @@ export default class UMconstructorClass {
             profileData.TYPE_PROFILE = typeProfile
             profileData.offsetFasades = typeProfile == "c" ? 36 : typeProfile == "l" ? 38 : 0
             profileData.manufacturerOffset = typeProfile == "c" ? -18.5 : typeProfile == "l" ? -19.5 : 0
-            profileData.size = {x: grid.height, y: product.height, z: product.depth}
+            profileData.size = { x: grid.height, y: product.height, z: product.depth }
             profileData.product = 6513251
 
             profileData.side = LOOPSIDE[grid.sections[0].loopsSides[0]]?.includes("left") ? "left" : "right"
             const profileSidesMap = {
-                "right": new THREE.Vector2( -profileData.manufacturerOffset - profileData.size.y / 2, 0),
-                "left": new THREE.Vector2( grid.width + profileData.manufacturerOffset + profileData.size.y / 2, 0),
+                "right": new THREE.Vector2(-profileData.manufacturerOffset - profileData.size.y / 2, 0),
+                "left": new THREE.Vector2(grid.width + profileData.manufacturerOffset + profileData.size.y / 2, 0),
             }
             const profileRotationMap = {
                 "right": Math.PI / 2,
@@ -452,7 +452,7 @@ export default class UMconstructorClass {
         let moduleGrid = saveUMGrid(grid)
 
         moduleGrid.moduleColor = PROPS.CONFIG.MODULE_COLOR;
-        moduleGrid.moduleThickness =  this.APP.FASADE[moduleGrid.moduleColor]?.DEPTH || 18;
+        moduleGrid.moduleThickness = this.APP.FASADE[moduleGrid.moduleColor]?.DEPTH || 18;
         moduleGrid.horizont = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] || 0;
         delete moduleGrid.errors
 
@@ -474,7 +474,7 @@ export default class UMconstructorClass {
         try {
             const recalcSection = (section, positionSections) => {
 
-                let newSection = <GridSection>{...section, position: new THREE.Vector2(section.position.x, section.position.y)}
+                let newSection = <GridSection>{ ...section, position: new THREE.Vector2(section.position.x, section.position.y) }
                 newSection.position.copy(positionSections.clone())
                 newSection.position.x += newSection.width / 2
 
@@ -486,12 +486,12 @@ export default class UMconstructorClass {
 
                     let tmpCells = newSection.cells.slice().reverse()
                     for (let i = 0; i < tmpCells.length; i++) {
-                        let newCell = <GridCell>{...tmpCells[i], position: new THREE.Vector2(tmpCells[i].position.x, tmpCells[i].position.y)}
+                        let newCell = <GridCell>{ ...tmpCells[i], position: new THREE.Vector2(tmpCells[i].position.x, tmpCells[i].position.y) }
 
                         newCell.width = newSection.width;
                         newCell.position.copy(positionCells.clone())
 
-                        if(newCell.position.y - moduleGrid.moduleThickness > newSection.height){
+                        if (newCell.position.y - moduleGrid.moduleThickness > newSection.height) {
                             break;
                         }
 
@@ -500,7 +500,7 @@ export default class UMconstructorClass {
                         if (i === tmpCells.length - 1 || lastCellHeight <= 0) {
                             newCell.height += lastCellHeight
 
-                            if(newCell.height < MIN_SECTION_HEIGHT){
+                            if (newCell.height < MIN_SECTION_HEIGHT) {
                                 newCellsArray[newCellsArray.length - 1].height += newCell.height + moduleGrid.moduleThickness
                                 break;
                             }
@@ -514,7 +514,7 @@ export default class UMconstructorClass {
                             let positionCellsRow = new THREE.Vector2(newCell.position.x - newCell.width / 2, newCell.position.y)
 
                             newCell.cellsRows.forEach((row, rowIndex) => {
-                                let newRow = <GridCellsRow>{...row, position: new THREE.Vector2(row.position.x, row.position.y)}
+                                let newRow = <GridCellsRow>{ ...row, position: new THREE.Vector2(row.position.x, row.position.y) }
 
                                 newRow.position.copy(positionCellsRow.clone())
                                 newRow.position.x += newRow.width / 2
@@ -523,11 +523,11 @@ export default class UMconstructorClass {
                                 if (newRow.fillings?.length) {
                                     newRow.fillings = <FillingObject>[...newRow.fillings]
                                     newRow.fillings.forEach((filling, index) => {
-                                        if(filling.isVerticalItem){
+                                        if (filling.isVerticalItem) {
                                             this.FILLINGS.updateFilling(newRow.height, filling, 'height', moduleGrid)
                                         }
                                         else {
-                                            if(filling.isProfile) {
+                                            if (filling.isProfile) {
                                                 this.FILLINGS.updateFilling((moduleGrid.profilesConfig.onSectionSize || filling.isProfile.isBottomHiTechProfile) ? newSection.width : moduleGrid.width, filling, 'width', moduleGrid)
                                             }
                                             else
@@ -550,7 +550,7 @@ export default class UMconstructorClass {
                                     for (let j = 0; j < extras.length; j++) {
                                         let extra = extras[j]
 
-                                        let newExtra = <GridRowExtra>{...extra, position: new THREE.Vector2(extra.position.x, extra.position.y)}
+                                        let newExtra = <GridRowExtra>{ ...extra, position: new THREE.Vector2(extra.position.x, extra.position.y) }
 
                                         newExtra.position.copy(positionRowExtras.clone())
                                         newExtra.width = newRow.width;
@@ -560,7 +560,7 @@ export default class UMconstructorClass {
                                         if (j === extras.length - 1 || lastExtraHeight <= 0) {
                                             newExtra.height += lastExtraHeight
 
-                                            if(newExtra.height < MIN_SECTION_HEIGHT){
+                                            if (newExtra.height < MIN_SECTION_HEIGHT) {
                                                 newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + moduleGrid.moduleThickness
                                                 break;
                                             }
@@ -572,11 +572,11 @@ export default class UMconstructorClass {
                                         if (newExtra.fillings?.length) {
                                             newExtra.fillings = <FillingObject>[...newExtra.fillings]
                                             newExtra.fillings.forEach((filling, index) => {
-                                                if(filling.isVerticalItem) {
+                                                if (filling.isVerticalItem) {
                                                     this.FILLINGS.updateFilling(newExtra.height, filling, 'height', moduleGrid)
                                                 }
                                                 else {
-                                                    if(filling.isProfile) {
+                                                    if (filling.isProfile) {
                                                         this.FILLINGS.updateFilling((moduleGrid.profilesConfig.onSectionSize || filling.isProfile.isBottomHiTechProfile) ? newSection.width : moduleGrid.width, filling, 'width', moduleGrid)
                                                     }
                                                     else
@@ -600,7 +600,7 @@ export default class UMconstructorClass {
                             cellsRowWidthSum += (newCellsRowArray.length - 1) * moduleGrid.moduleThickness;
 
                             let deltaWidth = newCell.width - cellsRowWidthSum;   //Величина, на которую нужно изменить ширину последней ячейки
-                            if (deltaWidth !== 0){
+                            if (deltaWidth !== 0) {
                                 let lastRow = newCellsRowArray[newCellsRowArray.length - 1]
                                 lastRow.width += deltaWidth
                                 lastRow.position.x += -deltaWidth / 2
@@ -608,7 +608,7 @@ export default class UMconstructorClass {
                                 if (lastRow.fillings?.length) {
                                     lastRow.fillings = <FillingObject>[...lastRow.fillings]
                                     lastRow.fillings.forEach((filling, index) => {
-                                        if(filling.isVerticalItem) {
+                                        if (filling.isVerticalItem) {
                                             this.FILLINGS.updateFilling(lastRow.height, filling, 'height', moduleGrid)
                                         }
                                         else {
@@ -629,7 +629,7 @@ export default class UMconstructorClass {
                         if (newCell.fillings?.length) {
                             newCell.fillings = <FillingObject>[...newCell.fillings]
                             newCell.fillings.forEach((filling, index) => {
-                                if(filling.isVerticalItem) {
+                                if (filling.isVerticalItem) {
                                     this.FILLINGS.updateFilling(newCell.height, filling, 'height', moduleGrid)
                                 }
                                 else {
@@ -652,7 +652,7 @@ export default class UMconstructorClass {
                 if (newSection.fillings?.length) {
                     newSection.fillings = <FillingObject>[...newSection.fillings]
                     newSection.fillings.forEach((filling, index) => {
-                        if(filling.isVerticalItem) {
+                        if (filling.isVerticalItem) {
                             this.FILLINGS.updateFilling(newSection.height, filling, 'height', moduleGrid)
                         }
                         else {
@@ -665,6 +665,14 @@ export default class UMconstructorClass {
                 }
 
                 return newSection
+            }
+
+            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID && moduleGrid.sections.length > 1) { // <=====672
+                const equalWidth = Math.floor(sectionsTotalWidth / moduleGrid.sections.length);
+                const remainder = sectionsTotalWidth - equalWidth * moduleGrid.sections.length;
+                moduleGrid.sections.forEach((section, i) => {
+                    section.width = equalWidth + (i === moduleGrid.sections.length - 1 ? remainder : 0);
+                });
             }
 
             moduleGrid.sections.forEach((section, secIndex) => {
@@ -682,14 +690,14 @@ export default class UMconstructorClass {
             })
 
             let deltaWidth = sectionsTotalWidth - sectionsWidthSum;
-            if(deltaWidth !== 0) {
+            if (deltaWidth !== 0) {
                 let lastSection = moduleGrid.sections[moduleGrid.sections.length - 1];
                 lastSection.position.x = lastSection.position.x - lastSection.width / 2 + (lastSection.width + deltaWidth) / 2
                 lastSection.width += deltaWidth
 
                 if (lastSection.width > MAX_SECTION_WIDTH) {
                     let countSections = Math.floor(lastSection.width / MAX_SECTION_WIDTH);
-                    this.SECTIONS.addSection?.({grid: moduleGrid, secIndex: moduleGrid.sections.length - 1, count: countSections})
+                    this.SECTIONS.addSection?.({ grid: moduleGrid, secIndex: moduleGrid.sections.length - 1, count: countSections })
                 }
                 else if (lastSection.width < MIN_SECTION_WIDTH) {
                     while (moduleGrid.sections[moduleGrid.sections.length - 1].width < MIN_SECTION_WIDTH) {
@@ -702,9 +710,9 @@ export default class UMconstructorClass {
                     moduleGrid.sections[moduleGrid.sections.length - 1] = recalcSection(lastSection, startPositionSections)
                 }
             }
-            else if(moduleGrid.sections.length < 2 && sectionsWidthSum > MAX_SECTION_WIDTH) {
+            else if (moduleGrid.sections.length < 2 && sectionsWidthSum > MAX_SECTION_WIDTH) {
                 let countSections = Math.floor(moduleGrid.sections[0].width / MAX_SECTION_WIDTH);
-                this.SECTIONS.addSection?.({grid: moduleGrid, secIndex: 0, count: countSections})
+                this.SECTIONS.addSection?.({ grid: moduleGrid, secIndex: 0, count: countSections })
             }
 
             module = <GridModule>{
@@ -716,12 +724,12 @@ export default class UMconstructorClass {
 
             module = this.FASADES.updateFasades(module)
         }
-        catch(error){
+        catch (error) {
             console.error(error)
             this.callAlert("error", "Ошибка расчёта модуля!")
         }
 
-        if(module) {
+        if (module) {
             this.UM_STORE.setUMGrid(module)
 
             this.debounce("renderGrid", () => {

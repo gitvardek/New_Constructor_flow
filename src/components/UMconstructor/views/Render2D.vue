@@ -100,7 +100,7 @@ const {
   MIN_SLIDE_DOOR_WIDTH,
 } = UM_PARAMS;
 
-const RASPASHNOY_ID = ref<number>(1942652)
+const RASPASHNOY_ID = UM_PARAMS.RASPASHNOY_ID
 
 const dragState = reactive({
   isDragging: false,

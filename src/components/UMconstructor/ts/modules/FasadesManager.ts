@@ -468,7 +468,8 @@ export default class FasadesManager {
 
     addDoor(
         secIndex: number,
-        grid: GridModule = this.scope.UM_STORE.getUMGrid()
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
+        reset: boolean = true,
     ) {
         const PROPS = this.scope.UM_STORE.getUMData();
 
@@ -561,14 +562,16 @@ export default class FasadesManager {
             this.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
         }
 
-        if (!grid.isSlidingDoors) {
-            this.scope.LOOPS.calcLoops(secIndex);
+        if (!grid.isSlidingDoors) {  //<===== 568
+            this.scope.LOOPS.calcLoops(secIndex, grid);
             if (!section.loops)
                 newDoor.loopsSide = LOOPSIDE['none']
         }
 
         // Обновляем рендер
-        this.scope.reset(grid)
+        if (reset) {
+            this.scope.reset(grid)
+        }
     };
 
     splitFasade(

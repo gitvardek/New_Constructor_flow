@@ -10,6 +10,7 @@ import {
     GridRowExtra,
     GridSection, TSelectedCell
 } from "@/components/UMconstructor/types/UMtypes.ts";
+import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 
 export default class SectionsManager {
@@ -91,8 +92,18 @@ export default class SectionsManager {
         }
 
 
-        if (reset)
+        if (!grid.isSlidingDoors && section?.fasades?.length > 0) {
+            for (let i = 0; i < count; i++) {
+                const newSecIndex = secIndex + 1 + i;
+                if (!grid.sections[newSecIndex].fasades?.length) {
+                    this.scope.FASADES.addDoor(newSecIndex, grid, false);
+                }
+            }
+        }
+        if (reset) {
             this.scope.reset(grid)
+        }
+
     };
 
     addCell(
