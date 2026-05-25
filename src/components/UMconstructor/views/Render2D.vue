@@ -100,6 +100,8 @@ const {
   MIN_SLIDE_DOOR_WIDTH,
 } = UM_PARAMS;
 
+const RASPASHNOY_ID = ref<number>(1942652)
+
 const dragState = reactive({
   isDragging: false,
   type: null, // "vertical" или "horizontal"
@@ -468,8 +470,8 @@ const renderGrid = (_moduleGrid) => {
                   cellRow.maxY = Math.max(
                     0,
                     cellRow.position.y +
-                      cellRow.height -
-                      (moduleGrid.height - maxY),
+                    cellRow.height -
+                    (moduleGrid.height - maxY),
                   );
                 }
                 if (minX > 0) {
@@ -1015,7 +1017,7 @@ const createSector = ({
     gridType === mode.value,
     opacity,
   );
-  
+
   const selected =
     gridType === "fasades"
       ? selectedFasade
@@ -1731,6 +1733,7 @@ const toggleFillingColor = (
 // Обработчик для вертикального перетаскивания (между колонками)
 function onVerticalDragStart(event) {
   const module = props.module;
+  if (module.productID === RASPASHNOY_ID.value) return;
   // event.stopPropagation();
   cursorCheck = true;
   const sectionIndex = this.section;
@@ -2086,7 +2089,7 @@ function dragMove(event) {
       let prev = props.module.sections[secIndex - 1];
 
       let nextSection = next || prev;
-fillings
+      fillings
       let delta1 = section.width - newLeftWidth;
       let deltaPos1 = next ? -delta1 / 2 : delta1 / 2;
       section.width = newLeftWidth;
@@ -3345,10 +3348,7 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    class="visualization-interactive"
-    :style="`height:${areaHeight}px width:${areaWidth}px`"
-  >
+  <div class="visualization-interactive" :style="`height:${areaHeight}px width:${areaWidth}px`">
     <canvas ref="canvasContainer"></canvas>
   </div>
   <!-- :style="'height:getMaxAreaHeight'" -->
