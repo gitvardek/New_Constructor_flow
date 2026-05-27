@@ -463,6 +463,7 @@ watch(
     }
     &-title {
       margin-bottom: auto;
+      font-size: 1.2rem;
     }
   }
 }

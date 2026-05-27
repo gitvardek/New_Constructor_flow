@@ -1184,6 +1184,7 @@ export default class SectionsManager {
         }
 
         this.scope.LOOPS.calcLoops(next ? secIndex + 1 : secIndex - 1, grid);
+
         if (grid.sections.length > 1) {
             grid.sections.splice(secIndex, 1);
         }

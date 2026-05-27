@@ -360,6 +360,7 @@
     .auth-form__text-error {
       color: var(--text-error);
       text-align: center;
+      font-size: 1.4rem;
     }
 
   }
