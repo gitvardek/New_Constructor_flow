@@ -36,6 +36,7 @@ import { PlinthBuilder } from './PlinthBuilder/PlinthBuilder.ts';
 import { DrowerBuilder } from './Drowers/DrowerBuilder.ts';
 import { ShelfBuilder } from './Shelf/ShelfBuilder.ts';
 import { MirrorBuilder } from './MirrorBuilder/MirrorBuilder.ts';
+import { UM_SAMPLE } from '../F-umModulesData.ts';
 
 export class BuildProduct extends BuildersHelper {
 
@@ -46,6 +47,7 @@ export class BuildProduct extends BuildersHelper {
     menuStore: ReturnType<typeof useMenuStore> = useMenuStore();
     roomOptions: ReturnType<typeof useRoomOptions> = useRoomOptions();
     modelState: ReturnType<typeof useModelState> = useModelState();
+    um_sample: ReturnType<typeof UM_SAMPLE> = UM_SAMPLE();
 
     ruler: THREETypes.TRuler
     filters: Filters;
@@ -105,7 +107,7 @@ export class BuildProduct extends BuildersHelper {
         loaded_props?: THREETypes.TObject,
         loaded_size?: THREETypes.TObject
     ): Promise<THREE.Object3D> {
-        return new Promise((resolve) => {
+        return new Promise(async (resolve) => {
             const type = this._MODELS[product_data.models[0]];
 
             if (type.DAE) {
@@ -134,7 +136,15 @@ export class BuildProduct extends BuildersHelper {
                     .catch(err => console.error('Ошибка загрузки DAE:', err));
             }
 
-            const parentGroup = this.createPerentGroup(product_data, type, loaded_props, loaded_size);
+            // const um_params = this.um_sample.UM_LIST[product_data.ID] ? JSON.parse(JSON.stringify(this.um_sample.UM_LIST[product_data.ID])) : null
+            const um_params = await this.um_sample.example(product_data.ID)
+                .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
+                .catch(() => null);
+
+            const income_props = um_params ?? loaded_props
+
+            const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
+
             return this.finalizeModel(parentGroup, resolve);
         });
     }
@@ -234,7 +244,7 @@ export class BuildProduct extends BuildersHelper {
             parent_group.name = 'UNIVERSAL'
         }
 
-        if(product.userData.isTopTable){
+        if (product.userData.isTopTable) {
             parent_group.name = 'TOP_TABLE'
         }
 
@@ -245,8 +255,6 @@ export class BuildProduct extends BuildersHelper {
             HEIGHT: productSize.y * 0.5,
             WIDTH: productSize.x * 0.5,
         };
-        parent_group.userData.disableRaycast = product_data.disable_raycast == 1;
-        parent_group.userData.disableMove = false
 
         parent_group.userData.aabb = product.userData.aabb ?? aabb;
         parent_group.userData.obb = product.userData.obb ?? obb;
@@ -282,6 +290,8 @@ export class BuildProduct extends BuildersHelper {
             SECTIONCONTROL: [],
             TABLETOP: null,
             NAME: product_data.NAME,
+            RAYCAST: product_data.disable_raycast == 1,
+            DISABLE_MOVE: false
         };
 
         props.CONFIG = this.createProductObject(product_data, props, loadedProps);

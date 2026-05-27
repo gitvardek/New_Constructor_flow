@@ -366,124 +366,6 @@ export class OBBCollider {
     // ────────────────────────────────────────────────────────────────────────────────────────────────────────────
     /** @Методы_отслеживания_пересечения_с_объектами */
     // ────────────────────────────────────────────────────────────────────────────────────────────────────────────
-    /** @Простое */
-    // objectsInterseck({ object, objectPos }: { object: THREE.Object3D }) {
-
-
-    //     const tempBox3 = object.userData.aabb.clone();
-    //     // const delta = position.clone().sub(object.position).multiplyScalar(0.99);
-    //     const delta = objectPos.position.clone().sub(object.position)
-    //     tempBox3.translate(delta)
-    //     const center = new THREE.Vector3()
-    //     tempBox3.getCenter(center)
-
-    //     const prodOBB = object.userData.obb.clone()
-    //     prodOBB.center.copy(center)
-    //     prodOBB.rotation.setFromMatrix4(object.matrixWorld);
-
-    //     const prepareData = {
-    //         position: objectPos.position.clone(),
-    //         rotation: objectPos.rotation.clone(),
-    //     }
-
-    //     for (let product in this._totalObbBounds) {
-    //         let single = this._totalObbBounds[product]
-
-    //         if (prodOBB.intersectsOBB(single)) {
-    //             const direction = center.clone().sub(object.position).normalize().multiplyScalar(-1);
-    //             // prepareData.position = object.position.clone().add(direction.multiplyScalar(0.001));
-    //             prepareData.position = object.position.clone()
-    //         }
-
-    //     }
-
-    //     return prepareData
-    // }
-    /** @Без_скольжения */
-    // objectsInterseck({
-    //     object,
-    //     objectPos,
-    //     objectsBoundsStore
-    // }: {
-    //     object: THREE.Object3D,
-    //     objectPos: { position: THREE.Vector3, rotation: THREE.Euler },
-    //     objectsBoundsStore: OBB[]
-    // }) {
-    //     const aabb = object.userData.aabb.clone();
-    //     const obb = object.userData.obb.clone();
-    //     const matrixWorld = object.matrixWorld.clone();
-
-    //     const direction = objectPos.position.clone().sub(object.position);
-    //     const steps = 20;
-
-    //     let finalSafePosition = object.position.clone(); // стартовая позиция
-
-    //     let lastTestWasCollision = false;
-
-    //     for (let i = 1; i <= steps; i++) {
-    //         const t = i / steps;
-    //         const testPosition = object.position.clone().add(direction.clone().multiplyScalar(t));
-
-    //         const offset = testPosition.clone().sub(object.position);
-    //         const testBox = aabb.clone().translate(offset);
-
-    //         const center = new THREE.Vector3();
-    //         testBox.getCenter(center);
-
-    //         const testOBB = obb.clone();
-    //         testOBB.center.copy(center);
-    //         if (testOBB.center.y < 0) testOBB.center.y = 0
-    //         testOBB.rotation.setFromMatrix4(matrixWorld);
-
-    //         let hasCollision = false;
-    //         for (const bound of objectsBoundsStore) {
-
-    //             if (testOBB.intersectsOBB(bound)) {
-
-    //                 hasCollision = true;
-    //                 break;
-    //             }
-    //         }
-
-    //         if (hasCollision) {
-    //             lastTestWasCollision = true;
-    //             break;
-    //         } else {
-    //             finalSafePosition.copy(testPosition);
-    //         }
-    //     }
-
-    //     // После цикла дополнительно проверим — может финальная позиция безопасна?
-    //     if (lastTestWasCollision) {
-    //         const finalOffset = objectPos.position.clone().sub(object.position);
-    //         const finalBox = aabb.clone().translate(finalOffset);
-
-    //         const finalCenter = new THREE.Vector3();
-    //         finalBox.getCenter(finalCenter);
-
-    //         const finalOBB = obb.clone();
-    //         finalOBB.center.copy(finalCenter);
-    //         finalOBB.rotation.setFromMatrix4(matrixWorld);
-
-    //         let isFinalClear = true;
-    //         for (const bound of objectsBoundsStore) {
-    //             if (finalOBB.intersectsOBB(bound)) {
-    //                 isFinalClear = false;
-    //                 break;
-    //             }
-    //         }
-
-    //         if (isFinalClear) {
-    //             finalSafePosition.copy(objectPos.position); // можно использовать конечную!
-    //         }
-    //     }
-
-    //     return {
-    //         position: finalSafePosition,
-    //         rotation: objectPos.rotation.clone()
-    //     };
-    // }
-    /** @С_скольжением */
     objectsInterseck({
         object,
         objectPos,
@@ -508,7 +390,7 @@ export class OBBCollider {
 
         let collided = false;                           // факт столкновения на трассе
         let collidedOBB: OBB | null = null;
-        const defCollided = object.userData.disableRaycast         // с кем столкнулись
+        const defCollided = object.userData.PROPS.RAYCAST         // с кем столкнулись
 
         //  1. Пошаговый прогон
 

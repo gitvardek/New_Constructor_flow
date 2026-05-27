@@ -374,6 +374,8 @@ export class RoomManager extends Room {
         const raspilList = saveData.RASPIL_LIST ?? [];
         const raspilData = saveData.RASPIL?.data;
 
+        console.log(raspilList, raspilData)
+
         if (Array.isArray(raspilList) && raspilList.length && raspilData) {
             for (const elem of raspilList) {
                 if (!elem || !elem.sectorId) continue;
@@ -384,6 +386,8 @@ export class RoomManager extends Room {
                 // Создаём клон, если нужно сохранить чистоту
                 result.position = elem.position?.clone?.() ?? null;
                 result.rotation = elem.rotation?.clone?.() ?? null;
+
+                console.log(result, 'result')
             }
         }
 
@@ -471,6 +475,8 @@ export class RoomManager extends Room {
             /** @Столешница */
 
             if (loadData?.RASPIL_LIST?.length > 0) {
+                console.log(loadData.RASPIL,object )
+
                 await this.root.tableTopCreator?.create(loadData.RASPIL, object, object.id);
             }
 

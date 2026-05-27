@@ -14,7 +14,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useTransformController } from "@/components/ui/transformController/useTransformController";
 import { useUniformState } from "@/store/appliction/useUniformState";
 
-import { createOBBFromObject, OBBHelper } from "../Utils/CalculateBoundingBox";
+import { OBBHelper } from "../Utils/CalculateBoundingBox";
 import { UniformModeHandler } from "../Utils/UniformModeHandler";
 
 export class MoveManager {
@@ -367,7 +367,7 @@ export class MoveManager {
 
         // console.log(this.selectedObject.userData.disableMove)
 
-        if (intersects.length > 0 && !this.selectedObject.userData.disableMove) {
+        if (intersects.length > 0 && !this.selectedObject.userData.PROPS.DISABLE_MOVE) {
 
             const point = intersects[0].point; // Точка пересечения с полом или стеной
             const surface = intersects[0].object // стена
