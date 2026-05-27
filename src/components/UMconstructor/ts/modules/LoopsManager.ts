@@ -58,6 +58,17 @@ export default class LoopsManager {
             return;
         }
 
+        // Условие отрисовки петель если 1 секция одна дверь
+
+        if (grid.sections.length === 1 && FASADES.length === 1) {
+            FASADES[0].forEach((fasade) => {
+                fasade.loopsSide = LOOPSIDE['left']
+            })
+            if (curSection.loopsSides) {
+                curSection.loopsSides[0] = LOOPSIDE['left']
+            }
+        }
+
         curSection.loops = []
 
         FASADES.forEach((door, doorKey) => {

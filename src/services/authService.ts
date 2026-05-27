@@ -10,7 +10,7 @@ const REQUEST_TIMEOUT = 10000
 
 //можно это сделать хуком
 export const AuthService = {
-  
+
   async login(credentials: LoginData): Promise<ApiResponse> {
     try {
       const { data } = await axios.post<ApiResponse>(
@@ -36,13 +36,35 @@ export const AuthService = {
     }
   },
 
+  async refreshToken(token: string): Promise<ApiResponse> {
+    try {
+      const { data } = await axios.post<ApiResponse>(
+        `${API_URL}/api/modellerjwt/auth/RefreshToken/`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          timeout: REQUEST_TIMEOUT
+        }
+      )
+      console.log(data, "TTTTT")
+      return data
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Ошибка обновления токена')
+      }
+      throw error
+    }
+  },
+
   async getUserData(token: string): Promise<ApiResponse> {
     try {
       const { data } = await axios.get<ApiResponse>(
         `${API_URL}/api/modellerjwt/auth/GetUserByToken/`,
         {
           headers: {
-              "Authorization": `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`,
           },
           timeout: 10000
         }
@@ -75,6 +97,7 @@ export const AuthService = {
       throw error
     }
   },
+
   async getCheckUser(token: string): Promise<ApiResponse> {
     const currentUrl = window.location.href;
     try {
@@ -82,7 +105,7 @@ export const AuthService = {
         `${API_URL}/api/modellerjwt/auth/checkpromission/`,
         {
           headers: {
-              "Authorization": `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`,
           },
           params: {
             currentUrl: currentUrl
@@ -98,13 +121,13 @@ export const AuthService = {
       throw error
     }
   },
-  
+
   async getCheckURL(name: string): Promise<ApiResponse> {
     try {
       const { data } = await axios.post<ApiResponse>(
         `${API_URL}/api/modellerjwt/auth/checkurl/`,
         {
-          code : name,
+          code: name,
         },
         {
           timeout: REQUEST_TIMEOUT
