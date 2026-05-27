@@ -512,30 +512,33 @@ export type TConfig = {
 }
 
 export type TTotalProps = {
-  ARROWS: THREE.Object3D[],
-  BODY: THREE.Object3D,
+  ARROWS: THREE.Object3D[] | null,
+  BODY: THREE.Object3D | null,
+  BODY_DEFAULT?: THREE.Object3D | null,
   CONFIG: TConfig,
-  DRAWERS: THREE.Object3D[],
+  DRAWERS: THREE.Object3D[] | {},
   EXPRESSIONS: {},
   FASADE: THREE.Object3D[],
   FASADE_DEFAULT: THREE.Object3D[],
   GLASS: {},
-  HANDLES: THREE.Object3D[],
+  HANDLES: THREE.Object3D[] | {},
   HIDDENCHILDREN: {},
   HIDDEN: false,
   JSON_FILLINGS: THREE.Object3D[],
-  LEG: THREE.Object3D,
+  LEG: THREE.Object3D | null | [],
+  MILLINGS?: THREE.Object3D[],
   PRODUCT: number,
-  PLINTH_MESH: null,
-  RASPIL: TCanvasData,
+  PLINTH_MESH: null | THREE.Object3D[],
+  RASPIL: TCanvasData | [],
   RASPIL_LIST: TRaspilPart[],
   RASPIL_COUNT: number,
   SHELF: THREE.Object3D[] | THREE.Mesh[] | [],
   SEPARATED: [],
   SECTIONSOBJ: [],
   SECTIONCONTROL: [],
-  TABLETOP: null,
-  NAME: string
+  TABLETOP: null | {},
+  NAME: string,
+  RAYCAST: boolean
 }
 
 

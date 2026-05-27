@@ -30,7 +30,7 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-           additionalData: `@use "@/assets/styles/colors.scss" as *;`
+        additionalData: `@use "@/assets/styles/colors.scss" as *;`
 
       }
     }
@@ -56,24 +56,24 @@ export default defineConfig({
   //   },
   // },
   build: {
-  emptyOutDir: true,
-  sourcemap: false,
-  declaration: false,
-  declarationMap: false,
-  minify: true,
-  // Измените assetsDir
-  assetsDir: 'assets',
-  rollupOptions: {
-    output: {
-      entryFileNames: "assets/js/[name]-[hash].js",
-      chunkFileNames: "assets/js/[name]-[hash].js",
-      assetFileNames: ({ name, extname }) => {
+    emptyOutDir: true,
+    sourcemap: false,
+    declaration: false,
+    declarationMap: false,
+    minify: true,
+    // Измените assetsDir
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/js/[name]-[hash].js",
+        chunkFileNames: "assets/js/[name]-[hash].js",
+        assetFileNames: ({ name, extname }) => {
           if (/\.css$/.test(name ?? '')) {
             return 'assets/style-[hash][extname]';
           }
           return 'assets/[name][extname]';
+        },
       },
     },
-  },
-}
+  }
 })

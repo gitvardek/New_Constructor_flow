@@ -9,7 +9,7 @@ import { useModelState } from '@/store/appliction/useModelState';
 import { useUniformState } from "@/store/appliction/useUniformState";
 
 import { OBB } from 'three/examples/jsm/math/OBB.js';
-import { createOBBFromObject, OBBHelper } from "../Utils/CalculateBoundingBox";
+import { OBBHelper } from "../Utils/CalculateBoundingBox";
 
 export class SetObject {
     eventBus: ReturnType<typeof useEventBus> = useEventBus()

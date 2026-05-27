@@ -619,6 +619,8 @@ class TableTopCreator extends BuildersHelper {
         mesh.userData.elementType = 'raspil'
 
         mesh.userData.PROPS = {
+            RAYCAST: true,
+            DISABLE_MOVE: false,
             CONFIG: {
                 UNIFORM_TEXTURE: {
                     group: null

@@ -33,8 +33,8 @@ const modelState = useModelState();
 // const menuStore = useMenuStore();
 
 const toggleMove = () => {
-  modelState.getCurrentModel!.userData.disableMove =
-    !modelState.getCurrentModel!.userData.disableMove;
+  modelState.getCurrentModel!.userData.PROPS.DISABLE_MOVE =
+    !modelState.getCurrentModel!.userData.PROPS.DISABLE_MOVE;
 
   // customiserStore.showCustomiserPopup();
   // menuStore.closeAllMenus();
@@ -42,7 +42,7 @@ const toggleMove = () => {
 
 const getActiveMove = computed(() => {
   if (!modelState.getCurrentModel) return;
-  return { active: modelState.getCurrentModel.userData.disableMove };
+  return { active: modelState.getCurrentModel.userData.PROPS.DISABLE_MOVE };
 });
 </script>
 <style lang="scss" scoped>

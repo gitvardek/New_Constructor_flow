@@ -793,6 +793,7 @@ watch(
         />
 
         <CollisionButton />
+        
         <PinButton />
 
         <Modal

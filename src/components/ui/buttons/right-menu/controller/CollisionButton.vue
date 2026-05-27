@@ -41,8 +41,8 @@ const modelState = useModelState();
 // const menuStore = useMenuStore();
 
 const toggleCollision = () => {
-  modelState.getCurrentModel!.userData.disableRaycast =
-    !modelState.getCurrentModel!.userData.disableRaycast;
+  modelState.getCurrentModel!.userData.PROPS.RAYCAST =
+    !modelState.getCurrentModel!.userData.PROPS.RAYCAST;
 
   // customiserStore.showCustomiserPopup();
   // menuStore.closeAllMenus();
@@ -50,7 +50,7 @@ const toggleCollision = () => {
 
 const getActiveCollision = computed(() => {
   if (!modelState.getCurrentModel) return;
-  return { active: modelState.getCurrentModel.userData.disableRaycast };
+  return { active: modelState.getCurrentModel.userData.PROPS.RAYCAST };
 });
 </script>
 <style lang="scss" scoped>

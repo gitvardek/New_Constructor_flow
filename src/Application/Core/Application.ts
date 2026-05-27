@@ -378,6 +378,8 @@ export class Application {
             const prev = this.userHistory!.undo()
             this.modelState.setCurrentModel(null)
 
+            console.log(JSON.parse(prev), 'prev')
+
             if (prev) {
                 this.deepDispose!.clearExceptEssential(this.scene!)
                 this.room?.update(prev)
