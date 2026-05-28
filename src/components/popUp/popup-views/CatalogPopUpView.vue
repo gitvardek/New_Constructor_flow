@@ -88,10 +88,14 @@
                   }}
                 </span>
               </h4>
-              <!-- <div class="product-item__price">{{ product.PRICE }}</div> -->
-              <button class="product-item__basket" @click="callChildMethod(Number(product.ID))">
-                В корзину
-              </button>
+
+              <div class="product-item__footer">
+                <div class="product-item__price">{{ product.PRICE }}</div>
+                <button class="product-item__basket" @click="callChildMethod(Number(product.ID))">
+                  В корзину
+                </button>
+              </div>
+
               <!-- <button class="product-item__basket" @click="handleProductClick(Number(product.ID))">В корзину</button> -->
             </div>
           </div>
@@ -633,6 +637,8 @@ const toggleShowAllSubCategories = () => {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    flex: 1;
+    padding: 0.5rem;
   }
 
   &__price,
@@ -642,7 +648,6 @@ const toggleShowAllSubCategories = () => {
     line-height: 100%;
     letter-spacing: 0%;
     color: #111b21;
-    margin: 5px 0;
   }
 
   // &__basket {
@@ -655,7 +660,6 @@ const toggleShowAllSubCategories = () => {
     opacity: 1;
     border-radius: 15px;
     padding: 0.5rem 1rem;
-    margin-bottom: 0.75rem;
     background: #da444c;
     display: flex;
     align-items: center;
@@ -691,6 +695,12 @@ const toggleShowAllSubCategories = () => {
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
+  }
+
+  &__footer{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 }
 
