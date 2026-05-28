@@ -141,7 +141,7 @@ export class BuildProduct extends BuildersHelper {
                 .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
                 .catch(() => null);
 
-            const income_props = um_params ?? loaded_props
+            const income_props = loaded_props ?? um_params;
 
             const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
 
