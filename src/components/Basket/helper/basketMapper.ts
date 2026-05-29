@@ -657,6 +657,8 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
     props.SHELFQUANT = objProps.CONFIG.SHELFQUANT?.current;
   }
 
+  if (objProps.CONFIG.SIZEEDITJOINDEPTH) { props.SIZEEDITJOINDEPTH = objProps.CONFIG.SIZEEDITJOINDEPTH }
+
   if (objProps.CONFIG.SECTIONS) {
     const propsUM = convertModuleToLegacyFormat(objProps);
     const cleanedData = removeEmptyObjects(propsUM);
