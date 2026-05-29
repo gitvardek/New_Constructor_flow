@@ -67,6 +67,7 @@ export class BuildProduct extends BuildersHelper {
     mirror_builder: MirrorBuilder
     uniform_texture_builder: UniformTextureBuilder
     useEdgeBuilder: THREETypes.TUseEdgeBuilder
+    private readonly _UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966]
 
 
     constructor(root: THREETypes.TApplication) {
@@ -240,7 +241,7 @@ export class BuildProduct extends BuildersHelper {
         const productSize = new THREE.Vector3();
         aabb.getSize(productSize);
 
-        if (product_data.moduleType || product_data.ID == 3954672) {
+        if (this._UM_LIST.includes(product_data.ID)) {
             parent_group.name = 'UNIVERSAL'
         }
 
