@@ -119,7 +119,7 @@ export class MeshEvents extends BuildersHelper {
     private rotateActions: TRotateActions = {
         1: Math.PI,
         3: Math.PI * -0.5,
-        4: Math.PI * -0.5,
+        4: Math.PI * -0.25,
         5: Math.PI * 0.5,
         7: 0
     }

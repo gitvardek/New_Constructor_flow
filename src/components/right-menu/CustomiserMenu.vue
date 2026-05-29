@@ -67,6 +67,7 @@ const checkSelect = (el) => {
   }
 
   currentModel.value = el.object;
+  customiserStore.showCustomiserPopup();
 
   modelState.setCurrentModel(el.object);
   if (el.object.userData.elementType === "raspil") {
