@@ -1374,9 +1374,9 @@ onBeforeUnmount(() => {
 
       <section class="actions-footer" ref="refFooter">
         <div class="actions-footer--delite">
-          <button class="actions-btn actions-btn--footer" @click="reset(true)">
+          <!-- <button class="actions-btn actions-btn--footer" @click="reset(true)">
             Сбросить
-          </button>
+          </button> -->
           <slot name="delite"></slot>
         </div>
         <div class="actions-footer--save">

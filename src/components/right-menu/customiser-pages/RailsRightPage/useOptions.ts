@@ -235,7 +235,7 @@ export const useOptions = () => {
         let filtered = []
         const curOptionsList = curOptions
             .map(el => {
-
+                if (!el) return
                 const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
                 const cutSize = getCutSizeOption(el, cloneOption)
 
