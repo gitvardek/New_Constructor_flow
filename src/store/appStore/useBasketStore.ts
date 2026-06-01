@@ -16,7 +16,6 @@ const generateUniqueId = (): string =>
 
 // Формирования массива ручик фасадов
 const countHandles = (items: any[]): number[] => {
-  console.log('items', items);
   const handles: number[] = []
   
   items.forEach(item => {

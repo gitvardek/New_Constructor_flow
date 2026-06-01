@@ -374,8 +374,6 @@ export class RoomManager extends Room {
         const raspilList = saveData.RASPIL_LIST ?? [];
         const raspilData = saveData.RASPIL?.data;
 
-        console.log(raspilList, raspilData)
-
         if (Array.isArray(raspilList) && raspilList.length && raspilData) {
             for (const elem of raspilList) {
                 if (!elem || !elem.sectorId) continue;
@@ -386,8 +384,6 @@ export class RoomManager extends Room {
                 // Создаём клон, если нужно сохранить чистоту
                 result.position = elem.position?.clone?.() ?? null;
                 result.rotation = elem.rotation?.clone?.() ?? null;
-
-                console.log(result, 'result')
             }
         }
 
