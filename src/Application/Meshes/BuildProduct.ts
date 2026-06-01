@@ -618,7 +618,10 @@ export class BuildProduct extends BuildersHelper {
             isRoomElement
         });
 
-        body.add(this.edge_builder.createEdge(body));
+        const edge = this.edge_builder.createEdge(body);
+        const deffEdge = this.edge_builder.createVisibleEdge(body)
+
+        body.add(edge, deffEdge);
 
         if (isTopTable) {
 

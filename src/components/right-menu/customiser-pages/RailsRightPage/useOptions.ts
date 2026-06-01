@@ -476,10 +476,10 @@ export const useOptions = () => {
 
         if (cutOptionsId.includes(parseInt(id))) {
             if (parseInt(id) === 4722787) {
-                return getResult(BODY_HEIGHT)
+                return getResult(BODY_WIDTH)
             }
             if (parseInt(id) === 4722786) {
-                return getResult(BODY_WIDTH)
+                return getResult(BODY_HEIGHT)
             }
         }
 

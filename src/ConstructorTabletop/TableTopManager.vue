@@ -222,7 +222,8 @@ const addVerticalCut = (colIndex) => {
   }));
 
   grid.value.splice(colIndex + 1, 0, newColumn);
-  checkKromkaActive();
+
+  checkProfileDisablegroups(false);
 
   // Обновляем рендер
   visualizationRef.value.renderGrid();
@@ -463,19 +464,22 @@ const createProfileServices = () => {
   return curProfileServise;
 };
 
-const checkProfileDisablegroups = () => {
+const checkProfileDisablegroups = (keepValues = true) => {
+
   const curProfileServise = createProfileServices();
+
   if (!curProfileServise) return;
-
-  // checkKromkaActive();
-
-  // if (getKromkaActive) {
-  //   getCurretKromkaList();
-  // }
 
   grid.value.forEach((column) =>
     column.forEach((row) => {
       const temp = curProfileServise.map((el) => {
+
+        // const curUsluga = keepValues
+        //   ? row.serviseData.find((usluga) => usluga.ID === el.ID)
+        //   : null;
+
+        // const value = curUsluga ? curUsluga.value : false;
+
         const curUsluga = row.serviseData.find((usluga) => usluga.ID === el.ID);
         if (curUsluga) el.value = curUsluga.value;
         else el.value = false;
@@ -516,6 +520,18 @@ const checkProfileDisablegroups = () => {
   if (getKromkaActive) {
     getCurretKromkaList();
   }
+
+  if (!keepValues) {
+    const newProfileIds = new Set(curProfileServise.map((s) => s.ID));
+    tempUslugi.value.forEach((usluga) => {
+      console.log(usluga, 'usluga')
+
+      if (!newProfileIds.has(usluga.ID) || parseInt(usluga.separated) !== 0) {
+        usluga.value = false;
+      }
+    });
+  }
+
 };
 
 const convertProfileData = (value, item) => {
@@ -544,7 +560,8 @@ const convertProfileData = (value, item) => {
     }
   }
 
-  checkProfileDisablegroups();
+  checkProfileDisablegroups(false);
+
   visualizationRef.value?.renderGrid();
 };
 
@@ -895,6 +912,8 @@ const deliteVerticalCut = (colIndex) => {
   selectedCell.value.row = 0;
   selectedCell.value.col = 0;
 
+  checkProfileDisablegroups(false)
+
   visualizationRef.value.renderGrid();
 };
 
@@ -996,8 +1015,7 @@ const createServiseData = () => {
   const { PROPS } = parent.userData;
   const { PROFILE, USLUGI } = PROPS.CONFIG;
 
-  const serviseList =
-    tempProfile.value.length > 0 ? createProfileServices() : tempUslugi.value;
+  const serviseList = tempProfile.value.length > 0 ? createProfileServices() : tempUslugi.value;
 
   const convertParams = serviseList.reduce((acc, el) => {
     const checkGlobal = el.separated == 0 ? el.value : false;
@@ -1150,6 +1168,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
 
+  tempProfile.value = null;
+  tempUslugi.value = null;
   shapeAdjuster = null;
   grid.value = null;
   clearKromkaData();
