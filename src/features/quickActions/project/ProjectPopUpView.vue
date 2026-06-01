@@ -758,13 +758,13 @@ onMounted(async () => {
 
 // Список проектов
 .project-list {
-  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-wrap: wrap;
   overflow-y: auto;
-  gap: 0.5rem;
-  align-content: flex-start;
+  gap: 1rem;
+  justify-content: center;
+
 
   &--loading {
     .project-item {
@@ -1046,7 +1046,7 @@ onMounted(async () => {
     position: absolute;
     // max-width: 200px;
     width: 100%;
-    width: 100%;
+    height: 100%;
 
     &__wrap {
       position: relative;

@@ -40,7 +40,8 @@ const isRoomParamsOnlyOpen = computed(() => {
   &__container {
     background: $white;
     border-radius: 15px;
-    padding: 0;
+    font-size: 1.4rem;
+    padding: 25px;
 
     &--room-params {
       background: transparent;

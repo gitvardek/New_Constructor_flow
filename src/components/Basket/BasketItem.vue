@@ -1027,7 +1027,7 @@ const renderDescription = (data) => {
 <style scoped lang="scss">
 .basket-item {
   display: grid;
-  grid-template-columns: 150px 1fr 120px 120px 120px 120px 42px;
+  grid-template-columns: 150px 1fr 75px 135px 135px 135px 50px;
   align-items: center;
   gap: 10px;
   padding: 15px 0;
@@ -1152,15 +1152,15 @@ const renderDescription = (data) => {
     display: flex;
     align-items: center;
     gap: 6px;
+    justify-content: center;
 
     &-input {
-      width: 38px;
-      height: 38px;
+      width: 30px;
+      height: 30px;
       text-align: center;
       background-color: #f6f5fa;
       border: 1px solid #ecebf1;
       font-weight: 500;
-      font-style: Medium;
       font-size: 1.4rem;
       line-height: 100%;
       letter-spacing: 0%;
@@ -1178,12 +1178,12 @@ const renderDescription = (data) => {
 
   &__price {
     font-weight: 500;
-    font-style: Medium;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     line-height: 100%;
     letter-spacing: 0%;
     vertical-align: middle;
     color: #111b21;
+    text-align: center;
   }
 
   &__old-total span {

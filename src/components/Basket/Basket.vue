@@ -370,81 +370,118 @@ watch(() => useBasketStore().basketData, (newValue) => {
 </script>
 
 <style lang="scss" scoped>
-  .basket {
+.basket {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  background: white;
+  border-radius: 15px;
+  padding: 15px;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: var(--modal-large-height);
+  height: 100%;
+  max-width: var(--modal-large-width);
+  width: 90vw;
+
+  .basket-header {
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 30px;
-    background: white;
-    border-radius: 15px;
-    padding: 15px;
+    position: relative;
     width: 100%;
-    box-sizing: border-box;
-    max-height: 80vh; 
+
+    &__title {
+      font-weight: 600;
+      font-size: 3.2rem;
+      line-height: 100%;
+      letter-spacing: 0%;
+      text-align: center;
+    }
+  }
+
+  &__additional-table {
+    margin-top: 2rem;
+  }
+
+  .basket-container {
+    width: 100%;
     height: 100%;
-    max-width: 1447px;
-    width: 90vw;
-    .basket-header {
+    overflow-y: auto;
+
+    &__main-table {
+
+      // margin-bottom: 2rem;
+      .basket-table {
+        background-color: #F6F5FA;
+        border-radius: 15px;
+      }
+    }
+
+  }
+
+  .basket-footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 1.4rem;
+
+    @media (max-width: 768px) {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+
+    .basket__technologist__wrapper {
       display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
+      align-items: flex-end;
       width: 100%;
-      &__title {
-        font-weight: 600;
-        font-size: 3.2rem;
-        line-height: 100%;
-        letter-spacing: 0%;
-        text-align: center;
-      }
-    }
-    &__additional-table {
-      margin-top: 2rem;
-    }
-    .basket-container {
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      &__main-table {
-        // margin-bottom: 2rem;
-        .basket-table {
-          background-color: #F6F5FA;
-          border-radius: 15px;
-        }
-      }
+      color: #da444c;
+      flex-direction: column;
 
-    }
-
-    .basket-footer {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 20px;
-      font-size: 1.4rem;
-      
-      @media (max-width: 768px) {
-        flex-direction: column-reverse;
-        align-items: stretch;
-      }
-
-      .basket__technologist__wrapper {
+      &__container {
+        padding: 7.5px;
         display: flex;
-        align-items: flex-end;
-        width: 100%;
-        color: #da444c;
         flex-direction: column;
+        align-items: flex-end;
+        border: #da444c solid 1px;
+        border-radius: 15px;
+      }
 
-        &__container {
-          padding: 7.5px;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          border: #da444c solid 1px;
-          border-radius: 15px;
-        }
+      @media (max-width: 768px) {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+        justify-content: center;
+      }
+    }
+
+    &-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    &-buttons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+
+      @media (max-width: 768px) {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .basket__error {
+        display: flex;
+        align-items: center;
+        margin-right: 30px;
+        color: $red;
 
         @media (max-width: 768px) {
           width: 100%;
@@ -454,238 +491,230 @@ watch(() => useBasketStore().basketData, (newValue) => {
         }
       }
 
-      &-info {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
+      button {
+        // width: 114px;
+        // height: 50px;
+        padding: 0.5rem 1rem;
+        background: $stroke;
+        border-radius: 15px;
+        border: none;
 
-      &-buttons {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        
         @media (max-width: 768px) {
-          width: 100%;
-          justify-content: space-between;
-        }
-
-        .basket__error {
-          display: flex;
-          align-items: center;
-          margin-right: 30px;
-          color: $red;
-          
-          @media (max-width: 768px) {
-            width: 100%;
-            margin-right: 0;
-            margin-bottom: 10px;
-            justify-content: center;
-          }
-        }
-
-        button {
-          width: 114px;
-          height: 50px;
-          background: $stroke;
-          border-radius: 15px;
-          border: none;
-          
-          @media (max-width: 768px) {
-            flex: 1;
-            min-width: 100px;
-          }
-        }
-
-        .basket__close {
-          color: $strong-grey;
-          font-weight: 600;
-        }
-
-        .basket__save {
-          width: 132px;
-          color: $white;
-          font-weight: 600;
-          background-color: $black;
-          
-          @media (max-width: 768px) {
-            width: auto;
-            flex: 1;
-          }
-        }
-
-        .basket__order {
-          width: 174px;
-          color: $white;
-          font-weight: 600;
-          background-color: $red;
-          
-          @media (max-width: 768px) {
-            width: auto;
-            flex: 2;
-          }
-          &:disabled {
-            background-color: #A3A9B5;
-            cursor: not-allowed;
-          }
+          flex: 1;
+          min-width: 100px;
         }
       }
-    }
 
-    &__loader {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      position: absolute;
-      top: 1px;
-      left: 0;
-      animation: rotate 1s linear infinite
-    }
-
-    &__loader::before , &__loader::after {
-      content: "";
-      box-sizing: border-box;
-      position: absolute;
-      inset: 0px;
-      border-radius: 50%;
-      border: 5px solid #da444c73;
-      animation: prixClipFix 2s linear infinite ;
-    }
-
-    &__loader::after{
-      border-color: #DA444C;
-      animation: prixClipFix 2s linear infinite , rotate 0.5s linear infinite reverse;
-      inset: 6px;
-    }
-    &__sum {
-      font-weight: 600;
-      line-height: 100%;
-      letter-spacing: 0%;
-
-    }
-    &__sum-no {
-      // font-weight: 600;
-      line-height: 100%;
-      letter-spacing: 0%;
-
-    }
-  }
-
-  
-
-  @keyframes rotate {
-    0%   {transform: rotate(0deg)}
-    100%   {transform: rotate(360deg)}
-  }
-
-  @keyframes prixClipFix {
-    0%   {clip-path:polygon(50% 50%,0 0,0 0,0 0,0 0,0 0)}
-    25%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 0,100% 0,100% 0)}
-    50%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,100% 100%,100% 100%)}
-    75%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 100%)}
-    100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
-  }
-
-  .basket-footer__notification {
-    background: #cfe2ff;
-    width: 100%;
-    border-radius: 8px;
-    padding: 12px;
-    max-height: 114px;
-    overflow-y: auto;
-  }
-
-  .room-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    margin-top: 10px;
-    margin-right: auto;
-    .room-tab {
-      padding: 8px 16px;
-      background: #f0f0f0;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 1.4rem;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        background: #e0e0e0;
-      }
-      
-      &--active {
-        background: $red;
-        color: white;
+      .basket__close {
+        color: $strong-grey;
         font-weight: 600;
       }
-    }
-  }
 
-  .basket-tabs {
-    display: flex;
-    align-self: stretch;
-    width: 100%;
-    align-items: center;
-
-    &__tab {
-      padding: 1.2rem 2.4rem;
-      font-size: 1.4rem;
-      font-weight: 500;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 12px 12px 0 0;
-      background-color: #e0e0e0;
-      color: #666;
-      position: relative;
-      margin-right: 4px;
-
-      &:hover:not(.basket-tabs__tab--active) {
-        background-color: #d0d0d0;
-      }
-
-      &--active {
-        background-color: #fff;
-        color: #333;
+      .basket__save {
+        // width: 132px;
+        color: $white;
         font-weight: 600;
-        z-index: 1;
+        background-color: $black;
+
+        @media (max-width: 768px) {
+          width: auto;
+          flex: 1;
+        }
+      }
+
+      .basket__order {
+        // width: 174px;
+        color: $white;
+        font-weight: 600;
+        background-color: $red;
+
+        @media (max-width: 768px) {
+          width: auto;
+          flex: 2;
+        }
+
+        &:disabled {
+          background-color: #A3A9B5;
+          cursor: not-allowed;
+        }
       }
     }
-
-    &__close-btn {
-      margin-left: auto;
-      fill: #A3A9B5;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
   }
 
-  .order-footer {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    font-size: 1.4rem;
-
-    @media (max-width: 768px) {
-      flex-direction: column-reverse;
-      align-items: stretch;
-    }
+  &__loader {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    left: 0;
+    animation: rotate 1s linear infinite
   }
 
-  .order-footer__title {
-    margin: 0 0 6px;
+  &__loader::before,
+  &__loader::after {
+    content: "";
+    box-sizing: border-box;
+    position: absolute;
+    inset: 0px;
+    border-radius: 50%;
+    border: 5px solid #da444c73;
+    animation: prixClipFix 2s linear infinite;
+  }
+
+  &__loader::after {
+    border-color: #DA444C;
+    animation: prixClipFix 2s linear infinite, rotate 0.5s linear infinite reverse;
+    inset: 6px;
+  }
+
+  &__sum {
     font-weight: 600;
-    font-size: 1.4rem;
-    color: #272727;
+    line-height: 100%;
+    letter-spacing: 0%;
+
   }
 
-  
+  &__sum-no {
+    // font-weight: 600;
+    line-height: 100%;
+    letter-spacing: 0%;
 
+  }
+}
+
+
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg)
+  }
+
+  100% {
+    transform: rotate(360deg)
+  }
+}
+
+@keyframes prixClipFix {
+  0% {
+    clip-path: polygon(50% 50%, 0 0, 0 0, 0 0, 0 0, 0 0)
+  }
+
+  25% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 0, 100% 0, 100% 0)
+  }
+
+  50% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 100% 100%, 100% 100%)
+  }
+
+  75% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 100%)
+  }
+
+  100% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 0)
+  }
+}
+
+.basket-footer__notification {
+  background: #cfe2ff;
+  width: 100%;
+  border-radius: 8px;
+  padding: 5px;
+  max-height: 70px;
+  overflow-y: auto;
+  font-size: 1.2rem;
+}
+
+.room-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+  margin-right: auto;
+
+  .room-tab {
+    padding: 8px 16px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 1.4rem;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #e0e0e0;
+    }
+
+    &--active {
+      background: $red;
+      color: white;
+      font-weight: 600;
+    }
+  }
+}
+
+.basket-tabs {
+  display: flex;
+  align-self: stretch;
+  width: 100%;
+  align-items: center;
+
+  &__tab {
+    padding:0.5rem 1rem;
+    font-size: 1.4rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 12px 12px 0 0;
+    background-color: #e0e0e0;
+    color: #666;
+    position: relative;
+    margin-right: 4px;
+
+    &:hover:not(.basket-tabs__tab--active) {
+      background-color: #d0d0d0;
+    }
+
+    &--active {
+      background-color: #fff;
+      color: #333;
+      font-weight: 600;
+      z-index: 1;
+    }
+  }
+
+  &__close-btn {
+    margin-left: auto;
+    fill: #A3A9B5;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+.order-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 1.4rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
+.order-footer__title {
+  margin: 0 0 6px;
+  font-weight: 600;
+  font-size: 1.4rem;
+  color: #272727;
+}
 </style>
 
