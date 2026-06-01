@@ -1,13 +1,13 @@
 <script setup lang="ts">
 //@ts-nocheck
 
-import {onBeforeMount, onMounted, ref} from "vue";
+import { onBeforeMount, onMounted, ref } from "vue";
 
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
-import {usePopupStore} from "@/store/appStore/popUpsStore.ts";
-import {useTechnologistApi} from "@/store/appStore/technologist/useTechnologistApi.ts";
-import {useTechnologistStorage} from "@/store/appStore/technologist/useTechnologistStorage.ts";
-import {TechnologistFormError, TechnologistFormItem} from "@/types/technologist.ts";
+import { usePopupStore } from "@/store/appStore/popUpsStore.ts";
+import { useTechnologistApi } from "@/store/appStore/technologist/useTechnologistApi.ts";
+import { useTechnologistStorage } from "@/store/appStore/technologist/useTechnologistStorage.ts";
+import { TechnologistFormError, TechnologistFormItem } from "@/types/technologist.ts";
 import MainButton from "@/components/ui/buttons/MainButton.vue";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
 import DragAndDropFiles from "@/components/ui/drag&drop/DragAndDropFiles.vue";
@@ -17,7 +17,7 @@ const technologistStorage = useTechnologistStorage();
 const technologistAPI = useTechnologistApi();
 const currentProjectID = ref<number | boolean>(false);
 const currentForm = ref<TechnologistFormItem>(<TechnologistFormItem>{});
-const techFormError = ref<TechnologistFormError | {}>(technologistStorage.getTechFormError()) ;
+const techFormError = ref<TechnologistFormError | {}>(technologistStorage.getTechFormError());
 
 const init = () => {
   currentProjectID.value = technologistStorage.getCurrentProjectID();
@@ -31,7 +31,7 @@ const closeForm = () => {
 
 const submitTechForm = () => {
 
-  if(!currentForm.value)
+  if (!currentForm.value)
     return
 
   let formData = new FormData();
@@ -39,7 +39,7 @@ const submitTechForm = () => {
 
   Object.entries(currentForm.value).forEach(([key, value]) => {
 
-    if(Array.isArray(value)) {
+    if (Array.isArray(value)) {
       value.forEach((item, index) => {
         formData.append(`${key}[${index}]`, item);
       })
@@ -49,9 +49,9 @@ const submitTechForm = () => {
   })
 
   technologistAPI.submitTechForm(formData).then((result) => {
-    if(result) {
+    if (result) {
       let data = result.DATA
-      if(!data?.error) {
+      if (!data?.error) {
         closeForm();
         alert("Заявка отправлена успешно!")
       }
@@ -101,17 +101,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-      class="technologist-form"
-  >
+  <div class="technologist-form">
     <div class="technologist-form-container">
 
       <div class="technologist-form-header">
         <h4 class="technologist-form-header__title">Форма отправки на проверку технологу</h4>
-        <ClosePopUpButton
-            class="technologist-form-header__close-btn"
-            @click="closeForm"
-        />
+        <ClosePopUpButton class="technologist-form-header__close-btn" @click="closeForm" />
       </div>
 
       <div class="technologist-form-footer">
@@ -119,80 +114,46 @@ onMounted(() => {
         <div class="technologist-form-footer-info">
           <div class="technologist-form-footer-info-item">
             <label>* ID проекта</label>
-            <MainInput
-                :input-class="'technologist-form-footer-info-item__input'"
-                :model-value="currentForm.projectId"
-                id="projectId"
-                disabled
-            />
+            <MainInput :input-class="'technologist-form-footer-info-item__input'" :model-value="currentForm.projectId"
+              id="projectId" disabled />
           </div>
 
           <div class="technologist-form-footer-info-item">
             <label>* Дизайнер Ф.И.О.</label>
             <input
-                :class="['technologist-form-footer-info-item__input', {'technologist-form-errorForm': techFormError['fio']}]"
-                type="text"
-                required
-                name="fio"
-                v-model="currentForm.fio"
-            >
+              :class="['technologist-form-footer-info-item__input', { 'technologist-form-errorForm': techFormError['fio'] }]"
+              type="text" required name="fio" v-model="currentForm.fio">
           </div>
 
           <div class="technologist-form-footer-info-item">
             <label>* Телефон</label>
-            <input
-                v-mask="'+7 (###)-###-####'"
-                :class="['technologist-form-footer-info-item__input', {'technologist-form-errorForm': techFormError['phone']}]"
-                type="tel"
-                required
-                name="phone"
-                v-model="currentForm.phone"
-                inputmode="tel"
-                autocomplete="tel"
-                placeholder="+7 (XXX)-XXX-XXXX"
-            >
+            <input v-mask="'+7 (###)-###-####'"
+              :class="['technologist-form-footer-info-item__input', { 'technologist-form-errorForm': techFormError['phone'] }]"
+              type="tel" required name="phone" v-model="currentForm.phone" inputmode="tel" autocomplete="tel"
+              placeholder="+7 (XXX)-XXX-XXXX">
           </div>
 
           <div class="technologist-form-footer-info-item">
             <label>* Почта</label>
-            <input
-                required
-                :class="['technologist-form-footer-info-item__input', {'technologist-form-errorForm': techFormError['email']}]"
-                placeholder="username@example.com"
-                v-model.trim="currentForm.email"
-                name="email"
-                type="email"
-                inputmode="email"
-                autocomplete="email"
-                @blur="currentForm.email = normalizeEmail(currentForm.email)"
-            >
+            <input required
+              :class="['technologist-form-footer-info-item__input', { 'technologist-form-errorForm': techFormError['email'] }]"
+              placeholder="username@example.com" v-model.trim="currentForm.email" name="email" type="email"
+              inputmode="email" autocomplete="email" @blur="currentForm.email = normalizeEmail(currentForm.email)">
           </div>
 
           <div class="technologist-form-footer-info-item">
             <label>* ID предзаказа</label>
             <input
-                :class="['technologist-form-footer-info-item__input', {'technologist-form-errorForm': techFormError['pre_order_id']}]"
-                placeholder="*Если есть*"
-                v-model="currentForm['pre_order_id']"
-                name="pre_order_id"
-                type="text"
-            >
+              :class="['technologist-form-footer-info-item__input', { 'technologist-form-errorForm': techFormError['pre_order_id'] }]"
+              placeholder="*Если есть*" v-model="currentForm['pre_order_id']" name="pre_order_id" type="text">
           </div>
 
           <div class="technologist-form-footer-info-technique">
             <label>* Список техники с указанием модели:</label>
             <ul class="technologist-form-footer-info-technique__list">
-              <li
-                  v-for="(techniqueVal, techniqueKey) in currentForm.technique"
-                  :key="techniqueKey"
-              >
-                <input
-                    class="technologist-form-footer-info-technique__input"
-                    autocomplete="off"
-                    type="text"
-                    :id="`technique_${techniqueKey}`"
-                    v-model="currentForm.technique[techniqueKey]"
-                >
+              <li v-for="(techniqueVal, techniqueKey) in currentForm.technique" :key="techniqueKey">
+                <input class="technologist-form-footer-info-technique__input" autocomplete="off" type="text"
+                  :id="`technique_${techniqueKey}`" v-model="currentForm.technique[techniqueKey]">
               </li>
             </ul>
 
@@ -203,48 +164,35 @@ onMounted(() => {
         </div>
 
 
-        <div
-            :class="['technologist-form-footer-filedrop', {'technologist-form-errorForm': techFormError['sketch']}]"
-        >
+        <div :class="['technologist-form-footer-filedrop', { 'technologist-form-errorForm': techFormError['sketch'] }]">
           <p class="technologist-form-footer-filedrop__label">* Техническое задание с размерами</p>
 
-          <DragAndDropFiles
-              accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
-              @update:files="changeSketchFiles"
-          />
+          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
+            @update:files="changeSketchFiles" />
         </div>
 
         <div class="technologist-form-footer-filedrop">
           <p class="technologist-form-footer-filedrop__label">* Фото помещения со всех ракурсов</p>
 
-          <DragAndDropFiles
-              accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
-              @update:files="changePhotoRoomFiles"
-          />
+          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
+            @update:files="changePhotoRoomFiles" />
         </div>
 
         <div class="technologist-form-footer-filedrop">
           <p class="technologist-form-footer-filedrop__label">* Замер помещения</p>
 
-          <DragAndDropFiles
-              accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
-              @update:files="changeMeteringFiles"
-          />
+          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
+            @update:files="changeMeteringFiles" />
         </div>
 
         <div v-if="Object.entries(techFormError).length" class="technologist-form-errorMessages">
-          <li
-              v-for="(error, errorKey) in techFormError"
-              :key="errorKey"
-          >
-            <p>{{error.text}}</p>
+          <li v-for="(error, errorKey) in techFormError" :key="errorKey">
+            <p>{{ error.text }}</p>
           </li>
         </div>
 
         <label>Комментарий:</label>
-        <textarea
-            class="technologist-form-review__textarea"
-            v-model="currentForm.comments"></textarea>
+        <textarea class="technologist-form-review__textarea" v-model="currentForm.comments"></textarea>
 
         <MainButton @click="submitTechForm">
           Отправить заявку
@@ -305,6 +253,7 @@ onMounted(() => {
     overflow-y: auto;
 
     &__main-table {
+
       // margin-bottom: 2rem;
       .technologist-table {
         background-color: #F6F5FA;
@@ -343,6 +292,7 @@ onMounted(() => {
     gap: 20px;
     width: 100%;
     flex-direction: column;
+    font-size: 1.4rem;
 
     @media (max-width: 768px) {
       flex-direction: column-reverse;
@@ -356,18 +306,21 @@ onMounted(() => {
       margin: 1rem;
 
       &-item {
-        width: 17vw;
         display: flex;
         flex-wrap: wrap;
         flex-direction: row;
-        justify-content: space-between;
         align-content: center;
         align-items: flex-start;
 
+        label {
+          width: 18%;
+        }
+
 
         &__input {
+          width: 100%;
+          max-width: 250px;
           padding-left: 10px;
-          width: 10vw;
           border: $dark-grey solid 1px;
         }
       }
@@ -494,41 +447,42 @@ onMounted(() => {
   }
 
 
-&__loader {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  position: absolute;
-  top: 1px;
-  left: 0;
-  animation: rotate 1s linear infinite
-}
+  &__loader {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    left: 0;
+    animation: rotate 1s linear infinite
+  }
 
-&__loader::before, &__loader::after {
-  content: "";
-  box-sizing: border-box;
-  position: absolute;
-  inset: 0px;
-  border-radius: 50%;
-  border: 5px solid #da444c73;
-  animation: prixClipFix 2s linear infinite;
-}
+  &__loader::before,
+  &__loader::after {
+    content: "";
+    box-sizing: border-box;
+    position: absolute;
+    inset: 0px;
+    border-radius: 50%;
+    border: 5px solid #da444c73;
+    animation: prixClipFix 2s linear infinite;
+  }
 
-&__loader::after {
-  border-color: #DA444C;
-  animation: prixClipFix 2s linear infinite, rotate 0.5s linear infinite reverse;
-  inset: 6px;
-}
+  &__loader::after {
+    border-color: #DA444C;
+    animation: prixClipFix 2s linear infinite, rotate 0.5s linear infinite reverse;
+    inset: 6px;
+  }
 
-&__sum {
-  font-weight: 600;
-  line-height: 100%;
-}
+  &__sum {
+    font-weight: 600;
+    line-height: 100%;
+  }
 
-&__sum-no {
-  // font-weight: 600;
-  line-height: 100%;
-}
+  &__sum-no {
+    // font-weight: 600;
+    line-height: 100%;
+  }
 
   &-errorForm {
     border: #DA444C solid 1px;
@@ -536,7 +490,7 @@ onMounted(() => {
 
   &-errorMessages {
     border: #DA444C solid 1px;
-    color: #DA444C ;
+    color: #DA444C;
   }
 
 }

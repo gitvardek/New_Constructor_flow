@@ -1,19 +1,16 @@
 <template>
   <div class="project-popup-wrapper">
+
+    <ClosePopUpButton class="popup__close" @close="closePopup" />
+
     <!-- Вкладки сверху попапа -->
     <div class="project-tabs">
-      <button
-        class="project-tabs__tab"
-        :class="{ 'project-tabs__tab--active': activeTab === 'projects' }"
-        @click="activeTab = 'projects'"
-      >
+      <button class="project-tabs__tab" :class="{ 'project-tabs__tab--active': activeTab === 'projects' }"
+        @click="activeTab = 'projects'">
         Мои проекты
       </button>
-      <button
-        class="project-tabs__tab"
-        :class="{ 'project-tabs__tab--active': activeTab === 'templates' }"
-        @click="activeTab = 'templates'"
-      >
+      <button class="project-tabs__tab" :class="{ 'project-tabs__tab--active': activeTab === 'templates' }"
+        @click="activeTab = 'templates'">
         Готовые проекты
       </button>
     </div>
@@ -21,53 +18,38 @@
     <div class="project">
       <GenericLoader v-show="isProjectLoading" />
       <!-- <div class="project__title">{{ activeTab === 'projects' ? 'Мои проекты' : 'Готовые проекты' }}</div> -->
-      <ClosePopUpButton class="popup__close" @close="closePopup" />
 
-    <div class="project__container">
-      <!-- Фильтры -->
-      <div class="project-header">
-        <div class="project-search">
-          <MainInput v-model="filters.name" type="text" placeholder="Название" :min="0" :max="99999999"
-            class="search-input" />
-          <MainInput v-model="filters.id" type="text" placeholder="ID" :maxlength="30" :digitsOnly="true"
-            class="search-input" />
-          <select v-model="selectedBackendId" class="search-input backend-ids-select" @change="onBackendIdSelect">
-            <option value="all">Все проекты</option>
-            <option v-for="owner in backendIdsList" :key="owner.ID" :value="owner.ID">
-              {{
-                [owner.NAME, owner.LAST_NAME].filter(Boolean).join(" ") ||
-                owner.ID
-              }}
-            </option>
-          </select>
-          <div class="search-input date-filter">
-            <input
-              v-model="dateFrom"
-              type="date"
-              class="search-input date-filter__input"
-              placeholder="Дата от"
-            />
-            <span class="date-filter__separator">—</span>
-            <input
-              v-model="dateTo"
-              type="date"
-              class="search-input date-filter__input"
-              placeholder="Дата до"
-            />
+
+      <div class="project__container">
+
+        <!-- Фильтры -->
+        <div class="project-header">
+          <div class="project-search">
+            <MainInput v-model="filters.name" type="text" placeholder="Название" :min="0" :max="99999999"
+              class="search-input" />
+            <MainInput v-model="filters.id" type="text" placeholder="ID" :maxlength="30" :digitsOnly="true"
+              class="search-input" />
+            <select v-model="selectedBackendId" class="search-input backend-ids-select" @change="onBackendIdSelect">
+              <option value="all">Все проекты</option>
+              <option v-for="owner in backendIdsList" :key="owner.ID" :value="owner.ID">
+                {{
+                  [owner.NAME, owner.LAST_NAME].filter(Boolean).join(" ") ||
+                  owner.ID
+                }}
+              </option>
+            </select>
+            <div class="search-input date-filter">
+              <input v-model="dateFrom" type="date" class="search-input date-filter__input" placeholder="Дата от" />
+              <span class="date-filter__separator">—</span>
+              <input v-model="dateTo" type="date" class="search-input date-filter__input" placeholder="Дата до" />
+            </div>
+            <form class="load-by-id" @submit.prevent="onLoadByIdSubmit">
+              <MainInput v-model="loadByIdValue" type="text" placeholder="Загрузить по ID"
+                class="search-input load-by-id__input" :maxlength="30" :digitsOnly="true" />
+            </form>
           </div>
-          <form class="load-by-id" @submit.prevent="onLoadByIdSubmit">
-            <MainInput
-              v-model="loadByIdValue"
-              type="text"
-              placeholder="Загрузить по ID"
-              class="search-input load-by-id__input"
-              :maxlength="30"
-              :digitsOnly="true"
-            />
-          </form>
-        </div>
-        <div class="project-buttons">
-          <!-- <MainButton
+          <div class="project-buttons">
+            <!-- <MainButton
             :className="tab === 'ready' ? 'red__button' : 'grey__button'"
             @click="switchTab('ready')"
             :disabled="isLoading"
@@ -81,11 +63,11 @@
           >
             Мои проекты
           </MainButton> -->
+          </div>
         </div>
-      </div>
 
-      <!-- Предупреждение -->
-      <!-- <div class="project-warning">
+        <!-- Предупреждение -->
+        <!-- <div class="project-warning">
         <div v-if="!projectState.currentProjectId" class="warning-text">
           <p class="warning-text__title">Новый проект</p>
           <p class="warning-text__text">
@@ -101,28 +83,28 @@
         </MainButton>
       </div> -->
 
-      <!-- Список проектов -->
-      <div class="project-list" :class="{ 'project-list--loading': isLoading }">
-        <!-- Лоадер -->
-        <div v-if="isLoading" class="project-loader">
-          <div class="loader-spinner"></div>
-          <p>Загрузка проектов...</p>
-        </div>
+        <!-- Список проектов -->
+        <div class="project-list" :class="{ 'project-list--loading': isLoading }">
+          <!-- Лоадер -->
+          <div v-if="isLoading" class="project-loader">
+            <div class="loader-spinner"></div>
+            <p>Загрузка проектов...</p>
+          </div>
 
-        <div v-else-if="loadError" class="project-error">
-          <p class="error-text">{{ loadError }}</p>
-          <MainButton :className="'blue__button'" @click="retryLoad">
-            Попробовать снова
-          </MainButton>
-        </div>
+          <div v-else-if="loadError" class="project-error">
+            <p class="error-text">{{ loadError }}</p>
+            <MainButton :className="'blue__button'" @click="retryLoad">
+              Попробовать снова
+            </MainButton>
+          </div>
 
-        <!-- Пустой список -->
-        <div v-else-if="!isLoading && projects.length === 0" class="project-empty">
-          <p>Проекты не найдены</p>
-        </div>
+          <!-- Пустой список -->
+          <div v-else-if="!isLoading && projects.length === 0" class="project-empty">
+            <p>Проекты не найдены</p>
+          </div>
 
-        <!-- Создать новый проект -->
-        <!-- <div
+          <!-- Создать новый проект -->
+          <!-- <div
           v-if="!isLoading && !loadError"
           class="project-new"
           @click="createNewProject"
@@ -131,58 +113,63 @@
           <p class="new__title">Создать новый проект</p>
         </div> -->
 
-        <div v-for="project in paginatedProjects" :key="project.id" class="project-item">
-          <div class="project-item__main" @click="loadProject(project.id)">
-            <div class="item-image-wrap">
-              <img :src="getProgectImage(project)" class="item__image" :alt="project.name || 'Проект'" />
-              <ClosePopUpButton
-                class="item-delete-btn"
-                @close="onDeleteProject(project.id)"
-                @click.stop
-              />
-            </div>
-            <div class="item-info">
-              <div class="info-id">
-                <p class="id__name">{{ project.name || "Название" }}</p>
+          <div v-for="project in paginatedProjects" :key="project.id" class="project-item">
+            <div class="project-item__main" @click="loadProject(project.id)">
 
-                <div class="id-row">
-                  <p class="id__number text-grey">
-                    ID {{ project.id }}
-                  </p>
-
-                  <button class="copy-id-button" @click.stop="copyProjectId(project.id)" title="Скопировать ID">
-                    <img src="@/assets/svg/copy.svg" alt="copy-id" />
-                  </button>
-
-                  <button class="copy-link-button" @click.stop="copyProjectLink(project.id)" title="Скопировать ссылку">
-                    <img src="@/assets/svg/copy.svg" alt="copy-link" />
-                  </button>
+              <div class="item-image__wrap">
+                <img :src="getProgectImage(project)" class="item-image" :alt="project.name || 'Проект'" />
+                <div class="item-delete-btn">
+                  <ClosePopUpButton @close="onDeleteProject(project.id)" @click.stop />
                 </div>
+
               </div>
-              <p class="info__date text-grey">{{ project.date }}</p>
+
+              <div class="item-info">
+                <div class="info-id">
+                  <p class="id__name">{{ project.name || "Название" }}</p>
+
+                  <div class="id__row">
+                    <p class="id__number text-grey">
+                      ID {{ project.id }}
+                    </p>
+
+                    <div class="id__actions">
+                      <button class="copy-id-button" @click.stop="copyProjectId(project.id)" title="Скопировать ID">
+                        <img src="@/assets/svg/copy.svg" alt="copy-id" />
+                      </button>
+
+                      <button class="copy-link-button" @click.stop="copyProjectLink(project.id)"
+                        title="Скопировать ссылку">
+                        <img src="@/assets/svg/copy.svg" alt="copy-link" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p class="info__date text-grey">{{ project.date }}</p>
+              </div>
+
+              <TechnologistFormButton :project="project" @click="closePopup" />
             </div>
           </div>
+        </div>
 
-          <TechnologistFormButton :project="project" @click="closePopup" />
+        <div v-if="!isLoading && !loadError && totalElements > PAGE_SIZE" class="project__pagination">
+          <ProjectPagination :total-items="totalElements" :page-size="PAGE_SIZE" v-model:current-page="currentPage" />
         </div>
       </div>
 
-      <div v-if="!isLoading && !loadError && totalElements > PAGE_SIZE" class="project__pagination">
-        <ProjectPagination :total-items="totalElements" :page-size="PAGE_SIZE" v-model:current-page="currentPage" />
-      </div>
-    </div>
-
-    <Modal ref="deleteConfirmModalRef">
-      <template #modalBody="{ onModalClose }">
-        <div class="delete-confirm-dialog">
-          <p class="delete-confirm-dialog__text">Вы уверены?</p>
-          <div class="delete-confirm-dialog__actions">
-            <MainButton :className="'grey__button'" @click="onModalClose">Отменить</MainButton>
-            <MainButton :className="'red__button'" @click="() => confirmDeleteProject(onModalClose)">Удалить</MainButton>
+      <Modal ref="deleteConfirmModalRef">
+        <template #modalBody="{ onModalClose }">
+          <div class="delete-confirm-dialog">
+            <p class="delete-confirm-dialog__text">Вы уверены?</p>
+            <div class="delete-confirm-dialog__actions">
+              <MainButton :className="'grey__button'" @click="onModalClose">Отменить</MainButton>
+              <MainButton :className="'red__button'" @click="() => confirmDeleteProject(onModalClose)">Удалить
+              </MainButton>
+            </div>
           </div>
-        </div>
-      </template>
-    </Modal>
+        </template>
+      </Modal>
     </div>
   </div>
 </template>
@@ -433,7 +420,8 @@ const loadProject = async (id: string | number) => {
     if (projectData) {
       projectState.resetState();
       projectState.setInitialState(projectData);
-      
+      console.log(projectData, "----PROD");
+
       try {
         schemeTransition.clearStore();
         // Очищаем текущую комнату перед загрузкой нового проекта
@@ -641,10 +629,24 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// Базовый компонент
+.popUp {
+  &__container {
+    padding: 0;
+  }
+
+  &__close {
+
+    top: 1rem;
+    right: 1rem;
+
+  }
+}
+
 .project {
-  width: 1407px;
+  width: var(--modal-large-width);
   max-width: 100%;
-  height: 83vh;
+  height: var(--modal-large-height);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -662,311 +664,317 @@ onMounted(async () => {
   &__container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 1rem;
     flex: 1;
     min-height: 0;
+  }
 
-    .project-header {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 15px;
-      border: 1px solid $stroke;
-      border-radius: 15px;
+  &__pagination {
+    flex-shrink: 0;
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid $stroke;
+  }
+}
 
-      .project-search {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+// Хедер проекта
+.project-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem;
+  border: 1px solid $stroke;
+  border-radius: 15px;
+}
 
-        .search-input {
-          min-width: 150px;
-          width: 200px;
-          padding: 12px;
-        }
+.project-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 
-        .backend-ids-select {
-          cursor: pointer;
-        }
+  &__input {
+    min-width: 150px;
+    width: 200px;
+    padding: 12px;
+  }
 
-        .date-filter {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          min-width: 0;
-        }
+  &__select {
+    cursor: pointer;
+  }
+}
 
-        .date-filter__input {
-          min-width: 140px;
-          width: auto;
-        }
+.date-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 
-        .date-filter__separator {
-          color: #666;
-          flex-shrink: 0;
-        }
+  &__input {
+    min-width: 140px;
+    width: auto;
+  }
 
-        .load-by-id {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-left: 100px;
-          padding-left: 16px;
-        }
+  &__separator {
+    color: #666;
+    flex-shrink: 0;
+  }
+}
 
-        .load-by-id__input {
-          min-width: 120px;
-          width: 140px;
-        }
+.load-by-id {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 100px;
+  padding-left: 16px;
 
-      }
+  &__input {
+    min-width: 120px;
+    width: 140px;
+  }
+}
 
-      .project-buttons {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-    }
+.project-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-    .project-warning {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #f6f5fa;
-      border-radius: 15px;
-      padding: 19px 15px;
+// Варнинг компонент
+.project-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f6f5fa;
+  border-radius: 15px;
+  padding: 19px 15px;
 
-      .warning-text {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-    }
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+}
 
-    .project-list {
-      flex: 1 1 0;
-      min-height: 0;
-      display: flex;
-      flex-wrap: wrap;
-      overflow-y: auto;
-      gap: 15px;
-      align-content: flex-start;
+// Список проектов
+.project-list {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-wrap: wrap;
+  overflow-y: auto;
+  gap: 0.5rem;
+  align-content: flex-start;
 
-      &--loading .project-item {
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      .project-loader {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 40px;
-
-        .loader-spinner {
-          width: 40px;
-          height: 40px;
-          border: 4px solid #f3f3f3;
-          border-top: 4px solid #3498db;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 20px;
-        }
-
-        p {
-          color: #666;
-          font-size: 1.6rem;
-        }
-      }
-
-      .project-error {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 40px;
-        gap: 20px;
-
-        .error-text {
-          color: #e74c3c;
-          font-size: 1.6rem;
-          text-align: center;
-        }
-      }
-
-      .project-empty {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 40px;
-
-        p {
-          color: #666;
-          font-size: 1.6rem;
-        }
-      }
-
-      .project-new {
-        width: 323px;
-        height: 269px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        border: 1px solid $stroke;
-        border-radius: 16px;
-        box-sizing: border-box;
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover {
-          background: #f8f8f8;
-        }
-      }
-
-      .project-item {
-        width: 323px;
-        height: 100%;
-        max-height: 350px;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        border-radius: 16px;
-        background-color: $bg;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        &__main {
-          display: flex;
-          flex-direction: column;
-          cursor: pointer;
-        }
-
-        .item-image-wrap {
-          position: relative;
-          width: 100%;
-        }
-
-        .item__image {
-          margin: 0;
-          width: 100%;
-          height: 200px;
-          object-fit: cover;
-        }
-
-        .item-delete-btn {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          z-index: 1;
-          cursor: pointer;
-        }
-
-        .item-info {
-          width: 100%;
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          padding: 15px 10px;
-          box-sizing: border-box;
-        }
-
-        .id-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .copy-id-button {
-          width: 22px;
-          height: 22px;
-          min-width: 22px;
-          padding: 0;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          border: 1px solid #000;
-          border-radius: 4px;
-          background: #000;
-          cursor: pointer;
-
-          transition: all 0.15s ease;
-
-          img {
-            width: 14px;
-            height: 14px;
-            filter: brightness(0) invert(1);
-          }
-
-          &:hover {
-            background: #fff;
-            border-color: $stroke;
-
-            img {
-              filter: none;
-            }
-          }
-
-          &:active {
-            transform: scale(0.95);
-          }
-        }
-
-        .copy-link-button {
-          width: 22px;
-          height: 22px;
-          min-width: 22px;
-          padding: 0;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          border: 1px solid $stroke;
-          border-radius: 4px;
-          background: #e77177;
-          cursor: pointer;
-
-          transition: all 0.15s ease;
-
-          img {
-            width: 14px;
-            height: 14px;
-          }
-
-          &:hover {
-            background: #f3f3f3;
-          }
-
-          &:active {
-            transform: scale(0.95);
-          }
-        }
-      }
-    }
-
-    .project__pagination {
-      flex-shrink: 0;
-      width: 100%;
-      padding-top: 10px;
-      border-top: 1px solid $stroke;
+  &--loading {
+    .project-item {
+      opacity: 0;
+      pointer-events: none;
     }
   }
 }
 
+// Лоадер
+.project-loader {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+
+  &__spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+  }
+
+  &__text {
+    color: #666;
+    font-size: 1.6rem;
+  }
+}
+
+// Ошибка
+.project-error {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 20px;
+
+  &__text {
+    color: #e74c3c;
+    font-size: 1.6rem;
+    text-align: center;
+  }
+}
+
+// Пустое состояние
+.project-empty {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+
+  &__text {
+    color: #666;
+    font-size: 1.6rem;
+  }
+}
+
+// Новая карточка (создание проекта)
+.project-new {
+  width: 323px;
+  height: 269px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px solid $stroke;
+  border-radius: 16px;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f8f8f8;
+  }
+}
+
+// Карточка проекта
+.project-item {
+  width: 100%;
+  max-width: 300px;
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background-color: $bg;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+  }
+
+  &__image-wrap {
+    display: flex;
+    position: relative;
+    width: 100%;
+    max-height: 150px;
+  }
+
+  &__image {
+    margin: 0;
+    width: 100%;
+    max-width: 200px;
+    object-fit: cover;
+  }
+
+  &__delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+    cursor: pointer;
+  }
+
+  &__info {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 15px 10px;
+    box-sizing: border-box;
+  }
+
+  &__id-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+// Кнопки копирования
+.copy-id-button {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #000;
+  border-radius: 4px;
+  background: #000;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  img {
+    width: 14px;
+    height: 14px;
+    filter: brightness(0) invert(1);
+  }
+
+  &:hover {
+    background: #fff;
+    border-color: $stroke;
+
+    img {
+      filter: none;
+    }
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.copy-link-button {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid $stroke;
+  border-radius: 4px;
+  background: #e77177;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  img {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    background: #f3f3f3;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// Диалог подтверждения удаления
 .delete-confirm-dialog {
   padding: 24px;
   min-width: 280px;
@@ -986,23 +994,22 @@ onMounted(async () => {
   }
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
+// Попап проекта
 .project-popup-wrapper {
+  position: relative;
   display: flex;
   flex-direction: column;
-  margin: 0 -25px -25px -25px;
-  width: calc(100% + 50px);
+  height: var(--modal-large-height);
+  padding: 1.5rem;
+
+  .project {
+    border-radius: 0 16px 16px 16px;
+    background-color: #fff;
+    padding: 1rem 0;
+  }
 }
 
+// Табы
 .project-tabs {
   display: flex;
   align-self: flex-start;
@@ -1021,7 +1028,7 @@ onMounted(async () => {
     position: relative;
     margin-right: 4px;
 
-    &:hover:not(.project-tabs__tab--active) {
+    &:hover:not(&--active) {
       background-color: #d0d0d0;
     }
 
@@ -1034,9 +1041,102 @@ onMounted(async () => {
   }
 }
 
-.project-popup-wrapper .project {
-  border-radius: 0 16px 16px 16px;
-  background-color: #fff;
-  padding: 30px;
+.item {
+  &-image {
+    position: absolute;
+    // max-width: 200px;
+    width: 100%;
+    width: 100%;
+
+    &__wrap {
+      position: relative;
+      height: 150px;
+      overflow: hidden;
+    }
+  }
+
+  &-delete {
+    &-btn {
+      position: absolute;
+      right: 0.5rem;
+      top: 0.5rem;
+
+      z-index: 1;
+      padding: 1.5rem;
+      border-radius: 100px;
+      border: 1px solid $dark-stroke;
+      background-color: $white;
+      transition-property: border-color background-color;
+      transition-duration: 0.25s;
+      transition-timing-function: ease;
+
+      svg {
+        position: absolute;
+        top: .5rem;
+        right: .5rem;
+        transform: translate(50% 50%);
+
+        transition-property: fill;
+        transition-duration: 0.25s;
+        transition-timing-function: ease;
+      }
+
+      @media (hover: hover) {
+        &:hover {
+          background-color: $dark-grey;
+          border-color: $white;
+
+        }
+      }
+
+    }
+  }
+
+  &-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+}
+
+.info {
+  &-id {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.id {
+  &__row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+}
+
+.backend {
+  &-ids-select {}
+
+}
+
+.search {
+  &-input {
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
+  }
+}
+
+// Анимация
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

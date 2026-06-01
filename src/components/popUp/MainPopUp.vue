@@ -13,20 +13,9 @@ const isRoomParamsOnlyOpen = computed(() => {
 </script>
 
 <template>
-  <div
-    v-if="popupStore.isAnyPopupOpen"
-    class="popUp"
-    :class="{ 'popUp--room-params': isRoomParamsOnlyOpen }"
-  >
-    <div
-      class="popUp__container"
-      :class="{ 'popUp__container--room-params': isRoomParamsOnlyOpen }"
-    >
-      <component 
-        v-for="(_, key) in popupStore.getOpenedPopups" 
-        :key="key"
-        :is="POPUP_CONFIG[key].component"
-      />
+  <div v-if="popupStore.isAnyPopupOpen" class="popUp" :class="{ 'popUp--room-params': isRoomParamsOnlyOpen }">
+    <div class="popUp__container" :class="{ 'popUp__container--room-params': isRoomParamsOnlyOpen }">
+      <component v-for="(_, key) in popupStore.getOpenedPopups" :key="key" :is="POPUP_CONFIG[key].component" />
     </div>
   </div>
 </template>
@@ -51,7 +40,7 @@ const isRoomParamsOnlyOpen = computed(() => {
   &__container {
     background: $white;
     border-radius: 15px;
-    padding: 25px;
+    padding: 0;
 
     &--room-params {
       background: transparent;
