@@ -326,6 +326,10 @@ const toggleShowAllSubCategories = () => {
 </script>
 
 <style lang="scss" scoped>
+.popUp__container {
+  padding: 25px;
+}
+
 .catalog-popup__top {
   position: relative;
   display: flex;
@@ -336,7 +340,7 @@ const toggleShowAllSubCategories = () => {
 
 .catalog-popup {
   position: relative;
-  width: 760px;
+  width: var(--modal-large-width);
   // padding: 20px;
   border-radius: 8px;
   box-sizing: border-box;
@@ -697,7 +701,7 @@ const toggleShowAllSubCategories = () => {
     background-size: contain;
   }
 
-  &__footer{
+  &__footer {
     display: flex;
     justify-content: space-between;
     align-items: center;

@@ -16,9 +16,8 @@ export function useBasketApi() {
     error.value = null
 
     try {
-      // if (basketItems.length === 0) {
-      //   return null
-      // }
+
+      console.log(basketItems, 'basketItems')
 
       const request: BasketRequest = {
         BASKET: basketItems,

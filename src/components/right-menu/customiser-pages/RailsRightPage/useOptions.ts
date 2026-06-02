@@ -235,9 +235,12 @@ export const useOptions = () => {
         const curOptions = PROPS.CONFIG.OPTIONS
 
         let filtered = []
+
+        console.log(curOptions, 'curOptions')
+
         const curOptionsList = curOptions
             .map(el => {
-
+                if (!el) return
                 const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
                 const cutSize = getCutSizeOption(el, cloneOption)
 

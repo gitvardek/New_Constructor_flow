@@ -66,15 +66,19 @@ const checkSelect = (el) => {
     modelState.setCurrentModel(null);
     return;
   }
-  console.log(el.object, "SELECT");
+
 
   currentModel.value = el.object;
 
+
   modelState.setCurrentModel(el.object);
+
   if (el.object.userData.elementType === "raspil") {
     closeCustomiser();
     return;
   }
+
+  customiserStore.showCustomiserPopup();
 
   checkData(el.object);
 
@@ -82,10 +86,7 @@ const checkSelect = (el) => {
     closeCustomiser();
     return;
   }
-  // if (el.object.name == "MODEL") {
-  //   closeCustomiser();
-  //   return;
-  // }
+
   customiserStore.switchCustomiser("ruler");
 };
 

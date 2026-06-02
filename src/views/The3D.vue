@@ -43,6 +43,7 @@ import OpenFacadeButton from "@/components/ui/buttons/right-menu/controller/Open
 import CollisionButton from "@/components/ui/buttons/right-menu/controller/CollisionButton.vue";
 import CutButton from "@/components/ui/buttons/right-menu/controller/CutButton.vue";
 import PinButton from "@/components/ui/buttons/right-menu/controller/PinButton.vue";
+import RotateButton from "@/components/ui/buttons/right-menu/controller/RotateButton.vue";
 import UMconstructor from "@/components/UMconstructor/UMconstructor.vue";
 
 import GenericLoader from "@/components/ui/loader/GenericLoader.vue";
@@ -364,8 +365,7 @@ const screenPrint = async () => {
     for (let i = 0; i < allRooms.length; i++) {
       const room = allRooms[i];
       console.log(
-        `Обрабатываем комнату ${i + 1}/${allRooms.length}: ${
-          room.label || room.id
+        `Обрабатываем комнату ${i + 1}/${allRooms.length}: ${room.label || room.id
         }`,
       );
 
@@ -401,8 +401,7 @@ const screenPrint = async () => {
 
               screenshotsStore.addScreenshot(screenshot);
               console.log(
-                `Скриншот комнаты "${
-                  room.label || room.id
+                `Скриншот комнаты "${room.label || room.id
                 }" в обычном режиме сохранен в стор`,
               );
             }
@@ -444,8 +443,7 @@ const screenPrint = async () => {
 
               screenshotsStore.addScreenshot(screenshot);
               console.log(
-                `Скриншот комнаты "${
-                  room.label || room.id
+                `Скриншот комнаты "${room.label || room.id
                 }" в режиме чертежа сохранен в стор`,
               );
             }
@@ -486,8 +484,7 @@ const screenPrint = async () => {
     }
 
     console.log(
-      `Все скриншоты комнат созданы и сохранены в стор. Всего скриншотов: ${
-        screenshotsStore.getScreenshots().length
+      `Все скриншоты комнат созданы и сохранены в стор. Всего скриншотов: ${screenshotsStore.getScreenshots().length
       }`,
     );
     eventBus.emit("A:3DScreenshotCreated");
@@ -648,7 +645,9 @@ const saveTableData = async () => {
   );
 
   // // Пересчёт после сохранения распила
-  scheduleBasketSync();
+  setTimeout(() => {
+    scheduleBasketSync();
+  }, 10)
 };
 
 const openTableRedactor = () => {
@@ -753,16 +752,11 @@ watch(
 
   <div ref="sceneContainer" class="scene-container"></div>
 
-  <div
-    :class="['model-controller', activeController]"
-    :style="controllerPosition"
-  >
+  <div :class="['model-controller', activeController]" :style="controllerPosition">
     <div class="controller-container">
       <div class="controller-left">
         <img class="left-line" src="@/assets/svg/right-menu/left-line.svg" />
-        <ControllerButton
-          v-if="Object.keys(CutData).length == 0 && !universalModuleData"
-        />
+        <ControllerButton v-if="Object.keys(CutData).length == 0 && !universalModuleData" />
         <!-- <ControllerButton
           v-if="
             Object.keys(CutData).length == 0 &&
@@ -770,76 +764,51 @@ watch(
             !universalModuleData
           "
         /> -->
-        <ContentControllerButton
-          @click="duplicateProduct"
-          v-if="Object.keys(CutData).length == 0 && !universalModuleData"
-        />
-        <DeleteControllerButton
-          v-if="Object.keys(CutData).length == 0"
-          @click="removeModel(null)"
-        />
+        <ContentControllerButton @click="duplicateProduct"
+          v-if="Object.keys(CutData).length == 0 && !universalModuleData" />
+        <DeleteControllerButton v-if="Object.keys(CutData).length == 0" @click="removeModel(null)" />
       </div>
       <div class="controller-right">
         <img class="right-line" src="@/assets/svg/right-menu/right-line.svg" />
 
-        <OpenFacadeButton
-          v-if="
-            Object.keys(CutData).length == 0 &&
-            modelState.getCurrentModel?.name != 'MODEL' &&
-            !menuStore.getDrowModeValue
-          "
-          :class="activeHideFasadeButton"
-          @click="toggleFasade"
-        />
+        <OpenFacadeButton v-if="
+          Object.keys(CutData).length == 0 &&
+          modelState.getCurrentModel?.name != 'MODEL' &&
+          !menuStore.getDrowModeValue
+        " :class="activeHideFasadeButton" @click="toggleFasade" />
 
         <CollisionButton />
-        
+
         <PinButton />
 
-        <Modal
-          v-if="Object.keys(CutData).length > 0"
-          :container="`modal--tableTop`"
-          @open-modal="openTableRedactor"
-          @close-modal="closeTableRedactor"
-        >
+        <RotateButton />
+
+        <Modal v-if="Object.keys(CutData).length > 0" :container="`modal--tableTop`" @open-modal="openTableRedactor"
+          @close-modal="closeTableRedactor">
           <template #modalBody="{ onModalClose }" class="modal--tableTop">
-            <TableTopManager
-              ref="tableTopManager"
-              :grid="CutData.data"
-              :canvas-height="CutData.canvasHeight"
-              :model-height="CutData.modelHeight"
-              v-if="isModalOpen"
-            >
+            <TableTopManager ref="tableTopManager" :grid="CutData.data" :canvas-height="CutData.canvasHeight"
+              :model-height="CutData.modelHeight" v-if="isModalOpen">
               <template #delite>
-                <button
-                  class="actions-btn actions-btn--footer"
-                  @click="
-                    () => {
-                      deliteTable();
-                      onModalClose();
-                    }
-                  "
-                >
+                <button class="actions-btn actions-btn--footer" @click="
+                  () => {
+                    deliteTable();
+                    onModalClose();
+                  }
+                ">
                   Удалить
                 </button>
               </template>
               <template #save>
-                <button
-                  class="actions-btn actions-btn--footer"
-                  @click="saveTableData"
-                >
+                <button class="actions-btn actions-btn--footer" @click="saveTableData">
                   Сохранить
                 </button>
               </template>
               <template #close>
-                <button
-                  @click="
-                    () => {
-                      onModalClose();
-                    }
-                  "
-                  class="actions-btn actions-btn--footer"
-                >
+                <button @click="
+                  () => {
+                    onModalClose();
+                  }
+                " class="actions-btn actions-btn--footer">
                   Закрыть
                 </button>
               </template>
@@ -851,29 +820,19 @@ watch(
         </Modal>
 
         <div v-show="universalModuleData && product">
-          <UMconstructor
-            ref="universalModule2DConstructor"
-            :product="product"
-          />
+          <UMconstructor ref="universalModule2DConstructor" :product="product" />
         </div>
       </div>
     </div>
   </div>
   <div class="camera-controller">
-    <DirectionControl
-      :type="'centerOnly'"
-      :fontSize="20"
-      @changeDirectionPos="changeCameraPos"
-    />
+    <DirectionControl :type="'centerOnly'" :fontSize="20" @changeDirectionPos="changeCameraPos" />
   </div>
   <transition name="controller-toggle">
-    <TransformController
-      v-if="
-        modelState.getCurrentModel &&
-        !uniformState.getUniformModeData.uniformMode
-      "
-      @TransformMode="controlsActivate"
-    />
+    <TransformController v-if="
+      modelState.getCurrentModel &&
+      !uniformState.getUniformModeData.uniformMode
+    " @TransformMode="controlsActivate" />
   </transition>
 </template>
 
@@ -965,6 +924,7 @@ watch(
 
   -webkit-user-drag: none;
   transition: all 0.2s ease-in-out;
+
   &--active {
     opacity: 1;
     filter: blur(0);
@@ -974,14 +934,13 @@ watch(
   .controller-left {
     transform: translate(23px, -69px);
 
-    .left-line {
-    }
+    .left-line {}
   }
 
   .controller-right {
     transform: translate(69px, -46 * 5px);
-    .right-line {
-    }
+
+    .right-line {}
   }
 
   &_controls {
@@ -1176,6 +1135,7 @@ watch(
   &-icon {
     width: 25px;
     height: 25px;
+
     svg {
       g {
         path {
@@ -1187,7 +1147,7 @@ watch(
 }
 
 .switch {
-  &__wrapper {
+  /* &__wrapper {
     position: absolute;
     bottom: 2rem;
     right: 2rem;
@@ -1197,10 +1157,11 @@ watch(
     align-items: flex-end;
     gap: 5px;
   }
+
   &__title {
     position: absolute;
     bottom: 2rem;
-  }
+  } */
 }
 
 .accordion {
@@ -1208,9 +1169,11 @@ watch(
   color: $alter-gray;
   // background-color: #ffffff;
   backdrop-filter: blur(5px);
+
   &__header {
     margin-right: 0.5rem;
   }
+
   &__summary {
     gap: 10rem;
   }
@@ -1225,7 +1188,9 @@ watch(
     transition-property: color;
     transition-duration: 0.25s;
     transition-timing-function: ease;
+
     @media (hover: hover) {
+
       /* when hover is supported */
       &:hover {
         color: $strong-grey;

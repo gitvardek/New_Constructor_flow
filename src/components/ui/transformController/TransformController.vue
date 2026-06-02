@@ -160,7 +160,8 @@ onMounted(() => {
   &__wrapper {
     position: absolute;
     bottom: 2rem;
-    right: 2rem;
+    left: calc(400px);
+    /* transform: translate(0,50%); */
     display: flex;
     flex-direction: column;
     align-items: flex-end;

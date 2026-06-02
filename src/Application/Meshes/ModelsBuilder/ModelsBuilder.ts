@@ -122,7 +122,8 @@ export class ModelsBuilder {
                 }
 
                 const edge = this.parent.edge_builder.createEdge(normolized)
-                normolized.add(edge)
+                const deffEdge = this.parent.edge_builder.createVisibleEdge(normolized)
+                normolized.add(edge, deffEdge)
 
                 if (onLoad) {
                     onLoad(normolized)

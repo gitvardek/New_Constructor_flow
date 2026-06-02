@@ -4,7 +4,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 import { useModelState } from "@/store/appliction/useModelState";
-import {TKromkaMaterialItem, TToptableUMProp} from "@/types/types";
+import { TKromkaMaterialItem, TToptableUMProp } from "@/types/types";
 import { _URL } from "@/types/constants";
 
 
@@ -59,18 +59,15 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         tempKromkaId.value = value
     }
 
-    const checkKromkaActive = () => {
+    const checkKromkaActive = (option = null) => {
 
         const grid = tempGridData.value
-
         let hasActiveKromka = false
 
         const parent = modelState.getCurrentRaspilParent
-        const { PROPS } = parent!.userData;
-        const { PRODUCT, CONFIG } = PROPS
-        const { PROFILE, KROMKA } = CONFIG;
+        const { PROPS: { PRODUCT, CONFIG } } = parent!.userData;
+        const { HEM, REC_HEM } = PRODUCTS[PRODUCT]
         const activeProfile = tempProfileData.value.find((prof) => prof.value);
-        const { HEM } = PRODUCTS[PRODUCT]
 
         if (tempProfileData.value.length > 0) {
             hasActiveKromka = grid
@@ -82,12 +79,18 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                     serv.value === true
                 );
 
+                console.log(HEMLIST[REC_HEM[0]], 'HEMLIST[REC_HEM[0]]')
+
             const hasProfileKromka = activeProfile.show_props && activeProfile.show_props?.includes("hem")
-            if (hasProfileKromka && tempKromkaId.value == null) {
+
+            if ((hasProfileKromka && tempKromkaId.value == null) || option != null) {
+
                 const hemList = HEM.map((el: number) => {
                     return HEMLIST[el]
                 }).filter(Boolean)
-                tempKromkaId.value = hemList[0].ID;
+
+                const defaultHem = HEMLIST[REC_HEM[0]]
+                tempKromkaId.value = defaultHem?.ID ?? hemList[0].ID;
             }
 
             // console.log(hasActiveKromka, '==== ❌ hasActiveKromka ❌ ====')
@@ -105,9 +108,13 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
     const checkKromkaActiveUM = (toptableData: TToptableUMProp) => {
 
+        const parent = modelState.getCurrentRaspilParent
+        const { PROPS: { PRODUCT, CONFIG } } = parent!.userData;
+        const { HEM, REC_HEM } = PRODUCTS[PRODUCT]
+
         let hasActiveKromka = false
 
-        if(!toptableData) {
+        if (!toptableData) {
             kromkaActive.value = false
             return
         }
@@ -115,7 +122,6 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         const productId = toptableData?.TABLE
 
         const activeProfile = toptableData?.PROFILE ? tempProfileData.value.find((el) => el.ID === toptableData.PROFILE) : tempProfileData.value.find((prof) => prof.value);
-        const { HEM } = PRODUCTS[productId]
 
         if (tempProfileData.value.length > 0) {
 
@@ -126,7 +132,9 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                 const hemList = HEM.map((el: number) => {
                     return HEMLIST[el]
                 }).filter(Boolean)
-                tempKromkaId.value = hemList[0].ID;
+
+                const defaultHem = HEMLIST[REC_HEM[0]]
+                tempKromkaId.value = defaultHem?.ID ?? hemList[0].ID;
             }
 
             kromkaActive.value = hasActiveKromka ? hasActiveKromka : hasProfileKromka
@@ -167,9 +175,12 @@ const useKromkaActions = defineStore('KromkaActions', () => {
             return
 
         const parent = modelState.getCurrentRaspilParent
+        const { PROPS: { PRODUCT, CONFIG } } = parent!.userData;
+        const { HEM, REC_HEM } = PRODUCTS[PRODUCT]
+
         const kromkaId = tempKromkaId.value;
-        // const defaultId = 211247;
-        const defaultId = tempKromkaList.value[0].ID;
+        const defaultHem = HEMLIST[REC_HEM[0]]
+        const defaultId = defaultHem?.ID ?? tempKromkaList.value[0].ID;
 
         const target = tempKromkaList.value.find(
             el => el.ID === (kromkaId || defaultId)

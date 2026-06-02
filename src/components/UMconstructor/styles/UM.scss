@@ -97,10 +97,10 @@
       &--right {
         max-width: 20vw;
         overflow: hidden;
-        padding: 20px 5px 20px 20px;
+        padding: 1rem;
 
         &--content {
-          max-height: 90vh;
+          max-height: var(--modal-large-height);
         }
 
       }
@@ -157,6 +157,7 @@
     /* IE 10+ и Edge */
     user-select: none;
     /* Стандарт: Chrome, Firefox, Opera, Edge */
+
   }
 
   .actions {
@@ -168,6 +169,7 @@
     /* Стандарт: Chrome, Firefox, Opera, Edge */
 
     &-wrapper {
+      width: 100%;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -264,16 +266,16 @@
 
     &-items {
       display: flex;
-      flex-wrap: wrap;
+      // flex-wrap: wrap;
       // gap: 1rem;
-      align-items: center;
+      // align-items: center;
 
       &--wrapper {
         display: flex;
         flex-direction: column;
         overflow-y: scroll;
         overflow-x: hidden;
-        max-height: 70vh;
+        // max-height: 70vh;
 
         width: 100%;
         padding: 0 0 1rem 0;
@@ -313,29 +315,34 @@
       &--left,
       &--right {
         width: 100%;
+        max-width: 100%;
       }
 
       &--left {
         align-items: start;
-        max-width: 45%;
+        // max-width: 45%;
 
         &-wrapper {
+          width: 100%;
           display: flex;
           gap: 1rem;
           flex-wrap: wrap;
+          justify-content: space-between;
           margin-left: 1rem;
           // max-width: calc(50% - 1rem);
         }
       }
 
       &--right {
-        max-width: calc(65% - 1rem);
-        margin-left: 0.8rem;
+        // max-width: calc(65% - 1rem);
+        width: 100%;
+
 
         &-items {
           display: flex;
           gap: 1rem;
-          flex-wrap: wrap;
+          width: 100%;
+          // flex-wrap: wrap;
 
           &-input-block {
             display: flex;
@@ -366,7 +373,8 @@
       &--diametr,
       &--width {
         display: flex;
-        width: fit-content;
+        width: 100%;
+
 
         &-item {
           display: flex;
@@ -385,11 +393,12 @@
     }
 
     &-title {
-      font-size: 1.4rem;
+      font-size: 1.2rem;
       color: #a3a9b5;
       display: flex;
       flex-direction: row;
       gap: 0.5rem;
+
     }
 
     &-inputs {
@@ -398,12 +407,24 @@
       gap: 4px;
       width: 100%;
       max-width: 100px;
+
+      .actions-title {
+        margin-left: 0.5rem;
+        display: block;
+        white-space: nowrap;
+
+        overflow: hidden;
+
+        text-overflow: ellipsis;
+
+        width: 100px;
+      }
     }
 
     &-input {
       padding: 0.5rem 1rem;
       width: 100%;
-      max-width: 125px;
+      // max-width: 125px;
       border: none;
       border-radius: 15px;
       background-color: #ecebf1;
@@ -423,7 +444,7 @@
           display: block;
           position: absolute;
           top: 50%;
-          left: 60px;
+          right: 15px;
           transform: translate(0, -50%);
           pointer-events: none;
           z-index: 0;
@@ -860,7 +881,7 @@
     /* IE 10+ и Edge */
     user-select: none;
     /* Стандарт: Chrome, Firefox, Opera, Edge */
-    gap: 1vh;
+    gap: 1rem;
     border: unset;
 
     details {
@@ -1206,6 +1227,16 @@
           }
         }
       }
+    }
+  }
+
+  .cut{
+    &-icon {
+      width: 100%;
+      height: 100%;
+      max-width: 15px;
+      max-height: 15px;
+
     }
   }
 }

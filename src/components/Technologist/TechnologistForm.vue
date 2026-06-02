@@ -343,6 +343,7 @@ onMounted(() => {
     gap: 20px;
     width: 100%;
     flex-direction: column;
+    font-size: 1.4rem;
 
     @media (max-width: 768px) {
       flex-direction: column-reverse;
@@ -356,18 +357,24 @@ onMounted(() => {
       margin: 1rem;
 
       &-item {
-        width: 17vw;
+        // width: 17vw;
         display: flex;
         flex-wrap: wrap;
         flex-direction: row;
-        justify-content: space-between;
+        // justify-content: space-between;
         align-content: center;
         align-items: flex-start;
+
+        label{
+          width: 18%;
+        }
+        // gap: 1rem;
 
 
         &__input {
           padding-left: 10px;
-          width: 10vw;
+          width: 100%;
+          max-width: 250px;
           border: $dark-grey solid 1px;
         }
       }

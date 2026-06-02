@@ -187,6 +187,8 @@ class TableTopCreator extends BuildersHelper {
         const material2 = new THREE.MeshStandardMaterial()
         if (kromka) {
             const cromkaData = this.modelState._HEM[kromka]
+            console.log(cromkaData, 'cromkaData')
+
             await this.getMaterial({
                 material: material2,
                 url: cromkaData.DETAIL_PICTURE,
@@ -293,7 +295,9 @@ class TableTopCreator extends BuildersHelper {
                     mesh.userData.rotation = null
                 }
 
-                this.createCollisionData(mesh, size, raspil, groupId, row.roundCut, uslugi);
+                console.log(row, 'row')
+
+                this.createCollisionData(mesh, size, raspil, groupId, row, uslugi);
                 this.addArrowSize(mesh, row)
 
                 meshes.push(mesh);
@@ -603,11 +607,19 @@ class TableTopCreator extends BuildersHelper {
         return `#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0')}`;
     }
 
-    private createCollisionData(mesh: THREE.Object3D, { width, depth, height }: { width: number, depth: number, height: number }, raspil: [], groupId: number | null, roundCut: THREETypes.TObject, uslugi) {
+    private createCollisionData(mesh: THREE.Object3D,
+        { width, depth, height }: { width: number, depth: number, height: number },
+        raspil: [],
+        groupId: number | null,
+        row: THREETypes.TObject,
+        uslugi) {
+
+        console.log(row.disabled, 'RRROOOO')
+
         const data = {
-            DEPTH: roundCut.radius ? roundCut.radius * 0.5 : height * 0.5,
+            DEPTH: row.roundCut.radius ? row.roundCut.radius * 0.5 : height * 0.5,
             HEIGHT: depth * 0.5,
-            WIDTH: roundCut.radius ? roundCut.radius * 0.5 : width * 0.5
+            WIDTH: row.roundCut.radius ? row.roundCut.radius * 0.5 : width * 0.5
         }
 
         const aabb = new THREE.Box3().setFromObject(mesh);
@@ -619,7 +631,7 @@ class TableTopCreator extends BuildersHelper {
         mesh.userData.elementType = 'raspil'
 
         mesh.userData.PROPS = {
-            RAYCAST: true,
+            RAYCAST: !row.disabled,
             DISABLE_MOVE: false,
             CONFIG: {
                 UNIFORM_TEXTURE: {

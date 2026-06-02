@@ -111,7 +111,7 @@ export class TrafficManager {
             console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
             // Обновление корзины при простом выборе/перемещении не требуется
 
-            if (object.userData.elementType !== 'raspil' && !object.userData.disableRaycast) {
+            if (object.userData.elementType !== 'raspil' && !object.userData.PROPS?.RAYCAST) {
                 const product = this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT];
                 // this.modelState.createCurrentModelFasadesData(product.FACADE);
                 this.modelState.createCurrentModuleData(product.MODULECOLOR)

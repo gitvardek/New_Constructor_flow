@@ -283,6 +283,8 @@ export class BuildersHelper extends GlobalsData {
 
     public async getMaterial({ material, url, texture_size }: { material: any, url: string, texture_size?: THREETypes.TObject }) {
         const loadedMaterial = await this.resources.startLoading(url, 'texture', (file) => {
+            console.log(file)
+
             if (file instanceof THREE.Texture) {
                 file.colorSpace = THREE.SRGBColorSpace
                 material.map = file

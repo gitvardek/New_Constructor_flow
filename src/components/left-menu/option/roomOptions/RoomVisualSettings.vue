@@ -37,7 +37,7 @@ watch(() => props.ambientLight, (v) => (localAmbient.value = v));
 watch(localAmbient, (v) => emit("update:ambientLight", v));
 
 watch(() => props.pointLight, (v) => (localPoint.value = v));
-watch(localPoint, (v) => emit("update:pointLight" as any, v)); 
+watch(localPoint, (v) => emit("update:pointLight" as any, v));
 
 // const emitPoint = (v: number | string) => emit("update:pointLight", v);
 // watch(localPoint, (v) => emitPoint(v));
@@ -60,12 +60,8 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
 
             <template #params="{ onToggle }">
               <ul class="quality-list">
-                <li
-                  class="label__text"
-                  v-for="(param, key) in quality"
-                  :key="key"
-                  @click="() => { emit('change-quality', param); onToggle(); }"
-                >
+                <li class="label__text" v-for="(param, key) in quality" :key="key"
+                  @click="() => { emit('change-quality', param); onToggle(); }">
                   {{ param.lable }}
                 </li>
               </ul>
@@ -112,7 +108,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   padding: 1rem;
   border: 1px solid $dark-grey;
   border-radius: 15px;
-  background-color:$white ;
+  background-color: $white ;
   font-size: 1.4rem;
 
   &__content {
@@ -144,6 +140,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   }
 
   &__bottom {
+
     &--left,
     &--right {
       display: flex;
@@ -167,5 +164,9 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
 .quality-list {
   padding-top: 0.5rem;
   border-top: 1px solid $dark-grey;
+}
+
+.accordion {
+  padding: 0.5rem 1rem;
 }
 </style>

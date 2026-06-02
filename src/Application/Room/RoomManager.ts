@@ -94,11 +94,18 @@ export class RoomManager extends Room {
 
         const intersects = this._rulerContant as THREE.Object3D[];
 
-        intersects.forEach(object => {
+        // console.log(intersects, 'intersects')
 
-            if (!object.userData?.current && object.visible && !object.userData.disableRaycast) {
+        intersects.forEach(object => {
+            //disableRaycast // && object.userData.PROPS?.RAYCAST
+
+
+            if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
                 const box = new THREE.Box3().setFromObject(object);
                 const boxTop = new THREE.Box3().setFromObject(object);
+
+                console.log(object, 'objectobjectobject')
+
                 box.max.y = 3000;
                 box.min.y = 0
 
@@ -118,7 +125,7 @@ export class RoomManager extends Room {
 
         intersects.forEach(object => {
 
-            if (!object.userData?.current && object.visible) {
+            if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
 
                 const center = object.userData.aabb.getCenter(new THREE.Vector3())
                 const obb = object.userData.obb.clone()

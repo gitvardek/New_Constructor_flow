@@ -44,8 +44,6 @@ const cutChacked = (event: Event, item: Record<string, string>) => {
 };
 
 const profileChacked = (event: Event, profile: Record<string, string>) => {
-  // console.log(profile, ' ==== profile ====')
-
   emit("cut-profileData", event.target.checked, profile);
 };
 

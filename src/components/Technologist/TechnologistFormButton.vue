@@ -41,8 +41,8 @@ onBeforeMount(()=>{
 .technologist-button{
   border: blue solid 1px;
   border-radius: 15px;
-  font-size: 1.6rem;
-  padding: 10px 15px;
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
   margin-bottom: 1rem;
   font-weight: 500;
   outline: none;

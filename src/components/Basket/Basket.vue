@@ -1,26 +1,17 @@
 <template>
   <div class="basket">
     <div class="basket-tabs">
-      <button
-        class="basket-tabs__tab"
-        :class="{ 'basket-tabs__tab--active': activeTab === 'basket' }"
-        @click="activeTab = 'basket'"
-      >
+      <button class="basket-tabs__tab" :class="{ 'basket-tabs__tab--active': activeTab === 'basket' }"
+        @click="activeTab = 'basket'">
         Корзина
       </button>
-    <!-- ================    /** ДЛЯ МАСТЕРА  */ ================ 
-      <button
-        class="basket-tabs__tab"
-        :class="{ 'basket-tabs__tab--active': activeTab === 'order' }"
-        @click="activeTab = 'order'"
-      >
+      <!-- ================    /** ДЛЯ МАСТЕРА  */ ================ -->
+      <button class="basket-tabs__tab" :class="{ 'basket-tabs__tab--active': activeTab === 'order' }"
+        @click="activeTab = 'order'">
         Форма заказа
-      </button> 
-    ========================================================== -->
-      <ClosePopUpButton
-        class="basket-tabs__close-btn"
-        @click="closePopup"
-      />
+      </button>
+      <!-- ========================================================== -->
+      <ClosePopUpButton class="basket-tabs__close-btn" @click="closePopup" />
     </div>
 
     <template v-if="activeTab === 'basket'">
@@ -30,46 +21,30 @@
 
       <!-- Кнопки переключения между комнатами -->
       <div class="room-tabs" v-if="rooms.length > 1">
-        <button
-          class="room-tab"
-          :class="{ 'room-tab--active': selectedRoomId === 'all' }"
-          @click="selectRoom('all')"
-        >
+        <button class="room-tab" :class="{ 'room-tab--active': selectedRoomId === 'all' }" @click="selectRoom('all')">
           Все комнаты
         </button>
-        <button
-          v-for="room in rooms"
-          :key="room.id"
-          class="room-tab"
-          :class="{ 'room-tab--active': selectedRoomId === room.id }"
-          @click="selectRoom(room.id)"
-        >
+        <button v-for="room in rooms" :key="room.id" class="room-tab"
+          :class="{ 'room-tab--active': selectedRoomId === room.id }" @click="selectRoom(room.id)">
           {{ room.label || `Комната ${room.id}` }}
         </button>
       </div>
 
       <div class="basket-container">
 
-        <div class="basket-container__main-table" v-if="mainItems.length || !additionalItems.length ">
-          <BasketTable
-            :key="basketUpdateKey"
-            :items="mainItems"
-            type="main"
-          />
+        <div class="basket-container__main-table" v-if="mainItems.length || !additionalItems.length">
+          <BasketTable :key="basketUpdateKey" :items="mainItems" type="main" />
         </div>
         <div class="basket__additional-table">
-          <BasketTable
-            :key="basketUpdateKey + 'additional'"
-            title="Дополнительные товары"
-            :items="additionalItems"
-            type="additional"
-          />
+          <BasketTable :key="basketUpdateKey + 'additional'" title="Дополнительные товары" :items="additionalItems"
+            type="additional" />
         </div>
       </div>
 
       <div class="basket-footer">
 
-        <div v-if="productDelayData && productDelayData.length > 0 && productDelayData[0].type !== 'error'" class="basket-footer__notification">
+        <div v-if="productDelayData && productDelayData.length > 0 && productDelayData[0].type !== 'error'"
+          class="basket-footer__notification">
           <div v-for="productItem in productDelayData">
             <h3 class="">{{ productItem?.data?.title }}</h3>
             <!-- <div>{{ productItem.data.max_delay_date }}</div> -->
@@ -93,12 +68,14 @@
             </div>
             <button class="basket__close" @click="closePopup">Закрыть</button>
             <button class="basket__save">Печать</button>
-            <button class="basket__order" @click="setInvoice" :disabled="errorBasket || technologistStorage.getTechnologistProject()">Оформить заказ</button>
+            <button class="basket__order" @click="setInvoice"
+              :disabled="errorBasket || technologistStorage.getTechnologistProject()">Оформить заказ</button>
           </div>
           <div class="basket__technologist__wrapper" v-if="technologistStorage.getTechnologistProject()">
             <div class="basket__technologist__wrapper__container">
               <p class="error__title">Это проект технолога!</p>
-              <p class="error__title"> Чтобы его оформить перейдите к нужной карточке сделки в окне "Технолог" и нажмите "Оформить заказ".</p>
+              <p class="error__title"> Чтобы его оформить перейдите к нужной карточке сделки в окне "Технолог" и нажмите
+                "Оформить заказ".</p>
             </div>
           </div>
         </div>
@@ -107,10 +84,7 @@
 
     <template v-else>
       <div class="basket-container">
-        <orderForm
-          ref="orderFormRef"
-          @service-calc-change="onOrderFormServiceCalcChange"
-        />
+        <orderForm ref="orderFormRef" @service-calc-change="onOrderFormServiceCalcChange" />
       </div>
 
       <div class="order-footer">
@@ -149,11 +123,11 @@ import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage';
 
 import orderForm from '@/features/orderForm/components/orderForm.vue';
 
-const { basketData, basketDelay, allBasketDelay, syncBasket, syncBasketDelay, syncBasketMulti, syncInvoce} = useBasketStore();
+const { basketData, basketDelay, allBasketDelay, syncBasket, syncBasketDelay, syncBasketMulti, syncInvoce } = useBasketStore();
 import { useConfigStore } from "@/store/appStore/useConfigStore";
 
 const { oldPrice, isFeedbackProject } = useConfigStore();
-import {useTechnologistStorage} from "@/store/appStore/technologist/useTechnologistStorage.ts";
+import { useTechnologistStorage } from "@/store/appStore/technologist/useTechnologistStorage.ts";
 
 const popupStore = usePopupStore();
 const items = ref<IBasketResponse[] | null>(null);
@@ -203,7 +177,7 @@ const openPopupFormBasket = () => {
 
 // Вычисляемые свойства для данных корзины
 const mainItems = computed(() => {
-  return items.value?.products?.filter((item: IProduct) => item.product?.TYPE === "scene" || item.product?.TYPE === "umscene" ) || [];
+  return items.value?.products?.filter((item: IProduct) => item.product?.TYPE === "scene" || item.product?.TYPE === "umscene") || [];
 });
 
 const additionalItems = computed(() => {
@@ -267,7 +241,7 @@ const onOrderFormServiceCalcChange = (value: Array<{
 const setInvoice = () => {
 
   console.log('basketData', basketData);
-  if(isFeedbackProject) {
+  if (isFeedbackProject) {
     closePopup();
     openPopupFormBasket();
   } else {
@@ -304,7 +278,7 @@ const updateBasketData = async () => {
 
 const selectRoom = async (id) => {
   selectedRoomId.value = id;
-  if(id !== "all") {
+  if (id !== "all") {
     loadRoom(id)
   } else {
     getBasket()
@@ -315,13 +289,13 @@ const getBasket = () => {
   roomsBasketData.value = rooms.value.flatMap(el => {
     const roomBasket = JSON.parse(el.basket);
     console.log('el', roomBasket);
-    
+
     return [
       ...(roomBasket.scene || []),
       ...(roomBasket.catalog || [])
     ];
   });
-  
+
   console.log('Объединенная корзина:', roomsBasketData.value);
   // allBasket(roomsBasketData.value);
   syncBasketMulti(roomsBasketData.value)
@@ -367,7 +341,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
   basketUpdateKey.value++;
   loading.value = false;
   console.log(newValue.products);
-  if(newValue.products) {
+  if (newValue.products) {
     errorCount.value = newValue.products.filter((item: IProduct) => item.error).length;
     errorBasket.value = newValue.type === 'error';
   }
@@ -378,81 +352,118 @@ watch(() => useBasketStore().basketData, (newValue) => {
 </script>
 
 <style lang="scss" scoped>
-  .basket {
+.basket {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  background: white;
+  border-radius: 15px;
+  padding: 15px;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: var(--modal-large-height);
+  height: 100%;
+  max-width: var(--modal-large-width);
+  width: 90vw;
+
+  .basket-header {
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 30px;
-    background: white;
-    border-radius: 15px;
-    padding: 15px;
+    position: relative;
     width: 100%;
-    box-sizing: border-box;
-    max-height: 80vh; 
+
+    &__title {
+      font-weight: 600;
+      font-size: 3.2rem;
+      line-height: 100%;
+      letter-spacing: 0%;
+      text-align: center;
+    }
+  }
+
+  &__additional-table {
+    margin-top: 2rem;
+  }
+
+  .basket-container {
+    width: 100%;
     height: 100%;
-    max-width: 1447px;
-    width: 90vw;
-    .basket-header {
+    overflow-y: auto;
+
+    &__main-table {
+
+      // margin-bottom: 2rem;
+      .basket-table {
+        background-color: #F6F5FA;
+        border-radius: 15px;
+      }
+    }
+
+  }
+
+  .basket-footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 1.4rem;
+
+    @media (max-width: 768px) {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+
+    .basket__technologist__wrapper {
       display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
+      align-items: flex-end;
       width: 100%;
-      &__title {
-        font-weight: 600;
-        font-size: 3.2rem;
-        line-height: 100%;
-        letter-spacing: 0%;
-        text-align: center;
-      }
-    }
-    &__additional-table {
-      margin-top: 2rem;
-    }
-    .basket-container {
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      &__main-table {
-        // margin-bottom: 2rem;
-        .basket-table {
-          background-color: #F6F5FA;
-          border-radius: 15px;
-        }
-      }
+      color: #da444c;
+      flex-direction: column;
 
-    }
-
-    .basket-footer {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 20px;
-      font-size: 1.4rem;
-      
-      @media (max-width: 768px) {
-        flex-direction: column-reverse;
-        align-items: stretch;
-      }
-
-      .basket__technologist__wrapper {
+      &__container {
+        padding: 7.5px;
         display: flex;
-        align-items: flex-end;
-        width: 100%;
-        color: #da444c;
         flex-direction: column;
+        align-items: flex-end;
+        border: #da444c solid 1px;
+        border-radius: 15px;
+      }
 
-        &__container {
-          padding: 7.5px;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          border: #da444c solid 1px;
-          border-radius: 15px;
-        }
+      @media (max-width: 768px) {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+        justify-content: center;
+      }
+    }
+
+    &-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    &-buttons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+
+      @media (max-width: 768px) {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .basket__error {
+        display: flex;
+        align-items: center;
+        margin-right: 30px;
+        color: $red;
 
         @media (max-width: 768px) {
           width: 100%;
@@ -462,238 +473,229 @@ watch(() => useBasketStore().basketData, (newValue) => {
         }
       }
 
-      &-info {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
+      button {
+        // width: 114px;
+        // height: 50px;
+        padding: 0.5rem 1rem;
+        background: $stroke;
+        border-radius: 15px;
+        border: none;
 
-      &-buttons {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        
         @media (max-width: 768px) {
-          width: 100%;
-          justify-content: space-between;
-        }
-
-        .basket__error {
-          display: flex;
-          align-items: center;
-          margin-right: 30px;
-          color: $red;
-          
-          @media (max-width: 768px) {
-            width: 100%;
-            margin-right: 0;
-            margin-bottom: 10px;
-            justify-content: center;
-          }
-        }
-
-        button {
-          width: 114px;
-          height: 50px;
-          background: $stroke;
-          border-radius: 15px;
-          border: none;
-          
-          @media (max-width: 768px) {
-            flex: 1;
-            min-width: 100px;
-          }
-        }
-
-        .basket__close {
-          color: $strong-grey;
-          font-weight: 600;
-        }
-
-        .basket__save {
-          width: 132px;
-          color: $white;
-          font-weight: 600;
-          background-color: $black;
-          
-          @media (max-width: 768px) {
-            width: auto;
-            flex: 1;
-          }
-        }
-
-        .basket__order {
-          width: 174px;
-          color: $white;
-          font-weight: 600;
-          background-color: $red;
-          
-          @media (max-width: 768px) {
-            width: auto;
-            flex: 2;
-          }
-          &:disabled {
-            background-color: #A3A9B5;
-            cursor: not-allowed;
-          }
+          flex: 1;
+          min-width: 100px;
         }
       }
-    }
 
-    &__loader {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      position: absolute;
-      top: 1px;
-      left: 0;
-      animation: rotate 1s linear infinite
-    }
-
-    &__loader::before , &__loader::after {
-      content: "";
-      box-sizing: border-box;
-      position: absolute;
-      inset: 0px;
-      border-radius: 50%;
-      border: 5px solid #da444c73;
-      animation: prixClipFix 2s linear infinite ;
-    }
-
-    &__loader::after{
-      border-color: #DA444C;
-      animation: prixClipFix 2s linear infinite , rotate 0.5s linear infinite reverse;
-      inset: 6px;
-    }
-    &__sum {
-      font-weight: 600;
-      line-height: 100%;
-      letter-spacing: 0%;
-
-    }
-    &__sum-no {
-      // font-weight: 600;
-      line-height: 100%;
-      letter-spacing: 0%;
-
-    }
-  }
-
-  
-
-  @keyframes rotate {
-    0%   {transform: rotate(0deg)}
-    100%   {transform: rotate(360deg)}
-  }
-
-  @keyframes prixClipFix {
-    0%   {clip-path:polygon(50% 50%,0 0,0 0,0 0,0 0,0 0)}
-    25%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 0,100% 0,100% 0)}
-    50%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,100% 100%,100% 100%)}
-    75%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 100%)}
-    100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
-  }
-
-  .basket-footer__notification {
-    background: #cfe2ff;
-    width: 100%;
-    border-radius: 8px;
-    padding: 12px;
-    max-height: 114px;
-    overflow-y: auto;
-  }
-
-  .room-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    margin-top: 10px;
-    margin-right: auto;
-    .room-tab {
-      padding: 8px 16px;
-      background: #f0f0f0;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 1.4rem;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        background: #e0e0e0;
-      }
-      
-      &--active {
-        background: $red;
-        color: white;
+      .basket__close {
+        color: $strong-grey;
         font-weight: 600;
       }
-    }
-  }
 
-  .basket-tabs {
-    display: flex;
-    align-self: stretch;
-    width: 100%;
-    align-items: center;
-
-    &__tab {
-      padding: 1.2rem 2.4rem;
-      font-size: 1.4rem;
-      font-weight: 500;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 12px 12px 0 0;
-      background-color: #e0e0e0;
-      color: #666;
-      position: relative;
-      margin-right: 4px;
-
-      &:hover:not(.basket-tabs__tab--active) {
-        background-color: #d0d0d0;
-      }
-
-      &--active {
-        background-color: #fff;
-        color: #333;
+      .basket__save {
+        // width: 132px;
+        color: $white;
         font-weight: 600;
-        z-index: 1;
+        background-color: $black;
+
+        @media (max-width: 768px) {
+          width: auto;
+          flex: 1;
+        }
+      }
+
+      .basket__order {
+        // width: 174px;
+        color: $white;
+        font-weight: 600;
+        background-color: $red;
+
+        @media (max-width: 768px) {
+          width: auto;
+          flex: 2;
+        }
+
+        &:disabled {
+          background-color: #A3A9B5;
+          cursor: not-allowed;
+        }
       }
     }
-
-    &__close-btn {
-      margin-left: auto;
-      fill: #A3A9B5;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
   }
 
-  .order-footer {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    font-size: 1.4rem;
-
-    @media (max-width: 768px) {
-      flex-direction: column-reverse;
-      align-items: stretch;
-    }
+  &__loader {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    left: 0;
+    animation: rotate 1s linear infinite
   }
 
-  .order-footer__title {
-    margin: 0 0 6px;
+  &__loader::before,
+  &__loader::after {
+    content: "";
+    box-sizing: border-box;
+    position: absolute;
+    inset: 0px;
+    border-radius: 50%;
+    border: 5px solid #da444c73;
+    animation: prixClipFix 2s linear infinite;
+  }
+
+  &__loader::after {
+    border-color: #DA444C;
+    animation: prixClipFix 2s linear infinite, rotate 0.5s linear infinite reverse;
+    inset: 6px;
+  }
+
+  &__sum {
     font-weight: 600;
-    font-size: 1.4rem;
-    color: #272727;
+    line-height: 100%;
+    letter-spacing: 0%;
+
   }
 
-  
+  &__sum-no {
+    // font-weight: 600;
+    line-height: 100%;
+    letter-spacing: 0%;
 
+  }
+}
+
+
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg)
+  }
+
+  100% {
+    transform: rotate(360deg)
+  }
+}
+
+@keyframes prixClipFix {
+  0% {
+    clip-path: polygon(50% 50%, 0 0, 0 0, 0 0, 0 0, 0 0)
+  }
+
+  25% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 0, 100% 0, 100% 0)
+  }
+
+  50% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 100% 100%, 100% 100%)
+  }
+
+  75% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 100%)
+  }
+
+  100% {
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 0)
+  }
+}
+
+.basket-footer__notification {
+  background: #cfe2ff;
+  width: 100%;
+  border-radius: 8px;
+  padding: 5px;
+  max-height: 70px;
+  overflow-y: auto;
+  font-size: 1.2rem;
+}
+
+.room-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+  margin-right: auto;
+
+  .room-tab {
+    padding: 8px 16px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 1.4rem;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #e0e0e0;
+    }
+
+    &--active {
+      background: $red;
+      color: white;
+      font-weight: 600;
+    }
+  }
+}
+
+.basket-tabs {
+  display: flex;
+  align-self: stretch;
+  width: 100%;
+  align-items: center;
+
+  &__tab {
+    padding:0.5rem 1rem;
+    font-size: 1.4rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 12px 12px 0 0;
+    background-color: #e0e0e0;
+    color: #666;
+    position: relative;
+    margin-right: 4px;
+
+    &:hover:not(.basket-tabs__tab--active) {
+      background-color: #d0d0d0;
+    }
+
+    &--active {
+      background-color: #fff;
+      color: #333;
+      font-weight: 600;
+      z-index: 1;
+    }
+  }
+
+  &__close-btn {
+    margin-left: auto;
+    fill: #A3A9B5;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+.order-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 1.4rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
+.order-footer__title {
+  margin: 0 0 6px;
+  font-weight: 600;
+  font-size: 1.4rem;
+  color: #272727;
+}
 </style>
-

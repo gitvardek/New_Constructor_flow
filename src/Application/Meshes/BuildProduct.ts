@@ -68,6 +68,7 @@ export class BuildProduct extends BuildersHelper {
     mirror_builder: MirrorBuilder
     uniform_texture_builder: UniformTextureBuilder
     useEdgeBuilder: THREETypes.TUseEdgeBuilder
+    private readonly UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966]
 
 
     constructor(root: THREETypes.TApplication) {
@@ -142,7 +143,7 @@ export class BuildProduct extends BuildersHelper {
                 .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
                 .catch(() => null);
 
-            const income_props = um_params ?? loaded_props
+            const income_props = loaded_props ?? um_params
 
             const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
 
@@ -243,7 +244,7 @@ export class BuildProduct extends BuildersHelper {
         const productSize = new THREE.Vector3();
         aabb.getSize(productSize);
 
-        if (product_data.moduleType || product_data.ID == 3954672) {
+        if (this.UM_LIST.includes(product_data.ID)) {
             parent_group.name = 'UNIVERSAL'
         }
 
@@ -295,7 +296,7 @@ export class BuildProduct extends BuildersHelper {
             TABLETOP: null,
             NAME: product_data.NAME,
             RAYCAST: product_data.disable_raycast == 1,
-            DISABLE_MOVE:false
+            DISABLE_MOVE: false
         };
 
         props.CONFIG = this.createProductObject(product_data, props, loadedProps);
@@ -627,7 +628,10 @@ export class BuildProduct extends BuildersHelper {
             isRoomElement
         });
 
-        body.add(this.edge_builder.createEdge(body));
+        const edge = this.edge_builder.createEdge(body);
+        const deffEdge = this.edge_builder.createVisibleEdge(body);
+
+         body.add(edge, deffEdge);
 
         if (isTopTable) {
 

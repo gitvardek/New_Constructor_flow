@@ -423,8 +423,8 @@ watch(
         :max-width="140"
         :gap="2"
       />  -->
-
-      <!-- <p class="customiser-section__title">Произвольное позиционирование</p>
+<!-- 
+      <p class="customiser-section__title">Произвольное позиционирование</p>
       <div class="switch__container">
         <Toggle v-model="transformControlsValue" />
       </div> -->

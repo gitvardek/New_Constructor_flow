@@ -102,6 +102,8 @@ function createOptionsProps(objProps: any) {
   (objProps.CONFIG.OPTIONS || []).map(el => {
     if (el.active) options.push(+el.id);
   });
+
+  console.log(options, 'IN BASK')
   return options;
 }
 
@@ -300,6 +302,8 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 }
 
 function convertModuleToLegacyFormat(newModuleObject) {
+  console.log('convertModuleToLegacyFormat')
+
   if (!newModuleObject?.CONFIG) {
     return {};
   }
@@ -320,9 +324,12 @@ function convertModuleToLegacyFormat(newModuleObject) {
     OPTION: createOptionsProps(newModuleObject),
     // DOORS: CONFIG.FASADE_PROPS || {}
     DOORS: generateDoorsSimple(CONFIG.MODULEGRID),
-    UM_MECHANIZM: generateMechanizmSimple(CONFIG.MODULEGRID)
+    UM_MECHANIZM: generateMechanizmSimple(CONFIG.MODULEGRID),
+    SIZEEDITJOINDEPTH: CONFIG.SIZEEDITJOINDEPTH
 
   };
+
+  console.log(legacyProps, 'SIZEEDITJOINDEPTH')
 
   if (CONFIG.LEFTSIDECOLOR && CONFIG.LEFTSIDECOLOR.COLOR !== 199683 && CONFIG.LEFTSIDECOLOR.COLOR) {
     legacyProps.LEFTSIDECOLOR = CONFIG.LEFTSIDECOLOR;
@@ -556,6 +563,8 @@ function removeEmptyObjects(obj) {
 
 export function createBasketItem(objProps: any, index: number, key: any = ''): IBasket {
 
+  console.log('createBasketItem', objProps)
+
   const props: any = {};
 
   // Добавляем свойства только если они существуют и не пустые
@@ -613,13 +622,11 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
       })
     }
 
-    console.log(props.RASPIL)
-
-    // props.PROFILE = '251698';
     props.PROFILE = objProps.CONFIG.PROFILE.filter(el => el.value === true)[0]?.ID
   }
 
   props.USLUGI = []
+
   if (objProps.RASPIL.data && objProps.RASPIL.data.length > 1) {
     props.USLUGI.push("98683");
     objProps.CONFIG.USLUGI.forEach(el => {
@@ -667,6 +674,10 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
     props.SHELFQUANT = objProps.CONFIG.SHELFQUANT?.current;
   }
 
+  if (objProps.CONFIG.SIZEEDITJOINDEPTH) { props.SIZEEDITJOINDEPTH = objProps.CONFIG.SIZEEDITJOINDEPTH }
+
+    console.log(props, 'END')
+
   if (objProps.CONFIG.SECTIONS) {
     const propsUM = convertModuleToLegacyFormat(objProps);
     const cleanedData = removeEmptyObjects(propsUM);
@@ -695,6 +706,10 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
       TYPE: "scene",
     };
   }
+
+
+
+  console.log(props, 'END')
 }
 
 // Определения свойств (перенесено из Angular кода)

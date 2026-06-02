@@ -133,7 +133,9 @@ export class PlinthBuilder {
 
         const model = this.jsonBuilder.createMesh({ data: convertedData });
         const edgeBody = this.edgeBuilder.createEdge(model)
-        model.add(edgeBody)
+        const defEdge = this.edgeBuilder.createVisibleEdge(model);
+
+        model.add(edgeBody, defEdge)
         model.castShadow = true
         model.name = 'PLINTH';
         model.userData.type = key || 'front'
