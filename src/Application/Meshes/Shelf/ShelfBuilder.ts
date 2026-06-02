@@ -85,8 +85,8 @@ export class ShelfBuilder {
 
                 // Создаём кромки (если edge_builder доступен в контексте)
                 const edge = this.edgeBuilder.createEdge(mesh);
-                const deffEdge = this.edgeBuilder.createVisibleEdge(mesh);
-                parent.add(mesh, edge, deffEdge);
+                const defEdge = this.edgeBuilder.createVisibleEdge(mesh);
+                parent.add(mesh, edge, defEdge);
             });
         };
 
@@ -139,7 +139,8 @@ export class ShelfBuilder {
             (SHELF as Mesh[]).push(mesh);
 
             const edge = this.edgeBuilder.createEdge(mesh);
-            parent.add(mesh, edge);
+            const defEdge = this.edgeBuilder.createVisibleEdge(mesh);
+            parent.add(mesh, edge, defEdge);
         }
 
         return parent;

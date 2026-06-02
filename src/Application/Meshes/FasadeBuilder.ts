@@ -69,7 +69,7 @@ export class FasadeBuilder {
     }
 
     // ---------------------------------------------------------------------------
-    // Private helpers
+    //  helpers
     // ---------------------------------------------------------------------------
 
     private resolveColorId(
@@ -188,7 +188,7 @@ export class FasadeBuilder {
     }
 
     // ---------------------------------------------------------------------------
-    // Public: первичная сборка всех фасадов (BuildProduct, BuildUniversalModule)
+    // первичная сборка всех фасадов (BuildProduct, BuildUniversalModule)
     // ---------------------------------------------------------------------------
 
     public buildAllFasades({
@@ -293,7 +293,7 @@ export class FasadeBuilder {
             }
 
             if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
-                fasadeData.GLASS = firstValueGlass.ID;
+                fasadeData.GLASS = fasadeData.GLASS ?? firstValueGlass.ID;
             }
 
             this.applyDecorations(result, fasadeData, key, haveShowcase, FASADE_DEFAULT, FASADE_PROPS, 'build');
@@ -305,7 +305,7 @@ export class FasadeBuilder {
     }
 
     // ---------------------------------------------------------------------------
-    // Public: обновление одного фасада по индексу (Events)
+    // обновление одного фасада по индексу (Events)
     // ---------------------------------------------------------------------------
 
     public updateFasade({
@@ -487,7 +487,7 @@ export class FasadeBuilder {
     }
 
     // ---------------------------------------------------------------------------
-    // Public: применение изменений поверхности одного фасада (вызывается из Events)
+    // применение изменений поверхности одного фасада (вызывается из Events)
     // ---------------------------------------------------------------------------
 
     public applyFasadeChange({
@@ -627,8 +627,6 @@ export class FasadeBuilder {
             const fasadeModel = this._APP.MODELS[modelName];
 
             if (fasadeModel) {
-
-
                 // Создание фасада из модели
                 let createdFasade
                 let fasade = this.parent.json_builder.createMesh({
@@ -650,8 +648,6 @@ export class FasadeBuilder {
                         const clone = el.geometry.clone();
                         el.updateMatrixWorld();
                         clone.applyMatrix4(el.matrixWorld); // Запекаем мировую трансформацию
-
-                        // КЛЮЧЕВОЕ: Локальная UV для каждой части перед merge — это фиксит размазывание
                         this.parent.normalizeUVsTo01(clone);
 
                         geometries.push(clone);

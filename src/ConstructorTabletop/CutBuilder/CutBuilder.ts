@@ -287,7 +287,7 @@ class TableTopCreator extends BuildersHelper {
                     mesh.userData.rotation = null
                 }
 
-                this.createCollisionData(mesh, size, raspil, groupId, row.roundCut, uslugi);
+                this.createCollisionData(mesh, size, raspil, groupId, row, uslugi);
                 this.addArrowSize(mesh, row)
 
                 meshes.push(mesh);
@@ -596,23 +596,27 @@ class TableTopCreator extends BuildersHelper {
         return `#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0')}`;
     }
 
-    private createCollisionData(mesh: THREE.Object3D, { width, depth, height }: { width: number, depth: number, height: number }, raspil: [], groupId: number | null, roundCut: THREETypes.TObject, uslugi) {
+    private createCollisionData(mesh: THREE.Object3D,
+        { width, depth, height }: { width: number, depth: number, height: number },
+        raspil: [],
+        groupId: number | null,
+        row: THREETypes.TObject,
+        uslugi) {
+
         const data = {
-            DEPTH: roundCut.radius ? roundCut.radius * 0.5 : height * 0.5,
+            DEPTH: row.roundCut.radius ? row.roundCut.radius * 0.5 : height * 0.5,
             HEIGHT: depth * 0.5,
-            WIDTH: roundCut.radius ? roundCut.radius * 0.5 : width * 0.5
+            WIDTH: row.roundCut.radius ? row.roundCut.radius * 0.5 : width * 0.5
         }
 
         const aabb = new THREE.Box3().setFromObject(mesh);
         const obb = new OBB().fromBox3(aabb);
 
         mesh.userData.trueSizes = data
-
-
         mesh.userData.elementType = 'raspil'
 
         mesh.userData.PROPS = {
-            RAYCAST: false,
+            RAYCAST: !row.disabled,
             DISABLE_MOVE: false,
             CONFIG: {
                 UNIFORM_TEXTURE: {

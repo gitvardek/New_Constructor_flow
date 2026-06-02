@@ -96,7 +96,7 @@ export class RoomManager extends Room {
 
         intersects.forEach(object => {
 
-            if (!object.userData?.current && object.visible && !object.userData.disableRaycast) {
+            if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
                 const box = new THREE.Box3().setFromObject(object);
                 const boxTop = new THREE.Box3().setFromObject(object);
                 box.max.y = 3000;
@@ -118,7 +118,7 @@ export class RoomManager extends Room {
 
         intersects.forEach(object => {
 
-            if (!object.userData?.current && object.visible) {
+            if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
                 
                 const center = object.userData.aabb.getCenter(new THREE.Vector3())
                 const obb = object.userData.obb.clone()

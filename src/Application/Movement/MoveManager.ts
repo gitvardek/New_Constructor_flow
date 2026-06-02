@@ -266,7 +266,7 @@ export class MoveManager {
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
 
-        const intersects = this.raycaster.intersectObjects(this.roomManager._roomTotalContant);
+        const intersects = this.raycaster.intersectObjects(this.roomManager._roomTotalContant.filter((obj) => obj.visible));
 
         if (intersects.length > 0) {
 
