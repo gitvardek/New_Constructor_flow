@@ -15,6 +15,7 @@ import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 export default class SectionsManager {
     scope: UMconstructorClass
+    private readonly debounceTimer = 1000
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope
@@ -91,6 +92,9 @@ export default class SectionsManager {
             grid.sections[secIndex + 1].fasades.push(lastDoor);
         }
 
+        /**
+        *  Автоматическое добавление дверей при добавлении секции
+        */
 
         if (!grid.isSlidingDoors && section?.fasades?.length > 0) {
             for (let i = 0; i < count; i++) {
@@ -683,7 +687,7 @@ export default class SectionsManager {
             //grid = clone;
 
             this.scope.reset(grid)
-        }, 1000)
+        }, this.debounceTimer)
 
     };
 
@@ -966,7 +970,7 @@ export default class SectionsManager {
             grid = clone;
 
             this.scope.reset(grid)
-        })
+        }, this.debounceTimer)
     };
 
     updateCellRowWidth(
@@ -1044,7 +1048,7 @@ export default class SectionsManager {
             grid = clone;
 
             this.scope.reset(grid)
-        })
+        }, this.debounceTimer)
 
     };
 
@@ -1138,7 +1142,7 @@ export default class SectionsManager {
             grid = clone;
 
             this.scope.reset(grid)
-        })
+        }, this.debounceTimer)
     };
 
     deleteSection(grid: GridModule = this.scope.UM_STORE.getUMGrid(), secIndex: number, reset: boolean = false) {

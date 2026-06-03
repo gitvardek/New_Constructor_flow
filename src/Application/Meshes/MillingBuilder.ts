@@ -436,6 +436,7 @@ export class MillingBuilder extends MillingsUtils {
     svgStr = svgStr.replaceAll('wth', width.toString()).replaceAll('hgh', height.toString());
     if (radius) svgStr = svgStr.replaceAll('radius', radius.toString());
 
+    svgStr = svgStr.replace(/--/g, '-')
     // Обрабатываем выражения в скобках
     while (/\(([^()]+)\)/g.test(svgStr)) {
       svgStr = svgStr.replace(/\(([^()]+)\)/g, (_, expr) => {

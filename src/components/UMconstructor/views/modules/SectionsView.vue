@@ -7,6 +7,7 @@ import CounterInput from "@/components/ui/inputs/CounterInput.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import {onMounted, ref, toRefs, watch} from "vue";
 import {TSelectedCell, GridModule} from "@/components/UMconstructor/types/UMtypes.ts";
+import MainInput from "@/components/ui/inputs/MainInput.vue";
 
 const props = defineProps({
   module: {
@@ -163,20 +164,20 @@ onMounted(() => {
                             <div
                                 :class="['actions-input--container']"
                             >
-                              <input
-                                  type="number"
-                                  :step="step"
-                                  :min="UMconstructor.CONST.MIN_SECTION_WIDTH"
-                                  :max="UMconstructor.CONST.MAX_SECTION_WIDTH"
-                                  class="actions-input"
-                                  :value="section.width"
-                                  :disabled="module.sections.length < 2"
-                                  @input="UMconstructor.SECTIONS.updateSectionWidth({
-                                    grid: module,
-                                    secIndex,
-                                    value: $event?.target?.value || UMconstructor.CONST.MIN_SECTION_WIDTH
-                                  })"
-                              />
+                            <MainInput 
+                                @update:modelValue="(value: number) => UMconstructor.SECTIONS.updateSectionWidth({
+                                  grid: module,
+                                  secIndex,
+                                  value: value ?? UMconstructor.CONST.MIN_SECTION_WIDTH
+                                })" 
+                                :type="'number'" 
+                                :inputClass="'actions-input'" 
+                                :modelValue="section.width"
+                                :min="UMconstructor.CONST.MIN_SECTION_WIDTH"
+                                :max="UMconstructor.CONST.MAX_SECTION_WIDTH" 
+                                :disabled="module.sections.length < 2"
+                                :step="step"
+                                :isUM="true" />
                             </div>
                           </div>
                         </div>
@@ -189,20 +190,20 @@ onMounted(() => {
                             <div
                                 :class="['actions-input--container']"
                             >
-                              <input
-                                  type="number"
-                                  :step="step"
-                                  :min="UMconstructor.CONST.MIN_SECTION_HEIGHT"
-                                  :max="section.height - UMconstructor.CONST.MIN_SECTION_HEIGHT"
-                                  class="actions-input"
-                                  :value="cell.height"
-                                  @input="UMconstructor.SECTIONS.updateCellHeight({
-                                    grid: module,
-                                    secIndex,
-                                    cellIndex,
-                                    value: $event?.target?.value || UMconstructor.CONST.MIN_SECTION_HEIGHT
-                                  })"
-                              />
+                              <MainInput 
+                                @update:modelValue="(value: number) => UMconstructor.SECTIONS.updateCellHeight({
+                                  grid: module,
+                                  secIndex,
+                                  cellIndex,
+                                  value: value ?? UMconstructor.CONST.MIN_SECTION_HEIGHT
+                                  })" 
+                                :type="'number'" 
+                                :inputClass="'actions-input'" 
+                                :modelValue="cell.height"
+                                :min="UMconstructor.CONST.MIN_SECTION_HEIGHT"
+                                :max="section.height - UMconstructor.CONST.MIN_SECTION_HEIGHT" 
+                                :step="step"
+                                :isUM="true" />
                             </div>
                           </div>
                         </div>

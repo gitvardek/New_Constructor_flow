@@ -1,173 +1,156 @@
 <template>
-  <input
-    v-if="isChangeEnable() && !disabled"
-    ref="input"
-    :class="inputClass"
-    :type="type"
-    :min="props.min"
-    :max="props.max"
-    :maxlength="maxlength"
-    :inputmode="digitsOnly ? 'numeric' : undefined"
-    :pattern="digitsOnly ? '[0-9]*' : undefined"
-    v-model="inputValue"
-    :placeholder="placeholder"
-    :step="step"
-  />
-  <input
-    v-else
-    ref="input"
-    :class="inputClass"
-    :type="type"
-    :min="props.min"
-    :max="props.max"
-    :maxlength="maxlength"
-    :inputmode="digitsOnly ? 'numeric' : undefined"
-    :pattern="digitsOnly ? '[0-9]*' : undefined"
-    v-model="inputValue"
-    :placeholder="placeholder"
-    readonly
-  />
+  <input ref="inputRef" :class="inputClass" :style="inputStyle" :type="type" :min="props.min ?? undefined"
+    :max="props.max ?? undefined" :maxlength="maxlength ?? undefined" :inputmode="digitsOnly ? 'numeric' : undefined"
+    :pattern="digitsOnly ? '[0-9]*' : undefined" :placeholder="placeholder" :step="step" :readonly="isReadonly"
+    v-model="inputValue" />
 </template>
 
-<script setup>
-import { ref, watch, toRefs, useTemplateRef } from "vue";
+<script setup lang="ts">
+import { ref, computed, watch, useTemplateRef } from "vue";
 
-const props = defineProps({
-  modelValue: {
-    type: [String, Number],
-    required: true,
-  },
-  min: {
-    type: [String, Number],
-    default: null,
-  },
-  max: {
-    type: [String, Number],
-    default: null,
-  },
-  type: {
-    type: String,
-    default: "text",
-  },
-  placeholder: {
-    type: String,
-    default: "",
-  },
-  inputClass: {
-    type: String,
-    default: "",
-  },
-  inputStyle: {
-    type: Object,
-    default: () => ({}),
-  },
-  step: {
-    type: [String, Number],
-    default: 1,
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-  maxlength: {
-    type: [String, Number],
-    default: null,
-  },
-  digitsOnly: {
-    type: Boolean,
-    default: false,
-  },
-  isUM: {
-    type: Boolean,
-    default: false,
-  }
-});
+// -------------------------------Props -----------------------------------------
 
-const input = useTemplateRef("input");
+interface IProps {
+  modelValue: string | number;
+  type?: string;
+  min?: string | number | null;
+  max?: string | number | null;
+  step?: string | number;
+  placeholder?: string;
+  inputClass?: string;
+  inputStyle?: Record<string, string>;
+  maxlength?: string | number | null;
+  disabled?: boolean;
+  digitsOnly?: boolean;
 
-const isChangeEnable = () => {
-  // Для текстовых полей всегда разрешаем редактирование
-  if (props.type === 'text') return true;
-  // Для числовых полей проверяем min/max
-  return props.min !== null && props.max !== null;
+  isUM?: boolean;
 };
 
-const customValidation = (value) => {
-  // Для текстовых полей разрешаем пустые строки
-  if (props.type === 'text') {
-    return true;
-  }
-  // Для числовых полей применяем строгую валидацию
-  if (value === "" || value > props.max || value < props.min) return false;
+const props = withDefaults(defineProps < IProps > (), {}); // описаны инлайн ниже
+
+// явные дефолты через withDefaults не нужны — используем деструктуризацию ниже
+
+const emit = defineEmits < {
+  (e: "update:modelValue", value: string | number): void;
+}> ();
+
+// Refs
+
+const inputRef = useTemplateRef < HTMLInputElement > ("inputRef");
+const inputValue = ref < string | number > (props.modelValue);
+let resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+// ------------------------------- Computed -------------------------------
+
+/**
+ * readonly если:
+ * - disabled=true
+ * - числовое поле без min/max (нет смысла редактировать без границ валидации)
+ */
+const isReadonly = computed(() => {
+  if (props.disabled) return true;
+  if (props.type !== "text" && (props.min == null || props.max == null)) return true;
+  return false;
+});
+
+// Validation 
+
+const isValueValid = (value: string | number): boolean => {
+  if (props.type === "text") return true;
+  if (value === "") return false;
+  const num = Number(value);
+  if (props.min != null && num < Number(props.min)) return false;
+  if (props.max != null && num > Number(props.max)) return false;
   return true;
 };
 
-const emit = defineEmits(["update:modelValue"]);
+/** Фильтрует нецифровые символы и обрезает по maxlength */
+const applyDigitsOnly = (value: string | number): string => {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  const limit = props.maxlength != null ? Number(props.maxlength) : null;
+  return limit != null ? digits.slice(0, limit) : digits;
+};
 
-const inputValue = ref(props.modelValue);
+// ------------------------------- Цвет инпута -------------------------------
 
-const timer = ref(false);
-const checkInputValue = (newValue) => {
+const setInputColor = (valid: boolean) => {
+  if (!inputRef.value) return;
+  inputRef.value.style.color = valid ? "var(--input-color, #6d6e73)" : "var(--input-error-color, #da444c)";
+};
 
-  if(newValue === props.modelValue) {
-    return;
-  }
+// ------------------------------- Обработка изменения значения -------------------------------
 
-  if (timer.value) {
-    clearTimeout(timer.value)
-  }
+/**
+ * isUM=true — с отложенным сбросом:
+ * невалидное значение подсвечивается красным и через 1 с откатывается
+ */
+const handleValueWithReset = (newValue: string | number) => {
+  if (newValue === props.modelValue) return;
 
-  let valueToEmit = newValue;
+  if (resetTimer) clearTimeout(resetTimer);
+
   if (props.digitsOnly) {
-    const filtered = String(newValue ?? "").replace(/\D/g, "");
-    const maxLen = props.maxlength != null ? Number(props.maxlength) : null;
-    valueToEmit = maxLen != null ? filtered.slice(0, maxLen) : filtered;
-    if (valueToEmit !== newValue) {
-      inputValue.value = valueToEmit;
-      emit("update:modelValue", valueToEmit);
-      if (input.value) input.value.style.color = "#6d6e73";
+    const filtered = applyDigitsOnly(newValue);
+    if (filtered !== String(newValue)) {
+      inputValue.value = filtered;
+      emit("update:modelValue", filtered);
+      setInputColor(true);
       return;
     }
   }
-  if (input.value.checkValidity() && customValidation(newValue)) {
-    input.value.style.color = "#6d6e73";
+
+  const nativeValid = inputRef.value?.checkValidity() ?? true;
+
+  if (nativeValid && isValueValid(newValue)) {
+    setInputColor(true);
     emit("update:modelValue", newValue);
     return;
   }
-  input.value.style.color = "#da444c";
 
-  timer.value = setTimeout(()=>{
-    input.value.style.color = "#6d6e73";
+  setInputColor(false);
+  resetTimer = setTimeout(() => {
+    setInputColor(true);
     inputValue.value = props.modelValue;
-    timer.value = false
-  },1000)
-}
+    resetTimer = null;
+  }, 1000);
+};
+
+/**
+ * isUM=false — мгновенная обработка:
+ * невалидное значение подсвечивается, но не откатывается
+ */
+const handleValueImmediate = (newValue: string | number) => {
+  if (props.digitsOnly) {
+    const filtered = applyDigitsOnly(newValue);
+    if (filtered !== String(newValue)) {
+      inputValue.value = filtered;
+      emit("update:modelValue", filtered);
+      setInputColor(true);
+      return;
+    }
+  }
+
+  const nativeValid = inputRef.value?.checkValidity() ?? true;
+
+  if (nativeValid && isValueValid(newValue)) {
+    setInputColor(true);
+    emit("update:modelValue", newValue);
+    return;
+  }
+
+  setInputColor(false);
+};
+
+// ------------------------------- Watchers -------------------------------
 
 watch(inputValue, (newValue) => {
+  if (props.isUM) {
 
-  if(props.isUM) {
-    checkInputValue(newValue);
-    return;
-  }
+    handleValueWithReset(newValue);
+  } else {
 
-  let valueToEmit = newValue;
-  if (props.digitsOnly) {
-    const filtered = String(newValue ?? "").replace(/\D/g, "");
-    const maxLen = props.maxlength != null ? Number(props.maxlength) : null;
-    valueToEmit = maxLen != null ? filtered.slice(0, maxLen) : filtered;
-    if (valueToEmit !== newValue) {
-      inputValue.value = valueToEmit;
-      emit("update:modelValue", valueToEmit);
-      if (input.value) input.value.style.color = "#6d6e73";
-      return;
-    }
+    handleValueImmediate(newValue);
   }
-  if (input.value.checkValidity() && customValidation(newValue)) {
-    input.value.style.color = "#6d6e73";
-    emit("update:modelValue", newValue);
-    return;
-  }
-  input.value.style.color = "#da444c";
 });
 
 watch(
@@ -186,8 +169,8 @@ watch(
   font-size: 1.6rem;
   padding: 0 32px;
   box-sizing: border-box;
+
   &.right-menu {
-    width: 100%;
     height: 39px;
     padding: 0 15px;
   }

@@ -134,8 +134,12 @@ export default class FasadesManager {
                                 segment.width += deltaWidth;
 
                                 /** @Пересчёт_позиции_фасада */
-                                const wallOverlap = secIndex === 0 ? leftWidth : grid.moduleThickness;
-                                segment.position.x = section.position.x - section.width / 2 - wallOverlap + 2 + ((segment.width + 4) * doorIndex);
+                              
+                                if (secIndex !== 0) {
+                                    segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + (segment.width + 4 * doorIndex);
+                                } else if (doorIndex > 0) {
+                                    segment.position.x += deltaWidth;
+                                }
 
                                 const checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                                     segment.material.COLOR,
@@ -560,7 +564,7 @@ export default class FasadesManager {
             this.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
         }
 
-        if (!grid.isSlidingDoors) {  //<===== 568
+        if (!grid.isSlidingDoors, grid) {  //<===== 568
             this.scope.LOOPS.calcLoops(secIndex, grid);
             if (!section.loops)
                 newDoor.loopsSide = LOOPSIDE['none']
