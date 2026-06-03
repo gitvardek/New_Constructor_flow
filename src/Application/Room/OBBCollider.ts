@@ -13,6 +13,7 @@ import { TAdjustPosition } from "@/types/types"
 export class OBBCollider {
     private defaultMagnetTrashhold = 50
     private readonly defaultSteps = 30
+    private readonly UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966]
 
     getCorrectPosition({ object,
         targetPosition,
@@ -73,6 +74,7 @@ export class OBBCollider {
         let adjustPosition = position.clone()
 
         const rotation = object.userData.PROPS.CONFIG.ROTATION ?? new THREE.Euler(0, 0, 0, 'XYZ');
+        const { PRODUCT } = object.userData.PROPS
         const { DEPTH, HEIGHT, WIDTH } = object.userData.trueSizes
         const roomBound = boundsStore;
 
@@ -117,8 +119,8 @@ export class OBBCollider {
         // console.log(object)
 
         /** Проверка на положение объекта только на полу */
-
-        adjustPosition.y = object.userData.elementType == "element_down" ? HEIGHT - 0.001 : Math.max(
+        const elementPosition = object.userData.elementType == "element_down" && !this.UM_LIST.includes(PRODUCT)
+        adjustPosition.y = elementPosition ? HEIGHT - 0.001 : Math.max(
             (HEIGHT - 0.001),
             Math.min(position.y, roomBound.max.y - (HEIGHT - 0.001))
         );
