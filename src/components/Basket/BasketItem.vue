@@ -962,11 +962,19 @@ const renderDescription = (data) => {
 
           // Для каждой двери перебираем её части (обычно только часть "1")
           for (const [partNumber, partData] of Object.entries(doorData)) {
-            // Каждая часть может содержать несколько элементов (0, 1 и т.д.)
+
+            const { CATALOG } = appData.value
+
+            if (CATALOG[getPropDefinition(key)?.type]) continue
+
+            const product = CATALOG[getPropDefinition(key)?.type][partData]
+
+            if (!product) continue
 
             const description =
-              appData.value[getPropDefinition(key)?.type][partData].NAME ||
+              product.NAME ||
               `Неизвестный материал (ID: ${partData})`;
+
             result.push({
               key: getPropDefinition(key)?.NAME,
               value: `дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
