@@ -319,7 +319,7 @@
       <span>{{ item.product.allPriceOldFormat ?? 0 }}</span>
     </div>
 
-    <div class="basket-item__price basket-item__action">
+    <div class="basket-item__price basket-item__action" v-if="isNonDelete">
       <DeleteBasketButton @click="
         deleteProductInBusket(item.product.BASKETID, item?.product.TYPE)
         " />
@@ -344,6 +344,7 @@ import { BASE_DOMAIN } from "@/utils/originalDomain";
 
 // const API_URL = ref('https://dev.vardek.online');
 const API_URL = ref(`https://${BASE_DOMAIN}`);
+const hideDeleteList = ref<number[]>([10001, 10002])
 
 interface Props {
   item: any;
@@ -1032,6 +1033,12 @@ const renderDescription = (data) => {
 
   return result;
 };
+
+const isNonDelete = computed(() => {
+
+  return !hideDeleteList.value.includes(parseFloat(props.item.product.BASKETID))
+
+})
 </script>
 
 <style scoped lang="scss">

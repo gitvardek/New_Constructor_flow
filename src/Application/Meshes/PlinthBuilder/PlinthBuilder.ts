@@ -62,7 +62,7 @@ export class PlinthBuilder {
     }
 
     private createPlinthMesh(props: any, plinthActions: TPlinthActions, size: TSize, plinthParent: THREE.Object3D, legsHeight: number) {
-        // const { PLINTH_MESH } = props
+
         const product: IProductFull = this.buildProduct._PRODUCTS[props.PRODUCT]
         const { id, plinthSurfase } = this.buildProduct.getDefaultOptionsConfig().plinth
 
@@ -75,6 +75,8 @@ export class PlinthBuilder {
         const startPosition = this.buildProduct.getStartPosition(size);
         const havePlinth = this.checkHavePLinth(props);
         const plinthConfigs = this.getPlinthConfigs(size);
+        let totalPlinthWidth = 0
+        let plinthList = []
 
         if (havePlinth) {
 
@@ -88,8 +90,17 @@ export class PlinthBuilder {
                 model.position.set(position.x, startPosition.y, position.z);
                 model.rotation.set(rotation.x, rotation.y, rotation.z);
 
+                totalPlinthWidth += model.userData.PLINTH_WIDTH
+
                 plinthParent.add(model);
             });
+
+            try {
+                plinthActions.front.plinthWidth = totalPlinthWidth
+            }
+            catch (e) {
+                console.error(`Ошибка метода << createPlinthMesh >> ${e}`)
+            }
 
             return;
         }
@@ -105,12 +116,19 @@ export class PlinthBuilder {
             const plinthWidth = startSize - config.widthOffset;
 
             const model = this.createPlinth({ width: plinthWidth, plinthProd, plinthModel, material, startPosition, key, legsHeight });
+
+
             model.position.set(config.posX, startPosition.y, config.posZ);
             model.rotation.set(0, config.rotY, 0);
-            // PLINTH_MESH.push(model)
-            model.visible = item.value;
+
+            model.visible = item.value
+            item.plinthWidth = model.userData.PLINTH_WIDTH
+
+
             plinthParent.add(model);
         });
+
+        plinthParent.userData.PLINTH_LIST = plinthList
     }
 
     private createPlinth({
@@ -139,6 +157,12 @@ export class PlinthBuilder {
         model.name = 'PLINTH';
         model.userData.type = key || 'front'
         model.position.setY(startPosition.y);
+
+        const aabb = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        aabb.getSize(size);
+        model.userData.PLINTH_WIDTH = size.x
+
         return model;
     }
 

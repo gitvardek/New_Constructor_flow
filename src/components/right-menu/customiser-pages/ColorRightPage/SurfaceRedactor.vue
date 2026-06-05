@@ -133,13 +133,13 @@ const changeFasadeTexture = (data: { [key: string]: any }, id, fasadeNdx) => {
 };
 
 const onSearchChange = (e) => {
-  let reg = new RegExp(`${e.target.value.toLowerCase()}`, "g");
-  let filteredData = totalMaterialList.value.filter((id) =>
-    reg.test(_FASADE[id].NAME.toLowerCase()),
-  );
-
-  filteredMaterialList.value = filteredData;
-  if (e.target.value === "") filteredMaterialList.value = [];
+  const query = e.target.value.trim();
+  if (!query) { filteredMaterialList.value = []; return; }
+  const words = query.toLowerCase().split(/\s+/);
+  filteredMaterialList.value = totalMaterialList.value.filter((id) => {
+    const name = _FASADE[id].NAME.toLowerCase();
+    return words.every((word) => name.includes(word));
+  });
 };
 
 const checkTransitionTexture = (id: number) => {

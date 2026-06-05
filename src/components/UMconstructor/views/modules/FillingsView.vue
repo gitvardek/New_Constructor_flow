@@ -92,12 +92,13 @@ const isSearch = computed(() => {
   return filteredMaterialList.value.length > 0;
 });
 const onSearchChange = (e, totalMaterialList) => {
-  let reg = new RegExp(`${e.target.value.toLowerCase()}`, "g");
-  filteredMaterialList.value = totalMaterialList.filter((item) =>
-    reg.test(item.NAME.toLowerCase()),
-  );
-
-  if (e.target.value === "") filteredMaterialList.value = [];
+  const query = e.target.value.trim();
+  if (!query) { filteredMaterialList.value = []; return; }
+  const words = query.toLowerCase().split(/\s+/);
+  filteredMaterialList.value = totalMaterialList.filter((item) => {
+    const name = item.NAME.toLowerCase();
+    return words.every((word) => name.includes(word));
+  });
 };
 
 const openFasadeSelector = (

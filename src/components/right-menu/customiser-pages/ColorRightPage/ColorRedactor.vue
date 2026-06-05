@@ -46,12 +46,13 @@ const changePaletteColor = (color) => {
 };
 
 const onSearchChange = (e) => {
-  let reg = new RegExp(`${e.target.value.toLowerCase()}`, "gm");
-  let filtered = Object.values(props.paletteList).filter((color) =>
-    reg.test(color.NAME.toLowerCase())
-  );
-  filteredPaletteList.value = filtered;
-  if (e.target.value === "") filteredPaletteList.value = [];
+ const query = e.target.value.trim();
+  if (!query) { filteredPaletteList.value = []; return; }
+  const words = query.toLowerCase().split(/\s+/);
+  filteredPaletteList.value = Object.values(props.paletteList).filter((color) => {
+    const name = color.NAME.toLowerCase();
+    return words.every((word) => name.includes(word));
+  });
 };
 </script>
 

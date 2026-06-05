@@ -1,6 +1,8 @@
 //@ts-nocheck
 import { IBasket, IBasketFacade } from "@/types/basket";
+import { TTotalProps, PLINTH_ACTIONS } from "@/types/types";
 import { useAppData } from "@/store/appliction/useAppData"
+import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
 
 
 const appDataStore = useAppData()
@@ -548,7 +550,52 @@ function removeEmptyObjects(obj) {
   return result;
 }
 
-export function createBasketItem(objProps: any, index: number, key: any = ''): IBasket {
+function createPlinthData(filteredData: TTotalProps) {
+
+  const emptyPlinthID = 70096
+  const { getGlobalOptions } = useRoomOptions()
+  const plinthID = getGlobalOptions?.plinth?.id
+  const plinthSurfase = getGlobalOptions?.plinth?.plinthSurfase
+
+
+  console.log(getGlobalOptions?.plinth)
+
+  if (!filteredData) return;
+
+
+  const plinthLengsDefault = 4000
+  const plinth = filteredData.map(([key, obj]: [string, TTotalProps]) => {
+    const data = obj.data
+    if (!data) return
+    const { CONFIG: { PLINTH_ACTIONS } } = data
+    let totalWidth = 0
+    for (let el in PLINTH_ACTIONS) {
+      if (PLINTH_ACTIONS[el].value) {
+        totalWidth += PLINTH_ACTIONS[el].plinthWidth
+      }
+    }
+
+    return totalWidth
+
+  }).filter(Boolean)
+
+  const globalWidth = plinth.reduce((total, amount) => total + amount, 0);
+  const count = Math.ceil(globalWidth / plinthLengsDefault)
+
+  if (count > 0 && plinthID !== emptyPlinthID) {
+    return {
+      PRODUCT: plinthID,
+      PROPS: { COLOR: plinthSurfase },
+      QUANTITY: count,
+      BASKETID: 10001,
+      TYPE: "scene"
+    }
+  }
+  return null
+
+}
+
+export function createBasketItem(objProps: TTotalProps, index: number, key: any = ''): IBasket {
 
   const props: any = {};
 
@@ -687,6 +734,25 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
       TYPE: "scene",
     };
   }
+}
+
+export function createGlobalData(filteredData: TTotalProps) {
+
+  /**
+   *  Создание общей data для плинтусов
+   */
+  const totalData = new Array
+
+  const { getGlobalOptions } = useRoomOptions()
+  const plinth = getGlobalOptions?.plinth?.id
+
+
+  const plinthData = createPlinthData(filteredData)
+
+  if (plinthData) totalData.push(plinthData)
+
+  return totalData
+
 }
 
 // Определения свойств (перенесено из Angular кода)

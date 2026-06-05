@@ -71,13 +71,13 @@ const changeMilling = (milling) => {
 };
 
 const onSearchChange = (e) => {
-  const query = e.target.value.toLowerCase();
-  const filteredData = props.millingList.filter(
-    (item) => item.NAME.toLowerCase().includes(query) // Проверяем, содержит ли имя запрос
-  );
-
-  filteredMillingList.value = filteredData;
-  if (e.target.value === "") filteredMillingList.value = [];
+  const query = e.target.value.trim();
+  if (!query) { filteredMillingList.value = []; return; }
+  const words = query.toLowerCase().split(/\s+/);
+  filteredMillingList.value = props.millingList.filter((item) => {
+    const name = item.NAME.toLowerCase();
+    return words.every((word) => name.includes(word));
+  });
 };
 </script>
 

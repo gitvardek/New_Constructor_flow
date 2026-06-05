@@ -115,11 +115,9 @@ const filterCatalog = (type) => {
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const onSearchChange = (e: Event) => {
-  const value = e.target.value.trim();
+  const query = e.target.value.trim();
 
-  clearTimeout(debounceTimeout);
-
-  if (!value) {
+  if (!query) {
     filteredProductList.value = [];
     return;
   }
@@ -129,13 +127,13 @@ const onSearchChange = (e: Event) => {
     customiserStore.hideCustomiserPopup();
   }
 
-  debounceTimeout = setTimeout(() => {
-    const reg = new RegExp(value.toLowerCase(), "g");
-    const filteredData = Object.values(_PRODUCTS).filter((prod) =>
-      reg.test(prod.NAME.toLowerCase()),
-    );
-    filteredProductList.value = filteredData;
-  }, 400);
+  const words = query.toLowerCase().split(/\s+/);
+  const filteredData = Object.values(_PRODUCTS).filter((prod) => {
+    const name = prod.NAME.toLowerCase();
+    return words.every((word) => name.includes(word));
+  })
+  filteredProductList.value = filteredData;
+
 };
 
 const clearSearch = () => {

@@ -79,6 +79,8 @@ export class EdgeBuilder {
             }
         })
 
+        object.matrix.decompose(edgeBody.position, edgeBody.quaternion, edgeBody.scale)
+
         edgeBody.userData.edge = true
         edgeBody.visible = false
         return edgeBody
@@ -101,6 +103,8 @@ export class EdgeBuilder {
                 }
             }
         })
+
+        object.matrix.decompose(edgeBody.position, edgeBody.quaternion, edgeBody.scale)
 
         return edgeBody
     }
