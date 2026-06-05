@@ -963,6 +963,8 @@ const renderDescription = (data) => {
           // Для каждой двери перебираем её части (обычно только часть "1")
           for (const [partNumber, partData] of Object.entries(doorData)) {
 
+            if (partData) continue
+
             const { CATALOG } = appData.value
 
             if (CATALOG[getPropDefinition(key)?.type]) continue
