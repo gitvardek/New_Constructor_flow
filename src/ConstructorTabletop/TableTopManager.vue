@@ -515,7 +515,6 @@ const checkProfileDisablegroups = (keepValues = true) => {
   if (!keepValues) {
     const newProfileIds = new Set(curProfileServise.map((s) => s.ID));
     tempUslugi.value.forEach((usluga) => {
-      console.log(usluga, 'usluga')
 
       if (!newProfileIds.has(usluga.ID) || parseInt(usluga.separated) !== 0) {
         usluga.value = false;
@@ -572,7 +571,6 @@ const convertServisData = (value, item) => {
 /** @Обновляет_значение_глобального_сервиса (для всех ячеек и в USLUGI) */
 
 const updateGlobalService = (value, item, USLUGI) => {
-  console.log('GLOBAL')
 
   grid.value.forEach((column) =>
     column.forEach((row) => {
@@ -587,14 +585,11 @@ const updateGlobalService = (value, item, USLUGI) => {
     globalService.value = value;
   }
 
-  console.log(tempUslugi.value, "tempUslugi.value");
 };
 
 /** @Обновляет_локальный_сервис_в_текущей_секции_с_логикой_позиционирования */
 
 const updateLocalService = (value, item) => {
-  console.log('LOCAL')
-
   const currentSection = getCurrentSection.value;
   if (!currentSection?.currentRow?.serviseData) return;
 
@@ -1036,8 +1031,6 @@ const createServiseData = () => {
     return acc;
   }, []);
 
-  console.log(convertParams, "convertParams");
-
   return convertParams;
 };
 
@@ -1079,8 +1072,6 @@ const saveProfile = () => {
   PROPS.CONFIG.USLUGI = tempUslugi.value;
   PROPS.CONFIG.PROFILE = tempProfile.value;
   PROPS.CONFIG.KROMKA = getCurrentKromkaId();
-
-  console.log(PROPS, 'AFTER SAVE')
 
 };
 
@@ -1134,10 +1125,6 @@ defineExpose({
 });
 
 onBeforeMount(() => {
-  console.log(
-    modelState.getCurrentRaspilParent,
-    "==== getCurrentRaspilParent ====",
-  );
 
   const parent = modelState.getCurrentRaspilParent;
   const { PROPS } = parent.userData;
@@ -1155,7 +1142,7 @@ onBeforeMount(() => {
 });
 
 onMounted(() => {
-  console.log(tempUslugi.value, 'УСЛУГИ')
+
 
   shapeAdjuster = new ShapeAdjuster();
   createServiseData();
@@ -1167,10 +1154,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  console.log(
-    modelState.getCurrentRaspilParent,
-    "==== getCurrentRaspilParent ====",
-  );
 
 
   tempProfile.value = null;

@@ -85,9 +85,6 @@ export default class FillingsManager {
         const { MAX_SECTION_WIDTH, MIN_SECTION_WIDTH } = this.scope.CONST
         const section = grid.sections[sec];
 
-        console.log(grid)
-        console.log(section, 'updateFilling')
-
         if (!section) return
 
 

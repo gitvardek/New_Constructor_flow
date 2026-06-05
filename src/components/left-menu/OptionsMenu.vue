@@ -115,11 +115,11 @@ const filterCatalog = (type) => {
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const onSearchChange = (e: Event) => {
-  const value = e.target.value.trim();
+  const query = e.target.value.trim();
 
-  clearTimeout(debounceTimeout);
 
-  if (!value) {
+
+  if (!query) {
     filteredProductList.value = [];
     return;
   }
@@ -129,13 +129,14 @@ const onSearchChange = (e: Event) => {
     customiserStore.hideCustomiserPopup();
   }
 
-  debounceTimeout = setTimeout(() => {
-    const reg = new RegExp(value.toLowerCase(), "g");
-    const filteredData = Object.values(_PRODUCTS).filter((prod) =>
-      reg.test(prod.NAME.toLowerCase()),
-    );
-    filteredProductList.value = filteredData;
-  }, 400);
+
+  const words = query.toLowerCase().split(/\s+/);
+  const filteredData = Object.values(_PRODUCTS).filter((prod) => {
+    const name = prod.NAME.toLowerCase();
+    return words.every((word) => name.includes(word));
+  })
+  filteredProductList.value = filteredData;
+
 };
 
 const clearSearch = () => {
@@ -187,11 +188,7 @@ onUnmounted(() => {
             <div class="radial-sphere"></div>
           </div> -->
 
-          <div
-            class="goods-item"
-            :class="{ active: menuStore.openMenus == 'roomPar' }"
-            @click="showRoomParMenu"
-          >
+          <div class="goods-item" :class="{ active: menuStore.openMenus == 'roomPar' }" @click="showRoomParMenu">
             <!-- <S2DAppartSVG class="goods-item__image" /> -->
             <p class="goods-item__title">Параметры помещения</p>
             <!-- <div class="radial-sphere"></div> -->
@@ -208,13 +205,7 @@ onUnmounted(() => {
           <div class="radial-sphere"></div>
         </div>
 
-        <input
-          ref="productSerch"
-          class="search"
-          type="text"
-          placeholder="Поиск"
-          @input="onSearchChange"
-        />
+        <input ref="productSerch" class="search" type="text" placeholder="Поиск" @input="onSearchChange" />
         <!-- <MainSelect
           v-model="selectedSectionType"
           :options="catalogSectionsType"
@@ -229,15 +220,12 @@ onUnmounted(() => {
           <template #params="{ onToggle }">
             <ul class="list__details_content">
               <li v-for="(section, key) in catalogSectionsType" :key="key">
-                <div
-                  class="list__item"
-                  @click="
-                    () => {
-                      selectCatalog(key);
-                      onToggle();
-                    }
-                  "
-                >
+                <div class="list__item" @click="
+                  () => {
+                    selectCatalog(key);
+                    onToggle();
+                  }
+                ">
                   <p class="list__name">{{ catalogSectionsType[key] }}</p>
                 </div>
               </li>
@@ -246,17 +234,11 @@ onUnmounted(() => {
         </Accordion>
 
         <div class="goods">
-          <div
-            v-for="(item, index) in filteredCatalogSections"
-            :key="index"
-            class="goods-item"
-            :class="{
-              active:
-                menuStore.openMenus == 'tech' &&
-                item.ID === menuStore.menuContentsByID,
-            }"
-            @click="showTechMenu(item.ID, item.PRODUCTS)"
-          >
+          <div v-for="(item, index) in filteredCatalogSections" :key="index" class="goods-item" :class="{
+            active:
+              menuStore.openMenus == 'tech' &&
+              item.ID === menuStore.menuContentsByID,
+          }" @click="showTechMenu(item.ID, item.PRODUCTS)">
             <!-- <S2DAppartSVG class="goods-item__image" /> -->
             <p class="goods-item__title">{{ item.NAME }}</p>
             <!-- <div class="radial-sphere"></div> -->
@@ -265,17 +247,11 @@ onUnmounted(() => {
       </div>
     </div>
     <transition name="slide--left">
-      <PopUpOptionsMenu
-        :filteredData="filteredProductList"
-        v-if="menuStore.openMenus == 'tech'"
-        @close-menu="clearSearch"
-      />
+      <PopUpOptionsMenu :filteredData="filteredProductList" v-if="menuStore.openMenus == 'tech'"
+        @close-menu="clearSearch" />
     </transition>
     <transition name="slide--left">
-      <RoomOptionsMenu
-        v-if="menuStore.openMenus == 'roomPar'"
-        ref="roomOptionsRef"
-      />
+      <RoomOptionsMenu v-if="menuStore.openMenus == 'roomPar'" ref="roomOptionsRef" />
     </transition>
   </section>
 </template>
@@ -292,24 +268,30 @@ onUnmounted(() => {
   background-color: $bg;
   // transform-style: preserve-3d;
   z-index: 1;
+
   &-design {
     z-index: 10;
     display: flex;
     flex-direction: column;
     gap: 5px;
+
     &--list {
-      height: 100vh; /* или height: calc(100vh - высота_хедера) */
+      height: 100vh;
+      /* или height: calc(100vh - высота_хедера) */
       overflow: hidden;
     }
   }
+
   &__title {
     margin-bottom: 10px;
   }
+
   &-group {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
+
   &-item {
     height: 50px;
     position: relative;
@@ -318,6 +300,7 @@ onUnmounted(() => {
     gap: 25px;
     cursor: pointer;
     padding: 0 15px;
+
     &__title {
       z-index: 5;
       transition: 0.15s;
@@ -338,6 +321,7 @@ onUnmounted(() => {
       }
     }
   }
+
   &__container {
     display: flex;
     flex-direction: column;
@@ -347,6 +331,7 @@ onUnmounted(() => {
     background: $bg;
     transform-style: preserve-3d;
     overflow: hidden;
+
     .room {
       display: flex;
       gap: 15px;
@@ -367,7 +352,7 @@ onUnmounted(() => {
         box-shadow: 0px 0px 10px 0px #3030301a;
         z-index: 1;
         border-radius: 15px;
-    
+
 
         &__container {
           display: flex;
@@ -516,7 +501,8 @@ onUnmounted(() => {
 .goods {
   display: flex;
   flex-direction: column;
-  flex: 1; /* занимает всё оставшееся место */
+  flex: 1;
+  /* занимает всё оставшееся место */
   gap: 0.3rem;
   overflow-y: auto;
   min-height: 0;
@@ -532,7 +518,7 @@ onUnmounted(() => {
     transition: 0.15s ease-in-out;
 
     &__title {
-        font-size: 1.4rem;
+      font-size: 1.4rem;
       z-index: 5;
       transition: 0.15s;
     }
@@ -567,13 +553,14 @@ onUnmounted(() => {
 
     @media (hover: hover) {
       &:hover {
-         background-color:$red;
-         color: $white;
+        background-color: $red;
+        color: $white;
       }
     }
 
     &.active {
-       background-color:$red;
+      background-color: $red;
+
       .goods-item__title {
         color: $white;
       }
@@ -622,8 +609,7 @@ onUnmounted(() => {
   transition: 0.15s;
 }
 
-.accordion{
+.accordion {
   padding: 1rem 1.5rem;
 }
-
 </style>

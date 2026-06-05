@@ -67,8 +67,6 @@ export class Filters extends GlobalsData {
 
         FASADE_PROPS.length = 0;
 
-        console.log(product.HANDLES, 'product')
-
         let sortFasadePositionList = [];
 
         const fasadePositionList = product.FASADE_POSITION
@@ -91,8 +89,6 @@ export class Filters extends GlobalsData {
         const defaultHandleId = handleExists && !handleIncluded
             ? this.emptyHandleID
             : roomOptions.handles.id;
-
-        console.log(defaultHandleId, 'defaultHandleId')
 
         const hasDrower = fasadeSorted.some(el => {
             return this._FASADE_POSITION[el].drawer
@@ -172,9 +168,6 @@ export class Filters extends GlobalsData {
             const sizes = fasade.FASADE_SIZE ?? null
             const sizesData = this._FASADESIZE[sizes]
             const ismanualSizes = this._FASADESIZE[sizes]?.NAME.includes("Нестандарт")
-
-
-            console.log(ismanualSizes, this._FASADESIZE[sizes], "Нестандарт")
 
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
@@ -341,15 +334,12 @@ export class Filters extends GlobalsData {
         const uslugi = getFilteredData(product_uslugi)
         const profile = getFilteredData(product_data.profile, true)
 
-        console.log(profile)
-
         return { uslugi, profile }
 
     }
 
     filterOption(option: number[]) {
 
-        console.log('OOOOOO')
 
         let curOptionsList = option
             .map(el => this._OPTION[el])

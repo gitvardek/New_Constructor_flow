@@ -669,7 +669,9 @@ export default class UMconstructorClass {
 
             /** @Для_Распашного_класса */
 
-            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID && moduleGrid.sections.length > 1) {
+            //moduleGrid.sections.length > 1
+
+            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID ) {
                 const equalWidth = Math.floor(sectionsTotalWidth / moduleGrid.sections.length);
                 const remainder = sectionsTotalWidth - equalWidth * moduleGrid.sections.length;
                 moduleGrid.sections.forEach((section, i) => {

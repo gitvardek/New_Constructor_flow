@@ -41,8 +41,6 @@ onBeforeMount(() => {
     Plinth: Object.values(createPlinthData()).length > 0,
   };
 
-  console.log(checkExist, '=== checkExist ===')
-
   prepareTabData.value = figureItems.filter((el) => {
     if (checkExist[el.name as keyof TexistItem]) {
       return el;

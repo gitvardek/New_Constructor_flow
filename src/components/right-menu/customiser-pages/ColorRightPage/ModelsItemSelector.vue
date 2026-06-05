@@ -53,7 +53,6 @@ const prepareData = () => {
     ? Object.values(modelState._WALL)
     : modelState.getCurrentModuleData;
 
-  console.log(materialList.value, "materialList.value");
 
   fasadeList.value =
     modelState.getCurrentModel.userData.PROPS.CONFIG.FASADE_PROPS;

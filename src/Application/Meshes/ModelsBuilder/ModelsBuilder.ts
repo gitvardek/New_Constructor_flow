@@ -46,8 +46,6 @@ export class ModelsBuilder {
         const path = url ?? modelData.file ?? modelData.DAE
         const PROD = this.parent._PRODUCTS[props.PRODUCT]
 
-        console.log(modelData)
-
         let normolized;
 
         let model;
@@ -69,7 +67,6 @@ export class ModelsBuilder {
 
                 const checkResizes = props.CONFIG.SIZE_EDIT ? Object.values(props.CONFIG.SIZE_EDIT).some(value => value !== null) : false
 
-                console.log(checkResizes)
 
                 const editSize = checkResizes || UMFillinig || forceContentSizeScale
                     ? props.CONFIG.SIZE
@@ -123,7 +120,7 @@ export class ModelsBuilder {
 
                 const edge = this.parent.edge_builder.createEdge(normolized)
                 const deffEdge = this.parent.edge_builder.createVisibleEdge(normolized)
-                normolized.add(edge, deffEdge)
+                normolized.add(edge)
 
                 if (onLoad) {
                     onLoad(normolized)
@@ -169,7 +166,7 @@ export class ModelsBuilder {
         box.getCenter(center)
 
         if (params.width || params.height || params.depth) {
-            console.log('params')
+
             this.changeModelScale(model, new THREE.Vector3(
                 params.width || params.scale || 1,
                 params.height || params.scale || 1,
@@ -177,14 +174,14 @@ export class ModelsBuilder {
         }
 
         else if (size) {
-            console.log('size', size)
+
             this.changeModelScale(model, new THREE.Vector3(
                 size.width || params.scale || 1,
                 size.height || params.scale || 1,
                 size.depth || params.scale || 1))
         }
         else {
-            console.log('else')
+
             model.scale.x = model.scale.y = model.scale.z = params.scale;
         }
         return model;

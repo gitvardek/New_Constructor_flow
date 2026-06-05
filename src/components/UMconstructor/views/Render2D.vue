@@ -1209,8 +1209,6 @@ const createFilling = (data, sector) => {
   let sectorXMMPos = getMmWidth(sector.position.x);
   let sectorYMMPos = getMmHeight(sector.position.y);
 
-  console.log(sectorXMMPos, '<<<<sectorXMMPos>>>>')
-
   if (
     !data.isProfile &&
     !data.isVerticalItem &&
@@ -1874,8 +1872,6 @@ function onHorizontalDragStart(event) {
   // event.stopPropagation();
 
   const module = props.module;
-  console.log(module, 'onHorizontalDragStart module')
-
   // event.stopPropagation();
   cursorCheck = true;
   const sectionIndex = this.section;

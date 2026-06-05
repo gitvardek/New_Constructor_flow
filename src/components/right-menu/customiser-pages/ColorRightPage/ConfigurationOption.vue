@@ -30,7 +30,7 @@ let title = computed(() => {
     patina: "Цвет патины",
     glass: "Цвет стекла",
     Handles: "Ручка",
-    showcase:"Витрина",
+    showcase: "Витрина",
     profile: "Профиль",
     toptable: "Столешница",
   };
@@ -72,27 +72,16 @@ const deleteChoise = (event) => {
 <template>
   <div :class="`config ${props.additionalClass}`" @click="chooseOption">
     <div class="config__top">
-      <img
-        v-if="props.type !== 'palette'"
-        class="config__img"
-        :src="imgSrc"
-        alt=""
-      />
-      <div v-else @click="chooseOption">
-        <img v-if="!isColorChosed" class="config__img" :src="imgSrc" alt="" />
-        <div
-          v-else
-          class="config__color"
-          :style="{ backgroundColor: `#${props.data?.hex}` }"
-        ></div>
+      <!-- <p class="config__top_segment">surface</p> -->
+      <div class="config__top_img">
+        <img v-if="props.type !== 'palette'" class="config__img" :src="imgSrc" alt="" />
+        <div v-else @click="chooseOption">
+          <img v-if="!isColorChosed" class="config__img" :src="imgSrc" alt="" />
+          <div v-else class="config__color" :style="{ backgroundColor: `#${props.data?.hex}` }"></div>
+        </div>
+        <img v-if="!props.disableDeleteChoice" class="config__delete" :src="delete_url" alt="" @click="deleteChoise" />
       </div>
-      <img
-        v-if="!props.disableDeleteChoice"
-        class="config__delete"
-        :src="delete_url"
-        alt=""
-        @click="deleteChoise"
-      />
+
     </div>
     <div class="config__bottom">
       <div>
@@ -115,7 +104,8 @@ const deleteChoise = (event) => {
 
   max-width: 8.5rem;
   // max-height: 200px;
-  padding: 0.5rem;;
+  padding: 0.5rem;
+  ;
   gap: 0.3rem;
   border-radius: 15px;
   box-shadow: 4px 4px 4px 4px rgba(34, 60, 80, 0.11);
@@ -138,10 +128,19 @@ const deleteChoise = (event) => {
 
   &__top {
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 0.25rem;
+
     // max-height: 50%;
     width: 100%;
+
+    &_img {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      // max-height: 50%;
+      width: 100%;
+    }
   }
 
   &__bottom {
@@ -206,5 +205,4 @@ const deleteChoise = (event) => {
   pointer-events: none;
   background-color: rgba(228, 140, 140, 0.133);
 }
-
 </style>

@@ -220,8 +220,6 @@ export const useOptions = () => {
             return el.COLOR
         })
 
-        console.log()
-
         const result = filterGroups(options, prepareColorId, props)
 
         return result
@@ -236,11 +234,9 @@ export const useOptions = () => {
 
         let filtered = []
 
-        console.log(curOptions, 'curOptions')
-
         const curOptionsList = curOptions
             .map(el => {
-                if (!el) return
+                 if (!options[el.id]) return
                 const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
                 const cutSize = getCutSizeOption(el, cloneOption)
 
@@ -316,8 +312,6 @@ export const useOptions = () => {
                 }
 
                 if (props) {
-                    console.log('PRRR')
-
                     const curOptionInConfig = props.find(el => el.id === item.ID)
 
                     if (curOptionInConfig) {

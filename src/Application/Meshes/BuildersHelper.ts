@@ -7,6 +7,7 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { GlobalsData } from './Utils/Globals'
 import { CUTTER_PARAMS } from "@/ConstructorTabletop/CutterScripts/CutterConst"
 import { label, userData } from 'three/webgpu'
+import { useToast } from "@/features/toaster/useToast"
 export class BuildersHelper extends GlobalsData {
 
     resources: THREETypes.TResources
@@ -131,7 +132,6 @@ export class BuildersHelper extends GlobalsData {
         size.height ||= parseFloat(resolvedHeight);
         size.depth ||= parseFloat(productData.depth);
 
-        console.log(size, ' == Size ==')
 
         return size;
     }
@@ -277,30 +277,39 @@ export class BuildersHelper extends GlobalsData {
                 material.needsUpdate = true;
 
             }
+        }).catch(() => {
+            material.map = null;
+            material.color = new THREE.Color(0xffffff);
+            material.needsUpdate = true;
+            useToast().warning('Текстура временно недоступна');
         });
     }
 
 
     public async getMaterial({ material, url, texture_size }: { material: any, url: string, texture_size?: THREETypes.TObject }) {
-        const loadedMaterial = await this.resources.startLoading(url, 'texture', (file) => {
-            console.log(file)
-
-            if (file instanceof THREE.Texture) {
-                file.colorSpace = THREE.SRGBColorSpace
-                material.map = file
-                if (texture_size) {
-                    material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
-                    material.map.repeat.set(
-                        1 / texture_size.width,
-                        1 / texture_size.height
-                    );
-                    material.map.offset.set(0.5, 0.5);
+        try {
+            const loadedMaterial = await this.resources.startLoading(url, 'texture', (file) => {
+                if (file instanceof THREE.Texture) {
+                    file.colorSpace = THREE.SRGBColorSpace
+                    material.map = file
+                    if (texture_size) {
+                        material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
+                        material.map.repeat.set(
+                            1 / texture_size.width,
+                            1 / texture_size.height
+                        );
+                        material.map.offset.set(0.5, 0.5);
+                    }
+                    material.needsUpdate = true;
                 }
-                material.needsUpdate = true;
-
-            }
-        });
-        return loadedMaterial
+            });
+            return loadedMaterial;
+        } catch {
+            material.map = null;
+            material.color = new THREE.Color(0xffffff);
+            material.needsUpdate = true;
+            useToast().warning('Текстура временно недоступна');
+        }
     }
 
     public createNishaMaterial(url, size, comand) {

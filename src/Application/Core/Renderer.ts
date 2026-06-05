@@ -99,9 +99,9 @@ export class Renderer {
 
             // this.instance.receiveShadow = true;
 
-            // this.instance.toneMapping = THREE.ReinhardToneMapping;
+            this.instance.toneMapping = THREE.ReinhardToneMapping;
             // this.instance.toneMapping = THREE.AgXToneMapping;
-            this.instance.toneMapping = THREE.NeutralToneMapping
+            // this.instance.toneMapping = THREE.NeutralToneMapping
             // this.instance.toneMapping = THREE.ACESFilmicToneMapping;
             // this.instance.toneMapping = THREE.LinearToneMapping;
             // this.instance.toneMapping = THREE.NoToneMapping;

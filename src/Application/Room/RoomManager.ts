@@ -104,8 +104,6 @@ export class RoomManager extends Room {
                 const box = new THREE.Box3().setFromObject(object);
                 const boxTop = new THREE.Box3().setFromObject(object);
 
-                console.log(object, 'objectobjectobject')
-
                 box.max.y = 3000;
                 box.min.y = 0
 
@@ -452,7 +450,6 @@ export class RoomManager extends Room {
         const size = model.size ?? '';
 
         if (!this._PRODUCTS[model.id]) {
-            console.log(`❌ Товара c ID:${model.id} нет в списке PRODUCTS`)
             return 1
         }
         try {

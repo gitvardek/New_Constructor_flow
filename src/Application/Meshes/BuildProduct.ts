@@ -139,6 +139,7 @@ export class BuildProduct extends BuildersHelper {
             }
 
             // const um_params = this.um_sample.UM_LIST[product_data.ID] ? JSON.parse(JSON.stringify(this.um_sample.UM_LIST[product_data.ID])) : null
+            //TO DO Вынести на сторону БД
             const um_params = await this.um_sample.example(product_data.ID)
                 .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
                 .catch(() => null);
@@ -236,8 +237,6 @@ export class BuildProduct extends BuildersHelper {
 
         // const aabb = new THREE.Box3().setFromObject(parent_group);
         // const obb = new OBB().fromBox3(aabb);
-
-        console.log(product, '<<<<<<product>>>>>>')
 
         const aabb = product?.userData.aabb;
         const obb = product?.userData.obb;
@@ -505,9 +504,8 @@ export class BuildProduct extends BuildersHelper {
         parts.forEach(([part, y]) => {
             if (!part) return;
             part.position.y = y;
-        });
 
-        console.log(body, ' === body ===')
+        });
 
         if (body) {
             body.position.set(move.x, baseY, move.z);
@@ -544,7 +542,6 @@ export class BuildProduct extends BuildersHelper {
 
         if (drowMode) this.useEdgeBuilder.drawingMode(drowMode, total);
 
-        console.log(isTopTable, '<<<<isTopTable>>>>')
         total.userData.isTopTable = isTopTable
 
         return total;
@@ -598,8 +595,6 @@ export class BuildProduct extends BuildersHelper {
             : resolveColorId();
 
         CONFIG.MODULE_COLOR = isRoomElement ? wallTextureId : moduleColorId;
-
-        console.log(moduleColorId, '❌ === isRoomElement === ❌')
 
         const moduleColorObject = isRoomElement ?
             this._WALL[wallTextureId] :

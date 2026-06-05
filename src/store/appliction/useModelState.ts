@@ -373,14 +373,10 @@ export const useModelState = defineStore('ModelState', () => {
         const exception = _FASADE_EXCEPTIONS.value[productId]
         let haveShowCase = null;
 
-        console.trace()
-
         if (fasadeNdx !== undefined && productId) {
 
             let fasadePosData = null;
             const product = _PRODUCTS.value[productId]
-
-            console.log(product, 'product')
 
             if (!product.FASADE_POSITION || product.FASADE_POSITION.length == 0) {
                 return []
@@ -426,6 +422,7 @@ export const useModelState = defineStore('ModelState', () => {
                         MAX_WIDTH: isUM ? (isSlideDoor ? UM_PARAMS.MAX_SLIDE_DOOR_WIDTH : UM_PARAMS.MAX_FASADE_WIDTH) : restrict ? _FASADE_SIZE_RESTRICT.value[section.ID].SIZE_RESTRICT.WIDTH : Infinity,
                         MIN_HEIGHT: restrict ? _FASADE_SIZE_RESTRICT.value[section.ID].SIZE_RESTRICT.MIN_HEIGHT : -Infinity,
                         MIN_WIDTH: isUM ? (isSlideDoor ? UM_PARAMS.MIN_SLIDE_DOOR_WIDTH : UM_PARAMS.MIN_FASADE_WIDTH) : restrict ? _FASADE_SIZE_RESTRICT.value[section.ID].SIZE_RESTRICT.MIN_WIDTH : -Infinity,
+                        
                     },
                 };
             }
@@ -471,8 +468,6 @@ export const useModelState = defineStore('ModelState', () => {
 
             const isFiltered = handler ? filterByFasadesArray(result, fasadeIds) : result
 
-            console.log(result, isFiltered, handler, fasadeNdx,  'OOOPPP')
-
             currentModelFasadesData.value = isFiltered
             return isFiltered
         }
@@ -481,7 +476,6 @@ export const useModelState = defineStore('ModelState', () => {
             return result
         }
 
-        console.log(result)
         currentModelFasadesData.value = result
     }
 
@@ -543,8 +537,6 @@ export const useModelState = defineStore('ModelState', () => {
     /** Фрезеровки */
     const createCurrentMillingData = ({ fasadeId, productId, fasadeNdx, fasadeSize }): TMillingListItem[] | [] => {
 
-        console.log(fasadeSize, 'fasadeSize')
-
         let result = []
         if (fasadeId == 7397) {
             currentMillingData.value = []
@@ -589,8 +581,6 @@ export const useModelState = defineStore('ModelState', () => {
 
             if (millingConversations && fasadeSize) {
 
-                console.log(result, '1')
-
                 const checkedMillingConversation = millingConversationFilter(fasadeSize, millingConversations);
 
                 if (checkedMillingConversation) {
@@ -607,9 +597,6 @@ export const useModelState = defineStore('ModelState', () => {
 
             return result
         }
-
-        console.log('3')
-
         currentMillingData.value = result
         return result
     }

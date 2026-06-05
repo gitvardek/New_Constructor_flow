@@ -48,6 +48,9 @@ export const BasketService = {
    * @returns Promise<BasketResponse>
    */
   async getBasket(newBasket: NewBasketRequest): Promise<BasketResponse> {
+
+    console.log(newBasket, 'newBasket')
+
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
     
     try {
@@ -64,6 +67,8 @@ export const BasketService = {
           timeout: REQUEST_TIMEOUT,
         }
       );
+
+
 
       return data;
     } catch (error) {
@@ -154,7 +159,7 @@ export const BasketService = {
       );
 
       // Проверяем успешный ответ и наличие токена
-      console.log('123213', data.DATA.token)
+
       if (data.DATA && data.DATA.type === "success" && data.DATA.token) {
         // Сохраняем токен в cookie
 

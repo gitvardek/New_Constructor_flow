@@ -358,8 +358,6 @@ watch(
   () => {
     selectedFilling.value =
       UMconstructor?.value?.UM_STORE.getSelected("fillings");
-
-    console.log(module.sections);
   },
 );
 

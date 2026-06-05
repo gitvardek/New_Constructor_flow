@@ -127,13 +127,13 @@ export class World {
         if (!this.roomState.getRoomId) {
             const roomId = Date.now().toString()
             // console.log('Комнаты ещё нет')
-            const contant = this.room!.save() as string[]
+            const content = this.room!.save() as string[]
 
             this.roomState.addRoom({
                 id: roomId, // Присваиваем id 
                 label: name ?? `Комната N:${this.roomState.rooms.length + 1}`,
-                params: this.roomState.getCurrentRoomParams as THREEInterfases.IWallSizes,
-                content: contant,
+                params: this.roomState.getCurrentRoomParams as THREEInterfaes.IWallSizes,
+                content: content,
                 basket: JSON.stringify({
                     scene: this.basketStore.mainConstructor,
                     catalog: this.basketStore.mainCatalog
@@ -149,7 +149,7 @@ export class World {
 
         // console.log('Комната уже существует')
 
-        const contant = this.room!.save() as string[]
+        const content = this.room!.save() as string[]
         const roomId = String(this.roomState.getRoomId)
         // const roomParams = this.roomState.getCurrentRoomData(roomId)?.size as THREEInterfases.IWallSizes
         const roomParams = this.roomState.getCurrentRoomParams as THREEInterfases.IWallSizes
@@ -157,7 +157,7 @@ export class World {
             scene: this.basketStore.mainConstructor,
             catalog: this.basketStore.mainCatalog
         })
-        this.roomState.updateRoom(roomId, contant, roomParams, basket)
+        this.roomState.updateRoom(roomId, content, roomParams, basket)
         const rooms = this.roomState.getRooms
         this.sceneState.updateProjectParams({ rooms: rooms })
 

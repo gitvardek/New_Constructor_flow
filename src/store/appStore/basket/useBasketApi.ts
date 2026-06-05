@@ -16,9 +16,6 @@ export function useBasketApi() {
     error.value = null
 
     try {
-
-      console.log(basketItems, 'basketItems')
-
       const request: BasketRequest = {
         BASKET: basketItems,
         // TYPE_PRICE: 25,

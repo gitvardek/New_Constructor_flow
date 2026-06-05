@@ -261,6 +261,8 @@
 
       <!-- Секция свойств товара тип УМ-->
       <div class="basket-item__props" v-else>
+
+
         <div style="list-style: none" v-for="(propValue, propKey) in renderDescription(item?.product.PROPS)"
           :key="propKey">
           <div v-if="Array.isArray(propValue.value)">
@@ -319,7 +321,8 @@
       <span>{{ item.product.allPriceOldFormat ?? 0 }}</span>
     </div>
 
-    <div class="basket-item__price basket-item__action">
+    <div class="basket-item__price basket-item__action" v-if="isNonDelete">
+
       <DeleteBasketButton @click="
         deleteProductInBusket(item.product.BASKETID, item?.product.TYPE)
         " />
@@ -332,7 +335,7 @@
 // @ts-nocheck
 import { useBasketStore } from "@/store/appStore/useBasketStore";
 import { useAppData } from "@/store/appliction/useAppData";
-import { ref, computed, onBeforeMount } from "vue";
+import { ref, computed, onBeforeMount, nextTick } from "vue";
 import DeleteBasketButton from "../ui/buttons/basket/DeleteBasketButton.vue";
 import axios from "axios";
 import InfoPopUp from "../popUp/InfoPopUp.vue";
@@ -344,6 +347,8 @@ import { BASE_DOMAIN } from "@/utils/originalDomain";
 
 // const API_URL = ref('https://dev.vardek.online');
 const API_URL = ref(`https://${BASE_DOMAIN}`);
+
+const hideDeleteList = ref<number[]>([10001, 10002])
 
 interface Props {
   item: any;
@@ -420,12 +425,18 @@ const getImageUrl = (imageName: string) => {
 
 // Вспомогательные функции
 const getPropDefinition = (key: string) => {
+
+  // console.log(key, 'key')
+  // console.log(propsLabel)
   return propsLabel[key as keyof typeof propsLabel];
 };
 
 const getPropLabel = (key: string) => {
   const propDef = getPropDefinition(key);
   if (!propDef) return "";
+
+  console.log(propDef, 'propDef')
+
   return propDef.type === "SIZES2"
     ? propDef.NAME
     : propDef.NAME + parsePropIndex(key);
@@ -597,8 +608,6 @@ const getTypeName = (
 ) => {
   // Получаем имя из store данных
   // console.log('data', appData.value, type, value, mainType);
-
-  console.log(index, "type");
 
   if (value && typeof value === "object" && value.NAME) {
     return value.NAME;
@@ -815,225 +824,248 @@ const getFilteredProps = (item) => {
   return filteredProps;
 };
 
-const renderDescription = (data) => {
-  const result = [];
-  const productId = props.item.product.ID;
-  const { MECHANISM } = appData.value;
+const renderDescription = computed(() => {
 
-  const textValue = (value) => {
-    const color = appData.value["FASADE"][value.COLOR]?.NAME;
-    const pallette = appData.value["PALETTE"][value.PALETTE]?.NAME;
-    const patina = appData.value["PATINA"][value.PATINA]?.NAME;
-    const glass = appData.value["GLASS"][value.GLASS]?.NAME;
-    const milling = appData.value["MILLING"][value.MILLING]?.NAME;
+  return (data) => {
+    const result = [];
+    const productId = props.item.product.ID;
+    const { MECHANISM } = appData.value;
 
-    const table = appData.value.CATALOG.PRODUCTS[value.TABLE]?.NAME;
-    if (table) {
-      const KROMKA = appData.value.HEM[value.KROMKA]?.NAME;
-      const PROFILE = appData.value.PROFILE.find(
-        (item) => item.PROFILE === value.PROFILE,
-      )?.NAME;
+    const textValue = (value) => {
+      const color = appData.value["FASADE"][value.COLOR]?.NAME;
+      const pallette = appData.value["PALETTE"][value.PALETTE]?.NAME;
+      const patina = appData.value["PATINA"][value.PATINA]?.NAME;
+      const glass = appData.value["GLASS"][value.GLASS]?.NAME;
+      const milling = appData.value["MILLING"][value.MILLING]?.NAME;
 
-      return `${table ?? ""} ${PROFILE ?? ""} ${KROMKA ?? ""}`;
-    }
+      const table = appData.value.CATALOG.PRODUCTS[value.TABLE]?.NAME;
+      if (table) {
+        const KROMKA = appData.value.HEM[value.KROMKA]?.NAME;
+        const PROFILE = appData.value.PROFILE.find(
+          (item) => item.PROFILE === value.PROFILE,
+        )?.NAME;
 
-    return `${color ?? ""} ${pallette ?? ""} ${patina ?? ""} ${milling ?? ""}`;
-  };
+        return `${table ?? ""} ${PROFILE ?? ""} ${KROMKA ?? ""}`;
+      }
 
-  if (data.DOORS) {
-    // Перебираем все двери
-    for (const [doorNumber, doorData] of Object.entries(data.DOORS)) {
-      // Для каждой двери перебираем её части (обычно только часть "1")
-      for (const [partNumber, partData] of Object.entries(doorData)) {
-        // Каждая часть может содержать несколько элементов (0, 1 и т.д.), если это не двери-купе
-        // тогда здесь уже будет id материала
-        if (typeof partData === "number") {
-          const description =
-            appData.value["FASADE"][partData].NAME ||
-            `Неизвестный материал (ID: ${partData})`;
-          result.push({
-            key: `Цвет фасада ${doorNumber}`,
-            value: ` дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
-          });
-        } else {
-          for (const [elementNumber, materialId] of Object.entries(partData)) {
+      return `${color ?? ""} ${pallette ?? ""} ${patina ?? ""} ${milling ?? ""}`;
+    };
+
+    if (data.DOORS) {
+
+      // Перебираем все двери
+      for (const [doorNumber, doorData] of Object.entries(data.DOORS)) {
+        // Для каждой двери перебираем её части (обычно только часть "1")
+        for (const [partNumber, partData] of Object.entries(doorData)) {
+          // Каждая часть может содержать несколько элементов (0, 1 и т.д.), если это не двери-купе
+          // тогда здесь уже будет id материала
+          if (typeof partData === "number") {
             const description =
-              appData.value["FASADE"][materialId].NAME ||
-              `Неизвестный материал (ID: ${materialId})`;
+              appData.value["FASADE"][partData].NAME ??
+              `Неизвестный материал (ID: ${partData})`;
             result.push({
               key: `Цвет фасада ${doorNumber}`,
-              value: ` дверь ${partNumber} часть ${+elementNumber + 1} : ${description}`,
+              value: ` дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
             });
+          } else {
+            for (const [elementNumber, materialId] of Object.entries(partData)) {
+              const description =
+                appData.value["FASADE"][materialId].NAME ??
+                `Неизвестный материал (ID: ${materialId})`;
+              result.push({
+                key: `Цвет фасада ${doorNumber}`,
+                value: ` дверь ${partNumber} часть ${+elementNumber + 1} : ${description}`,
+              });
+            }
           }
         }
       }
     }
-  }
 
-  for (const [key, value] of Object.entries(data)) {
-    // console.log(getPropDefinition(key)?.NAME);
-    // console.log(value);
-    if (
-      getPropDefinition(key)?.NAME &&
-      !isObject(value) &&
-      !Array.isArray(value) &&
-      key !== "MODULECOLOR"
-    ) {
-      result.push({
-        key: getPropDefinition(key)?.NAME,
-        value: Array.isArray(getTypeName(key, value))
-          ? value
-          : getTypeName(key, value),
-      });
-    }
+    for (const [key, value] of Object.entries(data)) {
 
-    if (key === "MODULECOLOR") {
-      result.push({
-        key: "Цвет корпуса",
-        value: appData.value["FASADE"][value]?.NAME,
-      });
-    }
-    if (key === "HORIZONT") {
-      result.push({ key: "Горизонт", value: value });
-    }
-    if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
-      console.log("МЕХАНИЗМЫ", key, value, getPropDefinition(key)?.NAME);
-
-      if (key === "OPTION" && value.length) {
-        value.forEach((el) => {
-          result.push({
-            key: "Опции",
-            value: appData.value["OPTION"][el]?.NAME,
-          });
+      if (
+        getPropDefinition(key)?.NAME &&
+        !isObject(value) &&
+        !Array.isArray(value) &&
+        key !== "MODULECOLOR"
+      ) {
+        result.push({
+          key: getPropDefinition(key)?.NAME,
+          value: Array.isArray(getTypeName(key, value))
+            ? value
+            : getTypeName(key, value),
         });
       }
-      if (
-        value.length &&
-        getPropDefinition(key)?.NAME &&
-        ![
-          "MILLING",
-          "PATINA",
-          "PALETTE",
-          "GLASS",
-          "TYPE",
-          "SHOWCASE",
-          "OPTION",
-        ].find((item) => key.includes(item))
-      ) {
-        if (Array.isArray(value)) {
-          console.log(key, value, "value");
 
-          let items = [];
+      if (key === "MODULECOLOR") {
+        result.push({
+          key: "Цвет корпуса",
+          value: appData.value["FASADE"][value]?.NAME,
+        });
+      }
 
-          if (key !== "UM_MECHANIZM") {
-            value.forEach((el) => {
-              items.push({
-                key: appData.value["CATALOG"]["PRODUCTS"][el.ID]?.NAME ?? "",
-                value: el.VALUE || "",
-              });
+      if (key === "HORIZONT") {
+        result.push({ key: "Горизонт", value: value });
+      }
+
+      if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
+
+        if (key === "OPTION" && value.length) {
+          value.forEach((el) => {
+            result.push({
+              key: "Опции",
+              value: appData.value["OPTION"][el]?.NAME,
             });
-          } else {
-            value.forEach((el) => {
-              console.log(el, "-------el");
+          });
+        }
+        if (
+          value.length &&
+          getPropDefinition(key)?.NAME &&
+          ![
+            "MILLING",
+            "PATINA",
+            "PALETTE",
+            "GLASS",
+            "TYPE",
+            "SHOWCASE",
+            "OPTION",
+          ].find((item) => key.includes(item))
+        ) {
 
-              items.push({
-                key: `
+          if (Array.isArray(value)) {
+
+            let items = [];
+
+            if (key !== "UM_MECHANIZM") {
+              value.forEach((el) => {
+                items.push({
+                  key: appData.value["CATALOG"]["PRODUCTS"][el.ID]?.NAME ?? "",
+                  value: el.VALUE || "",
+                });
+              });
+            } else {
+              value.forEach((el) => {
+                console.log(el, "-------el");
+
+                items.push({
+                  key: `
                 cекция: ${el.section} / 
                 дверь: ${el.doorNum} / 
                 часть: ${el.segmentNum}
                 `,
-                value: MECHANISM[el.mechanizm][productId].NAME || "",
+                  value: MECHANISM[el.mechanizm][productId].NAME || "",
+                });
               });
-            });
-          }
+            }
 
-          result.push({
-            key: getPropDefinition(key)?.NAME,
-            value: items,
-          });
-        } else {
-          result.push({
-            key: getPropDefinition(key)?.NAME,
-            value: value,
-          });
-        }
-      }
-    }
-
-    if (getPropDefinition(key)?.NAME && isObject(value)) {
-      if (
-        getPropDefinition(key)?.NAME &&
-        key !== "LEFTSIDECOLOR" &&
-        key !== "RIGHTSIDECOLOR" &&
-        key !== "TOPFASADECOLOR" &&
-        key !== "BACKWALL" &&
-        key !== "DOORS"
-      ) {
-        for (const [doorNumber, doorData] of Object.entries(value)) {
-          console.log("1 уровень ", doorNumber, doorData);
-          // Для каждой двери перебираем её части (обычно только часть "1")
-          for (const [partNumber, partData] of Object.entries(doorData)) {
-            // Каждая часть может содержать несколько элементов (0, 1 и т.д.)
-            console.log("2 уровень ", partNumber, partData);
-
-            const description =
-              appData.value[getPropDefinition(key)?.type][partData].NAME ||
-              `Неизвестный материал (ID: ${partData})`;
             result.push({
               key: getPropDefinition(key)?.NAME,
-              value: `дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
+              value: items,
+            });
+          } else {
+            result.push({
+              key: getPropDefinition(key)?.NAME,
+              value: value,
             });
           }
         }
-
-        //  result.push({key: getPropDefinition(key)?.NAME, value: `обхект ${value}`})
       }
 
-      if (key === "LEFTSIDECOLOR") {
-        result.push({
-          key: getPropDefinition(key)?.NAME,
-          value: textValue(value),
-        });
-      }
-      if (key === "RIGHTSIDECOLOR") {
-        result.push({
-          key: getPropDefinition(key)?.NAME,
-          value: textValue(value),
-        });
-      }
-      if (key === "TOPFASADECOLOR") {
-        result.push({
-          key: getPropDefinition(key)?.NAME,
-          value: textValue(value),
-        });
-      }
-      if (key === "BACKWALL" && value.COLOR) {
-        result.push({
-          key: getPropDefinition(key)?.NAME,
-          value: textValue(value),
-        });
-      }
-      if (key === "BACKWALL" && !value.COLOR) {
-        result.push({ key: getPropDefinition(key)?.NAME, value: "Выключена" });
-      }
-    } else if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
-      //У шкафов ЭКО фрезеровки, палитры и т.д. приходят в формате Array, а не Object
-      value.forEach((doorData, doorNumber) => {
-        if (typeof doorData === "number") {
-          const description =
-            appData.value[getPropDefinition(key)?.type][doorData].NAME ||
-            `Неизвестный материал (ID: ${doorData})`;
+      if (getPropDefinition(key)?.NAME && isObject(value)) {
+        console.log('3')
+
+        if (
+          getPropDefinition(key)?.NAME &&
+          key !== "LEFTSIDECOLOR" &&
+          key !== "RIGHTSIDECOLOR" &&
+          key !== "TOPFASADECOLOR" &&
+          key !== "BACKWALL" &&
+          key !== "DOORS"
+        ) {
+          console.log('4')
+          for (const [doorNumber, doorData] of Object.entries(value)) {
+            // Для каждой двери перебираем её части (обычно только часть "1")
+            for (const [partNumber, partData] of Object.entries(doorData)) {
+
+              if(partData) continue
+
+              const { CATALOG } = appData.value
+
+              if (CATALOG[getPropDefinition(key)?.type]) continue
+
+              const product = CATALOG[getPropDefinition(key)?.type][partData]
+
+
+              if (!product) continue
+
+              const description =
+                product.NAME ||
+                `Неизвестный материал (ID: ${partData})`;
+
+              result.push({
+                key: getPropDefinition(key)?.NAME,
+                value: `дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
+              });
+            }
+          }
+          //  result.push({key: getPropDefinition(key)?.NAME, value: `обхект ${value}`})
+        }
+
+        if (key === "LEFTSIDECOLOR") {
           result.push({
             key: getPropDefinition(key)?.NAME,
-            value: `${description}`,
+            value: textValue(value),
           });
         }
-      });
-    }
-  }
+        if (key === "RIGHTSIDECOLOR") {
+          result.push({
+            key: getPropDefinition(key)?.NAME,
+            value: textValue(value),
+          });
+        }
+        if (key === "TOPFASADECOLOR") {
+          result.push({
+            key: getPropDefinition(key)?.NAME,
+            value: textValue(value),
+          });
+        }
+        if (key === "BACKWALL" && value.COLOR) {
+          result.push({
+            key: getPropDefinition(key)?.NAME,
+            value: textValue(value),
+          });
+        }
+        if (key === "BACKWALL" && !value.COLOR) {
+          result.push({ key: getPropDefinition(key)?.NAME, value: "Выключена" });
+        }
+      } else if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
 
-  return result;
-};
+        //У шкафов ЭКО фрезеровки, палитры и т.д. приходят в формате Array, а не Object
+        value.forEach((doorData, doorNumber) => {
+          if (typeof doorData === "number") {
+            const description =
+              appData.value[getPropDefinition(key)?.type][doorData].NAME ||
+              `Неизвестный материал (ID: ${doorData})`;
+            result.push({
+              key: getPropDefinition(key)?.NAME,
+              value: `${description}`,
+            });
+          }
+        });
+      }
+    }
+
+    return result;
+  };
+})
+
+const isNonDelete = computed(() => {
+
+    return !hideDeleteList.value.includes(parseFloat(props.item.product.BASKETID))
+
+})
+
 </script>
 
 <style scoped lang="scss">

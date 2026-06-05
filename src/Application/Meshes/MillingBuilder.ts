@@ -432,23 +432,35 @@ export class MillingBuilder extends MillingsUtils {
    * @returns Массив путей THREE.Shape.
    */
   private parseSVG({ svgStr, width, height, radius, isHole = false }: { svgStr: string; width: number; height: number; radius?: number; isHole?: boolean }) {
+
+    console.log(' ПАРСИНП СВГ ')
+
     // Заменяем плейсхолдеры
     svgStr = svgStr.replaceAll('wth', width.toString()).replaceAll('hgh', height.toString());
     if (radius) svgStr = svgStr.replaceAll('radius', radius.toString());
+
+    console.log(svgStr)
+
+    svgStr = svgStr.replace(/--/g, '-')
 
     // Обрабатываем выражения в скобках
     while (/\(([^()]+)\)/g.test(svgStr)) {
       svgStr = svgStr.replace(/\(([^()]+)\)/g, (_, expr) => {
         const computedValue = Math.floor(Math.abs(this.calculateFromString(expr)));
+
         return computedValue.toString();
       });
     }
+
+    console.log(svgStr, 'svgStr ------- ')
 
     // Обрабатываем суммы через запятые
     svgStr = svgStr
       .split(/, | /)
       .map(item => item.includes(',') ? item.split(',').reduce((sum, val) => sum + parseFloat(val), 0) : item)
       .join(' ');
+
+
 
     // Парсим через SVGLoader
     return this.svgLoader.parse(svgStr).paths;

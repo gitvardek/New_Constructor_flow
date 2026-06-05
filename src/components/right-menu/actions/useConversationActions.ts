@@ -161,8 +161,6 @@ export const useConversationActions = () => {
 
         const match = (_MILLING_SIZE_RESTRICT as TMillingRestrictItem[]).find(
             (item) => {
-                console.log(item, 'aaaa')
-
                 return item.FASADE.includes(fasadeId)
             }
         )
@@ -182,7 +180,6 @@ export const useConversationActions = () => {
         FASADE_PROPS.forEach(el => {
             // @ts-ignore
             const check = checkMillingConversations(el.COLOR, el.MILLING)
-            console.log(el.COLOR, el.MILLING, 'FASADE_PROPS', check)
         })
 
 

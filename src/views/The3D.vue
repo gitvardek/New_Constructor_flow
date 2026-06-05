@@ -657,8 +657,6 @@ const openTableRedactor = () => {
 
   isModalOpen.value = true;
 
-  console.log(product.value);
-
   const parent = userData.groupId
     ? APP!._scene!.getObjectByProperty("id", userData.groupId)
     : product.value;

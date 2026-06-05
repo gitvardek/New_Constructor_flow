@@ -120,9 +120,6 @@ const closeInfoPopup = () => {
   };
 };
 
-onBeforeMount(() => {
-  console.log(props.filteredData);
-});
 </script>
 
 <template>

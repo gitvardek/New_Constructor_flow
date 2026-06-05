@@ -257,9 +257,8 @@ export class MeshEvents extends BuildersHelper {
         const product = currentMesh ?? this._currentMesh;
         const { CONFIG, SHELF, BODY, JSON_FILLINGS } = product.userData.PROPS;
         const { ID } = CONFIG;
-        const productData = this._PRODUCTS[ID]
+        const productData = this._PRODUCTS[ID];
 
-        console.log(productData, 'ID');
         [BODY, ...(SHELF ?? []), ...(JSON_FILLINGS ?? [])].forEach((obj) => {
             if (obj instanceof THREE.Object3D) {
                 obj?.traverse((child: THREE.Object3D) => {
@@ -338,7 +337,6 @@ export class MeshEvents extends BuildersHelper {
 
         const { CONFIG, FASADE, FASADE_DEFAULT, ELEMENT_TYPE } = meshData.userData.PROPS;
         const { FASADE_PROPS, UNIFORM_TEXTURE } = CONFIG;
-        console.log('BEFORE:', JSON.stringify(FASADE_PROPS))
 
         const incomingModel = data.MODEL;
         const fasade = FASADE[fasadeNdx] ?? FASADE_DEFAULT[fasadeNdx];

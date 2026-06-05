@@ -2,6 +2,7 @@
 import * as THREE from 'three'
 import { TJSONBuilder, TBuildProduct, TSize, TDeepDispose, TEdgeBuilder, IProductFull, TModelData, TPlinthActions } from '@/types/types'
 import { IProduct } from '@/types/interfases'
+import { object } from 'yup'
 
 type TPlinthData = {
     width: number,
@@ -75,6 +76,8 @@ export class PlinthBuilder {
         const startPosition = this.buildProduct.getStartPosition(size);
         const havePlinth = this.checkHavePLinth(props);
         const plinthConfigs = this.getPlinthConfigs(size);
+        let totalPlinthWidth = 0
+        let plinthList = []
 
         if (havePlinth) {
 
@@ -88,8 +91,17 @@ export class PlinthBuilder {
                 model.position.set(position.x, startPosition.y, position.z);
                 model.rotation.set(rotation.x, rotation.y, rotation.z);
 
+                totalPlinthWidth += model.userData.PLINTH_WIDTH
+
                 plinthParent.add(model);
             });
+
+            try {
+                plinthActions.front.plinthWidth = totalPlinthWidth
+            }
+            catch (e) {
+                console.error(`Ошибка метода << createPlinthMesh >> ${e}`)
+            }
 
             return;
         }
@@ -105,13 +117,22 @@ export class PlinthBuilder {
             const plinthWidth = startSize - config.widthOffset;
 
             const model = this.createPlinth({ width: plinthWidth, plinthProd, plinthModel, material, startPosition, key, legsHeight });
+
+
             model.position.set(config.posX, startPosition.y, config.posZ);
             model.rotation.set(0, config.rotY, 0);
-            // PLINTH_MESH.push(model)
-            model.visible = item.value;
+
+            model.visible = item.value
+            item.plinthWidth = model.userData.PLINTH_WIDTH
+            
+
             plinthParent.add(model);
         });
+
+        plinthParent.userData.PLINTH_LIST = plinthList
     }
+
+
 
     private createPlinth({
         width,
@@ -140,6 +161,12 @@ export class PlinthBuilder {
         model.name = 'PLINTH';
         model.userData.type = key || 'front'
         model.position.setY(startPosition.y);
+
+        const aabb = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        aabb.getSize(size);
+
+        model.userData.PLINTH_WIDTH = size.x
         return model;
     }
 

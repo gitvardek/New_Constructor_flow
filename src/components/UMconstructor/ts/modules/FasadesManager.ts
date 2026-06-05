@@ -22,9 +22,6 @@ export default class FasadesManager {
     createFacadeData(fasadeIndex?: number, _productId?: number) {
         const { PROPS: { FASADE, PRODUCT } } = this.scope.MODEL_STATE.getCurrentModel.userData
 
-        console.log(PRODUCT, FASADE, fasadeIndex, 'createFacadeData')
-        console.trace('createFacadeData')
-
         const productId = _productId || PRODUCT;
         const { FACADE } = this.scope.MODEL_STATE._PRODUCTS[productId];
         this.scope.MODEL_STATE.createCurrentModelFasadesData({
@@ -137,14 +134,14 @@ export default class FasadesManager {
                                 segment.width += deltaWidth;
 
                                 /** @Пересчёт_позиции_фасада */
-                                const wallOverlap = secIndex === 0 ? leftWidth : grid.moduleThickness;
-                                segment.position.x = section.position.x - section.width / 2 - wallOverlap + 2 + ((segment.width + 4) * doorIndex);
+                                // const wallOverlap = secIndex === 0 ? leftWidth : grid.moduleThickness;
+                                // segment.position.x = section.position.x - section.width / 2 - wallOverlap + 2 + ((segment.width + 4) * doorIndex);
 
-                                // if (secIndex !== 0) {
-                                //     segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + ((segment.width + 4) * doorIndex);
-                                // } else if (doorIndex > 0) {
-                                //     segment.position.x += deltaWidth;
-                                // }
+                                if (secIndex !== 0) {
+                                    segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + ((segment.width + 4) * doorIndex);
+                                } else if (doorIndex > 0) {
+                                    segment.position.x += deltaWidth;
+                                }
 
                                 const checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
                                     segment.material.COLOR,
@@ -828,6 +825,7 @@ export default class FasadesManager {
             }
             // Обновляем значение в module для синхронизации
             const clone = Object.assign({}, grid);
+
             if (adjustedValue) {
                 let curCell = clone.sections[secIndex].fasades[doorIndex][segmentIndex];
                 let prevCell =

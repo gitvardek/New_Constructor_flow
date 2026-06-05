@@ -986,7 +986,6 @@ class Section extends Helpers {
         this._drawDimensions = _drawDimensions;
         this.opacity = opacity;
 
-        console.log(data, '<<<<DATA>>>>')
 
         this.createSection();
     }

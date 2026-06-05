@@ -1,14 +1,14 @@
 //@ts-nocheck
+import type { Object3D } from "three";
+import { TTotalProps, PLINTH_ACTIONS } from "@/types/types";
 import { IBasket, IBasketFacade } from "@/types/basket";
 import { useAppData } from "@/store/appliction/useAppData"
+import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
 
 
 const appDataStore = useAppData()
 
-console.log('appDataStore.getAppData', appDataStore.getAppData)
-
 function createFacadeProps(objProps: any): IBasketFacade[] {
-  console.log('SHHHH')
 
   return objProps.CONFIG.FASADE_PROPS
     ? objProps.CONFIG.FASADE_PROPS.map((fp: any, index: number) => {
@@ -67,8 +67,6 @@ function createBodyProps(objProps: any) {
   const isSizeEditStepHeight = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_HEIGHT;
   const isSizeEditStepDepth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_DEPTH;
 
-  console.log('isSizeEdit', isSizeEdit);
-  console.log('isSizeStepEdit', isSizeEditStepWidth, isSizeEditStepHeight, isSizeEditStepDepth);
   if (isSizeEdit === "obligatory") {
     if (isSizeEditStepWidth) {
       sizeObj.WIDTH = objProps.CONFIG.SIZE.width;
@@ -103,7 +101,6 @@ function createOptionsProps(objProps: any) {
     if (el.active) options.push(+el.id);
   });
 
-  console.log(options, 'IN BASK')
   return options;
 }
 
@@ -302,7 +299,6 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 }
 
 function convertModuleToLegacyFormat(newModuleObject) {
-  console.log('convertModuleToLegacyFormat')
 
   if (!newModuleObject?.CONFIG) {
     return {};
@@ -311,7 +307,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
   const { CONFIG } = newModuleObject;
   const sectionCount = Object.keys(CONFIG.SECTIONS).length;
-  console.log('CONFIG', CONFIG, sectionCount)
 
   const legacyProps = {
     SIZEEDITWIDTH: CONFIG.SIZE?.width || 0,
@@ -328,8 +323,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
     SIZEEDITJOINDEPTH: CONFIG.SIZEEDITJOINDEPTH
 
   };
-
-  console.log(legacyProps, 'SIZEEDITJOINDEPTH')
 
   if (CONFIG.LEFTSIDECOLOR && CONFIG.LEFTSIDECOLOR.COLOR !== 199683 && CONFIG.LEFTSIDECOLOR.COLOR) {
     legacyProps.LEFTSIDECOLOR = CONFIG.LEFTSIDECOLOR;
@@ -381,7 +374,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
   }
   else {
     const result = {}
-    console.log('sections', CONFIG.MODULEGRID.sections)
     CONFIG.MODULEGRID.sections.forEach((section, number) => {
       const sectionNumber = number + 1;
       const sectionKey = `SECTIONS${sectionNumber}`;
@@ -392,7 +384,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
 
-      console.log('sectionKey', sectionKey);
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = {};
       result[fasadesMillingKey] = {};
@@ -561,9 +552,52 @@ function removeEmptyObjects(obj) {
   return result;
 }
 
-export function createBasketItem(objProps: any, index: number, key: any = ''): IBasket {
+function createPlinthData(filteredData: TTotalProps) {
 
-  console.log('createBasketItem', objProps)
+  const emptyPlinthID = 70096
+  const { getGlobalOptions } = useRoomOptions()
+  const plinthID = getGlobalOptions?.plinth?.id
+  const plinthSurfase = getGlobalOptions?.plinth?.plinthSurfase
+
+
+  console.log(getGlobalOptions?.plinth)
+
+  if (!filteredData) return;
+
+
+  const plinthLengsDefault = 4000
+  const plinth = filteredData.map(([key, obj]: [string, TTotalProps]) => {
+    const data = obj.data
+    if (!data) return
+    const { CONFIG: { PLINTH_ACTIONS } } = data
+    let totalWidth = 0
+    for (let el in PLINTH_ACTIONS) {
+      if (PLINTH_ACTIONS[el].value) {
+        totalWidth += PLINTH_ACTIONS[el].plinthWidth
+      }
+    }
+
+    return totalWidth
+
+  }).filter(Boolean)
+
+  const globalWidth = plinth.reduce((total, amount) => total + amount, 0);
+  const count = Math.ceil(globalWidth / plinthLengsDefault)
+
+  if (count > 0 && plinthID !== emptyPlinthID) {
+    return {
+      PRODUCT: plinthID,
+      PROPS: { COLOR: plinthSurfase },
+      QUANTITY: count,
+      BASKETID: 10001,
+      TYPE: "scene"
+    }
+  }
+  return null
+
+}
+
+export function createBasketItem(objProps: TTotalProps, index: number, key: any = ''): IBasket {
 
   const props: any = {};
 
@@ -601,8 +635,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
           height: el.height,
           width: el.width,
           serviseData: el.serviseData.filter(el => el.value).map(el => {
-            console.log(el, 'IN BUSKET')
-            console.log(el.separated == '0', 'IN separated')
 
             if (el.separated == '0') return
             if (el.width) {
@@ -642,7 +674,7 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
     props.RASPIL_COUNT = objProps.RASPIL.data.length
 
     function createRaspil(data) {
-      return data.flat().map(el => { console.log(el); return `${el.width}мм` }).join(' x ');
+      return data.flat().map(el => { return `${el.width}мм` }).join(' x ');
     }
 
     props.USLUGIraspil = createRaspil(objProps.RASPIL.data);
@@ -676,8 +708,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
 
   if (objProps.CONFIG.SIZEEDITJOINDEPTH) { props.SIZEEDITJOINDEPTH = objProps.CONFIG.SIZEEDITJOINDEPTH }
 
-    console.log(props, 'END')
-
   if (objProps.CONFIG.SECTIONS) {
     const propsUM = convertModuleToLegacyFormat(objProps);
     const cleanedData = removeEmptyObjects(propsUM);
@@ -706,10 +736,25 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
       TYPE: "scene",
     };
   }
+}
+
+export function createGlobalData(filteredData: TTotalProps) {
+
+  /**
+   *  Создание общей data для плинтусов
+   */
+  const totalData = new Array
+
+  const { getGlobalOptions } = useRoomOptions()
+  const plinth = getGlobalOptions?.plinth?.id
 
 
+  const plinthData = createPlinthData(filteredData)
 
-  console.log(props, 'END')
+  if (plinthData) totalData.push(plinthData)
+
+  return totalData
+
 }
 
 // Определения свойств (перенесено из Angular кода)
