@@ -4,7 +4,7 @@ import { computed, readonly, ref } from 'vue'
 import { useBasketApi } from '@/store/appStore/basket/useBasketApi'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { useRoomContantData } from '../appliction/useRoomContantData'
-import { createBasketItem, createGlobalData } from '@/components/Basket/helper/basketMapper'
+import { createBasketItem, createGlobalData, updateGlobalData } from '@/components/Basket/helper/basketMapper'
 import { TTotalProps } from "@/types/types";
 import type { IBasket, IBasketResponse, BasketItemType } from '@/types/basket'
 import { useAppData } from '../appliction/useAppData'
@@ -97,33 +97,46 @@ export const useBasketStore = defineStore('basket', () => {
 
   const addFromScene = () => {
 
-    const roomContantData = useRoomContantData().getRoomContantDataForBasket
-    const roomDataCopy = JSON.parse(roomContantData)
-
-    const filtered = Object.entries(roomDataCopy)
-      .filter(([_, obj]: [string, any]) => obj.data.PRODUCT)
-      .filter(([_, obj]: [string, any]) => {
-        // Проверяем, есть ли ID в массиве decor
-        const itemId = obj.data.CONFIG?.ID;
-        const decorIds = appDataStore.getAppData.decor || [];
-        return !decorIds.includes(itemId);
-      })
+    const filtered = getFilteredData()
 
     const sceneItems = filtered
-      .map(([key, obj]: [string, TTotalProps]) =>
+      .map((obj: TTotalProps, key: string) =>
         createBasketItem(obj.data, mainConstructor.value.length, obj.basketId)
       )
 
     const globalData = createGlobalData(filtered)
+
     mainConstructor.value = [...sceneItems, ...globalData]
+
   }
 
+  /** 
+   * Вспомогательные функции 
+  */
+
+  const getFilteredData = () => {
+    const roomContantData = useRoomContantData().getRoomContantDataForBasket
+    const roomDataCopy = JSON.parse(roomContantData)
+
+    return Object.values(roomDataCopy)
+      .filter((obj: any) => obj.data.PRODUCT)
+      .filter((obj: any) => {
+        const itemId = obj.data.CONFIG?.ID;
+        const decorIds = appDataStore.getAppData.decor || [];
+        return !decorIds.includes(itemId);
+      })
+  }
+
+  /** ---------------------------------------------------------- */
+
   const removeItem = (type: string, basketId: string) => {
+
     const list = type === 'scene' ? mainConstructor : mainCatalog
     const index = list.value.findIndex(item => String(item.BASKETID) === String(basketId))
 
     if (index !== -1) {
       list.value.splice(index, 1)
+      updateGlobalData()
       syncBasket();
     }
   }

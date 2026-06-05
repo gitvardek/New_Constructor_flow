@@ -3,7 +3,8 @@ import { IBasket, IBasketFacade } from "@/types/basket";
 import { TTotalProps, PLINTH_ACTIONS } from "@/types/types";
 import { useAppData } from "@/store/appliction/useAppData"
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
-
+import { useRoomContantData } from '@/store/appliction/useRoomContantData'
+import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 
 const appDataStore = useAppData()
 
@@ -557,14 +558,10 @@ function createPlinthData(filteredData: TTotalProps) {
   const plinthID = getGlobalOptions?.plinth?.id
   const plinthSurfase = getGlobalOptions?.plinth?.plinthSurfase
 
-
-  console.log(getGlobalOptions?.plinth)
-
   if (!filteredData) return;
 
-
   const plinthLengsDefault = 4000
-  const plinth = filteredData.map(([key, obj]: [string, TTotalProps]) => {
+  const plinth = filteredData.map((obj: TTotalProps, key: string) => {
     const data = obj.data
     if (!data) return
     const { CONFIG: { PLINTH_ACTIONS } } = data
@@ -587,13 +584,15 @@ function createPlinthData(filteredData: TTotalProps) {
       PRODUCT: plinthID,
       PROPS: { COLOR: plinthSurfase },
       QUANTITY: count,
-      BASKETID: 10001,
+      BASKETID: 10001, // Уникальный фиксированный ID для плинтусов
+      TOTAL_WIDTH: globalWidth,
       TYPE: "scene"
     }
   }
-  return null
+  return false
 
 }
+
 
 export function createBasketItem(objProps: TTotalProps, index: number, key: any = ''): IBasket {
 
@@ -752,6 +751,33 @@ export function createGlobalData(filteredData: TTotalProps) {
   if (plinthData) totalData.push(plinthData)
 
   return totalData
+
+}
+
+export function updateGlobalData() {
+
+  const content = useRoomContantData().getRoomContantDataForBasket
+  const roomDataCopy = JSON.parse(content)
+  const { mainConstructor } = useBasketStorage()
+
+  try {
+
+    const updatedData = mainConstructor.value.filter(el => el.BASKETID !== 10001)
+    const plinthData = createPlinthData(roomDataCopy)
+
+    updatedData.push(plinthData);
+    const result = updatedData.filter(Boolean);
+
+    mainConstructor.value = result
+
+    console.log(result, mainConstructor.value, 'SHHHHH')
+
+
+
+
+  } catch (e) {
+    console.warn(`Ошибка в методе updateGlobalData ${e}`)
+  }
 
 }
 

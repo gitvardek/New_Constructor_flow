@@ -14,6 +14,7 @@ import { OBBHelper } from '../Utils/CalculateBoundingBox';
 
 import { useEventBus } from '@/store/appliction/useEventBus';
 import { useRoomState } from '@/store/appliction/useRoomState';
+import { useRoomContantData } from "@/store/appliction/useRoomContantData";
 import { useModelState } from '@/store/appliction/useModelState';
 import { useSceneState } from '@/store/appliction/useSceneState';
 import { useUniformState } from "@/store/appliction/useUniformState";
@@ -30,6 +31,7 @@ export class RoomManager extends Room {
 
     private eventsStore: ReturnType<typeof useEventBus> = useEventBus()
     private roomState: ReturnType<typeof useRoomState> = useRoomState()
+    private roomContentData: ReturnType<typeof useRoomContantData> = useRoomContantData()
     private modelState: ReturnType<typeof useModelState> = useModelState()
     private uniformState: ReturnType<typeof useUniformState> = useUniformState()
     private OBBCollider: OBBCollider = new OBBCollider()
@@ -119,7 +121,7 @@ export class RoomManager extends Room {
         intersects.forEach(object => {
 
             if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
-                
+
                 const center = object.userData.aabb.getCenter(new THREE.Vector3())
                 const obb = object.userData.obb.clone()
                 // obb.center.copy(object.position)
@@ -409,6 +411,9 @@ export class RoomManager extends Room {
         }
 
         delete this.contant[id]
+
+        const savedData = this.save()
+        this.roomContentData.setRoomContantDataForBasket(savedData)
     }
 
     async update(loadData?: string[]) {
@@ -471,7 +476,7 @@ export class RoomManager extends Room {
             /** @Столешница */
 
             if (loadData?.RASPIL_LIST?.length > 0) {
-                console.log(loadData.RASPIL,object )
+                console.log(loadData.RASPIL, object)
 
                 await this.root.tableTopCreator?.create(loadData.RASPIL, object, object.id);
             }
