@@ -60,7 +60,7 @@ export default class LoopsManager {
 
         // Условие отрисовки петель если 1 секция одна дверь
 
-        if (grid.sections.length === 1 && FASADES.length === 1) {
+        if (grid.sections.length === 1 && FASADES.length === 1 && grid.productID === UM_PARAMS.RASPASHNOY_ID) {
             FASADES[0].forEach((fasade) => {
                 fasade.loopsSide = LOOPSIDE['left']
             })
