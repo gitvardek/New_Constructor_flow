@@ -125,8 +125,7 @@ export const useConversationActions = () => {
                         FASADE_WIDTH >= el.GROUP_SIZE.MIN_WIDTH
                     );
                 if (check) return el;
-            })
-            .filter(Boolean);
+            }).filter(Boolean);
 
 
         return tempList;
@@ -145,8 +144,7 @@ export const useConversationActions = () => {
                 if (tmp_fasades.length)
                     return { ...el, FASADES: tmp_fasades }
             }
-        })
-            .filter(Boolean);
+        }).filter(Boolean);
 
 
         return tempList;
@@ -179,10 +177,7 @@ export const useConversationActions = () => {
         FASADE_PROPS.forEach(el => {
             // @ts-ignore
             const check = checkMillingConversations(el.COLOR, el.MILLING)
-            console.log(el.COLOR, el.MILLING, 'FASADE_PROPS', check)
         })
-
-
     }
 
     const expressionsReplace = <T>(obj: T, expressions: Record<string, number | string>): T => {

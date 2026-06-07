@@ -27,7 +27,7 @@ type TRotateActions = Record<number, number>
 export type TDataCreateHandle = { data: TCreateHandleParams; fasadeNdx: number }
 export type TDataWithNdx = { data: number | string, fasadeNdx: number, action?: number } | { data: Record<string, any>, fasadeNdx: number, action?: number };
 export type TDataWithType = { data: { [key: string]: any }, type: string }
-export type TResizeModel = { data: { width: number, height: number, depth: number }, mesh?: THREE.Object3D, type?: string }
+export type TResizeModel = { data: { width: number, height: number, depth: number }, mesh?: THREE.Object3D, type?: string, fillingId?: number }
 
 export class MeshEvents extends BuildersHelper {
 
@@ -954,7 +954,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Изменение_размеров_модели  */
     //------------------
 
-    public async changeModelSize({ data, mesh, type }: TResizeModel) {
+    public async changeModelSize({ data, mesh, type, fillingId }: TResizeModel) {
         const currentMesh = mesh ?? this._currentMesh;
         if (!currentMesh) return;
 
@@ -972,6 +972,13 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG, PRODUCT } = PROPS;
         const { POSITION, UNIFORM_TEXTURE, SIZE, SIZE_OFFSET } = CONFIG as THREETypes.TConfig;
         const fasadeSize = type === 'resize';
+
+        if (fillingId !== undefined) {
+            const product = this._PRODUCTS[PRODUCT];
+            CONFIG.FILLING = fillingId;
+            CONFIG.OPTIONS = this.buildProduct.filters.filterOption(product.OPTION);
+            this.buildProduct.filters.filterFasadePosition(CONFIG, product);
+        }
 
         this.dispose.clearParent(currentMesh as THREE.Object3D);
 

@@ -114,12 +114,16 @@ const updateFillingModel = (filling: TFillingData) => {
   const incomeShelfcount = modelState._FILLING[filling.id].SHELFQUANT;
   const maxCount = isNumber(incomeShelfcount)
     ? incomeShelfcount
-    : // : SHELFQUANT.max;
-    1;
+    : SHELFQUANT.max;
+
+  // Сохраняем текущее кол-во полок
+  const preservedCurrent = isNumber(maxCount)
+    ? Math.min(shelfCount.value.current ?? 0, maxCount)
+    : 0;
 
   shelfCount.value = {
     max: maxCount,
-    current: 0,
+    current: preservedCurrent,
   };
 
   eventBus.emit("A:ChangeFilling", { data: filling.id });
@@ -178,9 +182,7 @@ const prepareData = () => {
 
   const maxCount = isNumber(hasShelfCount)
     ? modelState._FILLING[FILLING]?.SHELFQUANT
-    : SHELFQUANT.max
-      ? 1
-      : false;
+    : SHELFQUANT.max ?? false;
   // 1;
 
   shelfCount.value = {
@@ -213,16 +215,15 @@ const prepareData = () => {
 
 const resizeModel = (value: object) => {
   if (!isMounted.value) return; // игнорируем вызов до готовности
-  eventBus.emit("A:Model-resize", { data: { ...resizeData.value, ...value } });
 
   const curModel = modelState.getCurrentModel;
 
-  if (curModel?.name === "MODEL") return;
+  let fillingId: number | undefined;
 
-  /** @Проверка_FILLING */
+  /** @Проверка_FILLING — до emit */
 
-  if (fillingList.value?.length > 0) {
-    fillingList.value.forEach((el, key) => {
+  if (curModel?.name !== "MODEL" && fillingList.value?.length > 0) {
+    fillingList.value.forEach((el) => {
       el.extensions = modelState._FILLING[el.id].CONDITIONS
         ? checkFillingConditions(el.id, resizeData.value)
         : true;
@@ -232,10 +233,23 @@ const resizeModel = (value: object) => {
       (el) => el.active && el.extensions,
     );
     if (!curFilling) {
-      updateFillingModel(fillingList.value[0]);
-      fillingList.value[0].active = true;
+      const newFilling = fillingList.value[0];
+      fillingId = newFilling.id;
+      fillingList.value.forEach((el) => { el.active = el.id === fillingId; });
+
+      const { userData } = curModel;
+      const { SHELFQUANT } = userData.PROPS.CONFIG;
+      const incomeShelfcount = modelState._FILLING[fillingId].SHELFQUANT;
+      const maxCount = isNumber(incomeShelfcount) ? incomeShelfcount : SHELFQUANT.max;
+      shelfCount.value.max = maxCount
+      shelfCount.value.current = shelfCount.value.current > maxCount ? maxCount : shelfCount.value.current
     }
   }
+
+  eventBus.emit("A:Model-resize", { data: { ...resizeData.value, ...value }, fillingId });
+
+  if (curModel?.name === "MODEL") return;
+
   onRsizeConversations(resizeData.value);
   onResizeMillingCheck();
   resetGlobal();
