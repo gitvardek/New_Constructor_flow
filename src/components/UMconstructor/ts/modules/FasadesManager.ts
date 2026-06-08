@@ -134,9 +134,9 @@ export default class FasadesManager {
                                 segment.width += deltaWidth;
 
                                 /** @Пересчёт_позиции_фасада */
-                              
+
                                 if (secIndex !== 0) {
-                                    segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + (segment.width + 4 * doorIndex);
+                                    segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + ((segment.width + 4) * doorIndex);
                                 } else if (doorIndex > 0) {
                                     segment.position.x += deltaWidth;
                                 }
