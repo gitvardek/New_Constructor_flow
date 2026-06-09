@@ -307,6 +307,7 @@ export class BuildProduct extends BuildersHelper {
         props: THREETypes.TObject,
         loadedProps?: THREETypes.TObject
     ): THREETypes.TConfig {
+        
         const isDae = this._MODELS[product_data.models[0]].DAE;
 
         const {
@@ -451,7 +452,9 @@ export class BuildProduct extends BuildersHelper {
         const legsHeight = this._PRODUCTS[productId]?.leg_length;
         const fasadeProps = Object.values(CONFIG.FASADE_PROPS);
 
-        const shelfCount = CONFIG.SHELFQUANT.max;
+        const shelfCount = CONFIG.SHELFQUANT.current;
+
+        console.log(shelfCount, 'shelfCount')
 
         // Обновляем размер в конфиге
         if (size) {
@@ -487,10 +490,16 @@ export class BuildProduct extends BuildersHelper {
         const hasDrawers = fasadeProps.length > 0 && fasadeProps.some(item => item.DRAWER.drawer);
         const drower = hasDrawers ? this.drower_builder.createDrowers({ props: PROPS }) : null;
 
+
+        /** Добавляем столешницу если есть */
+        const tableTop = CONFIG.HAVETABLETOP ? this.tabletop_builder.createTableTop({ props: PROPS }) : null;
+
         const arrows = this.addArrowSize({ object: body, props: PROPS, group: total });
 
         // Позиционирование по Y
         const baseY = legsHeight * 0.5;
+        const topTablePos = this.getTableTopPosition(legs, body, tableTop, baseY)
+
         const parts: Array<[THREE.Object3D | null, number]> = [
             [legs, baseY],
             [body, baseY],
@@ -498,6 +507,7 @@ export class BuildProduct extends BuildersHelper {
             [fasade, baseY],
             [drower, baseY],
             [plinth, 0],
+            [tableTop, topTablePos],
             [arrows, baseY],
         ];
 
@@ -518,7 +528,7 @@ export class BuildProduct extends BuildersHelper {
         // Формируем итоговую группу в зависимости от исключений
         const totalParts = curBodyExceptions
             ? [body, shelf, fasade, arrows, plinth]
-            : [plinth, legs, body, shelf, fasade, drower, arrows];
+            : [plinth, legs, body, shelf, fasade, drower, tableTop, arrows];
 
 
         totalParts.filter(Boolean).forEach(part => total.add(part as THREE.Object3D));
@@ -626,7 +636,7 @@ export class BuildProduct extends BuildersHelper {
         const edge = this.edge_builder.createEdge(body);
         const deffEdge = this.edge_builder.createVisibleEdge(body);
 
-         body.add(edge, deffEdge);
+        body.add(edge, deffEdge);
 
         if (isTopTable) {
 
@@ -917,6 +927,17 @@ export class BuildProduct extends BuildersHelper {
 
         target.userData.aabb = aabb;
         target.userData.obb = obb;
+    }
+
+    private getTableTopPosition(legs, body, tableTop, baseY) {
+        // Вычисление высот
+        const legsHeight = legs ? this.calculateHeight(legs) : 0;
+        const bodyHeight = body ? this.calculateHeight(body) : 0;
+        const tableTopHeight = tableTop ? this.calculateHeight(tableTop) : 0;
+        if (tableTop) tableTop.userData.withouTopHeight = baseY + bodyHeight * 0.5
+        return tableTop ? baseY + bodyHeight * 0.5 + tableTopHeight * 0.5 : 0
+
+
     }
 
     /** Дефолтные глобальные значения цвета фасада/модуля */

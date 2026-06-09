@@ -53,7 +53,7 @@ function CatalogApp() {
 				width: $(this).data('width'),
 				height: $(this).data('height'),
 				helpers: {
-					overlay: {closeClick: false}
+					overlay: { closeClick: false }
 				},
 				autoSize: true,
 				autoDimensions: false,
@@ -83,11 +83,11 @@ function CatalogApp() {
 		}).on("click", ".showMap", function () {
 			$('.contacts-section').fadeOut();
 			$('.main-map').fadeIn();
-			$("body,html").animate({scrollTop: $('.main-map').offset().top}, 300);
+			$("body,html").animate({ scrollTop: $('.main-map').offset().top }, 300);
 			return false;
 		}).on("click", "#cooperation_ban", function () {
 			$('#cooperation_form').toggle();
-			$("body,html").animate({scrollTop: $('#cooperation_form').offset().top}, 300);
+			$("body,html").animate({ scrollTop: $('#cooperation_form').offset().top }, 300);
 
 		}).on("click", ".catalog-collections .tabs-title li a", function () {
 			$(".catalog-collections .tabs-title .active").removeClass("active");
@@ -99,7 +99,7 @@ function CatalogApp() {
 
 			return false;
 		}).on("click", "#main .up", function () {
-			$("body,html").animate({scrollTop: 0}, 300);
+			$("body,html").animate({ scrollTop: 0 }, 300);
 			return false;
 		}).on("change", ".where-to-buy .shops .select select", function () {
 			if ($(this).val() == 0) {
@@ -163,7 +163,7 @@ function CatalogApp() {
 			else self.catalogBasketOptionsChange($(elem).val(), false);
 		}).on("click", ".basket-wrap .basket .clean", function () {
 			if (confirm("Вы действительно хотите удалить все товары из корзины?")) {
-				$.ajax({type: "GET", async: true, url: apiPath + "/API/basket.clean.php"}).done(function (msg) {
+				$.ajax({ type: "GET", async: true, url: apiPath + "/API/basket.clean.php" }).done(function (msg) {
 					document.location = document.location;
 				});
 			}
@@ -188,7 +188,7 @@ function CatalogApp() {
 					type: "GET",
 					async: true,
 					url: apiPath + "/API/basket.baskets.get.php",
-					data: {'action': 'delete', 'id': id}
+					data: { 'action': 'delete', 'id': id }
 				}).done(function (msg) {
 					$(".popup-wrap").html(msg);
 					$(".popup-wrap .baskets").css("top", $(document).scrollTop() + 90);
@@ -207,7 +207,7 @@ function CatalogApp() {
 				type: "POST",
 				async: true,
 				url: apiPath + "/API/basket.save.php",
-				data: {NAME: name}
+				data: { NAME: name }
 			}).done(function (msg) {
 				if (msg == "success") alert("Корзина успешно сохранена.");
 				else alert(msg.split(":")[1]);
@@ -251,23 +251,23 @@ function CatalogApp() {
 		).on('click', ".basket-form-min .delete, #order_form .delete, #orderattach .delete", self.catalogremoveBasketMinItem
 		).on('change', ".fancy-instock input", self.catalogGetElement
 		).on('mouseenter', "#header a.basket, .basket-min", function () {
-				clearTimeout(self.minBasketTimer);
+			clearTimeout(self.minBasketTimer);
 
-				if (!$('.basket-min').is('.showed')) {
-					self.catalogShowBasketMin();
-				}
+			if (!$('.basket-min').is('.showed')) {
+				self.catalogShowBasketMin();
 			}
+		}
 		).on('mouseleave', "#header a.basket, .basket-min", function () {
-				self.minBasketTimer = setTimeout(function () {
-					self.catalogcloseBasketMin();
-				}, 500);
-			}
+			self.minBasketTimer = setTimeout(function () {
+				self.catalogcloseBasketMin();
+			}, 500);
+		}
 		).on('mouseenter', "#header .top_menu .menu > .parent", function () {
 			$('body').addClass('topmenuhovered');
 		}).on('mouseleave', "#header .top_menu .menu > .parent", function () {
 			$('body').removeClass('topmenuhovered');
 		}).on("change", ".shipping_expedited input", function (e) {
-			if(this.checked)
+			if (this.checked)
 				self.initOrderDatePicker($(this).data('shipment-start'), $(this).data('shipment-period'));
 			else
 				self.initOrderDatePicker();
@@ -324,7 +324,7 @@ function CatalogApp() {
 
 	this.catalogAddToBasket = function (e) {
 		const target = e.currentTarget;
-		console.log('1')
+
 		// ищем форму (аналог jQuery: $(e.currentTarget).parentsUntil(".product__wrapper").parent().find(".product__form"))
 		const form = target.closest(".product__wrapper")?.querySelector(".product__form");
 
@@ -333,6 +333,8 @@ function CatalogApp() {
 			return;
 		}
 
+		console.log(form, '1')
+
 		// собираем данные формы
 		const formData = new FormData(form);
 		// const formDataObj = Object.fromEntries(formData.entries());
@@ -340,25 +342,31 @@ function CatalogApp() {
 		const formDataObj = {};
 
 		for (let [key, value] of formData.entries()) {
-		// Убираем [] в конце ключа, если есть
-		const cleanKey = key.replace(/\[]$/, '');
+			const isArrayKey = key.endsWith('[]');
+			const cleanKey = isArrayKey ? key.slice(0, -2) : key;
 
-		if (cleanKey in formDataObj) {
-			// Если значение уже есть, преобразуем в массив (или добавляем)
-			if (Array.isArray(formDataObj[cleanKey])) {
-			formDataObj[cleanKey].push(value);
+			if (isArrayKey) {
+				// Поля name="FOO[]" всегда накапливаются в массив
+				if (!Array.isArray(formDataObj[cleanKey])) {
+					formDataObj[cleanKey] = [];
+				}
+				formDataObj[cleanKey].push(value);
+			} else if (cleanKey in formDataObj) {
+				// Дублирующиеся обычные ключи → массив
+				if (Array.isArray(formDataObj[cleanKey])) {
+					formDataObj[cleanKey].push(value);
+				} else {
+					formDataObj[cleanKey] = [formDataObj[cleanKey], value];
+				}
 			} else {
-			formDataObj[cleanKey] = [formDataObj[cleanKey], value];
+				formDataObj[cleanKey] = value;
 			}
-		} else {
-			// Пока просто записываем значение
-			formDataObj[cleanKey] = value;
 		}
-	}
 
-					
 
-		console.log(formDataObj);
+
+
+		console.log(formDataObj, 'asasasasqq');
 
 
 		const basketStore = useBasketStore();
@@ -384,7 +392,7 @@ function CatalogApp() {
 		// 	self.toastmessage("Произошла ошибка при добавлении товара.", "error");
 		// 	});
 
-	};  
+	};
 
 
 	this.catalogPremiumInitSlider = function () {
@@ -429,17 +437,17 @@ function CatalogApp() {
 			old_src = $('.slide' + o).data('src'),
 			href = $('.slide' + i).data('href');
 
-		$('#premium_slider_canvas_bg').css({'background-image': "url(" + old_src + ")"}).show();
-		$('#premium_slider_canvas').css({'background-image': "url(" + src + ")"}).css({opacity: 0}).animate({opacity: 1}, 500, function () {
+		$('#premium_slider_canvas_bg').css({ 'background-image': "url(" + old_src + ")" }).show();
+		$('#premium_slider_canvas').css({ 'background-image': "url(" + src + ")" }).css({ opacity: 0 }).animate({ opacity: 1 }, 500, function () {
 			$('#premium_slider_canvas_bg').hide();
 		});
 
-		if(href){
+		if (href) {
 			$('#premium_slider_canvas').on('click', function () {
 				window.location = href;
 			});
 			$('#premium_slider_canvas').addClass('cursor-pointer');
-		}else{
+		} else {
 			$('#premium_slider_canvas').off('click');
 			$('#premium_slider_canvas').removeClass('cursor-pointer');
 		}
@@ -497,7 +505,7 @@ function CatalogApp() {
 			let strRadio = $(elem).data('group-radio');
 			let group_radio = (typeof strRadio == 'number' ? [strRadio] : strRadio.split(','));
 			$.each(group_radio, function (k, v) {
-				if ($(elem).prop("checked")){
+				if ($(elem).prop("checked")) {
 					$("[data-group-radio*=" + v + "]", prop_parent).not(elem).prop('checked', false);
 				}
 			})
@@ -567,10 +575,10 @@ function CatalogApp() {
 														!$(k).data('relations-width')
 													)
 													||
-										(
-											// Если self.raspil или ключ отсутствуют, подставляем 0
-											eval($(k).data('relations-width').split('#W#').join(((self.raspil && self.raspil[k_prop_parent.data('align')]) ?? 0)))
-										)
+													(
+														// Если self.raspil или ключ отсутствуют, подставляем 0
+														eval($(k).data('relations-width').split('#W#').join(((self.raspil && self.raspil[k_prop_parent.data('align')]) ?? 0)))
+													)
 												)
 												&&
 												(
@@ -646,8 +654,8 @@ function CatalogApp() {
 
 		//активирует ширину еврозапила мама
 		function activateWidthSetting(elem) {
-			if (elem.closest('.prop-uslugi').find($('input[data-parent-id="'+elem.val()+'"]')).length > 0) {
-				let widthSettingElem = elem.closest('.prop-uslugi').find($('input[data-parent-id="'+elem.val()+'"]'));
+			if (elem.closest('.prop-uslugi').find($('input[data-parent-id="' + elem.val() + '"]')).length > 0) {
+				let widthSettingElem = elem.closest('.prop-uslugi').find($('input[data-parent-id="' + elem.val() + '"]'));
 				widthSettingElem.prop('disabled', false).parents('.item-width-setting').show();
 				widthSettingElem.addClass('active');
 
@@ -658,7 +666,7 @@ function CatalogApp() {
 					raspilKey = elem.closest('.values').data('align') > 0 ? elem.closest('.values').data('align') : false, //ключ распила если он присутствует
 					idInput = raspilKey - 1,
 					valInp = widthSettingElem.val(),
-					freeSpace = raspilKey ? $('.path-width[data-id="'+idInput+'"]').val() : $('input[name="width"]').val(); //свободное пространство
+					freeSpace = raspilKey ? $('.path-width[data-id="' + idInput + '"]').val() : $('input[name="width"]').val(); //свободное пространство
 
 				valInp = parseInt(valInp);
 				freeSpace = parseInt(freeSpace);
@@ -693,7 +701,7 @@ function CatalogApp() {
 							$(elem.closest('.values').data('target')).removeClass(elem.data('class'));
 						}
 					} else {
-						widthSettingElem.closest('.list-width-setting').find('input[data-parent-id="'+anotherID+'"]').val(anotherShow);
+						widthSettingElem.closest('.list-width-setting').find('input[data-parent-id="' + anotherID + '"]').val(anotherShow);
 					}
 				}
 				widthSettingElem.val(valInp)
@@ -702,136 +710,136 @@ function CatalogApp() {
 
 		//деактивирует ширину еврозапила мама
 		function deactivateWidthSetting(elem) {
-			if (elem.closest('.prop-uslugi').find($('input[data-parent-id="'+elem.val()+'"]')).length > 0) {
-				let widthSettingElem = elem.closest('.prop-uslugi').find($('input[data-parent-id="'+elem.val()+'"]'));
+			if (elem.closest('.prop-uslugi').find($('input[data-parent-id="' + elem.val() + '"]')).length > 0) {
+				let widthSettingElem = elem.closest('.prop-uslugi').find($('input[data-parent-id="' + elem.val() + '"]'));
 				widthSettingElem.prop('disabled', true).parents('.item-width-setting').hide();
 				widthSettingElem.removeClass('active');
 			}
 		}
 
 		// проверка на опции ал рамки
-if ($('input[data-opt-specific="true"]').val()) {
+		if ($('input[data-opt-specific="true"]').val()) {
 
-      var onlyOpt = $('input[data-opt-specific="true"]');
-      var onlyOptVal = onlyOpt.data('opt-fasade');
-      var notWithOpt = onlyOpt.data('opt-notwith');
+			var onlyOpt = $('input[data-opt-specific="true"]');
+			var onlyOptVal = onlyOpt.data('opt-fasade');
+			var notWithOpt = onlyOpt.data('opt-notwith');
 
-      if (onlyOptVal) {
-        // проверяет с чем включать
-        if (onlyOptVal.toString().includes(',')) 
-          var optList = onlyOptVal.split(',');
-        else
-          var optList = [onlyOptVal];
+			if (onlyOptVal) {
+				// проверяет с чем включать
+				if (onlyOptVal.toString().includes(','))
+					var optList = onlyOptVal.split(',');
+				else
+					var optList = [onlyOptVal];
 
-        var isOptChecked = false;
-        var _a = optList;
+				var isOptChecked = false;
+				var _a = optList;
 
-        var _f = function _f(item) {
-          var input = $("input[value=\"".concat(item, "\"]"));
+				var _f = function _f(item) {
+					var input = $("input[value=\"".concat(item, "\"]"));
 
-          if (input.prop('checked')) {
-            isOptChecked = true;
-          }
-        };
+					if (input.prop('checked')) {
+						isOptChecked = true;
+					}
+				};
 
-        for (var _i = 0; _i < _a.length; _i++) {
-          _f(_a[_i], _i, _a);
-        }
+				for (var _i = 0; _i < _a.length; _i++) {
+					_f(_a[_i], _i, _a);
+				}
 
-        undefined;
+				undefined;
 
-        if (isOptChecked) {
+				if (isOptChecked) {
 
-          let arrGroup = [];
+					let arrGroup = [];
 
-          onlyOpt.each(function (k, v) {
+					onlyOpt.each(function (k, v) {
 
-            let qwe = $(v);
+						let qwe = $(v);
 
-            if (elem.attr('NAME') == 'OPTION[]') {
-              if (elem.prop('checked') === false && elem.attr('data-opt-specific') == 'true') elem.prop('checked', true);
-            } else {
-              if (arrGroup.indexOf(qwe.attr('data-group-radio')) == -1) {
-                arrGroup.push(qwe.attr('data-group-radio'));
-                qwe.prop('checked', true);
-              } else {
-                qwe.prop('checked', false);
-              }
-            }
-            qwe.parents('label').show();
-          })
-          
+						if (elem.attr('NAME') == 'OPTION[]') {
+							if (elem.prop('checked') === false && elem.attr('data-opt-specific') == 'true') elem.prop('checked', true);
+						} else {
+							if (arrGroup.indexOf(qwe.attr('data-group-radio')) == -1) {
+								arrGroup.push(qwe.attr('data-group-radio'));
+								qwe.prop('checked', true);
+							} else {
+								qwe.prop('checked', false);
+							}
+						}
+						qwe.parents('label').show();
+					})
 
-          /*
-          onlyOpt.prop({
-            'checked': true
-          }).parents('label').show();
-          */
 
-          if (notWithOpt) {
+					/*
+					onlyOpt.prop({
+					  'checked': true
+					}).parents('label').show();
+					*/
 
-            if (typeof(notWithOpt) == 'string') {
-              var notWithList = notWithOpt.split(',');
-            } else if (typeof(notWithOpt) == 'number') {
-              var notWithList = [notWithOpt];
-            }
+					if (notWithOpt) {
 
-            var _a2 = notWithList;
+						if (typeof (notWithOpt) == 'string') {
+							var notWithList = notWithOpt.split(',');
+						} else if (typeof (notWithOpt) == 'number') {
+							var notWithList = [notWithOpt];
+						}
 
-            var _f2 = function _f2(item) {
-              var input = $("input[value=\"".concat(item, "\"]"));
+						var _a2 = notWithList;
 
-              if (input) {
-                input.prop({
-                  'checked': false
-                }).parents('label').hide();
-              }
-            };
+						var _f2 = function _f2(item) {
+							var input = $("input[value=\"".concat(item, "\"]"));
 
-            for (var _i2 = 0; _i2 < _a2.length; _i2++) {
-              _f2(_a2[_i2], _i2, _a2);
-            }
+							if (input) {
+								input.prop({
+									'checked': false
+								}).parents('label').hide();
+							}
+						};
 
-            undefined;
-          }
-        } else {
-          onlyOpt.prop({
-            'checked': false
-          }).parents('label').hide();
+						for (var _i2 = 0; _i2 < _a2.length; _i2++) {
+							_f2(_a2[_i2], _i2, _a2);
+						}
 
-          if (notWithOpt) {
+						undefined;
+					}
+				} else {
+					onlyOpt.prop({
+						'checked': false
+					}).parents('label').hide();
 
-            if (typeof(notWithOpt) == 'string') {
-              var _notWithList = notWithOpt.split(',');
-            } else if (typeof(notWithOpt) == 'number') {
-              var _notWithList = [notWithOpt];
-            }
+					if (notWithOpt) {
 
-            var _a3 = _notWithList;
+						if (typeof (notWithOpt) == 'string') {
+							var _notWithList = notWithOpt.split(',');
+						} else if (typeof (notWithOpt) == 'number') {
+							var _notWithList = [notWithOpt];
+						}
 
-            var _f3 = function _f3(item) {
-              var input = $("input[value=\"".concat(item, "\"]"));
+						var _a3 = _notWithList;
 
-              if (input) {
-                input.parents('label').show();
-              }
-            };
+						var _f3 = function _f3(item) {
+							var input = $("input[value=\"".concat(item, "\"]"));
 
-            for (var _i3 = 0; _i3 < _a3.length; _i3++) {
-              _f3(_a3[_i3], _i3, _a3);
-            }
+							if (input) {
+								input.parents('label').show();
+							}
+						};
 
-            undefined;
-          }
-        }
-      }
-    }
+						for (var _i3 = 0; _i3 < _a3.length; _i3++) {
+							_f3(_a3[_i3], _i3, _a3);
+						}
 
-		if($("[data-filling]", form_parent).length && $("input[name='FILLING']", form_parent).length){
+						undefined;
+					}
+				}
+			}
+		}
+
+		if ($("[data-filling]", form_parent).length && $("input[name='FILLING']", form_parent).length) {
 			var FillVal = $('input:checked[name="FILLING"]').val();
 			$("[data-filling]", form_parent).each(function (k, fillRel) {
-				if($(fillRel).data('filling')){
-					if(
+				if ($(fillRel).data('filling')) {
+					if (
 						(
 							typeof $(fillRel).data('filling') == 'number'
 							&&
@@ -843,10 +851,10 @@ if ($('input[data-opt-specific="true"]').val()) {
 							&&
 							$(fillRel).data('filling').indexOf(FillVal) != -1
 						)
-					){
-						$(fillRel).prop({disabled: false}).parents('li').show();
-					}else{
-						$(fillRel).prop({disabled: true}).parents('li').hide();
+					) {
+						$(fillRel).prop({ disabled: false }).parents('li').show();
+					} else {
+						$(fillRel).prop({ disabled: true }).parents('li').hide();
 					}
 				}
 			});
@@ -868,48 +876,48 @@ if ($('input[data-opt-specific="true"]').val()) {
 				if (v) {
 					rel.removeClass('disable');
 
-					if(v === true){
+					if (v === true) {
 						$('input, select', rel).prop('disabled', false).parents('li').show();
-					}else if(v == 'hide'){
+					} else if (v == 'hide') {
 						rel.addClass('disable');
-						$('input, select', rel).prop({'disabled' : true, "checked" : false}).parent('label').removeClass('selected');
-					}else{
-			            var enablePropVals = v.toString().split(',');
-			            $('input, select', rel).each(function () {
-			              //Отключает инпут
-			              if (
-			                  $("input[name='SELECTFASADE']:checked").val() >= 1 &&
-			                  k == 'fasade_type'
-			              ) {
-			                let fasadeNumber = $("input[name='SELECTFASADE']:checked").val();
-			                let fasadeType = $("input[name='TYPE_FASADE"+fasadeNumber+"']").val();
-			                let arrFasadeType = fasadeType.toString().split(',');
+						$('input, select', rel).prop({ 'disabled': true, "checked": false }).parent('label').removeClass('selected');
+					} else {
+						var enablePropVals = v.toString().split(',');
+						$('input, select', rel).each(function () {
+							//Отключает инпут
+							if (
+								$("input[name='SELECTFASADE']:checked").val() >= 1 &&
+								k == 'fasade_type'
+							) {
+								let fasadeNumber = $("input[name='SELECTFASADE']:checked").val();
+								let fasadeType = $("input[name='TYPE_FASADE" + fasadeNumber + "']").val();
+								let arrFasadeType = fasadeType.toString().split(',');
 
-			                if (
-			                    enablePropVals.indexOf($(this).val()) == -1 ||
-			                    arrFasadeType.indexOf($(this).val()) == -1
-			                ) {
-			                  $(this).prop({
-			                    'disabled': true,
-			                    "checked": false
-			                  }).parent('label').removeClass('selected').parents('li').hide();
-			                } else {
-			                  $(this).prop('disabled', false).parents('li').show();
-			                }
-			              } else {
-			                if (enablePropVals.indexOf($(this).val()) == -1) {
-			                  $(this).prop({
-			                    'disabled': true,
-			                    "checked": false
-			                  }).parent('label').removeClass('selected').parents('li').hide();
-			                } else {
-			                  //Включает инпут
-			                  $(this).prop('disabled', false).parents('li').show();
-			                }
-			              }
+								if (
+									enablePropVals.indexOf($(this).val()) == -1 ||
+									arrFasadeType.indexOf($(this).val()) == -1
+								) {
+									$(this).prop({
+										'disabled': true,
+										"checked": false
+									}).parent('label').removeClass('selected').parents('li').hide();
+								} else {
+									$(this).prop('disabled', false).parents('li').show();
+								}
+							} else {
+								if (enablePropVals.indexOf($(this).val()) == -1) {
+									$(this).prop({
+										'disabled': true,
+										"checked": false
+									}).parent('label').removeClass('selected').parents('li').hide();
+								} else {
+									//Включает инпут
+									$(this).prop('disabled', false).parents('li').show();
+								}
+							}
 
 
-			            });
+						});
 					}
 
 					let first = $('input:enabled', rel).not($('[aria-label="Search"]'))[0];
@@ -919,273 +927,273 @@ if ($('input[data-opt-specific="true"]').val()) {
 					}
 				} else {
 					rel.addClass('disable');
-					$('input, select', rel).prop({'disabled' : true, "checked" : false}).parent('label').removeClass('selected');
+					$('input, select', rel).prop({ 'disabled': true, "checked": false }).parent('label').removeClass('selected');
 				}
 			}
 		});
 
-		if(
+		if (
 			$('input:checked[data-no_fasade=1]').length
-		){
-			if($('input:checked[name=FACADE]').data('type') != 'no_fasade'){
-				$("input[name=FACADE][data-type=no_fasade]").prop({'checked':true});
+		) {
+			if ($('input:checked[name=FACADE]').data('type') != 'no_fasade') {
+				$("input[name=FACADE][data-type=no_fasade]").prop({ 'checked': true });
 			}
 
 			$('.prop-facades').addClass('disable');
-		}else{
+		} else {
 			$('.prop-facades').removeClass('disable');
 		}
 
 		$('.selectpicker').selectpicker('refresh');
 
-		if(recall)
+		if (recall)
 			$(elem).trigger('change');
 
 		if ($("input[name='SIZEEDITJOINDEPTH']", form_parent).length > 0) {
-      let joinDepth = $("input[name='SIZEEDITJOINDEPTH']", form_parent),
-          widthFrame = $("input[name='SIZEEDITWIDTH']", form_parent),
-          min = parseInt(joinDepth.attr('data-min')),
-          max = parseInt(joinDepth.attr('data-max')),
-          joinDepthVal = parseInt(joinDepth.val()),
-          detected = false,
-          typeFasade = $('input[name="FACADE"]:checked').attr('data-type');
+			let joinDepth = $("input[name='SIZEEDITJOINDEPTH']", form_parent),
+				widthFrame = $("input[name='SIZEEDITWIDTH']", form_parent),
+				min = parseInt(joinDepth.attr('data-min')),
+				max = parseInt(joinDepth.attr('data-max')),
+				joinDepthVal = parseInt(joinDepth.val()),
+				detected = false,
+				typeFasade = $('input[name="FACADE"]:checked').attr('data-type');
 
 
-      for (var changeMax = max; changeMax >= min; changeMax--) {
-        detected = self.expressionsReplace(joinDepth.attr('data-incl-cond'), {'#X#': widthFrame.val(), '#SIZEEDITJOINDEPTH#' : changeMax});
-        detected = eval(detected);
-        if (detected) break;
-      }
+			for (var changeMax = max; changeMax >= min; changeMax--) {
+				detected = self.expressionsReplace(joinDepth.attr('data-incl-cond'), { '#X#': widthFrame.val(), '#SIZEEDITJOINDEPTH#': changeMax });
+				detected = eval(detected);
+				if (detected) break;
+			}
 
 
-      if (typeFasade == 'no_fasade') {
-        joinDepth.prop('disabled', true);
-        //joinDepth.closest('.prop-resize').hide();
-      }
+			if (typeFasade == 'no_fasade') {
+				joinDepth.prop('disabled', true);
+				//joinDepth.closest('.prop-resize').hide();
+			}
 
-      if (detected) {
+			if (detected) {
 
-        let objSld = {'detected': false}
+				let objSld = { 'detected': false }
 
-        if (changeMax <= max) {
-          objSld['max'] = changeMax;
-          objSld.detected = true
-        }
+				if (changeMax <= max) {
+					objSld['max'] = changeMax;
+					objSld.detected = true
+				}
 
-        if (changeMax < joinDepthVal) {
-          joinDepthVal = changeMax;
-          objSld['value'] = changeMax;
-          joinDepth.val(changeMax);
-          objSld.detected = true
-        }
+				if (changeMax < joinDepthVal) {
+					joinDepthVal = changeMax;
+					objSld['value'] = changeMax;
+					joinDepth.val(changeMax);
+					objSld.detected = true
+				}
 
-        let condition = self.expressionsReplace($("input[name='condition']", form_parent).attr('width'), {'#X#': widthFrame.val(), '#SIZEEDITJOINDEPTH#' : joinDepthVal});
-        condition = eval(condition);
-        $(".fasade_width", form_parent).text(condition)
-
-
-        if (objSld.detected) {
-          var slideElement = $("#size_edit_joindepth_slider");
-          slideElement.slider(objSld);
-        }
-
-        joinDepth.prop('disabled', false);
-        joinDepth.closest('.prop-resize').show();
-
-      } else {
-        joinDepth.prop('disabled', true);
-        joinDepth.closest('.prop-resize').hide();
-      }
-
-    }
-
-    if ($("input[name='MECHANISM']", form_parent).length > 0) {
-      //let q = self.getElementSize('.catalog-element-form');
-      //console.log(q)
-      //console.log($("input[name='MECHANISM']", form_parent));
-      var activeFasade = $('input[name="FACADE"]:checked');
-      var typeFasade = $('input[name="FACADE"]:checked').attr('data-type');
-      var mechanismList = $("input[name='MECHANISM']", form_parent);
-
-      if (typeFasade == 'no_fasade') {
-        self.deactivateMechanism(mechanismList);
-      } else {
-        self.controlMechanism(activeFasade, mechanismList);
-      }
-    }
-
-    if ($("input[name='FACADE']", form_parent).length > 0 && $("input[name='IGNORE_SIZE']", form_parent).val() != '1') {
-
-    	//$('input[name="height"]').val()
-
-      let width = $("input[name='SIZEEDITWIDTH']").val();
-      let height = $("input[name='SIZEEDITHEIGHT']").val();
-
-      if (width === undefined) {
-      	width = $('input[name="width"]').val();
-      	width = parseInt(width);
-      }
-
-      if (height === undefined) {
-      	height = $('input[name="height"]').val();
-      	height = parseInt(height);
-      }
-
-      if ($('input[name="condition"]').attr('width') != '') {
-        let formulaWidth = $('input[name="condition"]').attr('width');
-        if ($('input[name="SIZEEDITJOINDEPTH"]').val()) {
-          formulaWidth = formulaWidth.split('#SIZEEDITJOINDEPTH#').join($('input[name="SIZEEDITJOINDEPTH"]').val());
-        }
-        if ($('input[name="depth"]').val()) {
-          formulaWidth = formulaWidth.split('#Z#').join($('input[name="depth"]').val());
-        }
-        formulaWidth = formulaWidth.split('#X#').join(width);
-
-        width = eval(formulaWidth);
-        width = parseInt(width);
-      }
-
-      if ($('input[name="condition"]').attr('height') != '') {
-        height = eval($('input[name="condition"]').attr('height').split('#Y#').join(height));
-        height = parseInt(height);
-      }
-
-        var defaultElem = $('.prop-facades input:first'),
-          selectedElem = $('.prop-facades input[type="radio"]:checked'),
-          selectedElemWidth = parseInt(selectedElem.attr('max-width')),
-          selectedElemHeight = parseInt(selectedElem.attr('max-height')),
-          selectedElemMinHeight = parseInt(selectedElem.attr('min-height')),
-          selectedElemMinWidth = parseInt(selectedElem.attr('min-width'));
+				let condition = self.expressionsReplace($("input[name='condition']", form_parent).attr('width'), { '#X#': widthFrame.val(), '#SIZEEDITJOINDEPTH#': joinDepthVal });
+				condition = eval(condition);
+				$(".fasade_width", form_parent).text(condition)
 
 
-      if (
-          (
-            selectedElemWidth < width || selectedElemHeight < height ||
-            selectedElemMinHeight === undefined || selectedElemMinWidth === undefined
-            ) ||
-          (
-            selectedElemWidth < width || selectedElemHeight < height ||
-            selectedElemMinHeight > width || selectedElemMinWidth > height
-            )
-        ) {
-        defaultElem.prop("checked", true);
-        defaultElem.closest('label').addClass('selected');
-        selectedElem.closest('label').removeClass('selected');
-        //$('.prop.prop-resize[data-type="' + type + '"]').append('<p style="color:red;" class="error">Цвет фасада был сброшен. Несоответствует размерам.</p>');
-        //setTimeout(function () {
-          //$('.prop.prop-resize[data-type="' + type + '"] .error').remove();
-        //}, 4000);
-      }
+				if (objSld.detected) {
+					var slideElement = $("#size_edit_joindepth_slider");
+					slideElement.slider(objSld);
+				}
 
-      $('.prop-facades .group-values input').each(function () {
-        var sizeCheckWidth = $(this).attr('max-width'),
-            sizeCheckHeight = $(this).attr('max-height'),
-            sizeCheckMinHeight = $(this).attr('min-height'),
-            sizeCheckMinWidth = $(this).attr('min-width');
+				joinDepth.prop('disabled', false);
+				joinDepth.closest('.prop-resize').show();
 
-        if (sizeCheckWidth !== undefined && sizeCheckHeight !== undefined) {
-          sizeCheckWidth = parseInt(sizeCheckWidth);
-          sizeCheckHeight = parseInt(sizeCheckHeight);
+			} else {
+				joinDepth.prop('disabled', true);
+				joinDepth.closest('.prop-resize').hide();
+			}
 
-          if (
-            (
-              sizeCheckWidth < width || 
-              sizeCheckHeight < height &&
-              sizeCheckMinHeight === undefined &&
-              sizeCheckMinHeight === undefined
-              ) ||
-            (
-              sizeCheckWidth < width || 
-              sizeCheckHeight < height ||
-              sizeCheckMinWidth > width || 
-              sizeCheckMinHeight > height
-              )
-          ) {
-            $(this).closest('li').addClass('hiden-fasade');
-            $(this).addClass('err');
-            $(this).prop('disabled', true);
-          } else {
-            $(this).closest('li').removeClass('hiden-fasade');
-            $(this).removeClass('err');
-            $(this).prop('disabled', false);
-          }
-        }
-      });
-      $('.prop-facades .group').each(function () {
-        if ($(this).find('input').length == $(this).find('input.err').length) {
-          $(this).hide();
-        } else {
-          $(this).show();
-        }
-      });
+		}
 
-    }
+		if ($("input[name='MECHANISM']", form_parent).length > 0) {
+			//let q = self.getElementSize('.catalog-element-form');
+			//console.log(q)
+			//console.log($("input[name='MECHANISM']", form_parent));
+			var activeFasade = $('input[name="FACADE"]:checked');
+			var typeFasade = $('input[name="FACADE"]:checked').attr('data-type');
+			var mechanismList = $("input[name='MECHANISM']", form_parent);
+
+			if (typeFasade == 'no_fasade') {
+				self.deactivateMechanism(mechanismList);
+			} else {
+				self.controlMechanism(activeFasade, mechanismList);
+			}
+		}
+
+		if ($("input[name='FACADE']", form_parent).length > 0 && $("input[name='IGNORE_SIZE']", form_parent).val() != '1') {
+
+			//$('input[name="height"]').val()
+
+			let width = $("input[name='SIZEEDITWIDTH']").val();
+			let height = $("input[name='SIZEEDITHEIGHT']").val();
+
+			if (width === undefined) {
+				width = $('input[name="width"]').val();
+				width = parseInt(width);
+			}
+
+			if (height === undefined) {
+				height = $('input[name="height"]').val();
+				height = parseInt(height);
+			}
+
+			if ($('input[name="condition"]').attr('width') != '') {
+				let formulaWidth = $('input[name="condition"]').attr('width');
+				if ($('input[name="SIZEEDITJOINDEPTH"]').val()) {
+					formulaWidth = formulaWidth.split('#SIZEEDITJOINDEPTH#').join($('input[name="SIZEEDITJOINDEPTH"]').val());
+				}
+				if ($('input[name="depth"]').val()) {
+					formulaWidth = formulaWidth.split('#Z#').join($('input[name="depth"]').val());
+				}
+				formulaWidth = formulaWidth.split('#X#').join(width);
+
+				width = eval(formulaWidth);
+				width = parseInt(width);
+			}
+
+			if ($('input[name="condition"]').attr('height') != '') {
+				height = eval($('input[name="condition"]').attr('height').split('#Y#').join(height));
+				height = parseInt(height);
+			}
+
+			var defaultElem = $('.prop-facades input:first'),
+				selectedElem = $('.prop-facades input[type="radio"]:checked'),
+				selectedElemWidth = parseInt(selectedElem.attr('max-width')),
+				selectedElemHeight = parseInt(selectedElem.attr('max-height')),
+				selectedElemMinHeight = parseInt(selectedElem.attr('min-height')),
+				selectedElemMinWidth = parseInt(selectedElem.attr('min-width'));
+
+
+			if (
+				(
+					selectedElemWidth < width || selectedElemHeight < height ||
+					selectedElemMinHeight === undefined || selectedElemMinWidth === undefined
+				) ||
+				(
+					selectedElemWidth < width || selectedElemHeight < height ||
+					selectedElemMinHeight > width || selectedElemMinWidth > height
+				)
+			) {
+				defaultElem.prop("checked", true);
+				defaultElem.closest('label').addClass('selected');
+				selectedElem.closest('label').removeClass('selected');
+				//$('.prop.prop-resize[data-type="' + type + '"]').append('<p style="color:red;" class="error">Цвет фасада был сброшен. Несоответствует размерам.</p>');
+				//setTimeout(function () {
+				//$('.prop.prop-resize[data-type="' + type + '"] .error').remove();
+				//}, 4000);
+			}
+
+			$('.prop-facades .group-values input').each(function () {
+				var sizeCheckWidth = $(this).attr('max-width'),
+					sizeCheckHeight = $(this).attr('max-height'),
+					sizeCheckMinHeight = $(this).attr('min-height'),
+					sizeCheckMinWidth = $(this).attr('min-width');
+
+				if (sizeCheckWidth !== undefined && sizeCheckHeight !== undefined) {
+					sizeCheckWidth = parseInt(sizeCheckWidth);
+					sizeCheckHeight = parseInt(sizeCheckHeight);
+
+					if (
+						(
+							sizeCheckWidth < width ||
+							sizeCheckHeight < height &&
+							sizeCheckMinHeight === undefined &&
+							sizeCheckMinHeight === undefined
+						) ||
+						(
+							sizeCheckWidth < width ||
+							sizeCheckHeight < height ||
+							sizeCheckMinWidth > width ||
+							sizeCheckMinHeight > height
+						)
+					) {
+						$(this).closest('li').addClass('hiden-fasade');
+						$(this).addClass('err');
+						$(this).prop('disabled', true);
+					} else {
+						$(this).closest('li').removeClass('hiden-fasade');
+						$(this).removeClass('err');
+						$(this).prop('disabled', false);
+					}
+				}
+			});
+			$('.prop-facades .group').each(function () {
+				if ($(this).find('input').length == $(this).find('input.err').length) {
+					$(this).hide();
+				} else {
+					$(this).show();
+				}
+			});
+
+		}
 
 		const sawPropil = 20;
 
 		if ($("#raspilVert")) {
-			const value =  $("input[name='SIZEEDITWIDTH']", form_parent).val() / 2 - sawPropil / 2;
+			const value = $("input[name='SIZEEDITWIDTH']", form_parent).val() / 2 - sawPropil / 2;
 			if (value > 0) {
 				$("#raspilVert").text('(' + String(value) + ' + ' + String(value) + ')');
 			}
 		}
 
 		if ($("#raspilHor")) {
-			const value =  $("input[name='SIZEEDITHEIGHT']", form_parent).val() / 2 - sawPropil / 2;
+			const value = $("input[name='SIZEEDITHEIGHT']", form_parent).val() / 2 - sawPropil / 2;
 			if (value > 0) {
 				$("#raspilHor").text('(' + String(value) + ' + ' + String(value) + ')');
 			}
 		}
-	    if ($("input[name='SELECTFASADE']:checked").val() >= 1) {
+		if ($("input[name='SELECTFASADE']:checked").val() >= 1) {
 
-	      let numberElem = $("input[name='SELECTFASADE']:checked").val();
+			let numberElem = $("input[name='SELECTFASADE']:checked").val();
 
-	      let arrType = ['FACADE','MILLING','PALETTE','FASADETYPE','PATINA','GLASS'];
+			let arrType = ['FACADE', 'MILLING', 'PALETTE', 'FASADETYPE', 'PATINA', 'GLASS'];
 
-	      let name = {
-	        FACADE: 'Цвет фасада',
-	        MILLING: 'Фрезеровка',
-	        PALETTE: 'Цвет палитры',
-	        FASADETYPE: 'Тип фасада',
-	        PATINA: 'Патина',
-	        GLASS: 'Стекло',
-	      }
+			let name = {
+				FACADE: 'Цвет фасада',
+				MILLING: 'Фрезеровка',
+				PALETTE: 'Цвет палитры',
+				FASADETYPE: 'Тип фасада',
+				PATINA: 'Патина',
+				GLASS: 'Стекло',
+			}
 
-	      let text = '';
+			let text = '';
 
-	      for (let type in arrType) {
+			for (let type in arrType) {
 
-	        if (arrType[type] == 'PALETTE') {
-	          var typeVal = $("select:enabled[name='"+arrType[type]+"'] option:selected").val();
-	        } else {
-	          var typeVal = $("input[name='"+arrType[type]+"']:checked").val();
-	        }
+				if (arrType[type] == 'PALETTE') {
+					var typeVal = $("select:enabled[name='" + arrType[type] + "'] option:selected").val();
+				} else {
+					var typeVal = $("input[name='" + arrType[type] + "']:checked").val();
+				}
 
-	        let codeElem = "CUSTOM_"+arrType[type]+numberElem;
-	        
-	        if (typeVal !== undefined) {
-	          $("input[name='"+codeElem+"']").val(typeVal)
-	          if (arrType[type] == 'PALETTE') {
-	            console.log(typeVal)
-	            text += name[arrType[type]] +': '+$("select:enabled[name='"+arrType[type]+"'] option:selected").text() + '<br>';
-	          } else {
-	            text += name[arrType[type]] +': '+$("input[name='"+arrType[type]+"']:checked").closest('.selected').find('.value-title').text() + '<br>';
-	          }
-	          
-	        } else {
-	          $("input[name='"+codeElem+"']").val('')
-	        }
-	      }
+				let codeElem = "CUSTOM_" + arrType[type] + numberElem;
 
-	      $("#selectFasade"+numberElem+"").find('.description').html(text)
+				if (typeVal !== undefined) {
+					$("input[name='" + codeElem + "']").val(typeVal)
+					if (arrType[type] == 'PALETTE') {
+						console.log(typeVal)
+						text += name[arrType[type]] + ': ' + $("select:enabled[name='" + arrType[type] + "'] option:selected").text() + '<br>';
+					} else {
+						text += name[arrType[type]] + ': ' + $("input[name='" + arrType[type] + "']:checked").closest('.selected').find('.value-title').text() + '<br>';
+					}
 
-	    }
+				} else {
+					$("input[name='" + codeElem + "']").val('')
+				}
+			}
+
+			$("#selectFasade" + numberElem + "").find('.description').html(text)
+
+		}
 	}
 
 	this.deactivateMechanism = function (mechanismList) {
 		mechanismList.each(function () {
-		$(this).prop("checked", false);
-		$(this).closest('li').hide();
+			$(this).prop("checked", false);
+			$(this).closest('li').hide();
 		});
 	};
 
@@ -1199,12 +1207,12 @@ if ($('input[data-opt-specific="true"]').val()) {
 			allWeight = 0;
 
 		if (activeMilling.length > 0 && activeMilling.attr('weight') !== undefined) {
-		weightFasade = parseFloat(activeMilling.attr('weight'))
+			weightFasade = parseFloat(activeMilling.attr('weight'))
 		}
 
 		if (isNaN(weightFasade)) {
-		self.deactivateMechanism(mechanismList);
-		return false;
+			self.deactivateMechanism(mechanismList);
+			return false;
 		}
 
 		var objSizeFrame = self.getElementSize('.catalog-element-form'),
@@ -1214,72 +1222,72 @@ if ($('input[data-opt-specific="true"]').val()) {
 		if ($('input[name="conditionnew"]').length > 0) {
 
 
-		$('input[name="conditionnew"]').each(function () {
-			var conditionWidth = $(this).attr('width'),
-				conditionHeight = $(this).attr('height'),
-			objAxe = {
-			'#X#': widthFrame,
-			'#Y#': heightFrame
-		};
+			$('input[name="conditionnew"]').each(function () {
+				var conditionWidth = $(this).attr('width'),
+					conditionHeight = $(this).attr('height'),
+					objAxe = {
+						'#X#': widthFrame,
+						'#Y#': heightFrame
+					};
 
-			let sumCondWidth = self.expressionsReplace(conditionWidth, objAxe);
-			sumCondWidth = eval(sumCondWidth);
-			let sumCondHeight = self.expressionsReplace(conditionHeight, objAxe);
-			sumCondHeight = eval(sumCondHeight);
-			allHeight += sumCondHeight;
-			allWeight += sumCondWidth * sumCondHeight / 1000000 * weightFasade;
-		})
+				let sumCondWidth = self.expressionsReplace(conditionWidth, objAxe);
+				sumCondWidth = eval(sumCondWidth);
+				let sumCondHeight = self.expressionsReplace(conditionHeight, objAxe);
+				sumCondHeight = eval(sumCondHeight);
+				allHeight += sumCondHeight;
+				allWeight += sumCondWidth * sumCondHeight / 1000000 * weightFasade;
+			})
 		}
 
 		if (allWeight <= 0) {
-		self.deactivateMechanism(mechanismList);
-		return false;
+			self.deactivateMechanism(mechanismList);
+			return false;
 		}
 
 		allWeight = parseFloat(allWeight.toFixed(2));
 		var objSectionMech = {};
 		var idsMech = {}
 		mechanismList.each(function () {
-		if ($(this).attr('data-cond') !== undefined) {
-			var arrConditions = $(this).attr('data-cond').split(','),
-				typeMech = $(this).attr('data-type-mech'),
-				sectionMech = $(this).attr('data-section'),
-				cond = [],
-				id = $(this).val();
+			if ($(this).attr('data-cond') !== undefined) {
+				var arrConditions = $(this).attr('data-cond').split(','),
+					typeMech = $(this).attr('data-type-mech'),
+					sectionMech = $(this).attr('data-section'),
+					cond = [],
+					id = $(this).val();
 
-			for (var q in arrConditions) {
-			cond[q] = arrConditions[q].split('_');
+				for (var q in arrConditions) {
+					cond[q] = arrConditions[q].split('_');
 
-			for (var i in cond[q]) {
-				cond[q][i] = parseFloat(cond[q][i]);
-			}
+					for (var i in cond[q]) {
+						cond[q][i] = parseFloat(cond[q][i]);
+					}
 
-			if (allHeight >= cond[q][0] && allHeight <= cond[q][1] && allWeight >= cond[q][2] && allWeight <= cond[q][3]) {
+					if (allHeight >= cond[q][0] && allHeight <= cond[q][1] && allWeight >= cond[q][2] && allWeight <= cond[q][3]) {
 
-				if (objSectionMech[sectionMech] !== undefined) {
-				if (objSectionMech[sectionMech] != typeMech) {
-					continue;
+						if (objSectionMech[sectionMech] !== undefined) {
+							if (objSectionMech[sectionMech] != typeMech) {
+								continue;
+							}
+						}
+
+						idsMech[id] = true;
+						objSectionMech[sectionMech] = typeMech;
+					}
 				}
-				}
-
-				idsMech[id] = true;
-				objSectionMech[sectionMech] = typeMech;
 			}
-			}
-		}
 		});
 
 		mechanismList.each(function () {
-		var typeMech = $(this).attr('data-type-mech'),
-			sectionMech = $(this).attr('data-section'),
-			id = $(this).val();
+			var typeMech = $(this).attr('data-type-mech'),
+				sectionMech = $(this).attr('data-section'),
+				id = $(this).val();
 
-		if (idsMech[id] === true) {
-			$(this).closest('li').show();
-		} else {
-			$(this).closest('li').hide();
-			$(this).prop("checked", false);
-		}
+			if (idsMech[id] === true) {
+				$(this).closest('li').show();
+			} else {
+				$(this).closest('li').hide();
+				$(this).prop("checked", false);
+			}
 		});
 	};
 
@@ -1294,32 +1302,32 @@ if ($('input[data-opt-specific="true"]').val()) {
 			window.__catalogHandlersBound = true;
 		}
 
-	    $(document).on("change", "input[name='SELECTFASADE']", function (){
-	      if ($("input[name='SELECTFASADE']:checked").val() >= 1) {
+		$(document).on("change", "input[name='SELECTFASADE']", function () {
+			if ($("input[name='SELECTFASADE']:checked").val() >= 1) {
 
-	        let n = $("input[name='SELECTFASADE']:checked").val();
+				let n = $("input[name='SELECTFASADE']:checked").val();
 
-	        //$('.fasadeNumber img').hide();
-	        //$("input[name='SELECTFASADE']:checked").siblings('img').show();
+				//$('.fasadeNumber img').hide();
+				//$("input[name='SELECTFASADE']:checked").siblings('img').show();
 
-	        let arrType = ['FACADE','MILLING', 'FASADETYPE', 'PALETTE','PATINA','GLASS'];
+				let arrType = ['FACADE', 'MILLING', 'FASADETYPE', 'PALETTE', 'PATINA', 'GLASS'];
 
-	        for (let type in arrType) {
-	          let codeElem = "CUSTOM_"+arrType[type]+n;
+				for (let type in arrType) {
+					let codeElem = "CUSTOM_" + arrType[type] + n;
 
-	          if ($("input[name='"+codeElem+"']").val() == '') {
-	            $("input[value='"+$("input[name='"+codeElem+"']").val()+"']").prop("checked", false);
-	          } else {
-	            $("input[value='"+$("input[name='"+codeElem+"']").val()+"']").prop("checked", true);
-	          }
-	        }
+					if ($("input[name='" + codeElem + "']").val() == '') {
+						$("input[value='" + $("input[name='" + codeElem + "']").val() + "']").prop("checked", false);
+					} else {
+						$("input[value='" + $("input[name='" + codeElem + "']").val() + "']").prop("checked", true);
+					}
+				}
 
-	        for (let type in arrType) {
-	          let codeElem = "CUSTOM_"+arrType[type]+n;
-	          self.doChangeProps($("input[value='"+$("input[name='"+codeElem+"']").val()+"']"));
-	        }
-	      }
-	    })
+				for (let type in arrType) {
+					let codeElem = "CUSTOM_" + arrType[type] + n;
+					self.doChangeProps($("input[value='" + $("input[name='" + codeElem + "']").val() + "']"));
+				}
+			}
+		})
 
 
 		$(document).on("change", ".prop-facades input, .prop-colors input, .prop-leg_type input, .prop-milling input, .prop-glass input, .prop-hem input, .prop-fasadesize input, .prop-uslugi input, .prop-filling input, .prop-milling input, .prop-resize input, .prop-profile input, .prop-handlecolor input, .prop-fasadealign input, .prop-patinacolor input, .prop-tabletop_type input, .prop-option input, .prop-type_showcase input, .prop-fasade_type input, .prop-palette-wrap select", function ()		//Выбор фасада или цвета
@@ -1358,14 +1366,14 @@ if ($('input[data-opt-specific="true"]').val()) {
 			else {
 				$(elem).prop("checked", true);
 			}
-        // Снимаем возможные предыдущие обработчики, чтобы избежать дублирования добавления в корзину
-        }).off('click', ".element .add-to-basket .to-basket, .product__cart-button")
-        .on("click", ".element .add-to-basket .to-basket, .product__cart-button", function (e, w) {
-            addToBasketFunc(e);
-            return false;
-        }).on("click", ".windowinfo-btn", function (e, w) {
-			return false;
-		});
+			// Снимаем возможные предыдущие обработчики, чтобы избежать дублирования добавления в корзину
+		}).off('click', ".element .add-to-basket .to-basket, .product__cart-button")
+			.on("click", ".element .add-to-basket .to-basket, .product__cart-button", function (e, w) {
+				addToBasketFunc(e);
+				return false;
+			}).on("click", ".windowinfo-btn", function (e, w) {
+				return false;
+			});
 
 		self.productIsInit = true;
 	}
@@ -1375,11 +1383,11 @@ if ($('input[data-opt-specific="true"]').val()) {
 		let relations = $(k).data('relations') ? $(k).data('relations').split(',') : [];
 
 		$.each(relations, function (i, v) {
-			if(propsShow[v] == undefined)
+			if (propsShow[v] == undefined)
 				propsShow[v] = false;
 
-			if($(k).prop('checked')){
-				propsShow[v] = ($(k).data(v) == undefined ) ? true : (($(k).data(v) == false || $(k).prop('disabled')) ? false : $(k).data(v));
+			if ($(k).prop('checked')) {
+				propsShow[v] = ($(k).data(v) == undefined) ? true : (($(k).data(v) == false || $(k).prop('disabled')) ? false : $(k).data(v));
 			}
 		});
 
@@ -1455,11 +1463,11 @@ if ($('input[data-opt-specific="true"]').val()) {
 					max: max,
 					change: function () {
 						var v = self.catalogControlSize($(this).val(), min, max);
-						slideElement.slider({value: v});
+						slideElement.slider({ value: v });
 					},
 					stop: function () {
 						var v = self.catalogControlSize($(this).val(), min, max);
-						slideElement.slider({value: v});
+						slideElement.slider({ value: v });
 						input.val(v).trigger('change');
 						self.catalogControlConditions();
 						if (type == 'depth') {
@@ -1512,182 +1520,182 @@ if ($('input[data-opt-specific="true"]').val()) {
 		});
 	}
 
-	this.controlSizeFasade = function(init = false, value = false, type = false) {
+	this.controlSizeFasade = function (init = false, value = false, type = false) {
 
 		let height, width;
 
 		if (type == 'height' || type == 'width' && init == false) {
 
-		if (type == 'width') {
-			width = value;
-			height = parseInt($('#size_edit_height_input').val());
-		} else {
-			height = value;
-			width = parseInt($('#size_edit_width_input').val());
-		}
-
-		if (isNaN(height)) {
-			height = parseInt($('input[name="height"]').val());
-		}
-		if (isNaN(width)) {
-			width = parseInt($('input[name="width"]').val());
-		}
-
-		if ($('input[name="condition"]').attr('width') != '') {
-			let formulaWidth = $('input[name="condition"]').attr('width');
-			if ($('input[name="SIZEEDITJOINDEPTH"]').val()) {
-				formulaWidth = formulaWidth.split('#SIZEEDITJOINDEPTH#').join($('input[name="SIZEEDITJOINDEPTH"]').val());
+			if (type == 'width') {
+				width = value;
+				height = parseInt($('#size_edit_height_input').val());
+			} else {
+				height = value;
+				width = parseInt($('#size_edit_width_input').val());
 			}
-			formulaWidth = formulaWidth.split('#X#').join(width);
 
-			width = eval(formulaWidth);
-		}
+			if (isNaN(height)) {
+				height = parseInt($('input[name="height"]').val());
+			}
+			if (isNaN(width)) {
+				width = parseInt($('input[name="width"]').val());
+			}
 
-		if ($('input[name="condition"]').attr('height') != '') {
-			height = eval($('input[name="condition"]').attr('height').split('#Y#').join(height));
-		}
+			if ($('input[name="condition"]').attr('width') != '') {
+				let formulaWidth = $('input[name="condition"]').attr('width');
+				if ($('input[name="SIZEEDITJOINDEPTH"]').val()) {
+					formulaWidth = formulaWidth.split('#SIZEEDITJOINDEPTH#').join($('input[name="SIZEEDITJOINDEPTH"]').val());
+				}
+				formulaWidth = formulaWidth.split('#X#').join(width);
 
-		var defaultElem = $('.prop-facades input:first'),
-			selectedElem = $('.prop-facades input[type="radio"]:checked'),
-			selectedElemWidth = parseInt(selectedElem.attr('max-width')),
-			selectedElemHeight = parseInt(selectedElem.attr('max-height')),
-			selectedElemMinHeight = parseInt(selectedElem.attr('min-height')),
-			selectedElemMinWidth = parseInt(selectedElem.attr('min-width'));
+				width = eval(formulaWidth);
+			}
+
+			if ($('input[name="condition"]').attr('height') != '') {
+				height = eval($('input[name="condition"]').attr('height').split('#Y#').join(height));
+			}
+
+			var defaultElem = $('.prop-facades input:first'),
+				selectedElem = $('.prop-facades input[type="radio"]:checked'),
+				selectedElemWidth = parseInt(selectedElem.attr('max-width')),
+				selectedElemHeight = parseInt(selectedElem.attr('max-height')),
+				selectedElemMinHeight = parseInt(selectedElem.attr('min-height')),
+				selectedElemMinWidth = parseInt(selectedElem.attr('min-width'));
 
 
 			if (
-			(
-				selectedElemWidth < width || selectedElemHeight < height ||
-				selectedElemMinHeight === undefined || selectedElemMinWidth === undefined
+				(
+					selectedElemWidth < width || selectedElemHeight < height ||
+					selectedElemMinHeight === undefined || selectedElemMinWidth === undefined
 				) ||
-			(
-				selectedElemWidth < width || selectedElemHeight < height ||
-				selectedElemMinHeight > width || selectedElemMinWidth > height
+				(
+					selectedElemWidth < width || selectedElemHeight < height ||
+					selectedElemMinHeight > width || selectedElemMinWidth > height
 				)
 			) {
-			defaultElem.prop( "checked", true );
-			defaultElem.closest('label').addClass('selected');
-			selectedElem.closest('label').removeClass('selected');
+				defaultElem.prop("checked", true);
+				defaultElem.closest('label').addClass('selected');
+				selectedElem.closest('label').removeClass('selected');
 
-			self.catalogInitElementProps($(".main__product .product__wrapper"), self.catalogElementGetPrice);
+				self.catalogInitElementProps($(".main__product .product__wrapper"), self.catalogElementGetPrice);
 
-			$('.prop.prop-resize[data-type="'+type+'"]').append('<p style="color:red;" class="error">Цвет фасада был сброшен. Несоответствует размерам.</p>');
+				$('.prop.prop-resize[data-type="' + type + '"]').append('<p style="color:red;" class="error">Цвет фасада был сброшен. Несоответствует размерам.</p>');
 
-			setTimeout(function() {
-				$('.prop.prop-resize[data-type="'+type+'"] .error').remove();
-			}, 4000);
+				setTimeout(function () {
+					$('.prop.prop-resize[data-type="' + type + '"] .error').remove();
+				}, 4000);
 			}
 
 
-		$('.prop-facades .group-values input').each(function(){
-			var sizeCheckWidth = $(this).attr('max-width'),
-				sizeCheckHeight = $(this).attr('max-height'),
-				sizeCheckMinHeight = $(this).attr('min-height'),
-				sizeCheckMinWidth = $(this).attr('min-width');
+			$('.prop-facades .group-values input').each(function () {
+				var sizeCheckWidth = $(this).attr('max-width'),
+					sizeCheckHeight = $(this).attr('max-height'),
+					sizeCheckMinHeight = $(this).attr('min-height'),
+					sizeCheckMinWidth = $(this).attr('min-width');
 
-			if (sizeCheckWidth !== undefined && sizeCheckHeight !== undefined) {
-			sizeCheckWidth = parseInt(sizeCheckWidth);
-			sizeCheckHeight = parseInt(sizeCheckHeight);
+				if (sizeCheckWidth !== undefined && sizeCheckHeight !== undefined) {
+					sizeCheckWidth = parseInt(sizeCheckWidth);
+					sizeCheckHeight = parseInt(sizeCheckHeight);
 
-			if (sizeCheckWidth < width || sizeCheckHeight < height) {
-				$(this).closest('li').addClass('hiden-fasade');
-				$(this).addClass('err');
-			} else {
-				$(this).closest('li').removeClass('hiden-fasade');
-				$(this).removeClass('err');
-			}
-			}
+					if (sizeCheckWidth < width || sizeCheckHeight < height) {
+						$(this).closest('li').addClass('hiden-fasade');
+						$(this).addClass('err');
+					} else {
+						$(this).closest('li').removeClass('hiden-fasade');
+						$(this).removeClass('err');
+					}
+				}
 
-			if (sizeCheckMinHeight !== undefined && sizeCheckMinWidth !== undefined) {
-			sizeCheckMinWidth = parseInt(sizeCheckMinWidth);
-			sizeCheckMinHeight = parseInt(sizeCheckMinHeight);
+				if (sizeCheckMinHeight !== undefined && sizeCheckMinWidth !== undefined) {
+					sizeCheckMinWidth = parseInt(sizeCheckMinWidth);
+					sizeCheckMinHeight = parseInt(sizeCheckMinHeight);
 
-			if (sizeCheckMinWidth > width || sizeCheckMinHeight > height) {
-				$(this).closest('li').addClass('hiden-fasade');
-				$(this).addClass('err');
-			} else {
-				$(this).closest('li').removeClass('hiden-fasade');
-				$(this).removeClass('err');
-			}
-			}
+					if (sizeCheckMinWidth > width || sizeCheckMinHeight > height) {
+						$(this).closest('li').addClass('hiden-fasade');
+						$(this).addClass('err');
+					} else {
+						$(this).closest('li').removeClass('hiden-fasade');
+						$(this).removeClass('err');
+					}
+				}
 
-		});
+			});
 
-		$('.prop-facades .group').each(function(){
-			if ($(this).find('input').length == $(this).find('input.err').length) {
-			$(this).hide();
-			} else {
-			$(this).show();
-			}
-		});
+			$('.prop-facades .group').each(function () {
+				if ($(this).find('input').length == $(this).find('input.err').length) {
+					$(this).hide();
+				} else {
+					$(this).show();
+				}
+			});
 
 
 		} else if (init) {
-		width = parseInt($('#size_edit_width_input').val());
-		height = parseInt($('#size_edit_height_input').val());
+			width = parseInt($('#size_edit_width_input').val());
+			height = parseInt($('#size_edit_height_input').val());
 
-		if (isNaN(height)) {
-			height = parseInt($('input[name="height"]').val());
-		}
-		if (isNaN(width)) {
-			width = parseInt($('input[name="width"]').val());
-		}
-
-		if ($('input[name="condition"]').attr('width') != '' && $('input[name="condition"]').attr('width') != undefined) {
-			let formulaWidth = $('input[name="condition"]').attr('width');
-			if ($('input[name="SIZEEDITJOINDEPTH"]').val()) {
-				formulaWidth = formulaWidth.split('#SIZEEDITJOINDEPTH#').join($('input[name="SIZEEDITJOINDEPTH"]').val());
+			if (isNaN(height)) {
+				height = parseInt($('input[name="height"]').val());
 			}
-			formulaWidth = formulaWidth.split('#X#').join(width);
-
-			width = eval(formulaWidth);
-		}
-
-		if ($('input[name="condition"]').attr('height') != '' && $('input[name="condition"]').attr('height') != undefined) {
-			height = eval($('input[name="condition"]').attr('height').split('#Y#').join(height));
-		}
-
-		$('.prop-facades .group-values input').each(function(){
-			var sizeCheckWidth = $(this).attr('max-width'),
-				sizeCheckHeight = $(this).attr('max-height'),
-				sizeCheckMinHeight = $(this).attr('min-height'),
-				sizeCheckMinWidth = $(this).attr('min-width');
-
-			if (sizeCheckWidth !== undefined && sizeCheckHeight !== undefined) {
-			sizeCheckWidth = parseInt(sizeCheckWidth);
-			sizeCheckHeight = parseInt(sizeCheckHeight);
-
-			if (sizeCheckWidth < width || sizeCheckHeight < height) {
-				$(this).closest('li').addClass('hiden-fasade');
-				$(this).addClass('err');
-			} else {
-				$(this).closest('li').removeClass('hiden-fasade');
-				$(this).removeClass('err');
-			}
+			if (isNaN(width)) {
+				width = parseInt($('input[name="width"]').val());
 			}
 
-			if (sizeCheckMinHeight !== undefined && sizeCheckMinWidth !== undefined) {
-			sizeCheckMinWidth = parseInt(sizeCheckMinWidth);
-			sizeCheckMinHeight = parseInt(sizeCheckMinHeight);
+			if ($('input[name="condition"]').attr('width') != '' && $('input[name="condition"]').attr('width') != undefined) {
+				let formulaWidth = $('input[name="condition"]').attr('width');
+				if ($('input[name="SIZEEDITJOINDEPTH"]').val()) {
+					formulaWidth = formulaWidth.split('#SIZEEDITJOINDEPTH#').join($('input[name="SIZEEDITJOINDEPTH"]').val());
+				}
+				formulaWidth = formulaWidth.split('#X#').join(width);
 
-			if (sizeCheckMinWidth > width || sizeCheckMinHeight > height) {
-				$(this).closest('li').addClass('hiden-fasade');
-				$(this).addClass('err');
-			} else {
-				$(this).closest('li').removeClass('hiden-fasade');
-				$(this).removeClass('err');
-			}
+				width = eval(formulaWidth);
 			}
 
-		});
-
-		$('.prop-facades .group').each(function(){
-			if ($(this).find('input').length == $(this).find('input.err').length) {
-			$(this).hide();
-			} else {
-			$(this).show();
+			if ($('input[name="condition"]').attr('height') != '' && $('input[name="condition"]').attr('height') != undefined) {
+				height = eval($('input[name="condition"]').attr('height').split('#Y#').join(height));
 			}
-		});
+
+			$('.prop-facades .group-values input').each(function () {
+				var sizeCheckWidth = $(this).attr('max-width'),
+					sizeCheckHeight = $(this).attr('max-height'),
+					sizeCheckMinHeight = $(this).attr('min-height'),
+					sizeCheckMinWidth = $(this).attr('min-width');
+
+				if (sizeCheckWidth !== undefined && sizeCheckHeight !== undefined) {
+					sizeCheckWidth = parseInt(sizeCheckWidth);
+					sizeCheckHeight = parseInt(sizeCheckHeight);
+
+					if (sizeCheckWidth < width || sizeCheckHeight < height) {
+						$(this).closest('li').addClass('hiden-fasade');
+						$(this).addClass('err');
+					} else {
+						$(this).closest('li').removeClass('hiden-fasade');
+						$(this).removeClass('err');
+					}
+				}
+
+				if (sizeCheckMinHeight !== undefined && sizeCheckMinWidth !== undefined) {
+					sizeCheckMinWidth = parseInt(sizeCheckMinWidth);
+					sizeCheckMinHeight = parseInt(sizeCheckMinHeight);
+
+					if (sizeCheckMinWidth > width || sizeCheckMinHeight > height) {
+						$(this).closest('li').addClass('hiden-fasade');
+						$(this).addClass('err');
+					} else {
+						$(this).closest('li').removeClass('hiden-fasade');
+						$(this).removeClass('err');
+					}
+				}
+
+			});
+
+			$('.prop-facades .group').each(function () {
+				if ($(this).find('input').length == $(this).find('input.err').length) {
+					$(this).hide();
+				} else {
+					$(this).show();
+				}
+			});
 		}
 	}
 
@@ -1696,7 +1704,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 	}
 
 	this.catalogInitResize = function (parent, callback) {
-		var callback = callback || function(){};
+		var callback = callback || function () { };
 		if ($('#sizeeditopt').length) {
 			$('.prop-resize input').prop('disabled', true);
 
@@ -1718,67 +1726,67 @@ if ($('input[data-opt-specific="true"]').val()) {
 	}
 
 
-  this.catalogElementGetPrice = function (elem) {
-      clearTimeout(self.getPriceTimer);
+	this.catalogElementGetPrice = function (elem) {
+		clearTimeout(self.getPriceTimer);
 
-      document.querySelector('.product-details__back-page').disabled = true;
-      document.querySelector('.product__cart-button').disabled = true;
+		document.querySelector('.product-details__back-page').disabled = true;
+		document.querySelector('.product__cart-button').disabled = true;
 
 
-      self.getPriceTimer = setTimeout(function () {
-          const form = document.querySelector(".product__form");
-          if (!form) return;
+		self.getPriceTimer = setTimeout(function () {
+			const form = document.querySelector(".product__form");
+			if (!form) return;
 
-          const formData = new FormData(form);
-          const urlEncodedData = new URLSearchParams();
-          for (const [key, value] of formData) {
-              urlEncodedData.append(key, value);
-          }
+			const formData = new FormData(form);
+			const urlEncodedData = new URLSearchParams();
+			for (const [key, value] of formData) {
+				urlEncodedData.append(key, value);
+			}
 
-          fetch(apiPath + "/API/catalog.element.getprice.php", {
-              method: "POST",
-              body: urlEncodedData
-          })
-          .then(response => response.text())
-          .then(msg => {
-              console.log(msg);
+			fetch(apiPath + "/API/catalog.element.getprice.php", {
+				method: "POST",
+				body: urlEncodedData
+			})
+				.then(response => response.text())
+				.then(msg => {
+					console.log(msg);
 
-              // === Извлекаем DOM-элемент из jQuery-объекта или используем напрямую ===
-              const container = elem[0] || elem; // ← ключевая строка: если elem — jQuery, берём elem[0]
+					// === Извлекаем DOM-элемент из jQuery-объекта или используем напрямую ===
+					const container = elem[0] || elem; // ← ключевая строка: если elem — jQuery, берём elem[0]
 
-              const priceNum = parseFloat(msg.replace(' руб', '').replace(/\s/g, ''));
+					const priceNum = parseFloat(msg.replace(' руб', '').replace(/\s/g, ''));
 
-              const priceTextEl = container.querySelector(".product__price > .product__price-text");
-              const addToBasketPriceEl = container.querySelector(".props .add-to-basket .price");
-              if (priceTextEl) priceTextEl.innerHTML = msg;
-              if (addToBasketPriceEl) addToBasketPriceEl.innerHTML = msg;
+					const priceTextEl = container.querySelector(".product__price > .product__price-text");
+					const addToBasketPriceEl = container.querySelector(".props .add-to-basket .price");
+					if (priceTextEl) priceTextEl.innerHTML = msg;
+					if (addToBasketPriceEl) addToBasketPriceEl.innerHTML = msg;
 
-              const notDiscountInput = form.querySelector('input[name="NOT_DISCOUNT"]');
-              if (notDiscountInput) {
-                  const notDiscount = parseFloat(notDiscountInput.value);
-                  if (!isNaN(notDiscount)) {
-                      const percent = 2 - notDiscount;
-                      const oldPrice = (priceNum / percent).toFixed();
-                      const formattedOldPrice = Number(oldPrice).toLocaleString('ru-RU') + ' руб';
+					const notDiscountInput = form.querySelector('input[name="NOT_DISCOUNT"]');
+					if (notDiscountInput) {
+						const notDiscount = parseFloat(notDiscountInput.value);
+						if (!isNaN(notDiscount)) {
+							const percent = 2 - notDiscount;
+							const oldPrice = (priceNum / percent).toFixed();
+							const formattedOldPrice = Number(oldPrice).toLocaleString('ru-RU') + ' руб';
 
-                      const notDiscountEl = container.querySelector(".product__price > .product__price-notdiscount");
-                      if (notDiscountEl) {
-                          notDiscountEl.innerHTML = formattedOldPrice;
-                      }
-                  }
-              }
-          })
-          .catch(error => {
-              console.error("Ошибка при получении цены:", error);
-          }).finally(()=> {
-            document.querySelector('.product-details__back-page').disabled = false;
-            document.querySelector('.product__cart-button').disabled = false;
-          });
-      }, 300);
-  };
+							const notDiscountEl = container.querySelector(".product__price > .product__price-notdiscount");
+							if (notDiscountEl) {
+								notDiscountEl.innerHTML = formattedOldPrice;
+							}
+						}
+					}
+				})
+				.catch(error => {
+					console.error("Ошибка при получении цены:", error);
+				}).finally(() => {
+					document.querySelector('.product-details__back-page').disabled = false;
+					document.querySelector('.product__cart-button').disabled = false;
+				});
+		}, 300);
+	};
 
 	this.catalogGetElement = function () {
-		var data = {ID: $(this).attr("_id")};
+		var data = { ID: $(this).attr("_id") };
 		if ($(this).prop("checked")) {
 			data.INSTOCK = true;
 		}
@@ -1800,7 +1808,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 
 			$(document).off('mouseup.catalogPopupClose').on('mouseup.catalogPopupClose', function (e) {
 				var container = $(".popup-window-catalog .product__wrapper");
-				if (container.has(e.target).length === 0){
+				if (container.has(e.target).length === 0) {
 					$(".popup-wrap").hide();
 					$(".popup-wrap").empty();
 					$('body').css('overflow', 'visible');
@@ -1986,7 +1994,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 			}
 
 			if (quantityPathInput <= maxQuantityPath - 1) {
-				if (quantityPathInput == maxQuantityPath -1) {
+				if (quantityPathInput == maxQuantityPath - 1) {
 					$(this).attr('disabled', true);
 				}
 
@@ -2117,10 +2125,10 @@ if ($('input[data-opt-specific="true"]').val()) {
 					const messege = 'недопустимое значение ' + inputArr[targetID].value + ' Часть ' + id + ' меньше ' + min;
 
 					toastr.warning(messege); // сообщение об ошибке
-					inputArr[targetID].value =  Number(inputArr[targetID].value) + changeVal;
+					inputArr[targetID].value = Number(inputArr[targetID].value) + changeVal;
 				};
 
-				changeVal =  (width - (quantity - 1) * propil) - widthSum;
+				changeVal = (width - (quantity - 1) * propil) - widthSum;
 
 				if (inputArr[targetID].value < min) { // проверяем минимальное значение
 					notChange(targetID);
@@ -2601,7 +2609,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 		$.ajax({
 			type: "GET",
 			async: true,
-			url: apiPath + "/API/basket.basket.min.get.php?" + jQuery.param({'action': "delete", "id": id})
+			url: apiPath + "/API/basket.basket.min.get.php?" + jQuery.param({ 'action': "delete", "id": id })
 		}).done(function (msg) {
 			self.catalogBasketUpdate(true);
 			el.html(msg);
@@ -2620,27 +2628,27 @@ if ($('input[data-opt-specific="true"]').val()) {
 			type: "POST",
 			async: true,
 			url: apiPath + "/API/basket.item.quantity.update.php",
-			data: {ID: id, QUANTITY: quantity}
+			data: { ID: id, QUANTITY: quantity }
 		}).done(function (msg) {
 			$(".basket-wrap .basket .total_price").html(msg);
 
 			if ($('input[name="NOT_DISCOUNT"]').val() !== undefined) {
-	          var notDiscount = parseFloat($('input[name="NOT_DISCOUNT"]').val());
-	          var percent = 2 - notDiscount;
-	          var oldP = (msg.replace(' руб', '').replace(' ', '') / percent).toFixed();
-	          var newP = parseInt(msg.replace(' руб', '').replace(' ', ''));
-	          var diff = oldP - newP;
+				var notDiscount = parseFloat($('input[name="NOT_DISCOUNT"]').val());
+				var percent = 2 - notDiscount;
+				var oldP = (msg.replace(' руб', '').replace(' ', '') / percent).toFixed();
+				var newP = parseInt(msg.replace(' руб', '').replace(' ', ''));
+				var diff = oldP - newP;
 
-	          $(".total_price_nodiscount").html(Number(oldP).toLocaleString('ru-RU') + ' руб');
-	          $(".total_price_nodiscount_sum").html(Number(diff).toLocaleString('ru-RU') + ' руб');
-	        }
+				$(".total_price_nodiscount").html(Number(oldP).toLocaleString('ru-RU') + ' руб');
+				$(".total_price_nodiscount_sum").html(Number(diff).toLocaleString('ru-RU') + ' руб');
+			}
 
 			self.catalogBasketUpdate(false);
 		});
 	}
 
 	this.catalogBasketUpdate = function (refresh) {
-		$.ajax({type: "GET", async: true, url: apiPath + "/API/basket.update.php"}).done(function (msg) {
+		$.ajax({ type: "GET", async: true, url: apiPath + "/API/basket.update.php" }).done(function (msg) {
 			if ($(".basket-wrap .basket, #orderWrap .orderContent, #orderattach .orderattachContent").length && refresh) document.location = document.location;
 			else {
 				$("#header .basket, .header-cart").replaceWith(msg);
@@ -2653,7 +2661,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 		var ok = ok || new Function;
 		var no = no || new Function;
 
-		var html = $("<div>", {"html": text});
+		var html = $("<div>", { "html": text });
 
 		var dialog = $(html).dialog({
 			autoOpen: true,
@@ -2714,7 +2722,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 
 	this.initPhoneMask = function () {
 		//PHONE_MASK
-		$.fn.setCursorPosition = function(pos) {
+		$.fn.setCursorPosition = function (pos) {
 			if ($(this).get(0).setSelectionRange) {
 				$(this).get(0).setSelectionRange(pos, pos);
 			} else if ($(this).get(0).createTextRange) {
@@ -2729,17 +2737,17 @@ if ($('input[data-opt-specific="true"]').val()) {
 		//$.mask.definitions['h'] = "[7,8]";
 
 		$('.phone-mask').each(function (e) {
-			$(this).click(function(){
+			$(this).click(function () {
 				$(this).setCursorPosition(3);
-			}).mask( PHONE_MASK, {
+			}).mask(PHONE_MASK, {
 				placeholder: PHONE_PLACEHOLDER
-			}).prop({'autocomplete' : 'off', "placeholder" : PHONE_PLACEHOLDER});
+			}).prop({ 'autocomplete': 'off', "placeholder": PHONE_PLACEHOLDER });
 		});
 	}
 
 	this.initSummMask = function () {
 		$('.amount-mask').each(function (e) {
-			$(this).mask(SUMM_MASK, {reverse:true});
+			$(this).mask(SUMM_MASK, { reverse: true });
 			$(this).prop('placeholder', SUMM_PLACEHOLDER);
 		});
 	}
@@ -2776,7 +2784,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 
 		$('.shipping_date_pick').datepicker("destroy");
 
-		$('.shipping_date_pick').datepicker({altField: ".shipping_date", altFormat: "dd.mm.yy", "defaultDate": +min, "minDate": +min, "maxDate": +(min + max)});
+		$('.shipping_date_pick').datepicker({ altField: ".shipping_date", altFormat: "dd.mm.yy", "defaultDate": +min, "minDate": +min, "maxDate": +(min + max) });
 
 		if (val)
 			$('.shipping_date_pick').datepicker('setDate', val);
@@ -2793,8 +2801,8 @@ if ($('input[data-opt-specific="true"]').val()) {
 		formData.append('CSRF', BX.bitrix_sessid());
 		formData.append('URL', url);
 
-		if(form.data('yatarget') && typeof ym == 'function' && METRIKA){
-			ym(METRIKA, 'getClientID', function(id){
+		if (form.data('yatarget') && typeof ym == 'function' && METRIKA) {
+			ym(METRIKA, 'getClientID', function (id) {
 				formData.append('ClientID', id);
 			});
 		}
@@ -2813,7 +2821,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 				if (data.type == 'success') {
 					self.blockingForm(form);
 
-					if(form.data('yatarget') && typeof ym == 'function' && METRIKA){
+					if (form.data('yatarget') && typeof ym == 'function' && METRIKA) {
 						ym(METRIKA, 'reachGoal', form.data('yatarget'));
 						gtag('event', 'send', {
 							'event_category': 'Forms',
@@ -2884,7 +2892,7 @@ if ($('input[data-opt-specific="true"]').val()) {
 		if ($('.success-wrap', form).length) {
 			$('.success-wrap', form).show();
 			$('.field-wrap', form).hide();
-		} else{
+		} else {
 			$('.form-field-wrap', form).hide();
 		}
 	}
@@ -2899,14 +2907,14 @@ if ($('input[data-opt-specific="true"]').val()) {
 		if ($('.success-wrap', form).length) {
 			$('.success-wrap', form).hide();
 			$('.field-wrap', form).show();
-		}else{
+		} else {
 			$('.form-field-wrap', form).show();
 		}
 		$('.form-result', form).hide().html('');
 	}
 
 	this.InitMap = function () {
-		if($('#map').length && typeof mapConfig != undefined){
+		if ($('#map').length && typeof mapConfig != undefined) {
 			ymaps.ready(function () {
 				var map = new ymaps.Map("map", {
 					center: mapConfig.center,

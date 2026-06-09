@@ -111,19 +111,23 @@ const updateFillingModel = (filling: TFillingData) => {
   const { userData } = modelState.getCurrentModel;
   const { SHELFQUANT } = userData.PROPS.CONFIG;
 
-  console.log(modelState._FILLING[filling.id], "_FILLING");
   const incomeShelfcount = modelState._FILLING[filling.id].SHELFQUANT;
   const maxCount = isNumber(incomeShelfcount)
     ? incomeShelfcount
-    : // : SHELFQUANT.max;
-      1;
+    : SHELFQUANT.max;
+
+  // Сохраняем текущее кол-во полок, чтобы не вызывать лишний recountShelfs через MainInput
+  const preservedCurrent = isNumber(maxCount)
+    ? Math.min(shelfCount.value.current ?? 0, maxCount)
+    : 0;
 
   shelfCount.value = {
     max: maxCount,
-    current: 0,
+    current: preservedCurrent,
   };
 
   eventBus.emit("A:ChangeFilling", { data: filling.id });
+
   fillingList.value?.forEach((el) => {
     el.active = el.id == filling.id;
   });
@@ -180,7 +184,7 @@ const prepareData = () => {
   const maxCount = isNumber(hasShelfCount)
     ? modelState._FILLING[FILLING]?.SHELFQUANT
     : SHELFQUANT.max
-      ? 1
+      ? SHELFQUANT.max
       : false;
   // 1;
 
@@ -214,16 +218,14 @@ const prepareData = () => {
 
 const resizeModel = (value: object) => {
   if (!isMounted.value) return; // игнорируем вызов до готовности
-  eventBus.emit("A:Model-resize", { data: { ...resizeData.value, ...value } });
 
   const curModel = modelState.getCurrentModel;
 
-  if (curModel?.name === "MODEL") return;
+  let fillingId: number | undefined;
 
-  console.log(curModel);
-  /** @Проверка_FILLING */
-  if (fillingList.value?.length > 0) {
-    fillingList.value.forEach((el, key) => {
+  /** @Проверка_FILLING — до emit, чтобы пробросить fillingId в changeModelSize */
+  if (curModel?.name !== "MODEL" && fillingList.value?.length > 0) {
+    fillingList.value.forEach((el) => {
       el.extensions = modelState._FILLING[el.id].CONDITIONS
         ? checkFillingConditions(el.id, resizeData.value)
         : true;
@@ -233,10 +235,23 @@ const resizeModel = (value: object) => {
       (el) => el.active && el.extensions,
     );
     if (!curFilling) {
-      updateFillingModel(fillingList.value[0]);
-      fillingList.value[0].active = true;
+      const newFilling = fillingList.value[0];
+      fillingId = newFilling.id;
+      fillingList.value.forEach((el) => { el.active = el.id === fillingId; });
+
+      const { userData } = curModel;
+      const { SHELFQUANT } = userData.PROPS.CONFIG;
+      const incomeShelfcount = modelState._FILLING[fillingId].SHELFQUANT;
+      const maxCount = isNumber(incomeShelfcount) ? incomeShelfcount : SHELFQUANT.max;
+      shelfCount.value.max = maxCount
+      shelfCount.value.current = shelfCount.value.current > maxCount ? maxCount : shelfCount.value.current
     }
   }
+
+  eventBus.emit("A:Model-resize", { data: { ...resizeData.value, ...value }, fillingId });
+
+  if (curModel?.name === "MODEL") return;c
+
   onRsizeConversations(resizeData.value);
   onResizeMillingCheck();
   resetGlobal();
@@ -290,16 +305,9 @@ watch(
           <p class="item__label text-grey">
             Макс: {{ sizeEditData.widthMax ?? "н/о" }}
           </p>
-          <MainInput
-            class="input__search right-menu"
-            v-model="resizeData.width"
-            @update:modelValue="resizeModel"
-            type="number"
-            :step="sizeEditData.stepW"
-            :min="sizeEditData.widthMin"
-            :max="sizeEditData.widthMax"
-            :disabled="!getIsUMproduct"
-          />
+          <MainInput class="input__search right-menu" v-model="resizeData.width" @update:modelValue="resizeModel"
+            type="number" :step="sizeEditData.stepW" :min="sizeEditData.widthMin" :max="sizeEditData.widthMax"
+            :disabled="!getIsUMproduct" />
         </div>
         <div class="size-item">
           <p class="item__label text-grey">Высота</p>
@@ -309,16 +317,9 @@ watch(
           <p class="item__label text-grey">
             Макс: {{ sizeEditData.heightMax ?? "н/о" }}
           </p>
-          <MainInput
-            class="input__search right-menu"
-            v-model="resizeData.height"
-            @update:modelValue="resizeModel"
-            type="number"
-            :step="sizeEditData.stepH"
-            :min="sizeEditData.heightMin"
-            :max="sizeEditData.heightMax"
-            :disabled="!getIsUMproduct"
-          />
+          <MainInput class="input__search right-menu" v-model="resizeData.height" @update:modelValue="resizeModel"
+            type="number" :step="sizeEditData.stepH" :min="sizeEditData.heightMin" :max="sizeEditData.heightMax"
+            :disabled="!getIsUMproduct" />
         </div>
         <div class="size-item">
           <p class="item__label text-grey">Глубина</p>
@@ -328,16 +329,9 @@ watch(
           <p class="item__label text-grey">
             Макс: {{ sizeEditData.depthMax ?? "н/о" }}
           </p>
-          <MainInput
-            class="input__search right-menu"
-            v-model="resizeData.depth"
-            @update:modelValue="resizeModel"
-            type="number"
-            :step="sizeEditData.stepD"
-            :min="sizeEditData.depthMin"
-            :max="sizeEditData.depthMax"
-            :disabled="!getIsUMproduct"
-          />
+          <MainInput class="input__search right-menu" v-model="resizeData.depth" @update:modelValue="resizeModel"
+            type="number" :step="sizeEditData.stepD" :min="sizeEditData.depthMin" :max="sizeEditData.depthMax"
+            :disabled="!getIsUMproduct" />
         </div>
       </div>
 
@@ -346,11 +340,8 @@ watch(
       </p>
       <div v-if="fillingList?.length > 1" class="side-direction">
         <div v-for="(filling, key) in fillingList" :key="key + filling">
-          <button
-            :class="['side-direction_item', { active: filling.active }]"
-            @click="updateFillingModel(filling)"
-            v-if="filling.extensions"
-          >
+          <button :class="['side-direction_item', { active: filling.active }]" @click="updateFillingModel(filling)"
+            v-if="filling.extensions">
             <img :src="_URL + filling.img" alt="" />
             {{ filling.label }}
           </button>
@@ -359,42 +350,22 @@ watch(
 
       <div class="customiser-section__refactor">
         <div class="customiser-section__refactor-item">
-          <p
-            class="customiser-section__refactor-title item__label text-grey"
-            v-if="isNumber(shelfCount.max)"
-          >
+          <p class="customiser-section__refactor-title item__label text-grey" v-if="isNumber(shelfCount.max)">
             Количество полок / max: {{ shelfCount.max }}
           </p>
           <!--     v-if="typeof shelfCount.max == 'number'" -->
-          <MainInput
-            v-if="isNumber(shelfCount.max)"
-            class="input__search right-menu"
-            v-model="shelfCount.current"
-            @update:modelValue="recountShelfs"
-            type="number"
-            :min="0"
-            :max="shelfCount.max"
-            :disabled="!getIsUMproduct"
-          />
+          <MainInput v-if="isNumber(shelfCount.max)" class="input__search right-menu" v-model="shelfCount.current"
+            @update:modelValue="recountShelfs" type="number" :min="0" :max="shelfCount.max"
+            :disabled="!getIsUMproduct" />
         </div>
 
         <div class="customiser-section__refactor-item">
-          <p
-            class="customiser-section__refactor-title item__label text-grey"
-            v-if="sizeEditData.joinDepthMin"
-          >
+          <p class="customiser-section__refactor-title item__label text-grey" v-if="sizeEditData.joinDepthMin">
             Глубина пристыковочного модуля
           </p>
-          <MainInput
-            v-if="sizeEditData.joinDepthMin"
-            class="input__search right-menu"
-            v-model="joinDepthResizeData.width"
-            @update:modelValue="resizeJoinDepth"
-            type="number"
-            :min="sizeEditData.joinDepthMin"
-            :max="sizeEditData.joinDepthMax"
-            :disabled="!getIsUMproduct"
-          />
+          <MainInput v-if="sizeEditData.joinDepthMin" class="input__search right-menu"
+            v-model="joinDepthResizeData.width" @update:modelValue="resizeJoinDepth" type="number"
+            :min="sizeEditData.joinDepthMin" :max="sizeEditData.joinDepthMax" :disabled="!getIsUMproduct" />
         </div>
       </div>
 
@@ -403,13 +374,10 @@ watch(
       </p>
       <div v-if="rootModelsList?.length > 1" class="side-direction">
         <div v-for="(model, key) in rootModelsList" :key="key + model">
-          <button
-            :class="[
-              'side-direction_item side-direction_item__btn',
-              { active: model.active },
-            ]"
-            @click="updateRootModel(model)"
-          >
+          <button :class="[
+            'side-direction_item side-direction_item__btn',
+            { active: model.active },
+          ]" @click="updateRootModel(model)">
             {{ model.label }}
           </button>
         </div>
@@ -423,7 +391,7 @@ watch(
         :max-width="140"
         :gap="2"
       />  -->
-<!-- 
+      <!-- 
       <p class="customiser-section__title">Произвольное позиционирование</p>
       <div class="switch__container">
         <Toggle v-model="transformControlsValue" />
@@ -446,14 +414,17 @@ watch(
   padding: 15px;
   border: 1px solid $stroke;
   border-radius: 15px;
+
   &__title {
     font-size: 1.8rem;
     font-weight: 600;
   }
+
   &__refactor {
     display: flex;
     gap: 10px;
     height: 100%;
+
     &-item {
       width: 50%;
       // height: 100%;
@@ -461,6 +432,7 @@ watch(
       flex-direction: column;
       justify-content: space-between;
     }
+
     &-title {
       margin-bottom: auto;
       font-size: 1.2rem;
@@ -473,9 +445,11 @@ watch(
   align-items: center;
   gap: 10px;
   font-size: 1.4rem;
+
   .size-item {
     width: 33%;
   }
+
   .item__label {
     margin-bottom: 2px;
   }
@@ -485,6 +459,7 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 10px;
+
   .walls-item {
     display: flex;
     align-items: center;
@@ -494,6 +469,8 @@ watch(
 
 .side-direction {
   display: flex;
+  flex-wrap: wrap;
+
   // gap: 10px;
   &_item {
     display: flex;

@@ -970,7 +970,10 @@ export class BuildUniversalModule extends BuildProduct {
                                     }
                                 })
 
-                            let relative_posY = positionY + (element.type !== 'drawer' ? element.size.y / 2 : 0) - (element.fasade?.manufacturerOffset || 0)
+                            let relative_posY = Math.floor(positionY + (element.type !== 'drawer' ? element.size.y / 2 : 0) - (element.fasade?.manufacturerOffset || 0))
+
+        
+
                             element.basketRenderPosition = positionY
 
                             if (leftObj) {

@@ -25,6 +25,7 @@ enum EGlobalDataMap {
   floor = _FLOOR,
   plinth = _PRODUCTS,
   plinthSurfase = _FASADE,
+  tableTop = _PRODUCTS,
   palitte = _PALETTE,
   milling = _MILLING,
   handles = _PRODUCTS
@@ -110,6 +111,8 @@ const getOptionData = computed(() => {
     const palliteId = globalData.palitte;
     const millingId = globalData.milling;
     const plinthId = globalData.plinthSurfase;
+
+    console.log(key, 'key')
 
     const optData = curOptionId ? EGlobalDataMap[key][curOptionId] : null;
     const palData = palliteId ? EGlobalDataMap["palitte"][palliteId] : null;

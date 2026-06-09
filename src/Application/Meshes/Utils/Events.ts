@@ -27,7 +27,7 @@ type TRotateActions = Record<number, number>
 export type TDataCreateHandle = { data: TCreateHandleParams; fasadeNdx: number }
 export type TDataWithNdx = { data: number | string, fasadeNdx: number, action?: number } | { data: Record<string, any>, fasadeNdx: number, action?: number };
 export type TDataWithType = { data: { [key: string]: any }, type: string }
-export type TResizeModel = { data: { width: number, height: number, depth: number }, mesh?: THREE.Object3D, type?: string }
+export type TResizeModel = { data: { width: number, height: number, depth: number }, mesh?: THREE.Object3D, type?: string, fillingId?: number }
 
 export class MeshEvents extends BuildersHelper {
 
@@ -783,6 +783,7 @@ export class MeshEvents extends BuildersHelper {
     //------------------
 
     public changeGlobalTopTable({ data, type }: TDataWithType) {
+
         const elementsList = this.scene.getObjectsByProperty('name', type) /** @Находим все элементы выбранного типа */
 
         if (Array.isArray(elementsList) && elementsList[0]) {
@@ -956,7 +957,7 @@ export class MeshEvents extends BuildersHelper {
     /** @Изменение_размеров_модели  */
     //------------------
 
-    public async changeModelSize({ data, mesh, type }: TResizeModel) {
+    public async changeModelSize({ data, mesh, type, fillingId }: TResizeModel) {
         const currentMesh = mesh ?? this._currentMesh;
         if (!currentMesh) return;
 
@@ -970,10 +971,19 @@ export class MeshEvents extends BuildersHelper {
             return;
         }
 
+        console.log('<<<<<changeModelSize>>>>>')
+
         const { PROPS } = currentMesh.userData;
         const { CONFIG, PRODUCT } = PROPS;
         const { POSITION, UNIFORM_TEXTURE, SIZE, SIZE_OFFSET } = CONFIG as THREETypes.TConfig;
         const fasadeSize = type === 'resize';
+
+        if (fillingId !== undefined) {
+            const product = this._PRODUCTS[PRODUCT];
+            CONFIG.FILLING = fillingId;
+            CONFIG.OPTIONS = this.buildProduct.filters.filterOption(product.OPTION);
+            this.buildProduct.filters.filterFasadePosition(CONFIG, product);
+        }
 
         this.dispose.clearParent(currentMesh as THREE.Object3D);
 
@@ -1024,11 +1034,8 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.userData.aabb.getCenter(center);
         currentMesh.userData.obb.center.copy(center);
 
-
-
         currentMesh.userData.obb.halfSize.x = fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
         currentMesh.userData.obb.halfSize.z = fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5;
-
 
         if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
             currentMesh.userData.obb.halfSize.y = data.height * 0.5;
@@ -1072,22 +1079,26 @@ export class MeshEvents extends BuildersHelper {
     //------------------
 
     public async changeFillingModel({ data, mesh }) {
+
+        console.log('<<<<<changeFillingModel>>>>>')
+
         if (!this._currentMesh) return
 
         const currentMesh = mesh ? mesh : this._currentMesh
         const { PROPS } = currentMesh.userData
         const { CONFIG } = PROPS
-        const { POSITION, UNIFORM_TEXTURE, OPTIONS, FASADE_PROPS } = CONFIG
+
         const product = this._PRODUCTS[PROPS.PRODUCT]
         const { width, height, depth } = CONFIG.SIZE;
 
-        // CONFIG.FASADE_PROPS = []
-        CONFIG.FILLING = data
-        CONFIG.OPTIONS = this.buildProduct.filters.filterOption(product.OPTION)
+
+        CONFIG.FILLING = data;
+        CONFIG.OPTIONS = this.buildProduct.filters.filterOption(product.OPTION);
+        // CONFIG.SHELFQUANT.current
         this.buildProduct.filters.filterFasadePosition(CONFIG, product)
         // this.buildProduct.filters.filterFasadeSizer(product.FASADE_SIZES, product)
 
-        this.changeModelSize({ data: { width, height, depth } })
+        this.changeModelSize({ data: { width, height, depth }})
 
     }
 

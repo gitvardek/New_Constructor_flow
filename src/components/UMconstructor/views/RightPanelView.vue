@@ -38,6 +38,10 @@ const getFillings = computed(() => {
   fillingsGroups.map(groupID => {
     let fillingsGroup = UMconstructor?.value?.APP.CATALOG.SECTIONS[groupID]
 
+    console.log(fillingsGroup, 'fillingsGroup')
+
+    if(!fillingsGroup.PRODUCTS) return
+
     objectsMatrix.push({
       groupName: fillingsGroup.NAME,
       groupID: fillingsGroup.ID,

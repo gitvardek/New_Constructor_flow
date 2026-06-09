@@ -119,7 +119,6 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { useRoomState } from "@/store/appliction/useRoomState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useRoomOptions } from '../left-menu/option/roomOptions/useRoomOptons';
-import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage';
 
 import orderForm from '@/features/orderForm/components/orderForm.vue';
 

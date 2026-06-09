@@ -17,6 +17,7 @@ import { useRoomState } from '@/store/appliction/useRoomState';
 import { useModelState } from '@/store/appliction/useModelState';
 import { useSceneState } from '@/store/appliction/useSceneState';
 import { useUniformState } from "@/store/appliction/useUniformState";
+import { useRoomContantData } from "@/store/appliction/useRoomContantData";
 
 import { SetObject } from '../Utils/SetObject';
 import { GeometryBuilder } from '../Meshes/GeometryBuilder';
@@ -30,6 +31,7 @@ export class RoomManager extends Room {
 
     private eventsStore: ReturnType<typeof useEventBus> = useEventBus()
     private roomState: ReturnType<typeof useRoomState> = useRoomState()
+    private roomContentData: ReturnType<typeof useRoomContantData> = useRoomContantData()
     private modelState: ReturnType<typeof useModelState> = useModelState()
     private uniformState: ReturnType<typeof useUniformState> = useUniformState()
     private OBBCollider: OBBCollider = new OBBCollider()
@@ -133,8 +135,8 @@ export class RoomManager extends Room {
 
                 /** @Визуализация_OBB */
 
-                // const OBBH = this.OBBHealper.add(obb)
-                // this.scene.add(OBBH)
+                const OBBH = this.OBBHealper.add(obb)
+                this.scene.add(OBBH)
 
                 this.totalObbBounds.push(obb);
             }
@@ -414,6 +416,9 @@ export class RoomManager extends Room {
         }
 
         delete this.contant[id]
+
+        const savedData = this.save()
+        this.roomContentData.setRoomContantDataForBasket(savedData)
     }
 
     async update(loadData?: string[]) {

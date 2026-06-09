@@ -228,8 +228,8 @@ export default class ExternalFasadesManager {
 
         if (!sortedBoxesByIncrease.length) {
             fasadeList.push({
-                y: firstFasadePosition,
-                height: fullFasadelSize,
+                y: Math.floor(firstFasadePosition),
+                height: Math.floor(fullFasadelSize),
                 type: "fasade",
             })
 
@@ -242,7 +242,7 @@ export default class ExternalFasadesManager {
 
             fasadeList.push({
                 y: firstFasadePosition,
-                height: firstFasadeSize,
+                height: Math.floor(firstFasadeSize),
                 type: "fasade",
             })
 
@@ -260,8 +260,8 @@ export default class ExternalFasadesManager {
             const boxFasadeHeight = box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
 
             fasadeList.push({
-                y: bottomFasadePosition,
-                height: boxFasadeHeight,
+                y: Math.floor(bottomFasadePosition),
+                height: Math.floor(boxFasadeHeight),
                 type: box.isProfile ? "profile" : "drawer",
             })
 
@@ -287,8 +287,8 @@ export default class ExternalFasadesManager {
 
             if (upperFasadeSize > 200)
                 fasadeList.push({
-                    y: bottomFasadePosition,
-                    height: upperFasadeSize,
+                    y: Math.floor(bottomFasadePosition),
+                    height: Math.floor(upperFasadeSize),
                     type: "fasade",
                 })
 
@@ -303,8 +303,8 @@ export default class ExternalFasadesManager {
 
         if (fullFasadelSize >= this.FASADES_MANAGER.scope.CONST.MIN_FASADE_HEIGHT)
             fasadeList.push({
-                y: bottomFasadePosition,
-                height: fullFasadelSize,
+                y: Math.floor(bottomFasadePosition),
+                height: Math.floor(fullFasadelSize),
                 type: "fasade",
             })
 

@@ -124,7 +124,7 @@ const optionsType = ref<TTextureActionMap>({
   moduleBottom: "A:ChangeModuleTotalTexture",
   fasadsTop: "A:ChangeFasadsTopTexture",
   fasadsBottom: "A:ChangeFasadsBottomTexture",
-  // tableTop: "A:ChangeTableTop",
+  tableTop: "A:ChangeTableTop",
   palitteTotal: "A:ChangePaletteTotal",
   millingTotal: "A:ChangeMillingTotal",
   plinth: "A:ChangePlinthBody",
@@ -161,7 +161,7 @@ const prepareOptions = () => {
   visualData.value = {
     module: getDefaultModuleData(),
     fasade: getDefaultFasadeData(),
-    // table: getDefaultTableTopData(),
+    table: getDefaultTableTopData(),
     walls: getWallsTextures(),
     floor: getFloorTextures(),
     plinth: getDefaultTotalPlinthData(),
@@ -261,7 +261,7 @@ const toggleRefraction = (value: boolean) => {
 const getOption = (value: keyof TTextureActionMap, title: string) => {
   currentOption.value = value;
 
-  console.log(value)
+  console.log(value, 'getOption')
 
   switch (value) {
     case "plinth":
@@ -288,7 +288,6 @@ const getOption = (value: keyof TTextureActionMap, title: string) => {
     case "moduleTop":
       optionsData.value = {
         type: "moduleTop",
-        // data: Object.values(visualData.value.module),
         data: visualData.value.module,
       };
       currentRedactor.value = true;
@@ -296,7 +295,6 @@ const getOption = (value: keyof TTextureActionMap, title: string) => {
     case "moduleBottom":
       optionsData.value = {
         type: "moduleBottom",
-        // data: Object.values(visualData.value.module),
         data: visualData.value.module,
       };
       currentRedactor.value = true;
@@ -315,9 +313,13 @@ const getOption = (value: keyof TTextureActionMap, title: string) => {
       };
       currentRedactor.value = true;
       break;
-    // case "tableTop":
-    //   optionsData.value = Object.values(visualData.value.table);
-    //   break;
+    case "tableTop":
+      optionsData.value = {
+        type: "tableTop",
+        data: visualData.value.table,
+      };
+      currentRedactor.value = false;
+      break;
     case "handles":
       optionsData.value = {
         type: "handles",
@@ -326,6 +328,9 @@ const getOption = (value: keyof TTextureActionMap, title: string) => {
       currentRedactor.value = false;
       break;
   }
+
+  console.log(optionsData.value)
+
   currentOptionLable.value = title;
   extrasSelect.value = false;
 };
@@ -567,47 +572,24 @@ watch(shadows, () => toggleShadow(shadows.value));
       <h1 class="popup__title">Параметры помещения</h1>
       <ClosePopUpButton class="menu__close" @close="closeMenu('roomPar')" />
       <div class="room-popup__container">
-        <RoomList
-          :rooms="roomsList"
-          :currentRoomId="getCurrentRoomId"
-          @load-room="loadRoom"
-          @delete-room="deliteRoom"
-        />
+        <RoomList :rooms="roomsList" :currentRoomId="getCurrentRoomId" @load-room="loadRoom"
+          @delete-room="deliteRoom" />
 
-        <RoomOptions
-          v-if="globalOptions"
-          :options="globalOptions"
-          @toSelect="getOption"
-          @toToggle="totalSelect"
-          @toPalitteSelect="palitteSelect"
-          @toMillingSelect="millingSelect"
-          @toPlinthSelect="plinthSelect"
-        />
+        <RoomOptions v-if="globalOptions" :options="globalOptions" @toSelect="getOption" @toToggle="totalSelect"
+          @toPalitteSelect="palitteSelect" @toMillingSelect="millingSelect" @toPlinthSelect="plinthSelect" />
 
         <h3 class="popup__title">Высота навесных модулей</h3>
         <RoomHeight :clampHeight="clampHeight" @apply="changeHeightClamp" />
 
-        <RoomVisualSettings
-          :currentQuality="currentQuality"
-          :quality="quality"
-          v-model:shadows="shadows"
-          v-model:refraction="refraction"
-          v-model:ambientLight="ambientLight"
-          v-model:pointLight="pointLight"
-          @change-quality="changeQuality"
-        />
+        <RoomVisualSettings :currentQuality="currentQuality" :quality="quality" v-model:shadows="shadows"
+          v-model:refraction="refraction" v-model:ambientLight="ambientLight" v-model:pointLight="pointLight"
+          @change-quality="changeQuality" />
       </div>
     </div>
 
     <transition name="slide--left" mode="out-in">
-      <ColorSelector
-        v-if="optionsData"
-        key="color-select"
-        :optionsData="optionsData"
-        :currentOptionLabel="currentOptionLable"
-        :getCurrentRedactor="currentRedactor"
-        @select="selectOption"
-      />
+      <ColorSelector v-if="optionsData" key="color-select" :optionsData="optionsData"
+        :currentOptionLabel="currentOptionLable" :getCurrentRedactor="currentRedactor" @select="selectOption" />
     </transition>
   </div>
 </template>
@@ -713,6 +695,7 @@ watch(shadows, () => toggleShadow(shadows.value));
   }
 
   &__bottom {
+
     &--left,
     &--right {
       display: flex;
@@ -779,7 +762,7 @@ watch(shadows, () => toggleShadow(shadows.value));
   }
 }
 
-@media screen and (width <= 1023px) {
+@media screen and (width <=1023px) {
   .visual {
     &__top {
       max-width: 100%;

@@ -435,8 +435,6 @@ const getPropLabel = (key: string) => {
   const propDef = getPropDefinition(key);
   if (!propDef) return "";
 
-  console.log(propDef, 'propDef')
-
   return propDef.type === "SIZES2"
     ? propDef.NAME
     : propDef.NAME + parsePropIndex(key);
@@ -775,13 +773,14 @@ function updateQuantity(id: string, type: string) {
 
 const deleteProductInBusket = (id: string, type: string) => {
   console.log(id, type);
-  basketStore.removeFromBasket(id, type);
+  // basketStore.removeFromBasket(id, type);
   if (type === "scene" || type === "umscene") {
     useEventBus().emit("A:RemoveModelFromBasket", {
       product: null,
       basketId: id,
     });
   }
+  basketStore.removeFromBasket(id, type);
   basketStore.syncBasketDelay();
 };
 
@@ -988,7 +987,7 @@ const renderDescription = computed(() => {
             // Для каждой двери перебираем её части (обычно только часть "1")
             for (const [partNumber, partData] of Object.entries(doorData)) {
 
-              if(partData) continue
+              if (partData) continue
 
               const { CATALOG } = appData.value
 
@@ -1062,7 +1061,7 @@ const renderDescription = computed(() => {
 
 const isNonDelete = computed(() => {
 
-    return !hideDeleteList.value.includes(parseFloat(props.item.product.BASKETID))
+  return !hideDeleteList.value.includes(parseFloat(props.item.product.BASKETID))
 
 })
 
