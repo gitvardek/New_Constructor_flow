@@ -73,10 +73,6 @@ export const useSceneState = defineStore('SceneState', () => {
         refractionValue.value = value
     }
 
-    const setLightRange = (type: keyof TLightRange, value: number | string) => {
-        lightRange.value[type] = value
-    }
-
     const updateStartRoomData = (type: keyof IWallSizes & ("floor" | "wall"), value: string | number) => {
         startRoomData.value[type] = value
     }
@@ -97,8 +93,8 @@ export const useSceneState = defineStore('SceneState', () => {
 
                 if (curPalitte) {
 
-                    startProjectParams.value[curOption] = value?.palitte;
-                    currentProjectParams.value[curOption] = value?.palitte;
+                    startProjectParams.value[curPalitte] = value?.palitte;
+                    currentProjectParams.value[curPalitte] = value?.palitte;
                 }
 
             }
@@ -109,8 +105,6 @@ export const useSceneState = defineStore('SceneState', () => {
         const clone = JSON.parse(JSON.stringify(START_PROJECT_PARAMS))
 
         startProjectParams.value = JSON.parse(JSON.stringify(START_PROJECT_PARAMS))
-
-        startParamsClone.value = clone
 
         startRoomData.value = clone.rooms[0].params
 
@@ -124,42 +118,21 @@ export const useSceneState = defineStore('SceneState', () => {
 
     }
 
-    const loadProjectFromData = async (newProject: IProjectParams) => {
+   const loadProjectFromData = async (newProject: IProjectParams) => {
+
+        console.log(newProject, 'newProject')
 
         startProjectParams.value = newProject
-
-        startParamsClone.value = newProject
+        currentProjectParams.value = newProject
 
         startRoomData.value = newProject.rooms[0].params
+        startCameraData.value = newProject.camera
+        startLightsDat.value = newProject.lights
+        startHeightClamp.value = newProject.height_clamp
 
-        // startCameraData.value = newProject.camera
-
-        // startLightsDat.value = newProject.lights
-
-        // startHeightClamp.value = newProject.height_clamp
-
-        // currentProjectParams.value = newProject
-
-
-
-        // const clone = JSON.parse(JSON.stringify(newProject))
-
-        // startProjectParams.value = JSON.parse(JSON.stringify(newProject))
-
-        // startParamsClone.value = clone
-
-        // startRoomData.value = clone.rooms[0].params
-
-        // startCameraData.value = clone.camera
-
-        // startLightsDat.value = clone.lights
-
-        // startHeightClamp.value = clone.height_clamp
-
-        // currentProjectParams.value = clone
     }
 
-    const getStartProgectParams = computed(() => {
+    const getStartProjectParams = computed(() => {
         return startProjectParams.value
     })
 
@@ -191,16 +164,8 @@ export const useSceneState = defineStore('SceneState', () => {
         return refractionValue.value
     })
 
-    const getLightRange = computed(() => {
-        return lightRange.value
-    })
-
-    const getQuality = computed(() => {
-        return quality.value
-    })
-
     return {
-        getStartProgectParams,
+        getStartProjectParams,
         getStartRoomData,
         getStartCameraData,
         getStartLightsData,
@@ -208,15 +173,12 @@ export const useSceneState = defineStore('SceneState', () => {
         getCurrentProjectParams,
         getRefractionValue,
         getShadowValue,
-        getLightRange,
-        getQuality,
 
         updateProjectParams,
         updateStartRoomData,
         updateDefaultData,
         setRefractionValue,
         setShadowValue,
-        setLightRange,
         createNewProject,
         loadProjectFromData
     };

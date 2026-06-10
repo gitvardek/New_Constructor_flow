@@ -25,6 +25,7 @@ enum EGlobalDataMap {
   floor = _FLOOR,
   plinth = _PRODUCTS,
   plinthSurfase = _FASADE,
+  tableTop = _PRODUCTS,
   palitte = _PALETTE,
   milling = _MILLING,
   handles = _PRODUCTS

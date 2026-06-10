@@ -30,12 +30,13 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     const handleMethods = useFigureRightPage();
 
 
-    const startParams = computed(() => sceneState.getStartProgectParams)
+    const startParams = computed(() => sceneState.getStartProjectParams)
     // const currentSceneParams = sceneState.getCurrentProjectParams
 
-    const shadowValue = ref<boolean>(false)
-    const refractionValue = ref<boolean>(false)
-    const startHeightClamp = ref<number | string>(startParams.value?.height_clamp)
+    const shadowValue = ref<boolean>(false);
+    const refractionValue = ref<boolean>(false);
+    const startHeightClamp = ref<number | string>(startParams.value?.height_clamp);
+    const emptyTableTopId = ref<string | number>('69919');
 
     const lightRange = ref<TLightRange>({
         pointLight: startParams.value.lights.pointLight.intensity,
@@ -106,7 +107,7 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     let defaultModuleBottom = ref(startParams.value?.default_module_color)
     let defaultFasadeTop = ref(startParams.value?.default_fasade_color)
     let defaultFasadeBottom = ref(startParams.value?.default_fasade_color)
-    let defaulttableTop = ref(startParams.value?.default_table_model)
+    let defaultTableTop = ref(startParams.value?.default_table_model)
     let defaultPalitTop = ref(startParams.value?.default_palit_top)
     let defaultPalitBottom = ref(startParams.value?.default_palit_bottom)
     let defaultMillingBottom = ref(startParams.value?.default_milling_bottom)
@@ -166,12 +167,12 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
             palitteTitle: 'Цвет Палитры',
             millingTitle: 'Тип Фрезеровки'
         },
-        // tableTop: {
-        //     id: defaulttableTop,
-        //     global: false,
-        //     title: "Тип столешницы",
-        //     label: 'Для всех комнат'
-        // },
+        tableTop: {
+            id: defaultTableTop.value,
+            global: false,
+            title: "Тип столешницы",
+            label: 'Для всех комнат'
+        },
         plinth: {
             id: defaultPlinthBody.value,
             plinthSurfase: defaultPlinthColor.value,
@@ -276,11 +277,8 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
             Array.isArray(prods) ? prods : []
         );
 
-        const uniqueProductIds = [...new Set([...allProducts, '69919'])];
-
-        const defaultTableTopData = Object.fromEntries(
-            uniqueProductIds.map(id => [id, PRODUCTS[id]])
-        );
+        const uniqueProductIds = [...new Set([...allProducts, emptyTableTopId.value])];
+        const defaultTableTopData = uniqueProductIds.map(id => PRODUCTS[id]).sort((a, b) => { console.log(a, b); a.SORT - b.SORT }).reverse();
 
         return defaultTableTopData
     }
@@ -380,7 +378,7 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     };
 
     const resetGlobalOptions = () => {
-        const startParams = sceneState.getStartProgectParams
+        const startParams = sceneState.getStartProjectParams
 
         for (const key in globalOptions.value) {
             const optionKey = key as keyof TOptionsMap
@@ -530,12 +528,12 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
                 palitteTitle: 'Цвет Палитры',
                 millingTitle: 'Тип Фрезеровки'
             },
-            // tableTop: {
-            //     id: defaulttableTop,
-            //     global: false,
-            //     title: "Тип столешницы",
-            //     label: 'Для всех комнат'
-            // },
+            tableTop: {
+                id: newParams.default_table_model,
+                global: false,
+                title: "Тип столешницы",
+                label: 'Для всех комнат'
+            },
             plinth: {
                 id: newParams.default_plinth_body,
                 plinthSurfase: newParams.default_plinth_color,
