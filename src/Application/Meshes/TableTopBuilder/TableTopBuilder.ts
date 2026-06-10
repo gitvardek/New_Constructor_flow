@@ -101,6 +101,9 @@ export class TableTopBuilder {
         const defModel: number | string = incomeModel ?? savedTableTopId ?? defTableTopModel;
 
         const tableProduct = this.buildProduct._PRODUCTS[defModel];
+
+        if(!tableProduct) return;
+
         const tableModelId = tableProduct.models[0];
         const tableModel = this.buildProduct._MODELS[tableModelId];
 
