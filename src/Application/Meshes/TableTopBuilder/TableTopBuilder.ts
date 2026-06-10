@@ -15,6 +15,7 @@ export class TableTopBuilder {
     // private root: TApplication
     private deepDispose: TDeepDispose
     private scene: THREE.Scene
+    private readonly depthCorrect: number = 30
 
     constructor(parent: TBuildProduct) {
         // this.root = parent.root
@@ -55,7 +56,7 @@ export class TableTopBuilder {
             material.transparent = true;
             material.opacity = 0.5;
             material.depthWrite = true;
-             material.visible = false
+            material.visible = false
         }
 
         return material;
@@ -103,7 +104,7 @@ export class TableTopBuilder {
         const tableModelId = tableProduct.models[0];
         const tableModel = this.buildProduct._MODELS[tableModelId];
 
-        const sizes = { ...props.CONFIG.SIZE, depth: props.CONFIG.SIZE.depth };
+        const sizes = { ...props.CONFIG.SIZE, depth: props.CONFIG.SIZE.depth + this.depthCorrect };
         const material = this.createMaterial(tableProduct);
 
         const expr = this.buildExpressions(props.CONFIG.EXPRESSIONS, sizes, tableProduct);
@@ -118,7 +119,7 @@ export class TableTopBuilder {
         tableBody.traverse((child) => {
             if (child instanceof THREE.Mesh) {
                 child.userData.name = 'TABLETOP'
-                const pos = new THREE.Vector3(30, 0, 0)
+                const pos = new THREE.Vector3(this.depthCorrect * 0.5, 0, 0)
                 child.geometry.translate(pos)
                 child.geometry.computeBoundingBox()
             }
