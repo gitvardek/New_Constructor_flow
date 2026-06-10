@@ -37,12 +37,13 @@ export class TableTopBuilder {
                 if (file instanceof THREE.Texture) {
                     file.colorSpace = THREE.SRGBColorSpace;
                     material.map = file;
-                    material.map.wrapS = material.map.wrapT = THREE.MirroredRepeatWrapping;
+                    material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
                     material.map.repeat.set(
                         1 / texture.width,
                         1 / texture.height
                     );
                     material.map.offset.set(0.5, 0.5);
+                    material.visible = true
                     material.needsUpdate = true
                 }
             })
@@ -51,8 +52,9 @@ export class TableTopBuilder {
             material = new THREE.MeshPhongMaterial()
             material.color.set("#ffffff");
             material.transparent = true;
-            material.opacity = 0.5;
+            material.opacity = 0;
             material.depthWrite = true;
+            material.visible = false
         }
 
         return material;
@@ -110,7 +112,7 @@ export class TableTopBuilder {
             material
         };
 
-        const tableBody = this.jsonBuilder.createMesh({ data: tableOptions, parent_size: sizes })
+        const tableBody = this.jsonBuilder.createMesh({ data: tableOptions, parent_size: sizes, isTopTable: true })
 
         tableBody.traverse((child) => {
             if (child instanceof THREE.Mesh) {
@@ -123,7 +125,11 @@ export class TableTopBuilder {
 
         const edge = this.edgeBuilder.createEdge(tableBody)
         const defEdge = this.edgeBuilder.createVisibleEdge(tableBody)
-        tableBody.add(edge, defEdge)
+
+        if (tableProduct.NAME != "Без столешницы") {
+            tableBody.add(edge, defEdge)
+        }
+
         tableBody.name = 'tableTop';
         props.TABLETOP = tableBody;
 
@@ -132,7 +138,7 @@ export class TableTopBuilder {
 
     updateTableTop(parent: THREE.Object3D, data: IProduct) {
         const { PROPS } = parent.userData
-        const position = PROPS.TABLETOP.userData.positionWithoutTableTopHeight
+        const position = PROPS.TABLETOP.userData.withoutTopHeight
 
         this.deepDispose.clearObject(PROPS.TABLETOP, this.scene);
         PROPS.TABLETOP = null;
@@ -140,7 +146,7 @@ export class TableTopBuilder {
         const tableHeigt = this.buildProduct.calculateHeight(newTableTop)
 
         // Корректируем высоту
-        newTableTop.userData.positionWithoutTableTopHeight = position
+        newTableTop.userData.withoutTopHeight = position
         newTableTop.position.y = position + tableHeigt * 0.5
 
         parent.children[0].add(newTableTop)

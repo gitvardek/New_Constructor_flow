@@ -112,8 +112,6 @@ const getOptionData = computed(() => {
     const millingId = globalData.milling;
     const plinthId = globalData.plinthSurfase;
 
-    console.log(key, 'key')
-
     const optData = curOptionId ? EGlobalDataMap[key][curOptionId] : null;
     const palData = palliteId ? EGlobalDataMap["palitte"][palliteId] : null;
     const milData = millingId ? EGlobalDataMap["milling"][millingId] : null;

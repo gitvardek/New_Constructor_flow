@@ -934,7 +934,7 @@ export class BuildProduct extends BuildersHelper {
         const legsHeight = legs ? this.calculateHeight(legs) : 0;
         const bodyHeight = body ? this.calculateHeight(body) : 0;
         const tableTopHeight = tableTop ? this.calculateHeight(tableTop) : 0;
-        if (tableTop) tableTop.userData.withouTopHeight = baseY + bodyHeight * 0.5
+        if (tableTop) tableTop.userData.withoutTopHeight = baseY + bodyHeight * 0.5
         return tableTop ? baseY + bodyHeight * 0.5 + tableTopHeight * 0.5 : 0
 
 

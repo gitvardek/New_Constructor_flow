@@ -445,7 +445,6 @@ export const useModelState = defineStore('ModelState', () => {
             }
         }
 
-
         ).filter(group => group.FASADES.length > 0 && group.NAME !== nonFasades).sort((a, b) => a.SORT - b.SORT);
 
         if (exception) {

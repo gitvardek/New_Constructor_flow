@@ -135,8 +135,8 @@ export class RoomManager extends Room {
 
                 /** @Визуализация_OBB */
 
-                const OBBH = this.OBBHealper.add(obb)
-                this.scene.add(OBBH)
+                // const OBBH = this.OBBHealper.add(obb)
+                // this.scene.add(OBBH)
 
                 this.totalObbBounds.push(obb);
             }

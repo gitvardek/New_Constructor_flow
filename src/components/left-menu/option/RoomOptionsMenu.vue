@@ -170,8 +170,6 @@ const prepareOptions = () => {
 
   globalOptions.value = getGlobalOptions;
 
-  console.log(globalOptions.value, "========= getHeightClamp");
-
   const { fasadsBottom, fasadsTop, plinth } = globalOptions.value;
 
   prepareExtras([fasadsBottom, fasadsTop, plinth]);
@@ -261,8 +259,6 @@ const toggleRefraction = (value: boolean) => {
 const getOption = (value: keyof TTextureActionMap, title: string) => {
   currentOption.value = value;
 
-  console.log(value, 'getOption')
-
   switch (value) {
     case "plinth":
       optionsData.value = {
@@ -329,8 +325,6 @@ const getOption = (value: keyof TTextureActionMap, title: string) => {
       break;
   }
 
-  console.log(optionsData.value)
-
   currentOptionLable.value = title;
   extrasSelect.value = false;
 };
@@ -378,6 +372,7 @@ const selectOption = (
     "fasadsTop",
     "fasadsBottom",
     "plinth",
+    "tableTop"
   ];
 
   const data = optionMap.includes(type)
@@ -401,10 +396,15 @@ const selectOption = (
     return;
   }
 
+  if (type.includes("tableTop") && !extras) {
+    updateOption(type, value.ID);
+    eventBus.emit(optionsType.value[type], data);
+    return;
+  }
+
   if (type.includes("module") && !extras) {
     updateOption(type, value.ID);
     eventBus.emit(optionsType.value[type], data);
-
     return;
   }
 

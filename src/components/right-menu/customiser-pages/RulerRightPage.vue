@@ -250,7 +250,7 @@ const resizeModel = (value: object) => {
 
   eventBus.emit("A:Model-resize", { data: { ...resizeData.value, ...value }, fillingId });
 
-  if (curModel?.name === "MODEL") return;c
+  if (curModel?.name === "MODEL") return;
 
   onRsizeConversations(resizeData.value);
   onResizeMillingCheck();

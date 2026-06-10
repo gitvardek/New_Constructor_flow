@@ -1080,8 +1080,6 @@ export class MeshEvents extends BuildersHelper {
 
     public async changeFillingModel({ data, mesh }) {
 
-        console.log('<<<<<changeFillingModel>>>>>')
-
         if (!this._currentMesh) return
 
         const currentMesh = mesh ? mesh : this._currentMesh

@@ -555,18 +555,14 @@ function removeEmptyObjects(obj) {
 
 function createPlinthData(filteredData: TTotalProps) {
 
-  const emptyPlinthID = 70096
+  if (!filteredData) return;
+
+  const emptyPlinthId = 70096
+  const plinthLengthDefault = 4000
   const { getGlobalOptions } = useRoomOptions()
   const plinthID = getGlobalOptions?.plinth?.id
   const plinthSurfase = getGlobalOptions?.plinth?.plinthSurfase
 
-
-  console.log(filteredData, 'filteredData')
-
-  if (!filteredData) return;
-
-
-  const plinthLengsDefault = 4000
   const plinth = filteredData.map((obj: TTotalProps, key: string) => {
     const data = obj.data
     if (!data) return
@@ -583,9 +579,9 @@ function createPlinthData(filteredData: TTotalProps) {
   }).filter(Boolean)
 
   const globalWidth = plinth.reduce((total, amount) => total + amount, 0);
-  const count = Math.ceil(globalWidth / plinthLengsDefault)
+  const count = Math.ceil(globalWidth / plinthLengthDefault)
 
-  if (count > 0 && plinthID !== emptyPlinthID) {
+  if (count > 0 && plinthID !== emptyPlinthId) {
     return {
       PRODUCT: plinthID,
       PROPS: { COLOR: plinthSurfase },
@@ -599,8 +595,46 @@ function createPlinthData(filteredData: TTotalProps) {
 
 }
 
-function getPlinthActions() {
+function createDefaultTableTopData(filteredData: TTotalProps) {
 
+  if (!filteredData) return;
+
+  const emptyTableTopId = 69919
+  const tableTopLengthDefault = 3000
+  const { getGlobalOptions } = useRoomOptions()
+  const tableTopId = getGlobalOptions?.tableTop?.id
+
+  console.log(tableTopId, emptyTableTopId)
+
+  if (tableTopId === emptyTableTopId) return false
+
+  const tableTop = filteredData.map((obj: TTotalProps, key: string) => {
+    const data = obj.data
+    if (!data) return
+    const { CONFIG: { SIZE } } = data
+    let totalWidth = 0
+    if (SIZE.width) totalWidth += SIZE.width
+
+    return totalWidth
+
+  }).filter(Boolean)
+
+  console.log(tableTop, 'tableTop')
+
+  const globalWidth = tableTop.reduce((total, amount) => total + amount, 0);
+  const count = Math.ceil(globalWidth / tableTopLengthDefault)
+
+  if (count > 0) {
+    return {
+      PRODUCT: tableTopId,
+      PROPS: {},
+      QUANTITY: count,
+      BASKETID: 10002, // Уникальный фиксированный ID для плинтусов
+      TOTAL_WIDTH: globalWidth,
+      TYPE: "scene"
+    }
+  }
+  return false
 }
 
 export function createBasketItem(objProps: TTotalProps, index: number, key: any = ''): IBasket {
@@ -754,11 +788,18 @@ export function createGlobalData(filteredData: TTotalProps) {
 
   const { getGlobalOptions } = useRoomOptions()
   const plinth = getGlobalOptions?.plinth?.id
+  const tableTop = getGlobalOptions?.tableTop?.id
 
 
   const plinthData = createPlinthData(filteredData)
+  const tableTopData = createDefaultTableTopData(filteredData)
+
+  console.log(tableTopData)
 
   if (plinthData) totalData.push(plinthData)
+  if (tableTopData) totalData.push(tableTopData)
+
+  console.log(totalData, 'totalData')
 
   return totalData
 
@@ -766,6 +807,7 @@ export function createGlobalData(filteredData: TTotalProps) {
 
 export function updateGlobalData() {
 
+  const exeptedId = [10001, 10002]
 
   const content = useRoomContantData().getRoomContantDataForBasket
   const roomDataCopy = JSON.parse(content)
@@ -773,10 +815,11 @@ export function updateGlobalData() {
 
   try {
 
-    const updatedData = mainConstructor.value.filter(el => el.BASKETID !== 10001)
-    const plinthData = createPlinthData(roomDataCopy)
+    const updatedData = mainConstructor.value.filter(el => !exeptedId.includes(el.BASKETID))
+    const plinthData = createPlinthData(roomDataCopy);
+    const tableTopData = createDefaultTableTopData(roomDataCopy)
 
-    updatedData.push(plinthData);
+    updatedData.push(plinthData, tableTopData);
     const result = updatedData.filter(Boolean);
 
     mainConstructor.value = result

@@ -74,75 +74,6 @@ const constructor2DHistory = useConstructor2DHistory();
 const popupStore = usePopupStore();
 const { setTransformControlsValue } = useTransformController();
 
-// const _saveProject = async () => {
-//   eventBus.emit("A:Save");
-//   const project = sceneState.getCurrentProjectParams;
-//   const data = {
-//     user_hash: "08a57654db94bdcfe44a9ee10b2f0778",
-//     city: 17281,
-//     designer: "14240",
-//     page: 1,
-//     config: 43830,
-//     type: "user",
-//   };
-
-//   await postRequest(`${_GET_URL}`, data);
-
-//   // if (historyActions.value) eventBus.emit("A:Save");
-// };
-
-// const saveProject = async () => {
-//   eventBus.emit("A:Save");
-//   return;
-//   const project = sceneState.getCurrentProjectParams;
-//   const data = {
-//     data: {
-//       file: "data:image/jpeg;base64,",
-//       provider: "vardek",
-//       name: "test_new_constructor",
-//       user_hash: "08a57654db94bdcfe44a9ee10b2f0778",
-//       city: 17281,
-//       project: project,
-//       style: "689680",
-//       projectId: Date.now().toString(),
-//       user_id: "14240",
-//     },
-//   };
-
-//   await postRequest(`${_POST_URL}`, data);
-
-//   // if (historyActions.value) eventBus.emit("A:Save");
-// };
-
-// const drowMode = async () => {
-//   drowModeValue.value = !drowModeValue.value;
-//   menuStore.setDrowModeValue(drowModeValue.value);
-//   eventBus.emit("A:DrawingMode", drowModeValue.value);
-// };
-
-// const toggleRulerVisibility = async () => {
-//   rulerVisibility.value = !rulerVisibility.value;
-//   menuStore.setRulerVisibility(rulerVisibility.value);
-//   eventBus.emit("A:ToggleRulerVisibility", rulerVisibility.value);
-// };
-
-// const loadProject = async () => {
-//   // return;
-//   const data = {
-//     id: "11487677",
-//   };
-//   await postRequest(`${_GET_PROJECT}`, data);
-// };
-
-// const updateProject = async () => {
-//   const project = sceneState.getCurrentProjectParams;
-//   const data = {
-//     id: "11323197",
-//     project: project,
-//   };
-
-//   const resp = await postRequest(`${_UPDATE_PROJECT}`, data);
-// };
 
 const createNewRoom = (value: string) => {
   // 2D: создаем новую комнату на основе шаблона blankroom
@@ -638,15 +569,11 @@ onBeforeUnmount(() => {
             <p class="header-utilitys-basket-cost">
               {{ basketStore.totalPrice.toLocaleString("ru-RU") }} ₽
             </p>
-            <!-- <p class="header-utilitys-basket-cost">14 548 ₽</p> -->
           </div>
           <BuyBasketButton />
         </div>
         <div class="header-utilitys-helpers">
           <QuickActionsToolbar />
-          <!-- <AddPhotoHelperButton />-->
-          <!-- <GetAppHelperButton @click="saveProject" />
-          <VisibilityHelperButton @click="loadProject" />  -->
           <Avatar />
         </div>
       </div>

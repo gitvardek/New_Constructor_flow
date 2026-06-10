@@ -349,12 +349,12 @@ export class JsonBuilder {
 
         geometry.computeBoundingBox()
 
-        if (!isTopTable) {
+        if (!isTopTable || isRoomElement) {
             this.parent.normalizeUVsTo01(geometry)
         }
-        if (isRoomElement) {
-            this.parent.normalizeUVsTo01(geometry)
-        }
+        // if (isRoomElement) {
+        //     this.parent.normalizeUVsTo01(geometry)
+        // }
 
         return geometry
     }

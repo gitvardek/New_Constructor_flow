@@ -55,7 +55,8 @@ const eventsMap = [
     "A:Delite-Fasad",
     'A:GlobalParamsSelect',
     "A:ChangeShowcaseMilling",
-    "A:ChangeShowcase"
+    "A:ChangeShowcase",
+    "A:ChangeTableTop"
 
 ]
 
