@@ -116,10 +116,10 @@ class Helpers {
         }
 
 
-        let maxX = -0;
-        let maxY = -0;
-        let minX = 0;
-        let minY = 0;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        let minX = Infinity;
+        let minY = Infinity;
 
         for (const shape of shapes) {
             if (!shape.data.isVerticalItem) {
@@ -161,7 +161,7 @@ class Helpers {
             return MIN_SECTION_HEIGHT
 
         const sBounds = sector.getBounds()
-        const sMin = this.convertToTen(this.getMmWidth(sBounds.minY))
+        const sMin = this.convertToTen(this.getMmHeight(sBounds.minY))
         return maxY - sMin + UM_PARAMS.SECTOR_PADDING
     }
 
@@ -171,7 +171,7 @@ class Helpers {
             return MIN_SECTION_HEIGHT
 
         const sBounds = sector.getBounds()
-        const sMax = this.convertToTen(this.getMmWidth(sBounds.maxY))
+        const sMax = this.convertToTen(this.getMmHeight(sBounds.maxY))
         return sMax - minY + UM_PARAMS.SECTOR_PADDING
     }
 
@@ -382,6 +382,7 @@ class Shape extends Helpers {
 
         const pointermove = (event, graphic) => {
             if (dragging) {
+                this.sectorBounds = this.getSectorBounds(this.sector);
                 // Вычисляем новые позиции
                 const newY = event.global.y + dragOffset.y;
                 const newX = event.global.x + dragOffset.x;
@@ -570,27 +571,8 @@ class Shape extends Helpers {
             let otherShapeWidth = otherShape.width
 
             if (['loop', 'vertical_shelf'].includes(otherShape.data.type)) {
-                // Проверка наложения прямоугольников
-                verticalCheck = (
-                    (
-                        thisPosX + thisWidth <= otherShapePosX + otherShapeWidth &&
-                        thisPosX + thisWidth >= otherShapePosX
-                    ) ||
-                    (
-                        thisPosX <= otherShapePosX + otherShapeWidth &&
-                        thisPosX >= otherShapePosX
-                    )
-                ) ||
-                    (
-                        (
-                            otherShapePosX + otherShapeWidth <= thisPosX + thisWidth &&
-                            otherShapePosX + otherShapeWidth >= thisPosX
-                        ) ||
-                        (
-                            otherShapePosX <= thisPosX + thisWidth &&
-                            otherShapePosX >= thisPosX
-                        )
-                    );
+                verticalCheck = thisPosX < otherShapePosX + otherShapeWidth
+                    && otherShapePosX < thisPosX + thisWidth;
             } else
                 verticalCheck = true;
 
@@ -626,27 +608,8 @@ class Shape extends Helpers {
                 }
             }
 
-            // Проверка наложения прямоугольников
-            horizontalCheck = (
-                (
-                    thisPosY + thisHeight <= otherShapePosY + otherShapeHeight &&
-                    thisPosY + thisHeight >= otherShapePosY
-                ) ||
-                (
-                    thisPosY <= otherShapePosY + otherShapeHeight &&
-                    thisPosY >= otherShapePosY
-                )
-            ) ||
-                (
-                    (
-                        otherShapePosY + otherShapeHeight <= thisPosY + thisHeight &&
-                        otherShapePosY + otherShapeHeight >= thisPosY
-                    ) ||
-                    (
-                        otherShapePosY <= thisPosY + thisHeight &&
-                        otherShapePosY >= thisPosY
-                    )
-                );
+            horizontalCheck = thisPosY < otherShapePosY + otherShapeHeight
+                && otherShapePosY < thisPosY + thisHeight;
 
         }
 
@@ -929,8 +892,7 @@ class Shape extends Helpers {
             // Стрелка у объекта (у начала линии, указывает вверх, к объекту), с небольшим смещением вниз
             this.drawArrowhead(graphics, startX, startY, 'up');
             // Стрелка на краю сектора (внутри сектора, указывает вниз, от фигуры)
-            this.drawArrowhead(graphics, endX, endY, 'down'); // Увеличено смещение до 5 пикселей
-            this.drawArrowhead(graphics, startX, startY, 'up');
+            this.drawArrowhead(graphics, endX, endY, 'down');
 
             let distance = endY - startY
             const bottomText = new Text({
@@ -1170,7 +1132,7 @@ class ShapeAdjuster extends Helpers {
 
             return acc
 
-        }, { maxX: -0, maxY: -0, minX: 0, minY: 0 })
+        }, { maxX: -Infinity, maxY: -Infinity, minX: Infinity, minY: Infinity })
 
         return colBounds
     }

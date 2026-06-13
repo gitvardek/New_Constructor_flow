@@ -409,7 +409,7 @@ const renderGrid = (_moduleGrid) => {
                   .slice()
                   .sort((a, b) => b.position.y - a.position.y)
                   .forEach((extra, extraIndex, _extras) => {
-                    const RowpxHeight = getPixelWidth(extra.height);
+                    const RowpxHeight = getPixelHeight(extra.height);
 
                     extra.xOffset = rowxOffset;
                     extra.yOffset = rowyOffset;
@@ -965,8 +965,8 @@ const createModule = ({ x, y, width, height, moduleData }) => {
   const sectorBounds = shapeAdjuster.getSectorBounds(sector);
   sector.bound = sectorBounds;
 
-  moduleData.maxY = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.maxY));
-  moduleData.minY = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.minY));
+  moduleData.maxY = shapeAdjuster.convertToTen(getMmHeight(sectorBounds.maxY));
+  moduleData.minY = shapeAdjuster.convertToTen(getMmHeight(sectorBounds.minY));
   moduleData.maxX = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.maxX));
   moduleData.minX = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.minX));
 
@@ -1088,8 +1088,8 @@ const createSector = ({
     const sectorBounds = shapeAdjuster.getTotalBounds(sector, cellData);
     sector.bound = sectorBounds;
 
-    cellData.maxY = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.maxY));
-    cellData.minY = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.minY));
+    cellData.maxY = shapeAdjuster.convertToTen(getMmHeight(sectorBounds.maxY));
+    cellData.minY = shapeAdjuster.convertToTen(getMmHeight(sectorBounds.minY));
   }
 
   cellData.sector = sector;
