@@ -512,23 +512,26 @@ export class RoomManager extends Room {
         catch (e) {
             console.log('❌ Контекст userData.current потерян')
         }
-        const { MOUSE_POSITION } = curProd.userData
 
         const saved = await this.saveSingle(curProd, true)
         await this.loadSingle(saved)
-        this.createTotalObbBounds()
-        this.root._trafficManager?.moveManager?.setSelectObj(this.root._trafficManager._currentObject)
 
+        const newObject = this.root._trafficManager._currentObject;
+
+        if (!newObject) return;
+
+        newObject.userData.PROPS.DISABLE_MOVE = false;
+
+        this.createTotalObbBounds();
+        this.root._trafficManager?.moveManager?.setSelectObj(newObject);
 
         document.addEventListener('mousemove', this.addMouseEvent, false)
 
         this.eventBus.emit('A:Duplicated')
         this.duplicateSwitch = true
-
-
     }
 
-    private bindMouseEvent(event: MouseEvent) {
+    private addMouseEvent = (event: MouseEvent) => {
         this.root._trafficManager?.moveManager?.handleInteractionMove(event.clientX, event.clientY)
     }
 
