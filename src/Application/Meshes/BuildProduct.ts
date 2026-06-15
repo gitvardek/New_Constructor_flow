@@ -67,7 +67,8 @@ export class BuildProduct extends BuildersHelper {
     mirror_builder: MirrorBuilder
     uniform_texture_builder: UniformTextureBuilder
     useEdgeBuilder: THREETypes.TUseEdgeBuilder
-    private readonly _UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966]
+    private readonly _UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966];
+    private readonly copy: boolean = false
 
 
     constructor(root: THREETypes.TApplication) {
@@ -99,6 +100,10 @@ export class BuildProduct extends BuildersHelper {
 
     get _currentProduct() {
         return this
+    }
+
+    set _copy(value) {
+        this.copy = value
     }
 
     //========================================================================================================
@@ -593,7 +598,7 @@ export class BuildProduct extends BuildersHelper {
             }
         };
 
-        const moduleColorId = !materislExist ? defaultColors[0] : texture?.src && !this._FASADE[MODULE_COLOR]
+        const moduleColorId = this.copy ? MODULE_COLOR : !materislExist ? defaultColors[0] : texture?.src && !this._FASADE[MODULE_COLOR]
             ? MODULE_COLOR
             : resolveColorId();
 

@@ -289,27 +289,6 @@ export class RoomManager extends Room {
 
     }
 
-    // save(): string[] {
-
-    //     const convert = Object.values(this.contant)
-    //         .filter(item => item.userData.elementType !== 'raspil')
-    //         .map(item => {
-    //             return {
-    //                 id: item.userData.globalData,
-    //                 position: item.position.clone(),
-    //                 rotation: item.rotation.clone(),
-    //                 obb: item.userData.obb,
-    //                 data: this.convertProps(item),
-    //                 type: item.userData.elementType,
-    //                 size: item.userData.PROPS.CONFIG.SIZE
-
-    //             }
-
-    //         });
-    //     const result = JSON.stringify(convert)
-
-    //     return result
-    // }
 
     saveSingle(item: THREE.Object3D, duplicate: boolean = false): any {
 
@@ -439,7 +418,7 @@ export class RoomManager extends Room {
         this.uniformState.clearUniformGroupMembership();
     }
 
-    async loadSingle(data: any): Promise<number> {
+    async loadSingle(data: any, copy: boolean = false): Promise<number> {
 
         const model = typeof data === 'string' ? JSON.parse(data) : data;
 
@@ -450,19 +429,26 @@ export class RoomManager extends Room {
         const size = model.size ?? '';
 
         if (!this._PRODUCTS[model.id]) {
-            console.log(`❌ Товара c ID:${model.id} нет в списке PRODUCTS`)
             return 1
         }
         try {
 
             /** @Загрузка_модели */
 
-            let builder = loadData.CONFIG?.MODULEGRID ? this.universalGeometryBuilder : this.geometryBuilder;
+            const isUM = loadData.CONFIG?.MODULEGRID
+
+            let builder = isUM ? this.universalGeometryBuilder : this.geometryBuilder;
+
+            /** @Копирование_объекта */
+            if (!isUM) {
+                builder?.isCopy(copy)
+            }
+            //----------------------------------------------------------------------------------------
 
             const object = await builder!.createModel(
                 this.modelState.getModels[model.id] as THREEInterfases.IModelsData,
                 loadData,
-                size
+                size,
             );
 
             /** @Создаём_объект_в_сцене */
@@ -471,13 +457,12 @@ export class RoomManager extends Room {
                 object,
                 rotate: rotation,
                 point,
+                boxHelper: copy
             });
 
             /** @Столешница */
 
             if (loadData?.RASPIL_LIST?.length > 0) {
-                console.log(loadData.RASPIL, object)
-
                 await this.root.tableTopCreator?.create(loadData.RASPIL, object, object.id);
             }
 
@@ -510,23 +495,29 @@ export class RoomManager extends Room {
         catch (e) {
             console.log('❌ Контекст userData.current потерян')
         }
-        const { MOUSE_POSITION } = curProd.userData
 
         const saved = await this.saveSingle(curProd, true)
-        await this.loadSingle(saved)
-        this.createTotalObbBounds()
-        this.root._trafficManager?.moveManager?.setSelectObj(this.root._trafficManager._currentObject)
 
+        const beforeIds = new Set(Object.keys(this.contant))
+        await this.loadSingle(saved, this.root._customBoxHelper)
+        const newId = Object.keys(this.contant).find(id => !beforeIds.has(id))
+        const newObject = newId ? this.contant[newId] : null
+
+        if (!newObject) return;
+        newObject.userData.PROPS.DISABLE_MOVE = false;
+        newObject.userData.current = true
+
+        this.root._trafficManager?.moveManager?.setSelectObj(newObject);
 
         document.addEventListener('mousemove', this.addMouseEvent, false)
 
+        this.createTotalObbBounds();
+
         this.eventBus.emit('A:Duplicated')
         this.duplicateSwitch = true
-
-
     }
 
-    private bindMouseEvent(event: MouseEvent) {
+    private addMouseEvent = (event: MouseEvent) => {
         this.root._trafficManager?.moveManager?.handleInteractionMove(event.clientX, event.clientY)
     }
 

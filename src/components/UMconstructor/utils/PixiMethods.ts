@@ -116,10 +116,11 @@ class Helpers {
         }
 
 
-        let maxX = -0;
-        let maxY = -0;
-        let minX = 0;
-        let minY = 0;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        let minX = Infinity;
+        let minY = Infinity;
+
 
         for (const shape of shapes) {
             if (!shape.data.isVerticalItem) {

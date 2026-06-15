@@ -132,11 +132,6 @@ export const useModelState = defineStore('ModelState', () => {
 
     const currentPatinaData = ref<number[]>([])
 
-    const transformControls = ref<boolean>(false)
-    const transformControlsName = ref<string>("Позиционирование")
-    const transformControlSnapAngles = ref<number[]>([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
-    const currentControlSnapAngle = ref<number>(45)
-
     const setCurrentModel = (object: THREE.Object3D | any) => {
 
         currentModel.value = object
