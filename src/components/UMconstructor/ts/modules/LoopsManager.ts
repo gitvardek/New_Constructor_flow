@@ -650,97 +650,63 @@ export default class LoopsManager {
                 }
 
                 if (sectionLeft) {
-
-
-                    const sectionLeftLoops = sectionLeft.loopsSides || {};
-
                     if (!grid.isRestrictedModule) {
-                        if (
-                            sectionLeftLoops[1] ||
-                            rightLoopsList.includes(
-                                sectionLeftLoops[0]
-                            )
-                        ) {
+                        const leftDoors = sectionLeft.fasades ?? [];
+                        const leftFacesPartition = leftDoors.length > 1
+                            || leftDoors.some(door => door.some(f => rightLoopsList.includes(f.loopsSide)));
+                        if (leftFacesPartition) {
                             delete tmp[LOOPSIDE["left_on_partition"]];
-                        }
-                        else {
-                            tmp[LOOPSIDE["left_on_partition"]] =
-                                loopsData[LOOPSIDE["left_on_partition"]];
+                        } else {
+                            tmp[LOOPSIDE["left_on_partition"]] = loopsData[LOOPSIDE["left_on_partition"]];
                         }
                     }
-
                     delete tmp[LOOPSIDE["left"]];
                 }
 
                 if (sectionRight) {
-
-
-                    const sectionRightLoops = sectionRight.loopsSides || {};
-
                     if (!grid.isRestrictedModule) {
-                        if (
-                            sectionRightLoops[1] ||
-                            leftLoopsList.includes(
-                                sectionRightLoops[0]
-                            )
-                        ) {
+                        const rightDoors = sectionRight.fasades ?? [];
+                        const rightFacesPartition = rightDoors.length > 1
+                            || rightDoors.some(door => door.some(f => leftLoopsList.includes(f.loopsSide)));
+                        if (rightFacesPartition) {
                             delete tmp[LOOPSIDE["right_on_partition"]];
                         } else {
-                            tmp[LOOPSIDE["right_on_partition"]] =
-                                loopsData[LOOPSIDE["right_on_partition"]];
+                            tmp[LOOPSIDE["right_on_partition"]] = loopsData[LOOPSIDE["right_on_partition"]];
                         }
                     }
-
                     delete tmp[LOOPSIDE["right"]];
                 }
 
                 break;
             case 1:
                 if (sectionLeft) {
-
-
-                    const sectionLeftLoops = sectionLeft.loopsSides || {};
-
                     if (!grid.isRestrictedModule) {
-                        if (
-                            sectionLeftLoops[1] ||
-                            rightLoopsList.includes(
-                                sectionLeftLoops[0]
-                            )
-                        ) {
+                        const leftDoors = sectionLeft.fasades ?? [];
+                        const leftFacesPartition = leftDoors.length > 1
+                            || leftDoors.some(door => door.some(f => rightLoopsList.includes(f.loopsSide)));
+                        if (leftFacesPartition) {
                             delete tmp[LOOPSIDE["left_on_partition"]];
                         } else {
-                            tmp[LOOPSIDE["left_on_partition"]] =
-                                loopsData[LOOPSIDE["left_on_partition"]];
+                            tmp[LOOPSIDE["left_on_partition"]] = loopsData[LOOPSIDE["left_on_partition"]];
                         }
                     }
-
                     delete tmp[LOOPSIDE["left"]];
                 }
 
                 if (sectionRight) {
-
-
-                    const sectionRightLoops = sectionRight.loopsSides || {};
-
                     if (!grid.isRestrictedModule) {
-                        if (
-                            sectionRightLoops[1] ||
-                            leftLoopsList.includes(
-                                sectionRightLoops[0]
-                            )
-                        ) {
+                        const rightDoors = sectionRight.fasades ?? [];
+                        const rightFacesPartition = rightDoors.length > 1
+                            || rightDoors.some(door => door.some(f => leftLoopsList.includes(f.loopsSide)));
+                        if (rightFacesPartition) {
                             delete tmp[LOOPSIDE["right_on_partition"]];
                         } else {
-                            tmp[LOOPSIDE["right_on_partition"]] =
-                                loopsData[LOOPSIDE["right_on_partition"]];
+                            tmp[LOOPSIDE["right_on_partition"]] = loopsData[LOOPSIDE["right_on_partition"]];
                         }
                     }
-
                     delete tmp[LOOPSIDE["right"]];
                 }
 
-                //delete tmp[LOOPSIDE["left"]]
                 delete tmp[currSectionLoops[0]];
 
                 break;
