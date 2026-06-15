@@ -15,16 +15,16 @@ export class GeometryBuilder {
         this.buildProduct = new BuildProduct(root)
     }
 
-    // craeteModel(data: any, onLoad: (object: THREE.Object3D) => void, loadedProps?: any, loaded_size?:any): void {
-
-    //     this.buildProduct.getModel(data, onLoad, loadedProps, loaded_size)
-
-    // }
     async createModel(
         data: any,
         loadedProps?: any,
-        loaded_size?: any
+        loaded_size?: any,
+        copy?: boolean
     ): Promise<THREE.Object3D> {
         return this.buildProduct.getModel(data, loadedProps, loaded_size);
+    }
+
+    public isCopy(value: boolean) {
+        this.buildProduct._copy = value
     }
 }

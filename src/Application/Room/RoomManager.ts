@@ -61,6 +61,7 @@ export class RoomManager extends Room {
         this.universalGeometryBuilder = root.universalGeometryBuilder
         this.uniformTextureBuilder = root.geometryBuilder?.buildProduct.uniform_texture_builder!
 
+
         // this.createShape = new CreateShape(root.canvas, root.camera.instance as THREE.Camera, root.scene, root)
 
         this.addVueEvents()
@@ -294,28 +295,6 @@ export class RoomManager extends Room {
 
     }
 
-    // save(): string[] {
-
-    //     const convert = Object.values(this.contant)
-    //         .filter(item => item.userData.elementType !== 'raspil')
-    //         .map(item => {
-    //             return {
-    //                 id: item.userData.globalData,
-    //                 position: item.position.clone(),
-    //                 rotation: item.rotation.clone(),
-    //                 obb: item.userData.obb,
-    //                 data: this.convertProps(item),
-    //                 type: item.userData.elementType,
-    //                 size: item.userData.PROPS.CONFIG.SIZE
-
-    //             }
-
-    //         });
-    //     const result = JSON.stringify(convert)
-
-    //     return result
-    // }
-
     saveSingle(item: THREE.Object3D, duplicate: boolean = false): any {
 
         if (item.userData.elementType === 'raspil') {
@@ -444,7 +423,7 @@ export class RoomManager extends Room {
         this.uniformState.clearUniformGroupMembership();
     }
 
-    async loadSingle(data: any): Promise<number> {
+    async loadSingle(data: any, copy: boolean = false): Promise<number> {
 
         const model = typeof data === 'string' ? JSON.parse(data) : data;
 
@@ -461,12 +440,18 @@ export class RoomManager extends Room {
 
             /** @Загрузка_модели */
 
-            let builder = loadData.CONFIG?.MODULEGRID ? this.universalGeometryBuilder : this.geometryBuilder;
+            const isUM = loadData.CONFIG?.MODULEGRID
+
+            let builder = isUM ? this.universalGeometryBuilder : this.geometryBuilder;
+            
+            if(!isUM){
+                builder?.isCopy(copy)
+            }
 
             const object = await builder!.createModel(
                 this.modelState.getModels[model.id] as THREEInterfases.IModelsData,
                 loadData,
-                size
+                size,
             );
 
             /** @Создаём_объект_в_сцене */
@@ -475,6 +460,7 @@ export class RoomManager extends Room {
                 object,
                 rotate: rotation,
                 point,
+                boxHelper: copy
             });
 
             /** @Столешница */
@@ -514,18 +500,21 @@ export class RoomManager extends Room {
         }
 
         const saved = await this.saveSingle(curProd, true)
-        await this.loadSingle(saved)
 
-        const newObject = this.root._trafficManager._currentObject;
+        const beforeIds = new Set(Object.keys(this.contant))
+        await this.loadSingle(saved, this.root._customBoxHelper)
+        const newId = Object.keys(this.contant).find(id => !beforeIds.has(id))
+        const newObject = newId ? this.contant[newId] : null
 
         if (!newObject) return;
-
         newObject.userData.PROPS.DISABLE_MOVE = false;
+        newObject.userData.current = true
 
-        this.createTotalObbBounds();
         this.root._trafficManager?.moveManager?.setSelectObj(newObject);
 
         document.addEventListener('mousemove', this.addMouseEvent, false)
+
+        this.createTotalObbBounds();
 
         this.eventBus.emit('A:Duplicated')
         this.duplicateSwitch = true

@@ -69,6 +69,7 @@ export class BuildProduct extends BuildersHelper {
     uniform_texture_builder: UniformTextureBuilder
     useEdgeBuilder: THREETypes.TUseEdgeBuilder
     private readonly UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966]
+    private readonly copy: boolean = false
 
 
     constructor(root: THREETypes.TApplication) {
@@ -100,6 +101,10 @@ export class BuildProduct extends BuildersHelper {
 
     get _currentProduct() {
         return this
+    }
+
+    set _copy(value) {
+        this.copy = value
     }
 
     //========================================================================================================
@@ -307,7 +312,7 @@ export class BuildProduct extends BuildersHelper {
         props: THREETypes.TObject,
         loadedProps?: THREETypes.TObject
     ): THREETypes.TConfig {
-        
+
         const isDae = this._MODELS[product_data.models[0]].DAE;
 
         const {
@@ -573,7 +578,6 @@ export class BuildProduct extends BuildersHelper {
         const defaultColors = this.modelState.createFlatModuleData(product.MODULECOLOR);
         const materislExist = defaultColors.includes(MODULE_COLOR);/** Проверка на существование материала по ID */
 
-
         const isRoomElement = product.element_type === "element_room"
         const wallTextureId = isRoomElement && CONFIG.MODULE_COLOR === null
             ? parseInt(this.root._roomManager._currentWallTextureId)
@@ -585,13 +589,16 @@ export class BuildProduct extends BuildersHelper {
 
             const resolveForType = (defColor: string, globalFlag: boolean): string => {
                 const materislExist = defaultColors.includes(MODULE_COLOR);
-
                 const isAvailable = product.MODULECOLOR.includes(defColor);
+
+                console.log(materislExist, isAvailable, isDefault)
 
                 return (defColor && isDefault && isAvailable) || (globalFlag && isAvailable)
                     ? defColor
                     : MODULE_COLOR;
             };
+
+
 
             switch (ELEMENT_TYPE) {
                 case "element_down": return resolveForType(defModuleBottom, moduleBottom.global);
@@ -600,9 +607,12 @@ export class BuildProduct extends BuildersHelper {
             }
         };
 
-        const moduleColorId = !materislExist ? defaultColors[0] : texture?.src && !this._FASADE[MODULE_COLOR]
+
+        const moduleColorId = this.copy ? MODULE_COLOR : !materislExist ? defaultColors[0] : texture?.src.length > 0 && !this._FASADE[MODULE_COLOR]
             ? MODULE_COLOR
             : resolveColorId();
+
+        console.log(moduleColorId, 'moduleColorId')
 
         CONFIG.MODULE_COLOR = isRoomElement ? wallTextureId : moduleColorId;
 

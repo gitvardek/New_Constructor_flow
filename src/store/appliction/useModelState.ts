@@ -132,10 +132,6 @@ export const useModelState = defineStore('ModelState', () => {
 
     const currentPatinaData = ref<number[]>([])
 
-    const transformControls = ref<boolean>(false)
-    const transformControlsName = ref<string>("Позиционирование")
-    const transformControlSnapAngles = ref<number[]>([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
-    const currentControlSnapAngle = ref<number>(45)
 
     const setCurrentModel = (object: THREE.Object3D | any) => {
 
@@ -169,7 +165,10 @@ export const useModelState = defineStore('ModelState', () => {
 
     const createCurrentModuleData = (value: number[], def: boolean = false) => {
 
-        const validFacadeIds = value.filter(id => _FASADE.value[id]);
+        const validFacadeIds = value.filter(id => _FASADE.value[id])
+        value.forEach(el => {
+            console.log(_FASADE.value[el])
+        })
 
         const groupedFasades = validFacadeIds.reduce((acc, facadeId) => {
             const facade = _FASADE.value[facadeId];
@@ -422,7 +421,7 @@ export const useModelState = defineStore('ModelState', () => {
                         MAX_WIDTH: isUM ? (isSlideDoor ? UM_PARAMS.MAX_SLIDE_DOOR_WIDTH : UM_PARAMS.MAX_FASADE_WIDTH) : restrict ? _FASADE_SIZE_RESTRICT.value[section.ID].SIZE_RESTRICT.WIDTH : Infinity,
                         MIN_HEIGHT: restrict ? _FASADE_SIZE_RESTRICT.value[section.ID].SIZE_RESTRICT.MIN_HEIGHT : -Infinity,
                         MIN_WIDTH: isUM ? (isSlideDoor ? UM_PARAMS.MIN_SLIDE_DOOR_WIDTH : UM_PARAMS.MIN_FASADE_WIDTH) : restrict ? _FASADE_SIZE_RESTRICT.value[section.ID].SIZE_RESTRICT.MIN_WIDTH : -Infinity,
-                        
+
                     },
                 };
             }
@@ -430,9 +429,16 @@ export const useModelState = defineStore('ModelState', () => {
 
             if (!haveShowCase && hasGlass) return
 
-            groupedFasades[groupId]['id'].push(facadeId);
+            groupedFasades[groupId]['id'].push(facadeId)
 
         });
+
+        // if(groupedFasades[groupId]){
+        //     groupedFasades.id.sort((a, b)=>{_FASADE.value[a].SORT - _FASADE.value[b].SORT})
+        // }
+
+
+
 
         // Формирование итогового массива
         const result = Object.entries(_FASADE_GROUPS.value).map(([groupId, group]) => {
@@ -543,8 +549,6 @@ export const useModelState = defineStore('ModelState', () => {
         }
 
         const millingConversations = checkMillingConversations(fasadeId)
-        console.log(millingConversations, 'millingConversations')
-
         const product = _PRODUCTS.value[productId]
         const positionId = product.FASADE_POSITION[fasadeNdx]
 
@@ -588,8 +592,6 @@ export const useModelState = defineStore('ModelState', () => {
 
                     })
                 }
-                console.log(checkedMillingConversation, result, '2')
-
             }
 
             currentMillingData.value = result
@@ -622,11 +624,8 @@ export const useModelState = defineStore('ModelState', () => {
 
     const getCurrentMillingMap = (data) => {
 
-        console.log(MILLINGS[data], 'data!!!')
-
         const millingKey = additionalMillingKeys[data];
         const millingMapData = MILLINGS[millingKey] ?? MILLINGS[data] ?? MILLINGS[566720];
-        console.log(millingMapData, 'millingMapData')
 
         return millingMapData;
     }
