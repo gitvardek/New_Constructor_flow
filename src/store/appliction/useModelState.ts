@@ -166,9 +166,6 @@ export const useModelState = defineStore('ModelState', () => {
     const createCurrentModuleData = (value: number[], def: boolean = false) => {
 
         const validFacadeIds = value.filter(id => _FASADE.value[id])
-        value.forEach(el => {
-            console.log(_FASADE.value[el])
-        })
 
         const groupedFasades = validFacadeIds.reduce((acc, facadeId) => {
             const facade = _FASADE.value[facadeId];

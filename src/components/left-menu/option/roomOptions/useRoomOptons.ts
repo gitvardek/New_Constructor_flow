@@ -278,7 +278,7 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
         );
 
         const uniqueProductIds = [...new Set([...allProducts, emptyTableTopId.value])];
-        const defaultTableTopData = uniqueProductIds.map(id => PRODUCTS[id]).sort((a, b) => { console.log(a, b); a.SORT - b.SORT }).reverse();
+        const defaultTableTopData = uniqueProductIds.map(id => PRODUCTS[id]).sort((a, b) => { a.SORT - b.SORT }).reverse();
 
         // const defaultTableTopData = Object.fromEntries(
         //     uniqueProductIds.map(id => [id, PRODUCTS[id]])
