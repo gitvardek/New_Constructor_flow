@@ -82,14 +82,19 @@ export const useOptions = () => {
 
         if (values) {
             OPTIONS.forEach(opt => {
-                if (
+                const commonSection = hasCommonNumbers(opt.section, curOpt.section)
+
+                const checkAvailable =
                     opt.group === curOpt.group &&
                     opt.close === curOpt.close &&
-                    opt.section === curOpt.section &&
+                    commonSection &&
                     opt.id !== curOpt.id ||
-                    opt.section === curOpt.section &&
+                    commonSection &&
                     opt.close === curOpt.close &&
-                    opt.id !== curOpt.id) {
+                    opt.id !== curOpt.id
+
+
+                if (checkAvailable) {
 
                     if (opt.active) {
                         disabledOptions.push(opt);
@@ -505,6 +510,12 @@ export const useOptions = () => {
 
         return converted
 
+    }
+
+    // Поиск дублей в массивах
+    const hasCommonNumbers = (a: number[], b: number[]): boolean => {
+        const setA = new Set(a);
+        return b.some(num => setA.has(num));
     }
 
     return { createOptionList, checkActive, resetGlobal }

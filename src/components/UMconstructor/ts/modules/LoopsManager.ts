@@ -1,7 +1,7 @@
 //@ts-nocheck
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/types/constructor2d/interfaсes.ts";
+import {  ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
 import * as THREE from "three";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
@@ -70,6 +70,23 @@ export default class LoopsManager {
         }
 
         curSection.loops = []
+
+        //  Корректировка loopsSide: plain left/right ↔ _on_partition в зависимости от наличия перегоротки
+
+        const sectionLeft = grid.sections[secIndex - 1] || null
+        const sectionRight = grid.sections[secIndex + 1] || null
+        FASADES.forEach((door) => {
+            door.forEach((fasade) => {
+                if (fasade.loopsSide === LOOPSIDE.right && sectionRight)
+                    fasade.loopsSide = LOOPSIDE.right_on_partition
+                else if (fasade.loopsSide === LOOPSIDE.right_on_partition && !sectionRight)
+                    fasade.loopsSide = LOOPSIDE.right
+                else if (fasade.loopsSide === LOOPSIDE.left && sectionLeft)
+                    fasade.loopsSide = LOOPSIDE.left_on_partition
+                else if (fasade.loopsSide === LOOPSIDE.left_on_partition && !sectionLeft)
+                    fasade.loopsSide = LOOPSIDE.left
+            })
+        })
 
         FASADES.forEach((door, doorKey) => {
             const additional_fasades = []
