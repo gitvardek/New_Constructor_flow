@@ -687,27 +687,19 @@ watch(
                             <div class="actions-inputs">
                               <p class="actions-title">Сторона открывания</p>
                               <div>
-                                <select style id="loopsSide" :value="segment.loopsSide" name="loopsSide"
-                                  class="actions-input" :title="UMconstructor.APP.LOOPSIDE[
-                                    segment.loopsSide
-                                  ].NAME
-                                    " @change="
-                                      changeLoopside(
-                                        secNdx,
-                                        segment,
-                                        $event,
-                                        doorIndex,
-                                        module,
-                                      )
-                                      " :disabled="getLoopsideList(secNdx, doorIndex, module)
-                                        .length < 2
-                                        ">
+                                <select style id="loopsSide"
+                                  :key="`loopside_${secNdx}_${doorIndex}_${segmentIndex}_${segment.loopsSide}`"
+                                  name="loopsSide"
+                                  class="actions-input"
+                                  :title="UMconstructor.APP.LOOPSIDE[segment.loopsSide]?.NAME ?? ''"
+                                  @change="changeLoopside(secNdx, segment, $event, doorIndex, module)"
+                                  :disabled="getLoopsideList(secNdx, doorIndex, module, segment.id).length < 2">
                                   <option v-for="(side, key) in getLoopsideList(
                                     secNdx,
                                     doorIndex,
                                     module,
                                     segment.id,
-                                  )" :key="key" :value="side.ID">
+                                  )" :key="key" :value="side.ID" :selected="side.ID === segment.loopsSide">
                                     <div class="item-group-name" :title="side.NAME">
                                       <p class="name__text">
                                         {{ side.NAME }}
@@ -721,7 +713,7 @@ watch(
 
                           <div>
                             <button class="actions-btn actions-btn--default" v-if="
-                              LOOPSIDE[segment.loopsSide].includes('top') &&
+                              LOOPSIDE[segment.loopsSide]?.includes('top') &&
                               segment.material.COLOR !== 7397
                             " @click="createMechanizmList(segment)">
                               Подъёмные механизмы
@@ -885,27 +877,19 @@ watch(
                             <div class="actions-inputs">
                               <p class="actions-title">Сторона открывания</p>
                               <div>
-                                <select style id="loopsSide" :value="segment.loopsSide" name="loopsSide"
-                                  class="actions-input" :title="UMconstructor.APP.LOOPSIDE[
-                                    segment.loopsSide
-                                  ].NAME
-                                    " @change="
-                                      changeLoopside(
-                                        secNdx,
-                                        segment,
-                                        $event,
-                                        doorIndex,
-                                        module,
-                                      )
-                                      " :disabled="getLoopsideList(secNdx, doorIndex, module)
-                                        .length < 2
-                                        ">
+                                <select style id="loopsSide"
+                                  :key="`loopside_${secNdx}_${doorIndex}_${segmentIndex}_${segment.loopsSide}`"
+                                  name="loopsSide"
+                                  class="actions-input"
+                                  :title="UMconstructor.APP.LOOPSIDE[segment.loopsSide]?.NAME ?? ''"
+                                  @change="changeLoopside(secNdx, segment, $event, doorIndex, module)"
+                                  :disabled="getLoopsideList(secNdx, doorIndex, module, segment.id).length < 2">
                                   <option v-for="(side, key) in getLoopsideList(
                                     secNdx,
                                     doorIndex,
                                     module,
                                     segment.id,
-                                  )" :key="key" :value="side.ID">
+                                  )" :key="key" :value="side.ID" :selected="side.ID === segment.loopsSide">
                                     <div class="item-group-name" :title="side.NAME">
                                       <p class="name__text">
                                         {{ side.NAME }}
@@ -919,7 +903,7 @@ watch(
 
                           <div>
                             <button class="actions-btn actions-btn--default" v-if="
-                              LOOPSIDE[segment.loopsSide].includes('top') &&
+                              LOOPSIDE[segment.loopsSide]?.includes('top') &&
                               segment.material.COLOR !== 7397
                             " @click="createMechanizmList(segment)">
                               Подъёмные механизмы

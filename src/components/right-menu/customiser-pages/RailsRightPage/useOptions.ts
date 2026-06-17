@@ -82,14 +82,20 @@ export const useOptions = () => {
 
         if (values) {
             OPTIONS.forEach(opt => {
-                if (
+
+                const commonSection = hasCommonNumbers(opt.section, curOpt.section)
+
+                const checkAvailable =
                     opt.group === curOpt.group &&
                     opt.close === curOpt.close &&
-                    opt.section === curOpt.section &&
+                    commonSection &&
                     opt.id !== curOpt.id ||
-                    opt.section === curOpt.section &&
+                    commonSection &&
                     opt.close === curOpt.close &&
-                    opt.id !== curOpt.id) {
+                    opt.id !== curOpt.id
+
+
+                if (checkAvailable) {
 
                     if (opt.active) {
                         disabledOptions.push(opt);
@@ -122,6 +128,14 @@ export const useOptions = () => {
                 }
             });
         }
+
+        // opt.group === curOpt.group &&
+        // opt.close === curOpt.close &&
+        // opt.section === curOpt.section &&
+        // opt.id !== curOpt.id ||
+        // opt.section === curOpt.section &&
+        // opt.close === curOpt.close &&
+        // opt.id !== curOpt.id
 
         curOpt.active = values;
 
@@ -236,7 +250,7 @@ export const useOptions = () => {
 
         const curOptionsList = curOptions
             .map(el => {
-                 if (!options[el.id]) return
+                if (!options[el.id]) return
                 const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
                 const cutSize = getCutSizeOption(el, cloneOption)
 
@@ -506,6 +520,12 @@ export const useOptions = () => {
 
         return converted
 
+    }
+
+    // Поиск дублей в массивах
+    const hasCommonNumbers = (a: number[], b: number[]): boolean => {
+        const setA = new Set(a);
+        return b.some(num => setA.has(num));
     }
 
     return { createOptionList, checkActive, resetGlobal }

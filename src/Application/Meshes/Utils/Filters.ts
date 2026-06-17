@@ -348,7 +348,15 @@ export class Filters extends GlobalsData {
         const result = curOptionsList.map(el => {
 
             const groupName = el.GROUP ?? ''
-            return { id: el.ID, active: false, group: groupName, section: el.IBLOCK_SECTION_ID?.[0], close: el.CLOSE_OTHER_OPTIONS, visible: true }
+            return {
+                id: el.ID,
+                active: false,
+                group: groupName,
+                // section: el.IBLOCK_SECTION_ID?.[0],
+                section: el.IBLOCK_SECTION_ID,
+                close: el.CLOSE_OTHER_OPTIONS,
+                visible: true
+            }
         })
 
         return result
