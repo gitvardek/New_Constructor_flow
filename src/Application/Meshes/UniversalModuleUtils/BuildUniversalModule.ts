@@ -15,7 +15,7 @@ import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
-import {TFasadeProp} from "@/types/types";
+import { TFasadeProp } from "@/types/types";
 
 export class BuildUniversalModule extends BuildProduct {
 
@@ -23,6 +23,8 @@ export class BuildUniversalModule extends BuildProduct {
     modelState = useModelState();
 
     heightCorrect: number = 0
+
+    private readonly correctPosZGroups: number[] = [2166309]
 
     constructor(root: THREETypes.TApplication) {
         super(root);
@@ -32,8 +34,7 @@ export class BuildUniversalModule extends BuildProduct {
         width: number,
         height: number,
         depth: number
-    }, moduleParams?: GridModule)
-    {
+    }, moduleParams?: GridModule) {
 
         // Режим чертежа
         const drowMode = this.menuStore.getDrowModeValue
@@ -222,6 +223,8 @@ export class BuildUniversalModule extends BuildProduct {
     };
 
     createProductObject(product_data: THREETypes.TObject, props) {
+        console.log(product_data, 'product_data')
+
         const CONFIG = super.createProductObject(product_data, props)
 
         let firstSectionSize = new THREE.Vector3(CONFIG.SIZE.width - CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] * 2,
@@ -252,7 +255,7 @@ export class BuildUniversalModule extends BuildProduct {
 
         CONFIG.TOPFASADECOLOR = <TFasadeProp>{ COLOR: 7397, SHOW: false }
 
-        if (product_data.moduleType.CODE !== "wardrobe") {
+        if (product_data.moduleType?.CODE !== "wardrobe") {
             CONFIG.LOOPS = {}
         }
         else {
@@ -262,7 +265,7 @@ export class BuildUniversalModule extends BuildProduct {
         if (this._APP.CATALOG.SECTIONS[product_data.OPTIONSECTION_ID].TYPE.toLowerCase().includes("hitech"))
             CONFIG.isHiTech = true
 
-        if (product_data.moduleType.CODE === "restricted")
+        if (product_data.moduleType?.CODE === "restricted")
             CONFIG.isRestrictedModule = true
 
         let option = CONFIG.OPTIONS.find(item => +item.id === 8390271)
@@ -673,8 +676,17 @@ export class BuildUniversalModule extends BuildProduct {
                                 filling.position.z = sizeModule.depth - filling.size.z / 2 - (isSlidingDoors / 2 || 0);
                         }
 
+                        /** Проверка на корректировку положения по глубине */
+                        const isCorrectZPos = this.correctPosZGroups.includes(filling.productGroupID)
+                        //-------------------------------------------------------------------------------------
+
                         start_position.add(filling.position)
                         start_position.y += filling.size.y / 2 + full_horizont_height + baseOffset
+
+                        if (isCorrectZPos) {
+                            start_position.z = sizeModule.depth / 2 - filling.size.z / 2 - (sizeModule.depth - filling.size.z)
+                        }
+
 
                         productFilling.position.copy(start_position)
 
@@ -773,10 +785,17 @@ export class BuildUniversalModule extends BuildProduct {
     }
 
     createSubProductObject(filling: Object, data: THREETypes.TObject, props: THREETypes.TObject) {
-        let textureUrl = filling.isProfile ? this._COLOR[props.CONFIG['PROFILECOLOR']].TEXTURE : this._FASADE[filling.color || filling.material || props.CONFIG['MODULE_COLOR']].TEXTURE
+
+        console.log('SUB')
+
+        let textureUrl = filling.isProfile ? this._COLOR[props.CONFIG['PROFILECOLOR']].TEXTURE :
+            this._FASADE[filling.color ||
+                filling.material ||
+                props.CONFIG['MODULE_COLOR']].TEXTURE
         let body = this.json_builder.createMesh({ data, textureUrl })
 
         body.position.set(eval(data.corr_x), eval(data.corr_y), eval(data.corr_z));
+
         body.matrixWorldNeedsUpdate = true
         body.name = "BODY"
         body.userData.MATERIAL = data.json?.material.type || null
@@ -972,7 +991,7 @@ export class BuildUniversalModule extends BuildProduct {
 
                             let relative_posY = Math.floor(positionY + (element.type !== 'drawer' ? element.size.y / 2 : 0) - (element.fasade?.manufacturerOffset || 0))
 
-        
+
 
                             element.basketRenderPosition = positionY
 

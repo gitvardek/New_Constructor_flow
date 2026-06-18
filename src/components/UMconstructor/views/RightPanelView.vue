@@ -40,16 +40,21 @@ const getFillings = computed(() => {
 
     console.log(fillingsGroup, 'fillingsGroup')
 
-    if(!fillingsGroup.PRODUCTS) return
+    if (!fillingsGroup.PRODUCTS) return
 
     objectsMatrix.push({
       groupName: fillingsGroup.NAME,
       groupID: fillingsGroup.ID,
       items: fillingsGroup.PRODUCTS.map(item => {
-        return UMconstructor?.value?.APP.CATALOG.PRODUCTS[item]
-      }).filter(item => item)
+        if (!item) return
+        const element = UMconstructor?.value?.APP.CATALOG.PRODUCTS[item];
+        element.groupID = fillingsGroup.ID
+        return element
+      }).filter(Boolean)
     })
   })
+
+  console.log(objectsMatrix, 'objectsMatrix')
 
   return objectsMatrix;
 });

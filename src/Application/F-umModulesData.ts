@@ -147,7 +147,9 @@ export const UM_SAMPLE = () => {
                         "id": "7391",
                         "active": false,
                         "group": "549",
-                        "section": 211,
+                        "section": [
+                            211
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -155,7 +157,9 @@ export const UM_SAMPLE = () => {
                         "id": "3955910",
                         "active": false,
                         "group": "550",
-                        "section": 2825,
+                        "section": [
+                            2825
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -163,7 +167,9 @@ export const UM_SAMPLE = () => {
                         "id": "4621257",
                         "active": false,
                         "group": "548",
-                        "section": 1581,
+                        "section": [
+                            1581
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -171,7 +177,9 @@ export const UM_SAMPLE = () => {
                         "id": "4621238",
                         "active": false,
                         "group": "548",
-                        "section": 1581,
+                        "section": [
+                            1581
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -179,7 +187,9 @@ export const UM_SAMPLE = () => {
                         "id": "4621240",
                         "active": false,
                         "group": "548",
-                        "section": 1581,
+                        "section": [
+                            1581
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -187,7 +197,9 @@ export const UM_SAMPLE = () => {
                         "id": "1795067",
                         "active": false,
                         "group": "549",
-                        "section": 211,
+                        "section": [
+                            211
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -195,7 +207,9 @@ export const UM_SAMPLE = () => {
                         "id": "5738924",
                         "active": false,
                         "group": "",
-                        "section": 1581,
+                        "section": [
+                            1581
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -203,6 +217,7 @@ export const UM_SAMPLE = () => {
                         "id": "4722965",
                         "active": false,
                         "group": "",
+                        "section": [],
                         "close": "0",
                         "visible": true
                     },
@@ -210,7 +225,9 @@ export const UM_SAMPLE = () => {
                         "id": "7250589",
                         "active": false,
                         "group": "595",
-                        "section": 2900,
+                        "section": [
+                            2900
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -218,14 +235,9 @@ export const UM_SAMPLE = () => {
                         "id": "8390271",
                         "active": true,
                         "group": "554",
-                        "section": 2341,
-                        "close": "0",
-                        "visible": true
-                    },
-                    {
-                        "id": "9576617",
-                        "active": false,
-                        "group": "",
+                        "section": [
+                            2341
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -233,7 +245,9 @@ export const UM_SAMPLE = () => {
                         "id": "12682512",
                         "active": false,
                         "group": "549",
-                        "section": 2892,
+                        "section": [
+                            2892
+                        ],
                         "close": "1",
                         "visible": false
                     },
@@ -241,7 +255,9 @@ export const UM_SAMPLE = () => {
                         "id": "12682903",
                         "active": false,
                         "group": "549",
-                        "section": 2892,
+                        "section": [
+                            2892
+                        ],
                         "close": "1",
                         "visible": false
                     }
@@ -452,6 +468,8 @@ export const UM_SAMPLE = () => {
             "SECTIONCONTROL": [],
             "TABLETOP": {},
             "NAME": "Универсальный модуль",
+            "RAYCAST": false,
+            "DISABLE_MOVE": false,
             "BODY_DEFAULT": null
         },
         1942652: {
@@ -603,10 +621,10 @@ export const UM_SAMPLE = () => {
                     1102333,
                     1102332,
                     3077513,
+                    3077514,
                     1102333,
                     1102332,
                     3077513,
-                    3077514,
                     1102333,
                     1102332,
                     3077514
@@ -677,7 +695,9 @@ export const UM_SAMPLE = () => {
                         "id": "7391",
                         "active": false,
                         "group": "549",
-                        "section": 211,
+                        "section": [
+                            211
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -685,7 +705,9 @@ export const UM_SAMPLE = () => {
                         "id": "3955910",
                         "active": false,
                         "group": "550",
-                        "section": 2825,
+                        "section": [
+                            2825
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -693,7 +715,9 @@ export const UM_SAMPLE = () => {
                         "id": "1795067",
                         "active": false,
                         "group": "549",
-                        "section": 211,
+                        "section": [
+                            211
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -701,7 +725,9 @@ export const UM_SAMPLE = () => {
                         "id": "589399",
                         "active": false,
                         "group": "554",
-                        "section": 1626,
+                        "section": [
+                            1626
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -709,7 +735,9 @@ export const UM_SAMPLE = () => {
                         "id": "12682512",
                         "active": false,
                         "group": "549",
-                        "section": 2892,
+                        "section": [
+                            2892
+                        ],
                         "close": "1",
                         "visible": false
                     },
@@ -717,7 +745,9 @@ export const UM_SAMPLE = () => {
                         "id": "12682903",
                         "active": false,
                         "group": "549",
-                        "section": 2892,
+                        "section": [
+                            2892
+                        ],
                         "close": "1",
                         "visible": false
                     }
@@ -1013,6 +1043,8 @@ export const UM_SAMPLE = () => {
             "SECTIONCONTROL": [],
             "TABLETOP": {},
             "NAME": "Шкаф Распашной",
+            "RAYCAST": false,
+            "DISABLE_MOVE": false,
             "BODY_DEFAULT": null
         },
         5168676: {
@@ -1211,7 +1243,9 @@ export const UM_SAMPLE = () => {
                         "id": "5965905",
                         "active": false,
                         "group": "571",
-                        "section": 2663,
+                        "section": [
+                            2663
+                        ],
                         "close": "1",
                         "visible": false
                     },
@@ -1219,7 +1253,9 @@ export const UM_SAMPLE = () => {
                         "id": "5973743",
                         "active": false,
                         "group": "",
-                        "section": 2524,
+                        "section": [
+                            2524
+                        ],
                         "close": "1",
                         "visible": false
                     },
@@ -1227,7 +1263,9 @@ export const UM_SAMPLE = () => {
                         "id": "6221820",
                         "active": false,
                         "group": "571",
-                        "section": 2663,
+                        "section": [
+                            2663
+                        ],
                         "close": "1",
                         "visible": false
                     },
@@ -1235,7 +1273,9 @@ export const UM_SAMPLE = () => {
                         "id": "6221836",
                         "active": false,
                         "group": "",
-                        "section": 2750,
+                        "section": [
+                            2750
+                        ],
                         "close": "1",
                         "visible": false
                     },
@@ -1243,7 +1283,9 @@ export const UM_SAMPLE = () => {
                         "id": "8584219",
                         "active": false,
                         "group": "609",
-                        "section": 2933,
+                        "section": [
+                            2933
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1251,7 +1293,9 @@ export const UM_SAMPLE = () => {
                         "id": "8584218",
                         "active": false,
                         "group": "609",
-                        "section": 2933,
+                        "section": [
+                            2933
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1259,7 +1303,9 @@ export const UM_SAMPLE = () => {
                         "id": "8584217",
                         "active": false,
                         "group": "609",
-                        "section": 2933,
+                        "section": [
+                            2933
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1267,7 +1313,9 @@ export const UM_SAMPLE = () => {
                         "id": "8584215",
                         "active": false,
                         "group": "609",
-                        "section": 2933,
+                        "section": [
+                            2933
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1275,7 +1323,9 @@ export const UM_SAMPLE = () => {
                         "id": "8584220",
                         "active": false,
                         "group": "609",
-                        "section": 2933,
+                        "section": [
+                            2933
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1283,7 +1333,9 @@ export const UM_SAMPLE = () => {
                         "id": "8584214",
                         "active": false,
                         "group": "609",
-                        "section": 2933,
+                        "section": [
+                            2933
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1291,7 +1343,9 @@ export const UM_SAMPLE = () => {
                         "id": "8584177",
                         "active": false,
                         "group": "609",
-                        "section": 2933,
+                        "section": [
+                            2933
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1299,6 +1353,7 @@ export const UM_SAMPLE = () => {
                         "id": "12687748",
                         "active": false,
                         "group": "569",
+                        "section": [],
                         "close": "0",
                         "visible": true
                     },
@@ -1306,6 +1361,7 @@ export const UM_SAMPLE = () => {
                         "id": "12687753",
                         "active": false,
                         "group": "569",
+                        "section": [],
                         "close": "0",
                         "visible": true
                     }
@@ -1574,6 +1630,8 @@ export const UM_SAMPLE = () => {
             "SECTIONCONTROL": [],
             "TABLETOP": {},
             "NAME": "Шкаф-купе ЭКО",
+            "RAYCAST": false,
+            "DISABLE_MOVE": false,
             "BODY_DEFAULT": null
         },
         6469966: {
@@ -1720,7 +1778,9 @@ export const UM_SAMPLE = () => {
                         "id": "7391",
                         "active": false,
                         "group": "549",
-                        "section": 211,
+                        "section": [
+                            211
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1728,7 +1788,9 @@ export const UM_SAMPLE = () => {
                         "id": "3955910",
                         "active": false,
                         "group": "550",
-                        "section": 2825,
+                        "section": [
+                            2825
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1736,7 +1798,9 @@ export const UM_SAMPLE = () => {
                         "id": "4621257",
                         "active": false,
                         "group": "548",
-                        "section": 1581,
+                        "section": [
+                            1581
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1744,7 +1808,9 @@ export const UM_SAMPLE = () => {
                         "id": "4621238",
                         "active": false,
                         "group": "548",
-                        "section": 1581,
+                        "section": [
+                            1581
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1752,7 +1818,9 @@ export const UM_SAMPLE = () => {
                         "id": "4621240",
                         "active": false,
                         "group": "548",
-                        "section": 1581,
+                        "section": [
+                            1581
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1760,7 +1828,9 @@ export const UM_SAMPLE = () => {
                         "id": "1795067",
                         "active": false,
                         "group": "549",
-                        "section": 211,
+                        "section": [
+                            211
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1768,7 +1838,9 @@ export const UM_SAMPLE = () => {
                         "id": "5738924",
                         "active": false,
                         "group": "",
-                        "section": 1581,
+                        "section": [
+                            1581
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1776,6 +1848,7 @@ export const UM_SAMPLE = () => {
                         "id": "4722965",
                         "active": false,
                         "group": "",
+                        "section": [],
                         "close": "0",
                         "visible": true
                     },
@@ -1783,7 +1856,9 @@ export const UM_SAMPLE = () => {
                         "id": "7250452",
                         "active": false,
                         "group": "595",
-                        "section": 2900,
+                        "section": [
+                            2900
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1791,7 +1866,9 @@ export const UM_SAMPLE = () => {
                         "id": "7250589",
                         "active": false,
                         "group": "595",
-                        "section": 2900,
+                        "section": [
+                            2900
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1799,7 +1876,9 @@ export const UM_SAMPLE = () => {
                         "id": "8390271",
                         "active": false,
                         "group": "554",
-                        "section": 2341,
+                        "section": [
+                            2341
+                        ],
                         "close": "0",
                         "visible": true
                     },
@@ -1807,7 +1886,9 @@ export const UM_SAMPLE = () => {
                         "id": "12682512",
                         "active": false,
                         "group": "549",
-                        "section": 2892,
+                        "section": [
+                            2892
+                        ],
                         "close": "1",
                         "visible": false
                     },
@@ -1815,7 +1896,9 @@ export const UM_SAMPLE = () => {
                         "id": "12682903",
                         "active": false,
                         "group": "549",
-                        "section": 2892,
+                        "section": [
+                            2892
+                        ],
                         "close": "1",
                         "visible": false
                     }
@@ -2002,7 +2085,7 @@ export const UM_SAMPLE = () => {
                     ]
                 },
                 "isHiTech": true,
-                "ROTATION": null,
+                "ROTATION": null
             },
             "DRAWERS": {},
             "EXPRESSIONS": {},
@@ -2026,6 +2109,8 @@ export const UM_SAMPLE = () => {
             "SECTIONCONTROL": [],
             "TABLETOP": {},
             "NAME": "Универсальный модуль Hi-Tech",
+            "RAYCAST": false,
+            "DISABLE_MOVE": false,
             "BODY_DEFAULT": null
         }
     }

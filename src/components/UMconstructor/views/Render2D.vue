@@ -161,6 +161,8 @@ const calcDrawersFasades = (secIndex, fillingData = false) => {
 };
 
 const checkLoopsCollision = (secIndex) => {
+  console.log('checkLoopsCollision')
+
   UMconstructor?.value?.LOOPS.checkLoopsCollision(
     secIndex,
     currentModule.value,
@@ -1206,6 +1208,8 @@ const createHandle = ({ x, y, width, height, handleData, opacity }) => {
 };
 
 const createFilling = (data, sector) => {
+  console.log(UMconstructor.value.LOOPS.getCollisionExclusionRules())
+
   let sectorXMMPos = getMmWidth(sector.position.x);
   let sectorYMMPos = getMmHeight(sector.position.y);
 
@@ -1235,6 +1239,7 @@ const createFilling = (data, sector) => {
     dementions,
     dementionContainer,
     dragActive: mode.value === "fillings",
+    collisionExclusionRules: UMconstructor.value.LOOPS.getCollisionExclusionRules()
   });
 
   data.sector = filling.sector;
@@ -1449,7 +1454,7 @@ const createVerticalCut = ({
   dashVert.stroke({ width: 1, color: "#5D6069" });
 
   divider.dev_name = `dev${divider.uid}`;
-  
+
 
   divider.position.set(
     _cell.xOffset + pxWidth - getPixelWidth(2),
@@ -1870,6 +1875,7 @@ function onVerticalDragStart(event) {
 // Обработчик для горизонтального перетаскивания (между строками)
 function onHorizontalDragStart(event) {
   // event.stopPropagation();
+  console.log('onHorizontalDragStart')
 
   const module = props.module;
   // event.stopPropagation();
@@ -1976,11 +1982,15 @@ function onHorizontalDragStart(event) {
 function onDragMove(event) {
   if (!event) return;
 
+  console.log('onDragMove')
+
   lastDragEvent.value = event;
 }
 
 function dragMove(event) {
   if (!dragState.isDragging || !lastDragEvent.value) return;
+
+  console.log('dragMove')
 
   const {
     type,
@@ -2677,6 +2687,9 @@ function dragMove(event) {
 }
 
 const onDragEnd = (event) => {
+
+  console.log('onDragEnd')
+
   if (dragState.element) {
     delete dragState.element.onDrag;
     if (dragState.element.parent) {
@@ -3323,8 +3336,7 @@ onMounted(() => {
   init();
   selectedCell.value = UMconstructor?.value?.UM_STORE.getSelected("module");
   selectedFasade.value = UMconstructor?.value?.UM_STORE.getSelected("fasades");
-  selectedFilling.value =
-    UMconstructor?.value?.UM_STORE.getSelected("fillings");
+  selectedFilling.value = UMconstructor?.value?.UM_STORE.getSelected("fillings");
   document.addEventListener("mousemove", handleGlobalPointerMove, false);
 });
 

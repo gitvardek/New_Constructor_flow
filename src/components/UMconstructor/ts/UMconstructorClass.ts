@@ -61,6 +61,7 @@ export default class UMconstructorClass {
         this.FASADES = new FasadesManager(this)
         this.FILLINGS = new FillingsManager(this)
         this.LOOPS = new LoopsManager(this)
+        this.FILLINGS.initCollisionRules()
         this.PROFILES = new ProfilesManager(this)
         this.SECTIONS = new SectionsManager(this)
         this.SIDECOLORS = new SidecolorsManager(this)

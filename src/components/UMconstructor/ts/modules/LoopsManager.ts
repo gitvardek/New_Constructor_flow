@@ -17,8 +17,19 @@ type T2DLoopParams = {
     horizontal: TSizze
 }
 
+// Правило исключения объекта из проверки коллизий петель:
+// если filling[prop] входит в values — объект пропускается.
+// collisionWith — тип(ы) объекта, с которым исключается коллизия (например 'loop').
+// Если не задан — исключается коллизия со всеми типами.
+type TCollisionExclusionRule = {
+    prop: string
+    values: Set<any>
+    collisionWith?: string | string[]
+}
+
 export default class LoopsManager {
     scope: UMconstructorClass
+    private collisionExclusionRules: TCollisionExclusionRule[] = []
     private readonly loopConfig: T2DLoopParams = {
         vertical: {
             width: 38,
@@ -34,8 +45,58 @@ export default class LoopsManager {
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope
-
     }
+
+    /**
+     * Зарегистрировать правила исключения объектов из проверки коллизий петель.
+     * Если filling[prop] входит в values — объект пропускается.
+     *
+     * Формы вызова:
+     *   addCollisionExclusionRule('productGroupID', 2166308, 5726092)
+     *   addCollisionExclusionRule([{ prop: 'productGroupID', values: [2166308, 5726092] }])
+     */
+    public addCollisionExclusionRule(
+        propOrRules: string | Array<{ prop: string; values: any[]; collisionWith?: string | string[] }>,
+        ...values: any[]
+    ) {
+        if (Array.isArray(propOrRules)) {
+            propOrRules.forEach(rule => this._mergeExclusionRule(rule.prop, rule.values, rule.collisionWith))
+        } else {
+            this._mergeExclusionRule(propOrRules, values)
+        }
+    }
+
+    public getCollisionExclusionRules(): Array<{ prop: string; values: any[]; collisionWith?: string | string[] }> {
+        return this.collisionExclusionRules.map(r => ({
+            prop: r.prop,
+            values: [...r.values],
+            ...(r.collisionWith !== undefined && { collisionWith: r.collisionWith }),
+        }))
+    }
+
+    private _mergeExclusionRule(prop: string, values: any[], collisionWith?: string | string[]) {
+        // Правила с одинаковым prop, но разным collisionWith — отдельные записи
+        const existing = this.collisionExclusionRules.find(r =>
+            r.prop === prop &&
+            JSON.stringify(r.collisionWith) === JSON.stringify(collisionWith)
+        )
+        if (existing) {
+            values.forEach(v => existing.values.add(v))
+        } else {
+            this.collisionExclusionRules.push({ prop, values: new Set(values), collisionWith })
+        }
+    }
+
+    private isFillingExcludedFromCollision(filling: any, targetType: string = 'loop'): boolean {
+        return this.collisionExclusionRules.some(rule => {
+            if (filling[rule.prop] === undefined || !rule.values.has(filling[rule.prop])) return false
+            if (rule.collisionWith === undefined) return true
+            const types = Array.isArray(rule.collisionWith) ? rule.collisionWith : [rule.collisionWith]
+            return types.includes(targetType)
+        })
+    }
+
+    // -----------------------------------------------------------------------------------------------
 
     calcLoops(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
         const { CONFIG, SECTIONS } = this.scope.UM_STORE.getUMData();
@@ -245,6 +306,9 @@ export default class LoopsManager {
     }
 
     checkLoopsCollision(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+
+        console.log('return')
+
         const CONFIG = this.scope.UM_STORE.getUMData()?.CONFIG;
 
         if (!CONFIG.LOOPS)
@@ -264,6 +328,7 @@ export default class LoopsManager {
         }
 
         let loopsSectors = {}
+        
         Object.entries(loops).forEach(([doorKey, doorLoops]) => {
             loopsSectors[doorKey] = {}
             doorLoops.forEach((_loops, fasadeKey) => {
@@ -294,6 +359,13 @@ export default class LoopsManager {
                 }
                 else if (cell.fillings?.length) {
                     cell.fillings.forEach((filling) => {
+                        if (this.isFillingExcludedFromCollision(filling)) {
+
+                            console.log('NON')
+
+                            return
+                        }
+
                         let filling_pos = new THREE.Vector2(filling.position.x, grid.height - filling.position.y - filling.height)
                         if (
                             (
@@ -398,7 +470,7 @@ export default class LoopsManager {
         return loops;
     }
 
-    getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) {
+    getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) { 
 
 
         const { row } = this.scope.UM_STORE.getSelected("fasades")

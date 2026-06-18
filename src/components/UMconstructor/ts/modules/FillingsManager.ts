@@ -11,9 +11,24 @@ import {
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import { TFasadeProp } from "@/types/types.ts";
 
+type TCollisionExclusionRule = {
+    prop: string
+    values: any[],
+    collisionWith: string
+}
+
+type TloopCollisionExclusion = TCollisionExclusionRule[]
+
 export default class FillingsManager {
     scope: UMconstructorClass
     FILLING_TYPES: Map<string, string>
+    private loopCollisionExclusion: TloopCollisionExclusion = [
+        {
+            prop: 'productGroupID',
+            values: [2166309, 6174300, 2166308, 15222587, 6513322],
+            collisionWith: 'loop'
+        }
+    ]
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope
@@ -31,6 +46,12 @@ export default class FillingsManager {
                 6513322: 'profile',//Профиль Hi-Tech
             })
         )
+    }
+
+    // Регистрирует правила исключения коллизий в LoopsManager.
+    // Вызывается из UMconstructorClass после инициализации обоих менеджеров.
+    public initCollisionRules(): void {
+        this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
     }
 
     existFilling(grid: GridModule) {
@@ -197,6 +218,8 @@ export default class FillingsManager {
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
 
+        console.log(productGroupID, 'productGroupID')
+
         const product = Object.assign({}, _product);
         const { sec, cell, row, extra } = this.scope.UM_STORE.getSelected("module")
         const isHiTechProfile = this.scope.APP.PRODUCTS_TYPES[product.productType]?.CODE.includes("hi_tech_profile") || false
@@ -265,6 +288,7 @@ export default class FillingsManager {
         }
 
         const startFillingData = this.createFillingDataToCheck(product, currentModuleSegment, grid, isVerticalItem, !!product.MIN_FASADE_SIZE);
+
 
         if (!startFillingData) {
             this.scope.callAlert("error", "Нет места для размещения")
@@ -346,6 +370,7 @@ export default class FillingsManager {
             cell,
             row,
             extra,
+            productGroupID
         };
 
 
@@ -438,6 +463,8 @@ export default class FillingsManager {
             this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(sec, false, grid)
             this.scope.callAlert('warning', 'Проверьте корректность рассчитанной позиции ящика!')
         }
+
+        this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
 
         this.selectCell(sec, cell, row, extra, currentFillingsArray.length - 1);
         this.scope.reset(grid)
