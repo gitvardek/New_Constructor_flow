@@ -106,6 +106,7 @@ export const useModelState = defineStore('ModelState', () => {
     // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 
 
+    const nestandartIDs = ref<number[]>([1814256, 971222, 1807360,])
 
     const currentModel = ref<THREE.Object3D | null>(null)
     const currentRaspilParent = ref<THREE.Object3D | null>(null)
@@ -422,7 +423,7 @@ export const useModelState = defineStore('ModelState', () => {
             }
 
 
-            if (!haveShowCase && hasGlass) return
+            if (!haveShowCase && hasGlass && !nestandartIDs.value.includes(productId)) return // Для фрифолдов и нестандартных модулей
 
             groupedFasades[groupId]['id'].push(facadeId);
 

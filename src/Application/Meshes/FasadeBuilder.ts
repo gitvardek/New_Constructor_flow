@@ -154,6 +154,17 @@ export class FasadeBuilder {
         if (fasadeData.ALUM != null && FASADE_PROPS[key].COLOR != null) {
             const alumData = this.parent._FASADE[FASADE_PROPS[key].COLOR];
             this.parent.alum_builder.createAlum({ fasade: mesh, data: alumData });
+
+            const action = this.modelState.getCurrentFasadeTypesAction(fasadeData.TYPE);
+            this.parent.showcase_builder.createShowcase({
+                fasade: mesh,
+                fasadePosition: mesh.userData.trueSize,
+                data: fasadeData.SHOWCASE,
+                defaultGeometry: FASADE_DEFAULT[key],
+                alum: FASADE_PROPS[key].ALUM,
+                curFasadeData: FASADE_PROPS[key],
+                action
+            });
         }
 
         // Цвет стекла

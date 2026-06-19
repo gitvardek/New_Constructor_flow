@@ -174,7 +174,7 @@ const onSelectMaterial = (data) => {
 
   /** @Стёкла */
   glassList.value = modelState.getCurrentGlassData;
-  isGlassExist.value = glassList.value.length > 0 && isShowcase;
+  isGlassExist.value = glassList.value.length > 0 && isShowcase || glassList.value.length > 0 && data.material?.includes("Alum");
 
   /** @Тип_фасада */
   isFasadeTypesExist.value = modelState.getCurrentFasadeTypesData.length > 0;
@@ -581,7 +581,10 @@ const prepareData = () => {
   }
 
   /** @Стёкла */
-  if (isShowcase && glassData.length > 0) {
+  if (
+    isShowcase && glassData.length > 0 ||
+    glassData.length > 0 && ALUM !== null
+  ) {
     glassList.value = glassData;
     isGlassExist.value = glassData.length > 0;
   }
@@ -683,7 +686,7 @@ const changeFasadeSize = async (data: TFasadeSize) => {
   curFasade.POSITION = curPositionId;
 
   if (isIncomeWidth) {
-    
+
     if (incomeSize.value.width === null) {
       incomeSize.value.width = parseInt(defaultWidth);
     }
@@ -795,53 +798,24 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <div class="configuration" v-if="isSurfaceSelected">
-      <ConfigurationOption
-        :type="'surface'"
-        :data="currentSurfaceData"
-        @choose-option="setCurrentEditableOption"
-        @delete-choise="deleteSelectedOptions"
-      />
+      <ConfigurationOption :type="'surface'" :data="currentSurfaceData" @choose-option="setCurrentEditableOption"
+        @delete-choise="deleteSelectedOptions" />
 
-      <ConfigurationOption
-        v-if="isMillingExist"
-        :type="'milling'"
-        :data="currentMillingData"
-        @choose-option="setCurrentEditableOption"
-        @delete-choise="deleteSelectedOptions"
-      />
+      <ConfigurationOption v-if="isMillingExist" :type="'milling'" :data="currentMillingData"
+        @choose-option="setCurrentEditableOption" @delete-choise="deleteSelectedOptions" />
 
-      <ConfigurationOption
-        v-if="isPalleteExist"
-        :type="'palette'"
-        :data="currentPaletteData"
-        @choose-option="setCurrentEditableOption"
-        @delete-choise="deleteSelectedOptions"
-      />
+      <ConfigurationOption v-if="isPalleteExist" :type="'palette'" :data="currentPaletteData"
+        @choose-option="setCurrentEditableOption" @delete-choise="deleteSelectedOptions" />
 
-      <ConfigurationOption
-        v-if="isPatinaExist"
-        :type="'patina'"
-        :data="currentPatinaData"
-        :additionalClass="millingStatus"
-        @choose-option="setCurrentEditableOption"
-        @delete-choise="deleteSelectedOptions"
-      />
+      <ConfigurationOption v-if="isPatinaExist" :type="'patina'" :data="currentPatinaData"
+        :additionalClass="millingStatus" @choose-option="setCurrentEditableOption"
+        @delete-choise="deleteSelectedOptions" />
 
-      <ConfigurationOption
-        v-if="isGlassExist"
-        :type="'glass'"
-        :data="currentGlassData"
-        @choose-option="setCurrentEditableOption"
-        @delete-choise="deleteSelectedOptions"
-      />
+      <ConfigurationOption v-if="isGlassExist" :type="'glass'" :data="currentGlassData"
+        @choose-option="setCurrentEditableOption" @delete-choise="deleteSelectedOptions" />
 
-      <ConfigurationOption
-        v-if="isShowcaseExist"
-        :type="'showcase'"
-        :data="currentShowcaseData"
-        @choose-option="setCurrentEditableOption"
-        @delete-choise="deleteSelectedOptions"
-      />
+      <ConfigurationOption v-if="isShowcaseExist" :type="'showcase'" :data="currentShowcaseData"
+        @choose-option="setCurrentEditableOption" @delete-choise="deleteSelectedOptions" />
 
       <div v-if="fasadeSizeListExist">
         <Accordion>
@@ -854,17 +828,12 @@ onBeforeUnmount(() => {
 
           <template #params="{ onToggle }">
             <ul class="accordion__contnt">
-              <li
-                class="accordion__text"
-                v-for="(size, key) in fasadeSizeList"
-                :key="key + size.NAME"
-                @click="
-                  () => {
-                    changeFasadeSize(size);
-                    onToggle();
-                  }
-                "
-              >
+              <li class="accordion__text" v-for="(size, key) in fasadeSizeList" :key="key + size.NAME" @click="
+                () => {
+                  changeFasadeSize(size);
+                  onToggle();
+                }
+              ">
                 {{ size.NAME }}
               </li>
             </ul>
@@ -872,82 +841,35 @@ onBeforeUnmount(() => {
         </Accordion>
       </div>
 
-      <MainInput
-        v-if="incomeSize.min && incomeSize.max"
-        :inputClass="'input__search right-menu'"
-        :type="'number'"
-        :min="incomeSize.min"
-        :max="incomeSize.max"
-        @update:modelValue="updateFasadeSize"
-        v-model="incomeSize.width"
-      />
+      <MainInput v-if="incomeSize.min && incomeSize.max" :inputClass="'input__search right-menu'" :type="'number'"
+        :min="incomeSize.min" :max="incomeSize.max" @update:modelValue="updateFasadeSize" v-model="incomeSize.width" />
 
-      <DirectionControl
-        v-if="isFasadeTypesExist"
-        :handle-pos="fasadeTypesList"
-        @changeDirectionPos="onChangeIntegratedHandlePos"
-        :container="'card'"
-        :scale="1"
-        :gap="2"
-        :max-width="120"
-        :size="20"
-        :fontSize="10"
-      />
+      <DirectionControl v-if="isFasadeTypesExist" :handle-pos="fasadeTypesList"
+        @changeDirectionPos="onChangeIntegratedHandlePos" :container="'card'" :scale="1" :gap="2" :max-width="120"
+        :size="20" :fontSize="10" />
 
-      <DirectionControl
-        v-if="isFasadeHandleExist"
-        :handle-pos="fasadeHandleList"
-        @changeDirectionPos="onChangeMillingHandlePos"
-        :container="'card'"
-        :scale="1"
-        :gap="2"
-        :max-width="120"
-        :size="20"
-        :fontSize="10"
-      />
+      <DirectionControl v-if="isFasadeHandleExist" :handle-pos="fasadeHandleList"
+        @changeDirectionPos="onChangeMillingHandlePos" :container="'card'" :scale="1" :gap="2" :max-width="120"
+        :size="20" :fontSize="10" />
     </div>
 
-    <SurfaceRedactor
-      v-if="currentEditableOption === 'surface'"
-      :materialList="materialList"
-      :tabIndex="props.tabIndex"
-      @select_material="onSelectMaterial"
-    />
+    <SurfaceRedactor v-if="currentEditableOption === 'surface'" :materialList="materialList" :tabIndex="props.tabIndex"
+      @select_material="onSelectMaterial" />
 
-    <MillingRedactor
-      v-if="currentEditableOption === 'milling'"
-      :millingList="millingList"
-      :tabIndex="props.tabIndex"
-      @select_milling="onSelectMilling"
-    />
+    <MillingRedactor v-if="currentEditableOption === 'milling'" :millingList="millingList" :tabIndex="props.tabIndex"
+      @select_milling="onSelectMilling" />
 
-    <ColorRedactor
-      v-if="currentEditableOption === 'palette'"
-      :paletteList="paletteList"
-      :tabIndex="props.tabIndex"
-      @select_color="onSelectPalette"
-    />
+    <ColorRedactor v-if="currentEditableOption === 'palette'" :paletteList="paletteList" :tabIndex="props.tabIndex"
+      @select_color="onSelectPalette" />
 
-    <PatinaRedactor
-      v-if="currentEditableOption === 'patina'"
-      :patinaList="patinaList"
-      :tabIndex="props.tabIndex"
-      @select_patina="onSelectPatina"
-    />
+    <PatinaRedactor v-if="currentEditableOption === 'patina'" :patinaList="patinaList" :tabIndex="props.tabIndex"
+      @select_patina="onSelectPatina" />
 
-    <GlassRedactor
-      v-if="currentEditableOption === 'glass'"
-      :glassList="glassList"
-      :tabIndex="props.tabIndex"
-      @select_glass="onSelectGlass"
-    />
+    <GlassRedactor v-if="currentEditableOption === 'glass'" :glassList="glassList" :tabIndex="props.tabIndex"
+      @select_glass="onSelectGlass" />
 
-    <ShowcaseRedactor
-      v-if="currentEditableOption === 'showcase'"
-      :showcaseList="showcaseList"
-      :tabIndex="props.tabIndex"
-      @select_showcase="onSelectShowcase"
-    />
+    <ShowcaseRedactor v-if="currentEditableOption === 'showcase'" :showcaseList="showcaseList"
+      :tabIndex="props.tabIndex" @select_showcase="onSelectShowcase" />
   </div>
 </template>
 
@@ -1012,22 +934,27 @@ onBeforeUnmount(() => {
     gap: 17px;
   }
 }
+
 .accordion {
   border: none;
   box-shadow: 4px 4px 4px 4px rgba(34, 60, 80, 0.11);
   transition-property: box-shadow;
   transition-duration: 0.25s;
   transition-timing-function: ease;
+
   &__contnt {
     padding-top: 0.5rem;
     border-top: 1px solid #a3a9b5;
   }
+
   &__text {
     cursor: pointer;
     transition-property: color;
     transition-duration: 0.25s;
     transition-timing-function: ease;
+
     @media (hover: hover) {
+
       /* when hover is supported */
       &:hover {
         color: $dark-grey;
