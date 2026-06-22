@@ -1,6 +1,7 @@
 //@ts-nocheck
 
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
+import type { Application } from "@/Application/Core/Application.ts";
 import { UM_PARAMS } from "./../utils/Const.ts";
 import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManager.ts";
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
@@ -54,9 +55,9 @@ export default class UMconstructorClass {
     ALERT_FOOTER_REF: Ref = ref()
     DEBOUNCES: {}
 
-    constructor() {
+    constructor(root: Application) {
         this.CONST = UM_PARAMS
-        this.BUILDER = new UniversalGeometryBuilder(<Application>{}).buildProduct
+        this.BUILDER = root._universalGeometryBuilder?.buildProduct
 
         this.FASADES = new FasadesManager(this)
         this.FILLINGS = new FillingsManager(this)

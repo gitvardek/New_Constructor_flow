@@ -237,6 +237,8 @@ class Shape extends Helpers {
     private distanceGraphics: Graphics | null = null; // Для хранения линий расстояний
     private distanceLabels: Text[] = []; // Для хранения текстовых меток
     private collisionExclusionRules: Array<{ prop: string; values: any[] }> = [];
+    private hasCustomSectorBounds: boolean = false; // Флаг: bounds заданы вручную, не сбрасывать при drag
+    containerShape: Shape | null = null; // Внешний ящик-контейнер; исключается из проверки коллизий
 
     constructor({
         type,
@@ -254,6 +256,8 @@ class Shape extends Helpers {
         calcDrawersFasades,
         checkLoopsCollision,
         collisionExclusionRules,
+        customSectorBounds,
+        containerShape,
     }:
         {
             type: string,
@@ -269,6 +273,8 @@ class Shape extends Helpers {
             calcDrawersFasades?: () => void,
             checkLoopsCollision?: () => void,
             collisionExclusionRules?: Array<{ prop: string; values: any[] }>,
+            customSectorBounds?: TBounds,
+            containerShape?: Shape,
             dementionContainer?: Container,
             dragActive: boolean,
         }) {
@@ -277,7 +283,7 @@ class Shape extends Helpers {
         this.sector = sector
 
         this.type = type;
-        this.sectorBounds = this.getSectorBounds(sector);
+        this.sectorBounds = customSectorBounds ?? this.getSectorBounds(sector);
 
         this.graphic = new Graphics();
         this.highlightGraphics = new Graphics();
@@ -306,6 +312,12 @@ class Shape extends Helpers {
         }
         if (collisionExclusionRules) {
             this.collisionExclusionRules = collisionExclusionRules
+        }
+        if (containerShape) {
+            this.containerShape = containerShape
+        }
+        if (customSectorBounds) {
+            this.hasCustomSectorBounds = true
         }
 
         this.dementionContainer = dementionContainer
@@ -402,24 +414,47 @@ class Shape extends Helpers {
             };
             graphic.alpha = 0.7;
 
-            // Кэшируем bounds и список фигур один раз — сектор не меняется в процессе перетаскивания
-            self.sectorBounds = self.getSectorBounds(self.sector);
+            if (self.data.innerDrawerConstraint) {
+                // Внутренний ящик: движение ограничено пространством фасада внешнего ящика
+                const c = self.data.innerDrawerConstraint
+                self.sectorBounds = {
+                    x: self.getPixelWidth(c.x),
+                    y: self.getPixelHeight(c.startY),
+                    width: self.getPixelWidth(c.width),
+                    height: self.getPixelHeight(c.height),
+                }
+                // Коллизия только с другими внутренними ящиками в том же пространстве
+                const INNER_DRAWER_IDS = [15222587, 2166308]
+                cachedShapes = self.sector.shapes.filter(
+                    s => s !== self && INNER_DRAWER_IDS.includes(s.data?.productGroupID)
+                )
+            } else {
+                self.sectorBounds = self.getSectorBounds(self.sector);
 
-            if (self.data.fasade || self.data.isProfile) {
-                const curentSec = self.UM_STORE.getUMGrid()?.sections?.[self.data.sec]
-                const fasadesDrawers = curentSec?.fasadesDrawers ?? [];
-                const sectionSector = fasadesDrawers[0]?.sector?.sections?.[0]
-                if (sectionSector?.children) {
-                    cachedShapes = []
-                    sectionSector.children.forEach(child => {
-                        if (child.secIndex === self.data.sec && child.shapes)
-                            cachedShapes.push(...child.shapes)
-                    })
+                if (self.data.fasade || self.data.isProfile) {
+                    const curentSec = self.UM_STORE.getUMGrid()?.sections?.[self.data.sec]
+                    const fasadesDrawers = curentSec?.fasadesDrawers ?? [];
+                    const sectionSector = fasadesDrawers[0]?.sector?.sections?.[0]
+                    if (sectionSector?.children) {
+                        cachedShapes = []
+                        sectionSector.children.forEach(child => {
+                            if (child.secIndex === self.data.sec && child.shapes)
+                                cachedShapes.push(...child.shapes)
+                        })
+                    } else {
+                        cachedShapes = self.sector.shapes
+                    }
                 } else {
                     cachedShapes = self.sector.shapes
                 }
-            } else {
-                cachedShapes = self.sector.shapes
+
+                // Внешний ящик: внутренние ящики не участвуют в проверке коллизии
+                // (checkOverlap расширяет границы фасада и всегда видит overlap с внутренним ящиком)
+                const OUTER_DRAWER_IDS_PC = [5726092, 6560591]
+                if (cachedShapes && OUTER_DRAWER_IDS_PC.includes(self.data.productGroupID)) {
+                    const INNER_IDS_PC = [15222587, 2166308]
+                    cachedShapes = cachedShapes.filter(s => !INNER_IDS_PC.includes(s.data?.productGroupID))
+                }
             }
         }
 
@@ -452,6 +487,7 @@ class Shape extends Helpers {
 
                     for (const otherShape of cachedShapes) {
                         if (self !== otherShape
+                            && self.containerShape !== otherShape
                             && !self.isExcludedFromCollision(self.data, otherShape.data)
                             && !self.isExcludedFromCollision(otherShape.data, self.data)
                             && self.checkOverlap(otherShape, true)) {
@@ -472,6 +508,7 @@ class Shape extends Helpers {
 
                     for (const otherShape of cachedShapes) {
                         if ((self !== otherShape && self.data !== otherShape.data)
+                            && self.containerShape !== otherShape
                             && !self.isExcludedFromCollision(self.data, otherShape.data)
                             && !self.isExcludedFromCollision(otherShape.data, self.data)
                             && self.checkOverlap(otherShape)) {
@@ -529,9 +566,24 @@ class Shape extends Helpers {
                         self.graphic.position.y = currentY;
                         self.highlightGraphics.position.y = currentY;
                     }
+
+                    // Внешний ящик: двигаем внутренние ящики вместе
+                    const OUTER_DRAWER_IDS = [5726092, 6560591]
+                    if (OUTER_DRAWER_IDS.includes(self.data.productGroupID)) {
+                        const deltaY = self.graphic.position.y - currentY
+                        if (deltaY !== 0) {
+                            const INNER_DRAWER_IDS = [15222587, 2166308]
+                            for (const shape of self.sector.shapes) {
+                                if (INNER_DRAWER_IDS.includes(shape.data?.productGroupID)) {
+                                    shape.graphic.position.y += deltaY
+                                    shape.highlightGraphics.position.y += deltaY
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            
+
         }
 
         this.graphic.on("pointerdown", (event) => pointerdown(event, this.graphic));
@@ -554,6 +606,24 @@ class Shape extends Helpers {
                 } else {
                     this.data.x = Math.round(this.getMmWidth(self.graphic.position.x));
                     this.data.y = Math.round(this.getMmHeight(self.graphic.position.y));
+                }
+
+                // Внешний ящик: сохраняем позиции внутренних ящиков и обновляем их constraint
+                const OUTER_DRAWER_IDS_ED = [5726092, 6560591]
+                if (OUTER_DRAWER_IDS_ED.includes(this.data.productGroupID)) {
+                    const newOuterBodyYMm = this.getMmHeight(self.graphic.position.y)
+                    const INNER_DRAWER_IDS_ED = [15222587, 2166308]
+                    for (const shape of this.sector.shapes) {
+                        if (INNER_DRAWER_IDS_ED.includes(shape.data?.productGroupID)) {
+                            if (shape.data.position) {
+                                shape.data.position.x = Math.round(this.getMmWidth(shape.graphic.position.x))
+                                shape.data.position.y = Math.round(this.getMmHeight(shape.graphic.position.y))
+                            }
+                            if (shape.data.innerDrawerConstraint) {
+                                shape.data.innerDrawerConstraint.startY = newOuterBodyYMm - shape.data.innerDrawerConstraint.height
+                            }
+                        }
+                    }
                 }
 
                 if (this.data.fasade || this.data.isProfile) {

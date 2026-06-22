@@ -35,7 +35,7 @@ import { DeepDispose } from "../Utils/DeepDispose"
 import { Resources } from "../Utils/Resources";
 import { ENVIROMENT_MAP } from "../F-mockapi";
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
-
+import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass";
 export class Application {
 
     // private static instance: Application;
@@ -61,6 +61,7 @@ export class Application {
     private world: World | null = null;
     private geometryBuilder: GeometryBuilder | null
     private universalGeometryBuilder: UniversalGeometryBuilder | null
+    private universalModuleConstructor: UMconstructorClass | null
     private tableTopCreator: TableTopCreator | null
     private room: RoomManager | null
     private trafficManager: TrafficManager | null
@@ -78,7 +79,7 @@ export class Application {
         // (window as any).aplication = this // Для разработки
 
         /** Инициализация */
-        
+
         // THREE.Cache.enabled = true
         this.systemInfo = new SystemInfo()
         this.keybordListeners = new KeybordListeners(this)
@@ -100,6 +101,7 @@ export class Application {
         this.ruler = new Ruler(this);
         this.geometryBuilder = new GeometryBuilder(this);
         this.universalGeometryBuilder = new UniversalGeometryBuilder(this);
+        this.universalModuleConstructor = new UMconstructorClass(this)
 
         // this.meshEvents = new MeshEvents(this);
 
@@ -129,6 +131,10 @@ export class Application {
 
         this.vueEvents()
         // this.checkLostContext()
+    }
+
+    get _appData() {
+        return this.appData.getAppData
     }
 
     get _camera() {
@@ -205,6 +211,10 @@ export class Application {
 
     get _universalGeometryBuilder() {
         return this.universalGeometryBuilder
+    }
+
+    get _universalModuleConstructor() {
+        return this.universalModuleConstructor
     }
 
     get _tableTopCreator() {

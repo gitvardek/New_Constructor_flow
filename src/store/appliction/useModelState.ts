@@ -103,6 +103,8 @@ export const useModelState = defineStore('ModelState', () => {
     const _WALL = computed(() => _APP.value.WALL || [])
     const _FASADE_EXCEPTIONS = computed(() => _APP.value.FASADE_EXCEPTIONS || [])
 
+    const nestandartIDs = [1814256]
+
     // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 
 
@@ -423,8 +425,7 @@ export const useModelState = defineStore('ModelState', () => {
                 };
             }
 
-
-            if (!haveShowCase && hasGlass) return
+            if (!haveShowCase && hasGlass && !nestandartIDs.includes(productId)) return
 
             groupedFasades[groupId]['id'].push(facadeId)
 

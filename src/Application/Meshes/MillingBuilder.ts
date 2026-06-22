@@ -433,13 +433,9 @@ export class MillingBuilder extends MillingsUtils {
    */
   private parseSVG({ svgStr, width, height, radius, isHole = false }: { svgStr: string; width: number; height: number; radius?: number; isHole?: boolean }) {
 
-    console.log(' ПАРСИНП СВГ ')
-
     // Заменяем плейсхолдеры
     svgStr = svgStr.replaceAll('wth', width.toString()).replaceAll('hgh', height.toString());
     if (radius) svgStr = svgStr.replaceAll('radius', radius.toString());
-
-    console.log(svgStr)
 
     svgStr = svgStr.replace(/--/g, '-')
 
@@ -451,8 +447,6 @@ export class MillingBuilder extends MillingsUtils {
         return computedValue.toString();
       });
     }
-
-    console.log(svgStr, 'svgStr ------- ')
 
     // Обрабатываем суммы через запятые
     svgStr = svgStr

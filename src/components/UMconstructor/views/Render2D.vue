@@ -1223,6 +1223,24 @@ const createFilling = (data, sector) => {
     data.position.y = sectorYMMPos;
   }
 
+  // Для внутренних ящиков (15222587, 2166308) ограничиваем перемещение
+  // пределами фасада внешнего ящика. Constraint хранится в data.innerDrawerConstraint (мм).
+  const OUTER_DRAWER_IDS = [5726092, 6560591]
+  let customSectorBounds = undefined
+  let containerShape = undefined
+
+  if (data.innerDrawerConstraint) {
+    const c = data.innerDrawerConstraint
+    customSectorBounds = {
+      x: getPixelWidth(c.x),
+      y: getPixelHeight(c.startY),
+      width: getPixelWidth(c.width),
+      height: getPixelHeight(c.height),
+    }
+    // Ищем контейнер для исключения коллизии с ним
+    containerShape = sector.shapes.find(s => OUTER_DRAWER_IDS.includes(s.data?.productGroupID))
+  }
+
   const filling = new Shape({
     type: data.type,
     position: data.position,
@@ -1239,7 +1257,9 @@ const createFilling = (data, sector) => {
     dementions,
     dementionContainer,
     dragActive: mode.value === "fillings",
-    collisionExclusionRules: UMconstructor.value.LOOPS.getCollisionExclusionRules()
+    collisionExclusionRules: UMconstructor.value.LOOPS.getCollisionExclusionRules(),
+    customSectorBounds,
+    containerShape,
   });
 
   data.sector = filling.sector;

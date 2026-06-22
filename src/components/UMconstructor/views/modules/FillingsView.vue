@@ -649,14 +649,12 @@ watch(
                                             event.target.min,
                                             filling,
                                             section,
-                                            true,
                                           ),
                                           max: getLocalPosition(
                                             'Y',
                                             event.target.max,
                                             filling,
                                             section,
-                                            true,
                                           ),
                                         },
                                         convertValue,
@@ -892,14 +890,12 @@ watch(
                                                 event.target.min,
                                                 filling,
                                                 cell,
-                                                true,
                                               ),
                                               max: getLocalPosition(
                                                 'Y',
                                                 event.target.max,
                                                 filling,
                                                 cell,
-                                                true,
                                               ),
                                             },
                                             convertValue,
@@ -1158,14 +1154,12 @@ watch(
                                                     event.target.min,
                                                     filling,
                                                     row,
-                                                    true,
                                                   ),
                                                   max: getLocalPosition(
                                                     'Y',
                                                     event.target.max,
                                                     filling,
                                                     row,
-                                                    true,
                                                   ),
                                                 },
                                                 convertValue,
@@ -1199,6 +1193,7 @@ watch(
                             >
                               <div class="actions-inputs">
                                 <p class="actions-title">Высота фасада</p>
+                    
                                 <div :class="['actions-input--container']">
                                   <input
                                     type="number"
@@ -1438,14 +1433,12 @@ watch(
                                                         event.target.min,
                                                         filling,
                                                         extra,
-                                                        true,
                                                       ),
                                                       max: getLocalPosition(
                                                         'Y',
                                                         event.target.max,
                                                         filling,
                                                         extra,
-                                                        true,
                                                       ),
                                                     },
                                                     convertValue,

@@ -8,13 +8,13 @@ import MainView from "@/components/UMconstructor/views/MainView.vue"
 import {useUMStorage} from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import {useToast} from "@/features/toaster/useToast.ts";
 import UMLoader from "@/components/UMconstructor/UMLoader.vue";
+import type { Application } from "@/Application/Core/Application";
 
-const props = defineProps({
-  product: {
-    type: Object || null,
-    required: true,
-  },
-});
+type Props = {
+  product: Record<any | any> | null;
+  verdekConstructor: Application;
+};
+const props = defineProps<Props>();
 
 const eventBus = useEventBus();
 const UMstore = useUMStorage()
@@ -148,6 +148,7 @@ defineExpose({
           :productData="universalModuleData.PROPS"
           :canvasHeight="universalModuleData.canvasHeight"
           :canvasWidth="universalModuleData.canvasWidth"
+          :verdekConstructor="verdekConstructor"
           @close-modal="closeUMRedactor"
         >
           <template #save>

@@ -15,8 +15,6 @@ const DEV_APP_DATA_STUB = {
 
 export const useAppData = defineStore('AppData', () => {
 
-  
-
   const appData = ref<{ [key: string]: any }>({})
   const indexedDataBase = ref<IDBDatabase | null>(null)
   const isLoading = ref(false)

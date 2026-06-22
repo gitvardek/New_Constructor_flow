@@ -12,6 +12,14 @@ import {TTotalProps} from "@/types/types.ts";
 import {canvasConfig, constructorMode} from "@/components/UMconstructor/types/UMtypes.ts";
 import {useToast} from "@/features/toaster/useToast.ts";
 
+type Props = {
+  canvasHeight: number;
+  canvasWidth: number;
+  defaultDepth: number;
+  productData: TTotalProps | boolean;
+  verdekConstructor: Application;
+};
+
 const UMstore = useUMStorage()
 const toaster = useToast();
 
@@ -26,24 +34,11 @@ const refFooter = ref(null);
 const visualizationRef = ref(null);
 const UMconstructor = ref<UMconstructorClass|null>(null);
 
-const props = defineProps({
-  canvasHeight: {
-    type: Number,
-    default: 720,
-  },
-  canvasWidth: {
-    type: Number,
-    default: 600,
-  },
-  defaultDepth: {
-    type: Number,
-    default: 560,
-  },
-  productData: {
-    type: [ref<TTotalProps>, Boolean],
-    default: false,
-    required: true,
-  },
+const props = withDefaults(defineProps<Props>(), {
+  canvasHeight: 720,
+  canvasWidth: 600,
+  defaultDepth: 560,
+  productData: false,
 });
 
 const emit = defineEmits(["close-modal"]);
@@ -89,7 +84,7 @@ const saveGrid = (_grid: GridModule) => {
 };
 
 onBeforeMount(() => {
-  UMconstructor.value = new UMconstructorClass();
+  UMconstructor.value = props.verdekConstructor._universalModuleConstructor;
   UMstore.setCanvasConfig(<canvasConfig>{
     canvasHeight: props.canvasHeight,
     canvasWidth: props.canvasWidth,

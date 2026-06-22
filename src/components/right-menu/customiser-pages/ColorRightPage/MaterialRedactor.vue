@@ -174,7 +174,7 @@ const onSelectMaterial = (data) => {
 
   /** @Стёкла */
   glassList.value = modelState.getCurrentGlassData;
-  isGlassExist.value = glassList.value.length > 0 && isShowcase;
+  isGlassExist.value = glassList.value.length > 0 && isShowcase || glassList.value.length > 0 && data.material?.includes("Alum") ;
 
   /** @Тип_фасада */
   isFasadeTypesExist.value = modelState.getCurrentFasadeTypesData.length > 0;
@@ -581,7 +581,10 @@ const prepareData = () => {
   }
 
   /** @Стёкла */
-  if (isShowcase && glassData.length > 0) {
+  if (
+    isShowcase && glassData.length > 0 ||
+    glassData.length > 0 && ALUM !== null
+  ) {
     glassList.value = glassData;
     isGlassExist.value = glassData.length > 0;
   }
@@ -683,7 +686,7 @@ const changeFasadeSize = async (data: TFasadeSize) => {
   curFasade.POSITION = curPositionId;
 
   if (isIncomeWidth) {
-    
+
     if (incomeSize.value.width === null) {
       incomeSize.value.width = parseInt(defaultWidth);
     }
@@ -860,10 +863,10 @@ onBeforeUnmount(() => {
                 v-for="(size, key) in fasadeSizeList"
                 :key="key + size.NAME"
                 @click="
-                  () => {
-                    changeFasadeSize(size);
-                    onToggle();
-                  }
+                () => {
+                  changeFasadeSize(size);
+                  onToggle();
+                }
                 "
               >
                 {{ size.NAME }}

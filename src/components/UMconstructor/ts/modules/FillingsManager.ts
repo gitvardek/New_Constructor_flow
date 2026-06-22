@@ -22,6 +22,7 @@ type TloopCollisionExclusion = TCollisionExclusionRule[]
 export default class FillingsManager {
     scope: UMconstructorClass
     FILLING_TYPES: Map<string, string>
+
     private loopCollisionExclusion: TloopCollisionExclusion = [
         {
             prop: 'productGroupID',
@@ -29,6 +30,11 @@ export default class FillingsManager {
             collisionWith: 'loop'
         }
     ]
+    private readonly innerDrawers: number[] = [15222587, 2166308]
+    private readonly outerDrawers: number[]
+
+    private readonly OUTER_DRAWER_IDS: number[] = [5726092, 6560591]
+    private readonly INNER_DRAWER_IDS: number[] = [15222587, 2166308]
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope
@@ -52,6 +58,31 @@ export default class FillingsManager {
     // Вызывается из UMconstructorClass после инициализации обоих менеджеров.
     public initCollisionRules(): void {
         this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
+    }
+
+    // Возвращает первое наполнение в секции с одним из указанных productGroupID.
+    // Сканирует все уровни: секция → ячейка → ряд → дополнительный уровень.
+    private findFirstFillingWithGroupIDs(section: GridSection, groupIDs: number[]): FillingObject | null {
+        const findIn = (fillings: FillingObject[] | undefined): FillingObject | null =>
+            fillings?.find(f => groupIDs.includes(f.productGroupID)) ?? null
+
+        let found = findIn(section.fillings)
+        if (found) return found
+
+        for (const cell of section.cells ?? []) {
+            found = findIn(cell.fillings)
+            if (found) return found
+            for (const row of cell.cellsRows ?? []) {
+                found = findIn(row.fillings)
+                if (found) return found
+                for (const extra of row.extras ?? []) {
+                    found = findIn(extra.fillings)
+                    if (found) return found
+                }
+            }
+        }
+
+        return null
     }
 
     existFilling(grid: GridModule) {
@@ -238,6 +269,80 @@ export default class FillingsManager {
 
         if (!currentSection) return
 
+        if (this.INNER_DRAWER_IDS.includes(productGroupID)) {
+            if (row === null && cell === null && sec === null && extra === null) {
+                this.scope.callAlert("info", "Пожалуйста, выберите секцию для добавления наполнения")
+                return
+            }
+
+            const outerDrawer = this.findFirstFillingWithGroupIDs(currentSection, [5726092, 6560591])
+
+            if (!outerDrawer) {
+                this.scope.callAlert("error", "Невозможно добавить встраиваемый ящик: в секции отсутствует внешний ящик")
+                return
+            }
+
+            // Доступная высота = расстояние от верха тела до верха фасада внешнего ящика
+            // (соответствует paddingTop в Shape: fasade.height - manufacturerOffset - body_height - (moduleThickness - 2))
+            const availableHeight = outerDrawer.fasade
+                ? outerDrawer.fasade.height
+                - outerDrawer.fasade.manufacturerOffset
+                - outerDrawer.height
+                - ((outerDrawer.moduleThickness || 16) - 2)
+                : outerDrawer.height
+
+            if (availableHeight <= 0) {
+                this.scope.callAlert("error", "Внешний ящик не имеет свободного пространства для встраиваемого ящика")
+                return
+            }
+
+            if (product.width > outerDrawer.width || product.height > availableHeight) {
+                this.scope.callAlert("error", "Внутренний ящик не помещается в пространство внешнего ящика")
+                return
+            }
+
+            const currentCell = currentSection.cells?.[cell]
+            const currentRow = currentCell?.cellsRows?.[row]
+            const currentExtra = currentRow?.extras?.[extra]
+            const currentModuleSegment = currentExtra || currentRow || currentCell || currentSection
+
+            if (!currentModuleSegment.fillings)
+                currentModuleSegment.fillings = []
+
+            const fillingObject = <FillingObject>{
+                isVerticalItem: false,
+                product: product.ID,
+                id: currentModuleSegment.fillings.length + 1,
+                name: product.NAME,
+                image: product.PREVIEW_PICTURE,
+                type: _type,
+                // Начальная позиция — верх пространства фасада
+                position: new THREE.Vector2(outerDrawer.position.x, outerDrawer.position.y - availableHeight),
+                size: new THREE.Vector3(product.width, product.height, product.depth || grid.depth),
+                width: product.width,
+                height: product.height,
+                color: false,
+                sec,
+                cell,
+                row,
+                extra,
+                productGroupID,
+                // Ограничение перемещения: пространство фасада внешнего ящика (в мм)
+                innerDrawerConstraint: {
+                    x: outerDrawer.position.x,
+                    startY: outerDrawer.position.y - availableHeight,
+                    width: outerDrawer.width,
+                    height: availableHeight,
+                },
+            }
+
+            currentModuleSegment.fillings.push(fillingObject)
+            this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
+            this.selectCell(sec, cell, row, extra, currentModuleSegment.fillings.length - 1)
+            this.scope.reset(grid)
+            return
+        }
+
         const currentCell = currentSection.cells?.[cell];
         const currentRow = currentCell?.cellsRows?.[row];
         const currentExtra = currentRow?.extras?.[extra];
@@ -375,6 +480,7 @@ export default class FillingsManager {
 
 
         if (isHiTechProfile) {
+
             fillingObject.isProfile = profileData
             fillingObject.moduleThickness = grid.moduleThickness
             currentSection.hiTechProfiles.push(fillingObject)
@@ -386,6 +492,9 @@ export default class FillingsManager {
             currentFillingsArray.push(fillingObject);
 
         if (product.MIN_FASADE_SIZE) {
+
+            console.log(product.MIN_FASADE_SIZE, 'MIN_FASADE_SIZE')
+
             if (!currentSection.fasadesDrawers)
                 currentSection.fasadesDrawers = []
 
@@ -724,12 +833,16 @@ export default class FillingsManager {
                 result = cell.height - filling.height + (filling.isProfile ? grid.moduleThickness : 0)
                 if (filling.fasade) {
                     result += (grid.moduleThickness - 2) - filling.fasade.height + filling.fasade.manufacturerOffset + filling.height
+                    // distances.bottom измеряется от sectorBounds.y = moduleThickness, поэтому cell.position.y не добавляем
+                    return result
                 }
                 break;
             case "min":
                 result = 0 - (filling.isProfile ? grid.moduleThickness : 0)
                 if (filling.fasade) {
                     result = result - (grid.moduleThickness - 2) + filling.fasade.manufacturerOffset
+                    // distances.bottom измеряется от sectorBounds.y = moduleThickness, поэтому cell.position.y не добавляем
+                    return result
                 }
                 break;
         }
@@ -831,12 +944,42 @@ export default class FillingsManager {
 
             const pixiSector = current.sector;
 
+            const isOuterDrawer = this.OUTER_DRAWER_IDS.includes(currentfilling?.productGroupID)
+
+            // Для внешних ящиков: исключаем внутренние ящики из проверки коллизии (как в setupDraggable)
+            let originalShapes = null
+            if (isOuterDrawer && pixiSector?.shapes) {
+                originalShapes = pixiSector.shapes
+                pixiSector.shapes = pixiSector.shapes.filter(
+                    s => !this.INNER_DRAWER_IDS.includes(s.data?.productGroupID)
+                )
+            }
+
             // Проверяем коллизию
             const check = this.scope.SHAPE_ADJUSTER.checkToCollision(pixiSector, false, fillingData);
+
+            if (originalShapes !== null) {
+                pixiSector.shapes = originalShapes
+            }
 
             if (check) {
                 currentfilling.position.y = newValue;
                 currentfilling.distances.bottom = +value
+
+                // Для внешних ящиков: перемещаем внутренние ящики вместе с внешним
+                if (isOuterDrawer) {
+                    current.fillings.forEach(innerFilling => {
+                        if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID)) {
+                            innerFilling.position.y = (innerFilling.position.y || 0) - delta
+                            if (innerFilling.distances) {
+                                innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + delta
+                            }
+                            if (innerFilling.innerDrawerConstraint) {
+                                innerFilling.innerDrawerConstraint.startY = newValue - innerFilling.innerDrawerConstraint.height
+                            }
+                        }
+                    })
+                }
             } else {
                 let tmpPos = {
                     x: fillingData.position.x,
@@ -849,7 +992,23 @@ export default class FillingsManager {
                 this.scope.callAlert("error", `Нельзя изменить позицию на ${+_value}`)
                 if (closestPos) {
                     currentfilling.position.y = closestPos.y;
-                    currentfilling.distances.bottom = current.height - (currentfilling.position.y + currentfilling.height) + grid.moduleThickness
+                    currentfilling.distances.bottom = current.height - (currentfilling.position.y + currentfilling.height) + grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness)
+
+                    // Для внешних ящиков: перемещаем внутренние ящики к ближайшей позиции
+                    if (isOuterDrawer) {
+                        const actualDelta = prevValue - closestPos.y
+                        current.fillings.forEach(innerFilling => {
+                            if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID)) {
+                                innerFilling.position.y = (innerFilling.position.y || 0) - actualDelta
+                                if (innerFilling.distances) {
+                                    innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + actualDelta
+                                }
+                                if (innerFilling.innerDrawerConstraint) {
+                                    innerFilling.innerDrawerConstraint.startY = closestPos.y - innerFilling.innerDrawerConstraint.height
+                                }
+                            }
+                        })
+                    }
                 } else {
                     currentfilling.position.y = prevValue;
                     currentfilling.distances.bottom = prevValueBottom;
@@ -883,12 +1042,11 @@ export default class FillingsManager {
         secIndex: number,
         cellIndex: number | null = null,
         rowIndex: number | null = null,
-        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-
-        console.log('<<<<<FASADS>>>>>')
-
         this.scope.debounce("changeDrawerFasade", () => {
+            // Берём актуальный grid внутри debounce, чтобы не работать с устаревшей ссылкой
+            const grid = this.scope.UM_STORE.getUMGrid()
+
             this.selectCell(secIndex, cellIndex, rowIndex, null, key);
 
             const sec = grid.sections[secIndex];
@@ -902,37 +1060,91 @@ export default class FillingsManager {
                 return
             }
 
-            const prevValue = currentfilling.fasade.height; //Предыдущее значение
+            const prevValue = currentfilling.fasade.height;
             const newValue = +value
 
-            let tmpSector = currentfilling.sector
-            let tmpFasade = currentfilling.fasade
+            // Проверяем по допустимым пределам фасада (minY/maxY).
+            // checkToCollision здесь неприменим: он проверяет позицию тела ящика внутри секции,
+            // а не высоту фасада, и возвращает false если суммарная высота с фасадом выходит
+            // за координаты секции — блокируя изменение без явной ошибки для пользователя.
+            const minY = currentfilling.fasade.minY ?? 0
+            const maxY = currentfilling.fasade.maxY ?? Infinity
 
-            delete currentfilling.sector
-            delete currentfilling.fasade
-
-            const fillingData = JSON.parse(JSON.stringify(currentfilling));
-            fillingData.sector = tmpSector;
-            fillingData.fasade = tmpFasade;
-            fillingData.fasade.height = newValue;
-
-            const pixiSector = currentRow.sector;
-
-            // Проверяем коллизию
-            const check = this.scope.SHAPE_ADJUSTER.checkToCollision(pixiSector, false, fillingData);
-
-            currentfilling.sector = tmpSector;
-            currentfilling.fasade = tmpFasade;
-            if (check) {
+            if (newValue >= minY && newValue <= maxY) {
                 currentfilling.fasade.height = newValue;
+
+                // Пересчитываем пространство фасада и согласуем внутренние ящики
+                const newAvailableHeight = newValue
+                    - currentfilling.fasade.manufacturerOffset
+                    - currentfilling.height
+                    - ((currentfilling.moduleThickness || 16) - 2)
+                this.reconcileInnerDrawers(secIndex, currentfilling, newAvailableHeight, grid)
             } else {
                 currentfilling.fasade.height = prevValue;
-                this.scope.callAlert('error', "Ошибка! Размер фасада слишком велик!")
-                this.scope.callAlert('warning', 'Проверьте корректность позиции ящика!')
+                this.scope.callAlert('error', `Высота фасада должна быть в диапазоне ${minY}–${maxY} мм`)
             }
 
-            this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
+            // Передаём currentfilling, чтобы calcDrawersFasades обновил fasadesDrawers[k] = fasade
+            // и re-синхронизировал ссылку, которая разрывается после saveUMGrid в reset
+            this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, currentfilling, grid)
             this.scope.reset(grid)
         }, 1000)
     };
+
+    private reconcileInnerDrawers(
+        secIndex: number,
+        outerDrawer: FillingObject,
+        newAvailableHeight: number,
+        grid: GridModule,
+    ): void {
+        const INNER_IDS = [15222587, 2166308]
+        const sec = grid.sections[secIndex]
+        let removed = false
+
+        const processFillings = (
+            fillings: FillingObject[] | undefined,
+            ci: number | null, ri: number | null, ei: number | null
+        ) => {
+            if (!fillings) return
+            // Итерируем с конца, чтобы удаление не сбивало индексы
+            for (let idx = fillings.length - 1; idx >= 0; idx--) {
+                const f = fillings[idx]
+                if (!INNER_IDS.includes(f.productGroupID)) continue
+
+                if (f.height > newAvailableHeight || f.width > outerDrawer.width) {
+                    // Не помещается — удаляем
+                    this.deleteFilling(secIndex, idx, ci, ri, ei, grid, false)
+                    removed = true
+                } else {
+                    // Помещается — обновляем constraint и при необходимости корректируем позицию
+                    const newStartY = outerDrawer.position.y - newAvailableHeight
+                    if (f.innerDrawerConstraint) {
+                        f.innerDrawerConstraint.height = newAvailableHeight
+                        f.innerDrawerConstraint.startY = newStartY
+                    }
+                    // Зажимаем текущую позицию в новых пределах фасадного пространства
+                    if (f.position) {
+                        const minY = newStartY
+                        const maxY = outerDrawer.position.y - f.height
+                        f.position.y = Math.max(minY, Math.min(f.position.y, maxY))
+                    }
+                }
+            }
+        }
+
+        processFillings(sec.fillings, null, null, null)
+        sec.cells?.forEach((cell, ci) => {
+            processFillings(cell.fillings, ci, null, null)
+            cell.cellsRows?.forEach((row, ri) => {
+                processFillings(row.fillings, ci, ri, null)
+                row.extras?.forEach((extra, ei) => {
+                    processFillings(extra.fillings, ci, ri, ei)
+                })
+            })
+        })
+
+        if (removed) {
+            this.scope.callAlert('warning', 'Встроенный ящик удалён: не помещается в новые параметры фасада')
+        }
+    }
 }

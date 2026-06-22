@@ -46,7 +46,7 @@ export class FasadeBuilder {
     handlesBuilder: THREETypes.THandlesBuilder
     cutIds: string[] = ['4722787', '4722786'] // ID опций распила фасадов
     additiveIds: string[] = ['5819051', '5819050'] // ID щпций присадок фасада
-    additiveMiddleHeight: number = 532
+    additiveMiddleWidth: number = 532
 
 
     constructor(parent: THREETypes.TBuildProduct) {
@@ -152,8 +152,22 @@ export class FasadeBuilder {
 
         // Алюм. профиль
         if (fasadeData.ALUM != null && FASADE_PROPS[key].COLOR != null) {
+
+            console.log('ALUM')
+
             const alumData = this.parent._FASADE[FASADE_PROPS[key].COLOR];
             this.parent.alum_builder.createAlum({ fasade: mesh, data: alumData });
+
+            const action = this.modelState.getCurrentFasadeTypesAction(fasadeData.TYPE);
+            this.parent.showcase_builder.createShowcase({
+                fasade: mesh,
+                fasadePosition: mesh.userData.trueSize,
+                data: fasadeData.SHOWCASE,
+                defaultGeometry: FASADE_DEFAULT[key],
+                alum: FASADE_PROPS[key].ALUM,
+                curFasadeData: FASADE_PROPS[key],
+                action
+            });
         }
 
         // Цвет стекла
@@ -1253,16 +1267,24 @@ export class FasadeBuilder {
                 const edges = new THREE.EdgesGeometry(geom)
 
                 const positions = [
-                    [-halfX + 10, halfY - 35, halfZ],
-                    [halfX - 10, halfY - 35, halfZ],
-                    [-halfX + 10, -halfY + 35, halfZ],
-                    [halfX - 10, -halfY + 35, halfZ],
+                    // [-halfX + 10, halfY - 35, halfZ],
+                    // [halfX - 10, halfY - 35, halfZ],
+                    // [-halfX + 10, -halfY + 35, halfZ],
+                    // [halfX - 10, -halfY + 35, halfZ],
+
+                    [-halfX + 35, halfY - 10, halfZ],
+                    [halfX - 35, halfY - 10, halfZ],
+                    [-halfX + 35, -halfY + 10, halfZ],
+                    [halfX - 35, -halfY + 10, halfZ],
                 ];
 
-                if (FASADE_HEIGHT >= this.additiveMiddleHeight) {
+                // if (FASADE_HEIGHT >= this.additiveMiddleWidth) {
+                if (FASADE_WIDTH >= this.additiveMiddleWidth) {
                     positions.push(
-                        [-halfX + 10, 0, halfZ],
-                        [halfX - 10, 0, halfZ],
+                        // [-halfX + 10, 0, halfZ],
+                        // [halfX - 10, 0, halfZ],
+                        [0, halfY - 10, halfZ],
+                        [0, -halfY + 10, halfZ],
                     );
                 }
 
@@ -1290,10 +1312,15 @@ export class FasadeBuilder {
 
 
                 const perpPositions = [
-                    [-halfX + 26, halfY - 68 + 7.5, halfZ],
-                    [halfX - 26, halfY - 68 + 7.5, halfZ],
-                    [-halfX + 26, -halfY + 68 - 7.5, halfZ],
-                    [halfX - 26, -halfY + 68 - 7.5, halfZ],
+                    // [-halfX + 26, halfY - 68 + 7.5, halfZ],
+                    // [halfX - 26, halfY - 68 + 7.5, halfZ],
+                    // [-halfX + 26, -halfY + 68 - 7.5, halfZ],
+                    // [halfX - 26, -halfY + 68 - 7.5, halfZ],
+
+                    [-halfX + 68 + 7.5, halfY - 26, halfZ],
+                    [halfX - 68 - 7.5, halfY - 26, halfZ],
+                    [-halfX + 68 + 7.5, -halfY + 26, halfZ],
+                    [halfX - 68 - 7.5, -halfY + 26, halfZ],
                 ];
 
                 perpPositions.forEach(([x, y, z]) => {
@@ -1310,20 +1337,32 @@ export class FasadeBuilder {
                 const parallelEdges = new THREE.EdgesGeometry(parallelGeom)
 
                 const parallelPositions = [
-                    [-halfX + 13, halfY - 36 + 7.5, halfZ],
-                    [halfX - 13, halfY - 36 + 7.5, halfZ],
-                    [-halfX + 13, halfY - 68 + 7.5, halfZ],
-                    [halfX - 13, halfY - 68 + 7.5, halfZ],
-                    [-halfX + 13, -halfY + 36 - 7.5, halfZ],
-                    [halfX - 13, -halfY + 36 - 7.5, halfZ],
-                    [-halfX + 13, -halfY + 68 - 7.5, halfZ],
-                    [halfX - 13, -halfY + 68 - 7.5, halfZ],
+                    // [-halfX + 13, halfY - 36 + 7.5, halfZ],
+                    // [halfX - 13, halfY - 36 + 7.5, halfZ],
+                    // [-halfX + 13, halfY - 68 + 7.5, halfZ],
+                    // [halfX - 13, halfY - 68 + 7.5, halfZ],
+                    // [-halfX + 13, -halfY + 36 - 7.5, halfZ],
+                    // [halfX - 13, -halfY + 36 - 7.5, halfZ],
+                    // [-halfX + 13, -halfY + 68 - 7.5, halfZ],
+                    // [halfX - 13, -halfY + 68 - 7.5, halfZ],
+
+                    [-halfX + 36 + 7.5, halfY - 13, halfZ],
+                    [halfX - 36 - 7.5, halfY - 13, halfZ],
+                    [-halfX + 68 + 7.5, halfY - 13, halfZ],
+                    [halfX - 68 - 7.5, halfY - 13, halfZ],
+                    [-halfX + 36 + 7.5, -halfY + 13, halfZ],
+                    [halfX - 36 - 7.5, -halfY + 13, halfZ],
+                    [-halfX + 68 + 7.5, -halfY + 13, halfZ],
+                    [halfX - 68 - 7.5, -halfY + 13, halfZ],
                 ];
 
-                if (FASADE_HEIGHT >= this.additiveMiddleHeight) {
+                if (FASADE_WIDTH >= this.additiveMiddleWidth) {
                     parallelPositions.push(
-                        [-halfX + 13, 0, halfZ],
-                        [halfX - 13, 0, halfZ],
+                        // [-halfX + 13, 0, halfZ],
+                        // [halfX - 13, 0, halfZ],
+
+                        [0, halfY - 13, halfZ],
+                        [0, -halfY + 13, halfZ],
                     );
                 }
 
@@ -1332,7 +1371,7 @@ export class FasadeBuilder {
                     // const mark = new THREE.Mesh(parallelGeom, material);
                     const mark = new THREE.LineSegments(parallelEdges, material);
                     mark.position.set(x, y, z);
-                    mark.rotateZ(Math.PI * 0.5)
+                    // mark.rotateZ(Math.PI * 0.5)
                     mark.renderOrder = 0;
                     group.add(mark);
                 });
