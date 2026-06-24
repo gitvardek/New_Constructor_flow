@@ -711,7 +711,7 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
     props.RASPIL_COUNT = objProps.RASPIL.data.length
 
     function createRaspil(data) {
-      return data.flat().map(el => { console.log(el); return `${el.width}мм` }).join(' x ');
+      return data.flat().map(el => { return `${el.width}мм` }).join(' x ');
     }
 
     props.USLUGIraspil = createRaspil(objProps.RASPIL.data);

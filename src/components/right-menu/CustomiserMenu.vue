@@ -56,6 +56,7 @@ const closeCustomiser = () => {
   }
   eventBus.emit("A:close-modal-custom");
   customiserStore.hideCustomiserPopup();
+  customiserStore.switchCustomiser("ruler");
 };
 
 const checkSelect = (el) => {

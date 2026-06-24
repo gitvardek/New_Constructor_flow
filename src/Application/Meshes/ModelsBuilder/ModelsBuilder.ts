@@ -179,7 +179,6 @@ export class ModelsBuilder {
                 size.depth || params.scale || 1))
         }
         else {
-            console.log('else')
             model.scale.x = model.scale.y = model.scale.z = params.scale;
         }
         return model;

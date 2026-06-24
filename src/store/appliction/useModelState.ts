@@ -178,6 +178,8 @@ export const useModelState = defineStore('ModelState', () => {
             if (!acc[groupId]) acc[groupId] = [];
             acc[groupId].push(facadeId);
 
+            acc[groupId].sort();
+
             return acc;
         }, {} as Record<string, number[]>);
 
@@ -197,25 +199,8 @@ export const useModelState = defineStore('ModelState', () => {
     }
 
     const createFlatModuleData = (value: number[]) => {
-
-        const validIds = value.filter(id => _FASADE.value[id]);
-
-        const sortCache = new Map<number, number>();
-
-        validIds.forEach(facadeId => {
-            const facade = _FASADE.value[facadeId];
-            if (!facade) return;
-
-            const section = _FASADE_SECTION.value[facade.IBLOCK_SECTION_ID];
-            const groupId = section?.UF_GROUP;
-            const group = groupId ? _FASADE_GROUPS.value[groupId] : null;
-
-            sortCache.set(facadeId, group?.SORT ?? 99999);
-        });
-
-        return validIds.sort((a, b) => {
-            return (sortCache.get(a) ?? 99999) - (sortCache.get(b) ?? 99999);
-        });
+        const grouped = createCurrentModuleData(value, true)
+        return grouped?.flatMap(group => group.FASADES) ?? []
     }
 
     const getCurrentModuleData = computed(() => {
