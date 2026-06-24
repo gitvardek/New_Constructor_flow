@@ -225,7 +225,9 @@ export class PlinthBuilder {
         const { PROPS } = parent.userData
         const { PLINTH_MESH, CONFIG } = PROPS
         const { PLINTH_ACTIONS, SIZE } = CONFIG
-        this.deepDispose.clearParent(PLINTH_MESH)
-        this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH)
+        if (PLINTH_MESH instanceof THREE.Object3D) {
+            this.deepDispose.clearParent(PLINTH_MESH)
+            this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH)
+        }
     }
 }
