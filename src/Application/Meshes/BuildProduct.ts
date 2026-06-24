@@ -146,6 +146,8 @@ export class BuildProduct extends BuildersHelper {
             const um_params = await this.um_sample.example(product_data.ID)
                 .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
                 .catch(() => null);
+            
+            this.checkOptionsOldDataFormat();                
 
             const income_props = loaded_props ?? um_params;
 
@@ -211,6 +213,24 @@ export class BuildProduct extends BuildersHelper {
         });
 
         return textures;
+    }
+
+    // Проверка на старый формат данных параметра section у опций (в предыдущих итерациях был number, теперь number[])
+    private checkOptionsOldDataFormat(data: TTotalProps) {
+        if (!data) return
+        const { CONFIG } = data
+        if (!CONFIG.OPTIONS) return
+
+        const check = CONFIG.OPTIONS.map(el => {
+
+
+            if (!Array.isArray(el.section)) {
+                el.section = [el.section]
+            }
+
+            return el
+        })
+        CONFIG.OPTIONS = check
     }
 
     //========================================================================================================
