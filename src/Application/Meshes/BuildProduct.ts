@@ -146,8 +146,8 @@ export class BuildProduct extends BuildersHelper {
             const um_params = await this.um_sample.example(product_data.ID)
                 .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
                 .catch(() => null);
-            
-            this.checkOptionsOldDataFormat();                
+
+            this.checkOptionsOldDataFormat(loaded_props)
 
             const income_props = loaded_props ?? um_params;
 
