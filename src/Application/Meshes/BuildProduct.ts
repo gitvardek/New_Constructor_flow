@@ -111,7 +111,7 @@ export class BuildProduct extends BuildersHelper {
 
     getModel(
         product_data: THREETypes.TObject,
-        loaded_props?: THREETypes.TObject,
+        loaded_props?: THREETypes.TTotalProps,
         loaded_size?: THREETypes.TObject
     ): Promise<THREE.Object3D> {
         return new Promise(async (resolve) => {
@@ -148,6 +148,8 @@ export class BuildProduct extends BuildersHelper {
             const um_params = await this.um_sample.example(product_data.ID)
                 .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
                 .catch(() => null);
+
+            this.checkOptionsOldDataFormat(loaded_props)
 
             const income_props = loaded_props ?? um_params
 
@@ -213,6 +215,25 @@ export class BuildProduct extends BuildersHelper {
         });
 
         return textures;
+    }
+
+    // Проверка на старый формат данных параметра section у опций (в предыдущих итерациях был number, теперь number[])
+
+    private checkOptionsOldDataFormat(data: TTotalProps) {
+        if (!data) return
+        const { CONFIG } = data
+        if (!CONFIG.OPTIONS) return
+
+        const check = CONFIG.OPTIONS.map(el => {
+
+
+            if (!Array.isArray(el.section)) {
+                el.section = [el.section]
+            }
+
+            return el
+        })
+        CONFIG.OPTIONS = check
     }
 
     //========================================================================================================
@@ -459,7 +480,6 @@ export class BuildProduct extends BuildersHelper {
 
         const shelfCount = CONFIG.SHELFQUANT.current;
 
-        console.log(shelfCount, 'shelfCount')
 
         // Обновляем размер в конфиге
         if (size) {
@@ -576,7 +596,13 @@ export class BuildProduct extends BuildersHelper {
         const texture = product.texture;
 
         const defaultColors = this.modelState.createFlatModuleData(product.MODULECOLOR);
+
         const materislExist = defaultColors.includes(MODULE_COLOR);/** Проверка на существование материала по ID */
+
+
+        console.log(defaultColors, 'defaultColors')
+        console.log(defModuleTop, 'defModuleTop')
+        console.log(materislExist, 'materislExist')
 
         const isRoomElement = product.element_type === "element_room"
         const wallTextureId = isRoomElement && CONFIG.MODULE_COLOR === null
@@ -590,8 +616,6 @@ export class BuildProduct extends BuildersHelper {
             const resolveForType = (defColor: string, globalFlag: boolean): string => {
                 const materislExist = defaultColors.includes(MODULE_COLOR);
                 const isAvailable = product.MODULECOLOR.includes(defColor);
-
-                console.log(materislExist, isAvailable, isDefault)
 
                 return (defColor && isDefault && isAvailable) || (globalFlag && isAvailable)
                     ? defColor
@@ -611,8 +635,6 @@ export class BuildProduct extends BuildersHelper {
         const moduleColorId = this.copy ? MODULE_COLOR : !materislExist ? defaultColors[0] : texture?.src.length > 0 && !this._FASADE[MODULE_COLOR]
             ? MODULE_COLOR
             : resolveColorId();
-
-        console.log(moduleColorId, 'moduleColorId')
 
         CONFIG.MODULE_COLOR = isRoomElement ? wallTextureId : moduleColorId;
 

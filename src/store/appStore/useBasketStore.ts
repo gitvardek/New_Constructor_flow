@@ -20,8 +20,6 @@ const countHandles = (items: any[]): number[] => {
 
   const handles: number[] = []
 
-  console.log(items, items)
-
   items.forEach(item => {
     if (item?.HANDLES) {
       item.HANDLES.forEach(handle => {

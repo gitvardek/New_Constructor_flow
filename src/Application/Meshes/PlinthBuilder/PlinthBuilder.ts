@@ -124,7 +124,7 @@ export class PlinthBuilder {
 
             model.visible = item.value
             item.plinthWidth = model.userData.PLINTH_WIDTH
-            
+
 
             plinthParent.add(model);
         });
@@ -229,7 +229,14 @@ export class PlinthBuilder {
         const { PROPS } = parent.userData
         const { PLINTH_MESH, CONFIG } = PROPS
         const { PLINTH_ACTIONS, SIZE } = CONFIG
-        this.deepDispose.clearParent(PLINTH_MESH)
-        this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH)
+
+        console.log(PLINTH_MESH,PLINTH_MESH.length > 0)
+
+        if (PLINTH_MESH  instanceof THREE.Object3D) {
+            this.deepDispose.clearParent(PLINTH_MESH)
+            this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH)
+        }
+
+
     }
 }

@@ -34,9 +34,7 @@ export class GlobalsData {
     readonly _PALETTE: THREETypes.TObject
     readonly _PRODUCTS_TYPES: THREETypes.TObject
 
-
     constructor(appData: THREETypes.TObject) {
-        console.log(appData, 'GlobalsData')
 
         this._APP = appData
         this._WALL = appData.WALL

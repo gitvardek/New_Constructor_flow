@@ -18,7 +18,6 @@ export class BuildersHelper extends GlobalsData {
     constructor(root: THREETypes.TApplication) {
 
         super(root._appData);
-        console.log(root._appData, 'BuildersHelper')
 
         this.resources = root._resources
         this.scene = root._scene

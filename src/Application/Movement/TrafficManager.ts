@@ -111,21 +111,18 @@ export class TrafficManager {
             console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
             // Обновление корзины при простом выборе/перемещении не требуется
 
-            if (object.userData.elementType !== 'raspil' && !object.userData.PROPS?.RAYCAST) {
-                const product = this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT];
-                // this.modelState.createCurrentModelFasadesData(product.FACADE);
-                this.modelState.createCurrentModuleData(product.MODULECOLOR)
+            const isProd = this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT]
+
+            // if (object.userData.elementType !== 'raspil' && !object.userData.PROPS?.RAYCAST) {
+            if (isProd) {
+
+                this.modelState.createCurrentModuleData(isProd.MODULECOLOR)
             }
 
-            if(object.userData.elementType === 'element_room'){
-                // console.log(this.modelState._WALL)
-            }
         }
         else {
-
             this.events.emit("A:ClearSelected", { object: null, roomContant: this.room._roomContant });
             this.modelState.clearCurrentModelFasadesData()
-            // this.menuStore.closeAllMenus();
         }
 
     }

@@ -270,20 +270,29 @@ export default class FillingsManager {
         if (!currentSection) return
 
         if (this.INNER_DRAWER_IDS.includes(productGroupID)) {
-            if (row === null && cell === null && sec === null && extra === null) {
-                this.scope.callAlert("info", "Пожалуйста, выберите секцию для добавления наполнения")
+            // Целевой внешний ящик — тот, который кликнут на канвасе (selectCell("fillings"))
+            const selectedOnCanvas = this.scope.UM_STORE.getSelected("fillings")
+            const outerSec = selectedOnCanvas?.sec ?? sec
+
+            if (outerSec === null || outerSec === undefined) {
+                this.scope.callAlert("info", "Кликните по внешнему ящику на канвасе, затем добавляйте встраиваемый ящик")
                 return
             }
 
-            const outerDrawer = this.findFirstFillingWithGroupIDs(currentSection, [5726092, 6560591])
+            const outerSection = grid.sections[outerSec]
+            const outerDrawer = (selectedOnCanvas?.item !== null && selectedOnCanvas?.item !== undefined)
+                ? outerSection?.fillings?.find(
+                      f => f.id === selectedOnCanvas.item &&
+                           this.OUTER_DRAWER_IDS.includes(f.productGroupID)
+                  ) ?? null
+                : null
 
             if (!outerDrawer) {
-                this.scope.callAlert("error", "Невозможно добавить встраиваемый ящик: в секции отсутствует внешний ящик")
+                this.scope.callAlert("info", "Кликните по внешнему ящику на канвасе, затем добавляйте встраиваемый ящик")
                 return
             }
 
             // Доступная высота = расстояние от верха тела до верха фасада внешнего ящика
-            // (соответствует paddingTop в Shape: fasade.height - manufacturerOffset - body_height - (moduleThickness - 2))
             const availableHeight = outerDrawer.fasade
                 ? outerDrawer.fasade.height
                 - outerDrawer.fasade.manufacturerOffset
@@ -296,49 +305,59 @@ export default class FillingsManager {
                 return
             }
 
-            if (product.width > outerDrawer.width || product.height > availableHeight) {
-                this.scope.callAlert("error", "Внутренний ящик не помещается в пространство внешнего ящика")
+            // Суммируем высоту уже добавленных внутренних ящиков для этого внешнего
+            const usedHeight = outerSection.fillings
+                ?.filter(f => this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
+                              f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
+                ?.reduce((sum, f) => sum + f.height, 0) ?? 0
+
+            const freeHeight = availableHeight - usedHeight
+
+            if (product.width > outerDrawer.width) {
+                this.scope.callAlert("error", `Ширина ящика (${product.width} мм) больше ширины внешнего ящика (${outerDrawer.width} мм)`)
+                return
+            }
+            if (product.height > freeHeight) {
+                this.scope.callAlert("error", `Недостаточно места: доступно ${Math.round(freeHeight)} мм, требуется ${product.height} мм`)
                 return
             }
 
-            const currentCell = currentSection.cells?.[cell]
-            const currentRow = currentCell?.cellsRows?.[row]
-            const currentExtra = currentRow?.extras?.[extra]
-            const currentModuleSegment = currentExtra || currentRow || currentCell || currentSection
+            if (!outerSection.fillings)
+                outerSection.fillings = []
 
-            if (!currentModuleSegment.fillings)
-                currentModuleSegment.fillings = []
+            // Стек ящиков: новый размещается после уже добавленных
+            const startY = outerDrawer.position.y - availableHeight
+            const newDrawerY = startY + usedHeight
 
             const fillingObject = <FillingObject>{
                 isVerticalItem: false,
                 product: product.ID,
-                id: currentModuleSegment.fillings.length + 1,
+                id: outerSection.fillings.length + 1,
                 name: product.NAME,
                 image: product.PREVIEW_PICTURE,
                 type: _type,
-                // Начальная позиция — верх пространства фасада
-                position: new THREE.Vector2(outerDrawer.position.x, outerDrawer.position.y - availableHeight),
+                position: new THREE.Vector2(outerDrawer.position.x, newDrawerY),
                 size: new THREE.Vector3(product.width, product.height, product.depth || grid.depth),
                 width: product.width,
                 height: product.height,
                 color: false,
-                sec,
-                cell,
-                row,
-                extra,
+                sec: outerSec,
+                cell: null,
+                row: null,
+                extra: null,
                 productGroupID,
-                // Ограничение перемещения: пространство фасада внешнего ящика (в мм)
                 innerDrawerConstraint: {
+                    outerDrawerGroupId: outerDrawer.innerDrawerGroupId,
                     x: outerDrawer.position.x,
-                    startY: outerDrawer.position.y - availableHeight,
+                    startY,
                     width: outerDrawer.width,
                     height: availableHeight,
                 },
             }
 
-            currentModuleSegment.fillings.push(fillingObject)
+            outerSection.fillings.push(fillingObject)
             this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
-            this.selectCell(sec, cell, row, extra, currentModuleSegment.fillings.length - 1)
+            this.selectCell(outerSec, null, null, null, outerSection.fillings.length - 1)
             this.scope.reset(grid)
             return
         }
@@ -546,6 +565,8 @@ export default class FillingsManager {
 
             fillingObject.type = "drawer"
             fillingObject.moduleThickness = grid.moduleThickness
+            // Уникальный ID группы: нужен для привязки внутренних ящиков к этому внешнему
+            fillingObject.innerDrawerGroupId = Date.now()
             fillingObject.fasade = <DrawerFasadeObject>{
                 id: currentSection.fasadesDrawers.length + 1,
                 fasadeDrawerId: currentSection.fasadesDrawers.length + 1,
@@ -736,6 +757,25 @@ export default class FillingsManager {
                 }
             }
         })
+
+        // Каскадное удаление внутренних ящиков при удалении внешнего
+        if (this.OUTER_DRAWER_IDS.includes(curItem.productGroupID) && curItem.innerDrawerGroupId) {
+            const groupId = curItem.innerDrawerGroupId
+            if (sec.fillings) {
+                const prevLen = sec.fillings.length
+                sec.fillings = sec.fillings.filter(f =>
+                    !(this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
+                      f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
+                )
+                if (sec.fillings.length !== prevLen) {
+                    sec.fillings.forEach((f, idx) => { f.id = idx + 1 })
+                    this.scope.callAlert('info', 'Встраиваемые ящики удалены вместе с внешним')
+                }
+            }
+            if (this.selectedOuterDrawerGroupId === groupId) {
+                this.selectedOuterDrawerGroupId = null
+            }
+        }
 
         if (curItemFasade || curItemProfile) {
             if (!sec.fasadesDrawers?.length)
@@ -966,10 +1006,11 @@ export default class FillingsManager {
                 currentfilling.position.y = newValue;
                 currentfilling.distances.bottom = +value
 
-                // Для внешних ящиков: перемещаем внутренние ящики вместе с внешним
+                // Для внешних ящиков: перемещаем только вложенные ящики этого конкретного внешнего
                 if (isOuterDrawer) {
                     current.fillings.forEach(innerFilling => {
-                        if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID)) {
+                        if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID) &&
+                            innerFilling.innerDrawerConstraint?.outerDrawerGroupId === currentfilling.innerDrawerGroupId) {
                             innerFilling.position.y = (innerFilling.position.y || 0) - delta
                             if (innerFilling.distances) {
                                 innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + delta
@@ -994,11 +1035,12 @@ export default class FillingsManager {
                     currentfilling.position.y = closestPos.y;
                     currentfilling.distances.bottom = current.height - (currentfilling.position.y + currentfilling.height) + grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness)
 
-                    // Для внешних ящиков: перемещаем внутренние ящики к ближайшей позиции
+                    // Для внешних ящиков: перемещаем только вложенные ящики этого конкретного внешнего
                     if (isOuterDrawer) {
                         const actualDelta = prevValue - closestPos.y
                         current.fillings.forEach(innerFilling => {
-                            if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID)) {
+                            if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID) &&
+                                innerFilling.innerDrawerConstraint?.outerDrawerGroupId === currentfilling.innerDrawerGroupId) {
                                 innerFilling.position.y = (innerFilling.position.y || 0) - actualDelta
                                 if (innerFilling.distances) {
                                     innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + actualDelta
@@ -1101,6 +1143,8 @@ export default class FillingsManager {
         const sec = grid.sections[secIndex]
         let removed = false
 
+        const outerGroupId = outerDrawer.innerDrawerGroupId
+
         const processFillings = (
             fillings: FillingObject[] | undefined,
             ci: number | null, ri: number | null, ei: number | null
@@ -1110,6 +1154,8 @@ export default class FillingsManager {
             for (let idx = fillings.length - 1; idx >= 0; idx--) {
                 const f = fillings[idx]
                 if (!INNER_IDS.includes(f.productGroupID)) continue
+                // Обрабатываем только внутренние ящики этого внешнего (если ID задан)
+                if (outerGroupId && f.innerDrawerConstraint?.outerDrawerGroupId !== outerGroupId) continue
 
                 if (f.height > newAvailableHeight || f.width > outerDrawer.width) {
                     // Не помещается — удаляем

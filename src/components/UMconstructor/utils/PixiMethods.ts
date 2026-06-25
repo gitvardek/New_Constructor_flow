@@ -567,14 +567,15 @@ class Shape extends Helpers {
                         self.highlightGraphics.position.y = currentY;
                     }
 
-                    // Внешний ящик: двигаем внутренние ящики вместе
+                    // Внешний ящик: двигаем только вложенные ящики этого конкретного внешнего
                     const OUTER_DRAWER_IDS = [5726092, 6560591]
                     if (OUTER_DRAWER_IDS.includes(self.data.productGroupID)) {
                         const deltaY = self.graphic.position.y - currentY
                         if (deltaY !== 0) {
                             const INNER_DRAWER_IDS = [15222587, 2166308]
                             for (const shape of self.sector.shapes) {
-                                if (INNER_DRAWER_IDS.includes(shape.data?.productGroupID)) {
+                                if (INNER_DRAWER_IDS.includes(shape.data?.productGroupID) &&
+                                    shape.data?.innerDrawerConstraint?.outerDrawerGroupId === self.data.innerDrawerGroupId) {
                                     shape.graphic.position.y += deltaY
                                     shape.highlightGraphics.position.y += deltaY
                                 }
@@ -608,13 +609,14 @@ class Shape extends Helpers {
                     this.data.y = Math.round(this.getMmHeight(self.graphic.position.y));
                 }
 
-                // Внешний ящик: сохраняем позиции внутренних ящиков и обновляем их constraint
+                // Внешний ящик: сохраняем позиции только вложенных ящиков этого конкретного внешнего
                 const OUTER_DRAWER_IDS_ED = [5726092, 6560591]
                 if (OUTER_DRAWER_IDS_ED.includes(this.data.productGroupID)) {
                     const newOuterBodyYMm = this.getMmHeight(self.graphic.position.y)
                     const INNER_DRAWER_IDS_ED = [15222587, 2166308]
                     for (const shape of this.sector.shapes) {
-                        if (INNER_DRAWER_IDS_ED.includes(shape.data?.productGroupID)) {
+                        if (INNER_DRAWER_IDS_ED.includes(shape.data?.productGroupID) &&
+                            shape.data?.innerDrawerConstraint?.outerDrawerGroupId === this.data.innerDrawerGroupId) {
                             if (shape.data.position) {
                                 shape.data.position.x = Math.round(this.getMmWidth(shape.graphic.position.x))
                                 shape.data.position.y = Math.round(this.getMmHeight(shape.graphic.position.y))

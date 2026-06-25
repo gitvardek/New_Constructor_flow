@@ -443,8 +443,8 @@ export class RoomManager extends Room {
             const isUM = loadData.CONFIG?.MODULEGRID
 
             let builder = isUM ? this.universalGeometryBuilder : this.geometryBuilder;
-            
-            if(!isUM){
+
+            if (!isUM) {
                 builder?.isCopy(copy)
             }
 
@@ -462,6 +462,10 @@ export class RoomManager extends Room {
                 point,
                 boxHelper: copy
             });
+
+            if (!isUM) {
+                builder?.isCopy(false)
+            }
 
             /** @Столешница */
 

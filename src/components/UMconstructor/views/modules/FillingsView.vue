@@ -65,6 +65,9 @@ const step = ref<number>(1);
 
 const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 
+// ID группы внутренних ящиков для различения в UI
+const INNER_DRAWER_IDS = [15222587, 2166308];
+
 // Аккордеон для групп наполнений: открыта только одна группа
 const openedFillingGroupKey = ref<string | number | null>(null);
 
@@ -562,9 +565,16 @@ watch(
               <article class="actions-items actions-items--left">
                 <div class="actions-items--left-wrapper">
                   <div class="actions-items--title">
-                    <p class="actions-title actions-title--part">
+                    <p
+                      :class="[
+                        'actions-title',
+                        'actions-title--part',
+                        { 'actions-title--inner-drawer': INNER_DRAWER_IDS.includes(filling.productGroupID) },
+                      ]"
+                    >
                       {{ filling.name }} №{{ filling.id }}
                     </p>
+
                     <button
                       class="no-select actions-btn actions-icon"
                       @click="
@@ -584,7 +594,19 @@ watch(
                 </div>
               </article>
 
-              <article class="actions-items actions-items--right">
+              <!-- Внутренний ящик: только метка о принадлежности, позиция меняется перетаскиванием -->
+              <article
+                v-if="INNER_DRAWER_IDS.includes(filling.productGroupID)"
+                class="actions-items actions-items--right"
+              >
+                <div class="actions-items--right-items">
+                  <p class="actions-title actions-title--part actions-title--muted">
+                    Встроен во внешний ящик · {{ filling.width }}×{{ filling.height }} мм
+                  </p>
+                </div>
+              </article>
+
+              <article v-else class="actions-items actions-items--right">
                 <div class="actions-items--right-items">
                   <div class="actions-items--numbers">
                     <div class="actions-items--width">
@@ -1579,5 +1601,17 @@ watch(
   &-inputs {
     justify-content: space-between;
   }
+}
+
+
+.actions-title--inner-drawer {
+  color: #888;
+  font-style: italic;
+}
+
+.actions-title--muted {
+  color: #999;
+  font-size: 0.85em;
+  padding: 0.5rem 0;
 }
 </style>
