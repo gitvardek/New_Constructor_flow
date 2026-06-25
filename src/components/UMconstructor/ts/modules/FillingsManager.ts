@@ -30,9 +30,6 @@ export default class FillingsManager {
             collisionWith: 'loop'
         }
     ]
-    private readonly innerDrawers: number[] = [15222587, 2166308]
-    private readonly outerDrawers: number[]
-
     private readonly OUTER_DRAWER_IDS: number[] = [5726092, 6560591]
     private readonly INNER_DRAWER_IDS: number[] = [15222587, 2166308]
 
@@ -279,9 +276,20 @@ export default class FillingsManager {
                 return
             }
 
+            // Навигация к контейнеру, в котором находится выбранный внешний ящик
+            // Иерархия: sections → cells → cellsRows → extras → fillings
+            const outerCell = selectedOnCanvas?.cell ?? null
+            const outerRow = selectedOnCanvas?.row ?? null
+            const outerExtra = selectedOnCanvas?.extra ?? null
+
             const outerSection = grid.sections[outerSec]
+            const outerCellObj = outerSection.cells?.[outerCell]
+            const outerRowObj = outerCellObj?.cellsRows?.[outerRow]
+            const outerExtraObj = outerRowObj?.extras?.[outerExtra]
+            const outerContainer = outerExtraObj || outerRowObj || outerCellObj || outerSection
+
             const outerDrawer = (selectedOnCanvas?.item !== null && selectedOnCanvas?.item !== undefined)
-                ? outerSection?.fillings?.find(
+                ? outerContainer?.fillings?.find(
                       f => f.id === selectedOnCanvas.item &&
                            this.OUTER_DRAWER_IDS.includes(f.productGroupID)
                   ) ?? null
@@ -306,7 +314,7 @@ export default class FillingsManager {
             }
 
             // Суммируем высоту уже добавленных внутренних ящиков для этого внешнего
-            const usedHeight = outerSection.fillings
+            const usedHeight = outerContainer.fillings
                 ?.filter(f => this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
                               f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
                 ?.reduce((sum, f) => sum + f.height, 0) ?? 0
@@ -322,8 +330,8 @@ export default class FillingsManager {
                 return
             }
 
-            if (!outerSection.fillings)
-                outerSection.fillings = []
+            if (!outerContainer.fillings)
+                outerContainer.fillings = []
 
             // Стек ящиков: новый размещается после уже добавленных
             const startY = outerDrawer.position.y - availableHeight
@@ -332,7 +340,7 @@ export default class FillingsManager {
             const fillingObject = <FillingObject>{
                 isVerticalItem: false,
                 product: product.ID,
-                id: outerSection.fillings.length + 1,
+                id: outerContainer.fillings.length + 1,
                 name: product.NAME,
                 image: product.PREVIEW_PICTURE,
                 type: _type,
@@ -342,9 +350,9 @@ export default class FillingsManager {
                 height: product.height,
                 color: false,
                 sec: outerSec,
-                cell: null,
-                row: null,
-                extra: null,
+                cell: outerCell,
+                row: outerRow,
+                extra: outerExtra,
                 productGroupID,
                 innerDrawerConstraint: {
                     outerDrawerGroupId: outerDrawer.innerDrawerGroupId,
@@ -355,9 +363,9 @@ export default class FillingsManager {
                 },
             }
 
-            outerSection.fillings.push(fillingObject)
+            outerContainer.fillings.push(fillingObject)
             this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
-            this.selectCell(outerSec, null, null, null, outerSection.fillings.length - 1)
+            this.selectCell(outerSec, outerCell, outerRow, outerExtra, outerContainer.fillings.length - 1)
             this.scope.reset(grid)
             return
         }
@@ -761,19 +769,16 @@ export default class FillingsManager {
         // Каскадное удаление внутренних ящиков при удалении внешнего
         if (this.OUTER_DRAWER_IDS.includes(curItem.productGroupID) && curItem.innerDrawerGroupId) {
             const groupId = curItem.innerDrawerGroupId
-            if (sec.fillings) {
-                const prevLen = sec.fillings.length
-                sec.fillings = sec.fillings.filter(f =>
+            if (curRow.fillings) {
+                const prevLen = curRow.fillings.length
+                curRow.fillings = curRow.fillings.filter(f =>
                     !(this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
                       f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
                 )
-                if (sec.fillings.length !== prevLen) {
-                    sec.fillings.forEach((f, idx) => { f.id = idx + 1 })
+                if (curRow.fillings.length !== prevLen) {
+                    curRow.fillings.forEach((f, idx) => { f.id = idx + 1 })
                     this.scope.callAlert('info', 'Встраиваемые ящики удалены вместе с внешним')
                 }
-            }
-            if (this.selectedOuterDrawerGroupId === groupId) {
-                this.selectedOuterDrawerGroupId = null
             }
         }
 

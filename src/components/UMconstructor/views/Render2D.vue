@@ -85,6 +85,7 @@ const sectionLables: (Graphics | Text)[] = [];
 const deviders: Graphics[] = [];
 const dementions: Graphics[] = [];
 const fillings: Graphics[] = [];
+const fillingsMap: Shape[] = []; // Shape-экземпляры наполнений для прямого управления highlight
 const fasades: Graphics[] = [];
 const loops: Container[] = [];
 const handles: Container[] = [];
@@ -1208,8 +1209,6 @@ const createHandle = ({ x, y, width, height, handleData, opacity }) => {
 };
 
 const createFilling = (data, sector) => {
-  console.log(UMconstructor.value.LOOPS.getCollisionExclusionRules())
-
   let sectorXMMPos = getMmWidth(sector.position.x);
   let sectorYMMPos = getMmHeight(sector.position.y);
 
@@ -1303,6 +1302,7 @@ const createFilling = (data, sector) => {
 
   fillings.push(filling.graphic);
   fillings.push(filling.highlightGraphics);
+  fillingsMap.push(filling);
   sector.shapes.push(filling);
 };
 
@@ -1656,9 +1656,16 @@ const selectCell = (type: string, newSelectedCell: TSelectedCell) => {
     case "fillings": {
       UMconstructor?.value?.UM_STORE.setSelected(type, newSelectedCell);
       UMconstructor?.value?.UM_STORE.setSelected("module", newSelectedCell);
-      const { sec, cell, row, extra, item } =
-        UMconstructor?.value?.UM_STORE.getSelected("fillings");
-      toggleFillingColor(sec, cell, row, item, extra);
+      selectedFilling.value = newSelectedCell;
+      fillingsMap.forEach(shape => {
+        const d = shape.data;
+        shape.highlightGraphics.visible =
+          newSelectedCell.sec === d.sec &&
+          newSelectedCell.cell === d.cell &&
+          newSelectedCell.row === d.row &&
+          newSelectedCell.extra === d.extra &&
+          newSelectedCell.item === d.id;
+      });
       break;
     }
     case "fasades": {
@@ -1745,7 +1752,11 @@ const toggleFillingColor = (
   const extra = row?.extras?.[extraIndex];
 
   const curSegment = extra || row || cell || section || props.module;
-  const sector = curSegment?.fillings?.[itemIndex]?.sector;
+  // На уровне секции item = filling.id (с 1), а не индекс массива — ищем по id
+  const fillingObj = (cellIndex === null && rowIndex === null && extraIndex === null)
+    ? curSegment?.fillings?.find(f => f.id === itemIndex)
+    : curSegment?.fillings?.[itemIndex]
+  const sector = fillingObj?.sector;
 
   sections[0].children.forEach((elem) => {
     if (elem.children[1]) elem.children[1].visible = false;
@@ -3283,6 +3294,7 @@ const clearRender = () => {
   deviders.length = 0;
   dementions.length = 0;
   fillings.length = 0;
+  fillingsMap.length = 0;
   fasades.length = 0;
   loops.length = 0;
   handles.length = 0;
@@ -3296,9 +3308,76 @@ const clearRender = () => {
   fasadesContainer.removeChildren();
 };
 
+// Обходит иерархию sections → cells → cellsRows → extras → fillings
+// и возвращает селектор первого наполнения с его координатами.
+const findFirstFilling = (grid) => {
+  for (let si = 0; si < (grid?.sections?.length ?? 0); si++) {
+    const sec = grid.sections[si];
+    if (sec.fillings?.length > 0)
+      return { sec: si, cell: null, row: null, extra: null, item: sec.fillings[0].id };
+    for (let ci = 0; ci < (sec.cells?.length ?? 0); ci++) {
+      const cell = sec.cells[ci];
+      if (cell.fillings?.length > 0)
+        return { sec: si, cell: ci, row: null, extra: null, item: cell.fillings[0].id };
+      for (let ri = 0; ri < (cell.cellsRows?.length ?? 0); ri++) {
+        const rowObj = cell.cellsRows[ri];
+        if (rowObj.fillings?.length > 0)
+          return { sec: si, cell: ci, row: ri, extra: null, item: rowObj.fillings[0].id };
+        for (let ei = 0; ei < (rowObj.extras?.length ?? 0); ei++) {
+          const extra = rowObj.extras[ei];
+          if (extra.fillings?.length > 0)
+            return { sec: si, cell: ci, row: ri, extra: ei, item: extra.fillings[0].id };
+        }
+      }
+    }
+  }
+  return null;
+};
+
 const changeConstructorMode = (_mode) => {
   mode.value = _mode;
+
+  const grid = props.module;
+
+  // Наполнения: highlight задаётся при createFilling через highlightGraphics.visible,
+  // поэтому обновляем selectedFilling ДО renderGrid
+  if (_mode === 'fillings') {
+    const sel = findFirstFilling(grid);
+    if (sel) {
+      selectedFilling.value = sel;
+      UMconstructor?.value?.UM_STORE.setSelected('fillings', sel);
+    }
+  } else {
+    // При выходе из режима наполнений снимаем выделение
+    selectedFilling.value = <TSelectedCell>{};
+    UMconstructor?.value?.UM_STORE.setSelected('fillings', null);
+  }
+
+  if (_mode === 'fasades') {
+    // Фасады: обновляем стор ДО renderGrid только для правой панели;
+    // canvas-подсветку делаем через toggleFasadeColor ПОСЛЕ renderGrid,
+    // т.к. segment.sector устанавливается во время рендера
+    const hasModuleFasades = grid?.fasades?.length > 0 && grid.fasades[0]?.length > 0;
+    const firstSecWithFasades = grid?.sections?.findIndex(s => s.fasades?.length > 0);
+    const hasSectionFasades = firstSecWithFasades >= 0;
+    if (hasModuleFasades || hasSectionFasades) {
+      const sel = { sec: hasModuleFasades ? null : firstSecWithFasades, cell: 0, row: 0 };
+      selectedFasade.value = sel;
+      UMconstructor?.value?.UM_STORE.setSelected('fasades', sel);
+    }
+  }
+
   renderGrid();
+
+  // Фасады: после рендера сектор уже привязан к данным — подсвечиваем первый
+  if (_mode === 'fasades') {
+    const hasModuleFasades = grid?.fasades?.length > 0 && grid.fasades[0]?.length > 0;
+    const firstSecWithFasades = grid?.sections?.findIndex(s => s.fasades?.length > 0);
+    const hasSectionFasades = firstSecWithFasades >= 0;
+    if (hasModuleFasades || hasSectionFasades) {
+      toggleFasadeColor(hasModuleFasades ? null : firstSecWithFasades, 0, 0);
+    }
+  }
 };
 
 const destroy = () => {
@@ -3334,6 +3413,8 @@ watch(
   () => {
     selectedFasade.value =
       UMconstructor?.value?.UM_STORE.getSelected("fasades");
+
+    console.log(currentModule.value, 'fasades')
   },
 );
 watch(
@@ -3341,6 +3422,7 @@ watch(
   () => {
     selectedFilling.value =
       UMconstructor?.value?.UM_STORE.getSelected("fillings");
+    console.log(currentModule.value, 'fillings')
   },
 );
 

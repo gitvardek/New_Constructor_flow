@@ -398,10 +398,11 @@ class Shape extends Helpers {
         const pointerdown = (event, graphic) => {
             graphic.cursor = "grabbing";
             this.select("fillings", <TSelectedCell>{
-                sec: this.sector.secIndex,
-                cell: this.sector.cellIndex,
-                row: this.sector.rowIndex,
-                extra: this.sector.extraIndex
+                sec: this.data.sec,
+                cell: this.data.cell,
+                row: this.data.row,
+                extra: this.data.extra,
+                item: this.data.id,
             });
             dragging = true;
             originalPosition = {
