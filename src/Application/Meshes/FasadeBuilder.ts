@@ -1035,7 +1035,10 @@ export class FasadeBuilder {
 
     private getIntegratedHandleTypeList = (data: TMillingListItem, fType: number[]) => {
 
-        if (!this._MILLING[data]) return [null]
+        if (!this._MILLING[data]) return [null];
+        if (!fType) return [null];
+
+        if (!fType) return false
 
         const prepare = this._MILLING[data].fasade_type.filter(el => {
             return fType.includes(el)
