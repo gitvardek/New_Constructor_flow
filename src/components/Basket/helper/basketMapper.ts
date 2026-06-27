@@ -256,6 +256,20 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
     return [];
   }
 
+  const createFasadeData = (data) => {
+    if (!data.fasade) return {}
+    return {
+      fasade: {
+        COLOR: data.fasade.material.COLOR,
+        size: {
+          height: data.fasade.height,
+          width: data.fasade.width
+        }
+
+      }
+    }
+  }
+
 
   const item = arr.map(el => {
     if (el.type === 'section_partition') {
@@ -283,6 +297,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
         MATERIAL_ID: el.material, // Материал полки
         PRODUCT_TYPE: el.type,
         VALUE: el.VALUE,
+        FASADE: fasadeData,
         SIZE: { // Размеры
           width: el.size?.x || 0,
           height: el.size?.y || 0,
