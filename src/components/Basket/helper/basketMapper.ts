@@ -291,6 +291,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
         basketRenderPosition: el.basketRenderPosition || false,
       }
     } else {
+      const fasadeData = createFasadeData(el)
       return {
         ID: el.product,
         PATH: false,
