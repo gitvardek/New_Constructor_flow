@@ -72,6 +72,10 @@ const materialList = ref(null);
 const productData = ref(null);
 const productId = ref(null);
 
+const fasadeProps = computed(() =>
+  productData.value?.PROPS?.CONFIG?.FASADE_PROPS?.[props.tabIndex]
+);
+
 let currentEditableOption = ref<String>("surface");
 
 const currentSurfaceData = ref<Object>({});
@@ -915,6 +919,7 @@ onBeforeUnmount(() => {
       v-if="currentEditableOption === 'surface'"
       :materialList="materialList"
       :tabIndex="props.tabIndex"
+      :selectedId="fasadeProps?.COLOR"
       @select_material="onSelectMaterial"
     />
 
@@ -922,6 +927,7 @@ onBeforeUnmount(() => {
       v-if="currentEditableOption === 'milling'"
       :millingList="millingList"
       :tabIndex="props.tabIndex"
+      :selectedId="fasadeProps?.MILLING"
       @select_milling="onSelectMilling"
     />
 
@@ -929,6 +935,7 @@ onBeforeUnmount(() => {
       v-if="currentEditableOption === 'palette'"
       :paletteList="paletteList"
       :tabIndex="props.tabIndex"
+      :selectedId="fasadeProps?.PALETTE"
       @select_color="onSelectPalette"
     />
 
@@ -936,6 +943,7 @@ onBeforeUnmount(() => {
       v-if="currentEditableOption === 'patina'"
       :patinaList="patinaList"
       :tabIndex="props.tabIndex"
+      :selectedId="fasadeProps?.PATINA"
       @select_patina="onSelectPatina"
     />
 
@@ -943,6 +951,7 @@ onBeforeUnmount(() => {
       v-if="currentEditableOption === 'glass'"
       :glassList="glassList"
       :tabIndex="props.tabIndex"
+      :selectedId="fasadeProps?.GLASS"
       @select_glass="onSelectGlass"
     />
 
@@ -950,6 +959,7 @@ onBeforeUnmount(() => {
       v-if="currentEditableOption === 'showcase'"
       :showcaseList="showcaseList"
       :tabIndex="props.tabIndex"
+      :selectedId="fasadeProps?.SHOWCASE"
       @select_showcase="onSelectShowcase"
     />
   </div>

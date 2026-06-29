@@ -9,6 +9,7 @@ import {
   onMounted,
   onBeforeMount,
   withDefaults,
+  nextTick,
 } from "vue";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
@@ -26,6 +27,7 @@ interface IProps {
   materialList: number[];
   tempWork?: boolean;
   type?: TSurface;
+  selectedId?: number | null;
 }
 
 const props = withDefaults(defineProps<IProps>(), {
@@ -76,6 +78,8 @@ const totalMaterialList = computed(() => {
   let result = arr.flat();
   return result;
 });
+
+const listRef = ref<HTMLElement | null>(null);
 
 const filteredMaterialList = ref<Array>([]); // отфильтрованный массив поиска
 const isSearch = computed(() => {
@@ -158,20 +162,30 @@ const checkTransitionTexture = (id: number) => {
 onBeforeMount(()=>{
   console.log(props.materialList)
 })
+
+onMounted(() => {
+  nextTick(() => {
+    const activeEl = listRef.value?.querySelector('.active') as HTMLElement | null;
+    if (!activeEl || !listRef.value) return;
+    listRef.value.scrollTop = activeEl.getBoundingClientRect().top
+      - listRef.value.getBoundingClientRect().top
+      + listRef.value.scrollTop;
+  });
+});
 </script>
 
 <template>
   <div class="material-config__wrapper">
     <input class="search" type="text" placeholder="Поиск" @input="onSearchChange" />
 
-    <ul class="material-config_list">
+    <ul class="material-config_list" ref="listRef">
       <!-- Все возможные материалы -->
       <li v-if="!isSearch" v-for="materials in props.materialList" class="material-config_list__details">
         <div>
           <h3 class="material-config_title">{{ materials.NAME }}</h3>
         </div>
         <ul class="material-config_list__details_content">
-          <li class="material-config_item" v-for="(id, index) in materials.FASADES" :key="index">
+          <li class="material-config_item" :class="{ active: id === selectedId }" v-for="(id, index) in materials.FASADES" :key="index">
             <Tooltip :position="top" :theme="'dark'">
               <template #trigger>
                 <div @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)">
@@ -214,5 +228,12 @@ onBeforeMount(()=>{
 </template>
 
 <style scoped lang="scss">
+.active {
+  background-color: $strong-grey;
+}
 
+.material-config_list {
+  max-height: 55vh;
+  overflow-y: auto;
+}
 </style>
