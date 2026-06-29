@@ -100,6 +100,7 @@ const {
   MIN_FASADE_HEIGHT,
   MIN_FASADE_WIDTH,
   MIN_SLIDE_DOOR_WIDTH,
+  MAX_SECTION_WIDTH,
 } = UM_PARAMS;
 
 const dragState = reactive({
@@ -2132,6 +2133,17 @@ function dragMove(event) {
       let prev = props.module.sections[secIndex - 1];
 
       let nextSection = next || prev;
+
+      if (newLeftWidth > MAX_SECTION_WIDTH) {
+        deltaMm -= newLeftWidth - MAX_SECTION_WIDTH;
+        newLeftWidth = MAX_SECTION_WIDTH;
+        newRightWidth = startRightWidth - deltaMm;
+      } else if (newRightWidth > MAX_SECTION_WIDTH) {
+        deltaMm += newRightWidth - MAX_SECTION_WIDTH;
+        newRightWidth = MAX_SECTION_WIDTH;
+        newLeftWidth = startLeftWidth + deltaMm;
+      }
+
       fillings
       let delta1 = section.width - newLeftWidth;
       let deltaPos1 = next ? -delta1 / 2 : delta1 / 2;
@@ -2777,6 +2789,7 @@ const adjustSectionSize = (
   const minValue =
     dimension === "width" ? MIN_SECTION_WIDTH : MIN_SECTION_HEIGHT;
   newValue = Math.max(Math.floor(newValue / props.step) * props.step, minValue);
+  if (dimension === "width") newValue = Math.min(newValue, MAX_SECTION_WIDTH);
   let calcValue;
 
   const module = props.module;

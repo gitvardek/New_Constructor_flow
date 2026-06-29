@@ -8,7 +8,7 @@ import AdvanceCorpusMaterialRedactor from "@/components/ui/color/AdvanceCorpusMa
 import Handles from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/Handles.vue";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import Options from "@/components/right-menu/customiser-pages/RailsRightPage/Options.vue";
+import Options from "@/components/right-menu/customiser-pages/RailsRightPage/Options.vue";50
 import { ref, toRefs, onBeforeUnmount, onMounted, watch, computed } from "vue";
 import {
   TSelectedCell,
@@ -820,188 +820,6 @@ watch(
               </div>
 
 
-              <!-- <div class="accordion">
-                <div v-for="(segment, segmentIndex) in door" :key="segmentIndex" :class="'actions-items--container'"
-                  :id="`fasade_${secNdx}_${doorIndex}_${segmentIndex}`">
-
-                  <details class="item-group" :open="doorIndex === selectedFasade.cell &&
-                    segmentIndex === selectedFasade.row
-                    ">
-                    <summary>
-                      <h3 class="item-group__title">
-                        Сегмент №{{ secNdx + 1 }}.{{ doorIndex + 1 }}.{{
-                          segment.id /*segmentIndex + 1*/
-                        }}
-                      </h3>
-                    </summary>
-
-                    <div :class="'actions-items--container'">
-
-                      <article class="actions-items actions-items--left">
-                        <div class="actions-items--left-wrapper">
-                          <div class="actions-items--width">
-                            <div class="actions-inputs">
-                              <p class="actions-title">Ширина</p>
-                              <div :class="['actions-input--container']">
-                                <input type="number" :step="step" min="150" class="actions-input" :value="segment.width"
-                                  disabled />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div class="actions-items--height">
-                            <div class="actions-inputs">
-                              <p class="actions-title">Высота</p>
-                              <div :class="['actions-input--container']">
-                                <input type="number" :step="step" min="150" class="actions-input"
-                                  :value="segment.height" :disabled="!UMconstructor.FASADES.checkRemoveFasadeSegment(
-                                    secNdx,
-                                    doorIndex,
-                                    segmentIndex,
-                                    module,
-                                  )
-                                    " @input="
-                                      UMconstructor.FASADES.updateFasadeHeight(
-                                        $event.target.value,
-                                        secNdx,
-                                        doorIndex,
-                                        segmentIndex,
-                                        module,
-                                      )
-                                      " />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div class="actions-items--selector" v-if="!module.isRestrictedModule">
-                            <div class="actions-inputs">
-                              <p class="actions-title">Сторона открывания</p>
-                              <div>
-                                <select style id="loopsSide"
-                                  :key="`loopside_${secNdx}_${doorIndex}_${segmentIndex}_${segment.loopsSide}`"
-                                  name="loopsSide"
-                                  class="actions-input"
-                                  :title="UMconstructor.APP.LOOPSIDE[segment.loopsSide]?.NAME ?? ''"
-                                  @change="changeLoopside(secNdx, segment, $event, doorIndex, module)"
-                                  :disabled="getLoopsideList(secNdx, doorIndex, module, segment.id).length < 2">
-                                  <option v-for="(side, key) in getLoopsideList(
-                                    secNdx,
-                                    doorIndex,
-                                    module,
-                                    segment.id,
-                                  )" :key="key" :value="side.ID" :selected="side.ID === segment.loopsSide">
-                                    <div class="item-group-name" :title="side.NAME">
-                                      <p class="name__text">
-                                        {{ side.NAME }}
-                                      </p>
-                                    </div>
-                                  </option>
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div>
-                            <button class="actions-btn actions-btn--default" v-if="
-                              LOOPSIDE[segment.loopsSide]?.includes('top') &&
-                              segment.material.COLOR !== 7397
-                            " @click="createMechanizmList(segment)">
-                              Подъёмные механизмы
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-
-                      <article class="actions-items actions-items--right">
-                        <div class="actions-items--right-items">
-                          <button v-if="!module.isRestrictedModule" :class="['actions-btn actions-btn--default']"
-                            @click="
-                              UMconstructor.FASADES.splitFasade(
-                                secNdx,
-                                doorIndex,
-                                segmentIndex,
-                                module,
-                              )
-                              ">
-                            Разделить фасад
-                          </button>
-
-                          <button v-if="
-                            door.length > 1 &&
-                            UMconstructor.FASADES.checkRemoveFasadeSegment(
-                              secNdx,
-                              doorIndex,
-                              segmentIndex,
-                              module,
-                            )
-                          " class="actions-btn actions-btn--default" @click="
-                            UMconstructor.FASADES.removeFasadeSegment(
-                              secNdx,
-                              doorIndex,
-                              segmentIndex,
-                              module,
-                            )
-                            ">
-                            Удалить
-                          </button>
-
-                          <ConfigurationOption v-if="!segment.error" :disable-delete-choice="true" :class="[
-                            {
-                              active:
-                                isOpenMaterialSelector &&
-                                currentFasadeMaterial.sec === secNdx &&
-                                currentFasadeMaterial.cell === doorIndex &&
-                                currentFasadeMaterial.row === segmentIndex,
-                            },
-                          ]" :type="segment.material.PALETTE ? 'palette' : 'surface'
-                            " :data="segment.material.PALETTE
-                              ? {
-                                ...UMconstructor.APP.PALETTE[
-                                segment.material.PALETTE
-                                ],
-                                hex: UMconstructor.APP.PALETTE[
-                                  segment.material.PALETTE
-                                ].HTML,
-                              }
-                              : UMconstructor.APP.FASADE[
-                              segment.material.COLOR
-                              ]
-                              " @click.stop="
-                                openFasadeSelector(
-                                  secNdx,
-                                  doorIndex,
-                                  segmentIndex,
-                                )
-                                " />
-                          <h class="splitter-container--product-error-message" v-else>Фасад некорректного размера!</h>
-
-                          <ConfigurationOption v-if="!segment.error" :disable-delete-choice="true" :class="[
-                            {
-                              active:
-                                currentHandle.sec === secNdx &&
-                                currentHandle.cell === doorIndex &&
-                                currentHandle.row === segmentIndex,
-                            },
-                          ]" :type="'Handles'" :data="segment.material.HANDLES
-                            ? {
-                              ...UMconstructor.APP.CATALOG.PRODUCTS[
-                              segment.material.HANDLES.id
-                              ],
-                            }
-                            : false
-                            " @click.stop="
-                              openHandleSelector(
-                                secNdx,
-                                doorIndex,
-                                segmentIndex,
-                              )
-                              " />
-                        </div>
-                      </article>
-                    </div>
-                  </details>
-                </div>
-              </div> -->
 
             </div>
           </div>
@@ -1032,7 +850,10 @@ watch(
 
 <style scoped lang="scss">
 .accordion {
-  border: unset;
+  padding: 0.5rem 1rem;
+  border-radius: 0;
+  border-bottom: 1px solid $dark-stroke;
+  gap: 0;
 }
 
 .actions {

@@ -3,6 +3,7 @@
 
 import "@/components/UMconstructor/styles/UM.scss"
 
+import Accordion from "@/components/ui/accordion/Accordion.vue";
 import CounterInput from "@/components/ui/inputs/CounterInput.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { onMounted, ref, toRefs, watch } from "vue";
@@ -108,13 +109,15 @@ onMounted(() => {
 
               <div v-for="(cell, cellIndex) in section.cells" :key="cellIndex" :class="'UM actions-items--container'"
                 :id="`module_${secIndex}_${cellIndex}`">
-                <details class="UM item-group" :open="cellIndex === selectedCell.cell">
-
-                  <summary>
+                <Accordion
+                  :open="cellIndex === selectedCell.cell"
+                  @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex) }"
+                >
+                  <template #title>
                     <h3 class="item-group__title">
                       {{ secIndex + 1 }}.{{ cellIndex + 1 }}
                     </h3>
-                  </summary>
+                  </template>
 
 
                   <div :class="'actions-items--container'">
@@ -208,12 +211,15 @@ onMounted(() => {
 
                     <div v-for="(row, rowIndex) in cell.cellsRows" :key="rowIndex" :class="'actions-items--container'"
                       :id="`module_${secIndex}_${cellIndex}_${rowIndex}`">
-                      <details class="item-group" :open="rowIndex === selectedCell.row">
-                        <summary>
+                      <Accordion
+                        :open="rowIndex === selectedCell.row"
+                        @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex, rowIndex) }"
+                      >
+                        <template #title>
                           <h3 class="item-group__title">
                             {{ secIndex + 1 }}.{{ cellIndex + 1 }}.{{ rowIndex + 1 }}
                           </h3>
-                        </summary>
+                        </template>
 
                         <div :class="'actions-items--container'">
                           <article class="actions-items actions-items--left">
@@ -277,12 +283,15 @@ onMounted(() => {
                           <div v-for="(extra, extraIndex) in row.extras" :key="extraIndex"
                             :class="'actions-items--container'"
                             :id="`module_${secIndex}_${cellIndex}_${rowIndex}_${extraIndex}`">
-                            <details class="item-group" :open="extraIndex === selectedCell.extra">
-                              <summary>
+                            <Accordion
+                              :open="extraIndex === selectedCell.extra"
+                              @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex, rowIndex, extraIndex) }"
+                            >
+                              <template #title>
                                 <h3 class="item-group__title">
                                   {{ secIndex + 1 }}.{{ cellIndex + 1 }}.{{ rowIndex + 1 }}.{{ extraIndex + 1 }}
                                 </h3>
-                              </summary>
+                              </template>
 
                               <div :class="'actions-items--container'">
                                 <article class="actions-items actions-items--left">
@@ -334,16 +343,16 @@ onMounted(() => {
                               </div>
 
 
-                            </details>
+                            </Accordion>
                           </div>
                         </div>
 
 
-                      </details>
+                      </Accordion>
                     </div>
                   </div>
 
-                </details>
+                </Accordion>
               </div>
             </div>
             <div v-else :class="'actions-items--container'">
@@ -415,4 +424,13 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.accordion {
+  padding: 0.5rem 1rem;
+  border-radius: 0;
+  border-bottom: 1px solid $dark-stroke;
+  gap: 0;
+
+}
+
+</style>

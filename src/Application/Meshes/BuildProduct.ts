@@ -599,11 +599,6 @@ export class BuildProduct extends BuildersHelper {
 
         const materislExist = defaultColors.includes(MODULE_COLOR);/** Проверка на существование материала по ID */
 
-
-        console.log(defaultColors, 'defaultColors')
-        console.log(defModuleTop, 'defModuleTop')
-        console.log(materislExist, 'materislExist')
-
         const isRoomElement = product.element_type === "element_room"
         const wallTextureId = isRoomElement && CONFIG.MODULE_COLOR === null
             ? parseInt(this.root._roomManager._currentWallTextureId)

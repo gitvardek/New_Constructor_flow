@@ -61,8 +61,6 @@ export const useUMStorage = defineStore('um-data', () => {
     }
 
     const getUMGrid = () => {
-        console.log(UM_GRID.value, 'UM_GRID')
-
         return UM_GRID.value
     }
 

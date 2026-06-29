@@ -972,8 +972,6 @@ const renderDescription = computed(() => {
       }
 
       if (getPropDefinition(key)?.NAME && isObject(value)) {
-        console.log('3')
-
         if (
           getPropDefinition(key)?.NAME &&
           key !== "LEFTSIDECOLOR" &&
@@ -982,7 +980,6 @@ const renderDescription = computed(() => {
           key !== "BACKWALL" &&
           key !== "DOORS"
         ) {
-          console.log('4')
           for (const [doorNumber, doorData] of Object.entries(value)) {
             // Для каждой двери перебираем её части (обычно только часть "1")
             for (const [partNumber, partData] of Object.entries(doorData)) {

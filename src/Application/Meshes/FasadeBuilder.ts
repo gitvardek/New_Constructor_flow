@@ -1043,7 +1043,10 @@ export class FasadeBuilder {
 
         if (!this._MILLING[data]) return [null]
 
+        if(!fType)  return [null]
+
         const prepare = this._MILLING[data].fasade_type.filter(el => {
+
             return fType.includes(el)
         })
 

@@ -671,10 +671,12 @@ export class MeshEvents extends BuildersHelper {
         const fasadeGeometry = fasade.geometry
         const startMaterial = fasade.userData.millingMaterial
 
-        const { geometry, material } = this.buildMilling.patinaBuilder.createPatinaColor({ geometry: fasadeGeometry, patinaId: data, startMaterial })
-        fasade.geometry = geometry
-        fasade.material = material
-        fasade.material.needsUpdate = true
+        const patinaResult = this.buildMilling.patinaBuilder.createPatinaColor({ geometry: fasadeGeometry, patinaId: data, startMaterial })
+        if (patinaResult) {
+            fasade.geometry = patinaResult.geometry
+            fasade.material = patinaResult.material
+            fasade.material.needsUpdate = true
+        }
 
         // const helper = new VertexNormalsHelper(fasade, 100, 0xff00ff);
         // this.scene.add(helper);
