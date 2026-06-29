@@ -21,6 +21,7 @@ import {
   reactive,
   onBeforeMount,
   onBeforeUnmount,
+  nextTick,
 } from "vue";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
@@ -77,6 +78,7 @@ const fasadeProps = computed(() =>
 );
 
 let currentEditableOption = ref<String>("surface");
+const mainContainer = ref<HTMLElement | null>(null);
 
 const currentSurfaceData = ref<Object>({});
 const currentMillingData = ref<Object>({});
@@ -443,8 +445,21 @@ const millingStatus = computed(() => {
 });
 
 /** Выбор панели редактирования фрезеровки или цвета, если такая опция существует */
-const setCurrentEditableOption = (name: String) => {
+const setCurrentEditableOption = async (name: String) => {
   currentEditableOption.value = name;
+  await nextTick();
+  requestAnimationFrame(() => {
+    if (!mainContainer.value) return;
+    const list = mainContainer.value.querySelector(
+      '.material-config_list__details_content, .material-config_list'
+    ) as HTMLElement | null;
+    const activeEl = list?.querySelector('.active') as HTMLElement | null;
+    if (!activeEl || !list) return;
+    list.scrollTop =
+      activeEl.getBoundingClientRect().top -
+      list.getBoundingClientRect().top +
+      list.scrollTop;
+  });
 };
 
 const update = () => {
@@ -790,7 +805,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="container">
+  <div class="container" ref="mainContainer">
     <div class="container__header">
       <h3>Конфигурация фасада {{ props.tabIndex + 1 }}</h3>
       <div class="container__header--params">
