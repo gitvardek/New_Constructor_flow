@@ -620,11 +620,7 @@ onUnmounted(() => {
   transition: 0.15s;
 }
 
-// .search {
-//   width: 95%;
-//   border-radius: 15px;
-//   padding: 10px 15px;
-//   background-color: $stroke;
-//   font-size: 1.4rem;
-// }
+.accordion {
+  padding: 1rem 1.5rem;
+}
 </style>

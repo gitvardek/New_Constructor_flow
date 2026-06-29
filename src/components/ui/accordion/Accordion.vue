@@ -1,15 +1,27 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted, nextTick, watch } from "vue";
 
-// defineProps<{
-//   title: string;
-// }>();
+type IProps = {
+  open: boolean
+}
+
+const props = withDefaults(defineProps<IProps>(), {
+  open: false
+})
+
 
 const isOpen = ref(false);
 const contentRef = ref<HTMLElement | null>(null);
 
+const emit = defineEmits<{
+  (e: 'toggle', value: boolean): void
+}>()
+
 const toggle = async () => {
   isOpen.value = !isOpen.value;
+
+  emit('toggle', isOpen.value);
+
   await nextTick();
 
   const content = contentRef.value;
@@ -18,7 +30,7 @@ const toggle = async () => {
   if (isOpen.value) {
     content.style.maxHeight = `${content.scrollHeight}px`;
     content.addEventListener('transitionend', () => {
-      if (isOpen.value) content.style.maxHeight = 'none'; // ← ключевое
+      if (isOpen.value) content.style.maxHeight = 'none';
     }, { once: true });
   } else {
     content.style.maxHeight = `${content.scrollHeight}px`;
@@ -27,13 +39,23 @@ const toggle = async () => {
     });
   }
 };
-// onMounted(() => {
-//   const content = contentRef.value;
-//   if (content) {
-//     content.style.overflow = "hidden";
-//     content.style.maxHeight = "0px";
-//   }
-// });
+
+watch(() => props.open, (value) => {
+  if (value !== isOpen.value) toggle();
+});
+
+onMounted(async () => {
+  if (!props.open) return;
+
+  isOpen.value = true;
+  await nextTick();
+
+  const content = contentRef.value;
+  if (!content) return;
+
+  content.style.maxHeight = 'none'; // без анимации, сразу открыто
+});
+
 </script>
 
 <template>
@@ -55,8 +77,7 @@ const toggle = async () => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin: 4px 4px 4px 0px;
-  padding: clamp(9px, 0.78125vw + 1px, 15px);
+  // padding: clamp(9px, 0.78125vw + 1px, 15px);
   border: 1px solid #a3a9b5;
   border-radius: 15px;
   font-family: Gilroy;
@@ -88,8 +109,6 @@ const toggle = async () => {
       &::before {
         transform: rotate(-90deg);
       }
-
-      //   transform: rotate(180deg);
     }
   }
 
