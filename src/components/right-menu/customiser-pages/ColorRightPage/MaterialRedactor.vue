@@ -21,6 +21,7 @@ import {
   reactive,
   onBeforeMount,
   onBeforeUnmount,
+  nextTick,
 } from "vue";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
@@ -72,7 +73,12 @@ const materialList = ref(null);
 const productData = ref(null);
 const productId = ref(null);
 
+const fasadeProps = computed(() =>
+  productData.value?.PROPS?.CONFIG?.FASADE_PROPS?.[props.tabIndex]
+);
+
 let currentEditableOption = ref<String>("surface");
+const mainContainer = ref<HTMLElement | null>(null);
 
 const currentSurfaceData = ref<Object>({});
 const currentMillingData = ref<Object>({});
@@ -439,8 +445,21 @@ const millingStatus = computed(() => {
 });
 
 /** Выбор панели редактирования фрезеровки или цвета, если такая опция существует */
-const setCurrentEditableOption = (name: String) => {
+const setCurrentEditableOption = async (name: String) => {
   currentEditableOption.value = name;
+  await nextTick();
+  requestAnimationFrame(() => {
+    if (!mainContainer.value) return;
+    const list = mainContainer.value.querySelector(
+      '.material-config_list__details_content, .material-config_list'
+    ) as HTMLElement | null;
+    const activeEl = list?.querySelector('.active') as HTMLElement | null;
+    if (!activeEl || !list) return;
+    list.scrollTop =
+      activeEl.getBoundingClientRect().top -
+      list.getBoundingClientRect().top +
+      list.scrollTop;
+  });
 };
 
 const update = () => {
@@ -785,7 +804,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="container">
+  <div class="container" ref="mainContainer" >
     <div class="container__header">
       <h3>Конфигурация фасада {{ props.tabIndex + 1 }}</h3>
       <div class="container__header--params">
@@ -854,22 +873,22 @@ onBeforeUnmount(() => {
     </div>
 
     <SurfaceRedactor v-if="currentEditableOption === 'surface'" :materialList="materialList" :tabIndex="props.tabIndex"
-      @select_material="onSelectMaterial" />
+      :selectedId="fasadeProps?.COLOR" @select_material="onSelectMaterial" />
 
     <MillingRedactor v-if="currentEditableOption === 'milling'" :millingList="millingList" :tabIndex="props.tabIndex"
-      @select_milling="onSelectMilling" />
+      :selectedId="fasadeProps?.MILLING" @select_milling="onSelectMilling" />
 
     <ColorRedactor v-if="currentEditableOption === 'palette'" :paletteList="paletteList" :tabIndex="props.tabIndex"
-      @select_color="onSelectPalette" />
+      :selectedId="fasadeProps?.PALETTE" @select_color="onSelectPalette" />
 
     <PatinaRedactor v-if="currentEditableOption === 'patina'" :patinaList="patinaList" :tabIndex="props.tabIndex"
-      @select_patina="onSelectPatina" />
+      :selectedId="fasadeProps?.PATINA" @select_patina="onSelectPatina" />
 
     <GlassRedactor v-if="currentEditableOption === 'glass'" :glassList="glassList" :tabIndex="props.tabIndex"
-      @select_glass="onSelectGlass" />
+      :selectedId="fasadeProps?.GLASS" @select_glass="onSelectGlass" />
 
     <ShowcaseRedactor v-if="currentEditableOption === 'showcase'" :showcaseList="showcaseList"
-      :tabIndex="props.tabIndex" @select_showcase="onSelectShowcase" />
+      :selectedId="fasadeProps?.SHOWCASE" :tabIndex="props.tabIndex" @select_showcase="onSelectShowcase" />
   </div>
 </template>
 

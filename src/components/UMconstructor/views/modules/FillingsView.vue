@@ -8,7 +8,8 @@ import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import ConfigurationOption from "@/components/right-menu/customiser-pages/ColorRightPage/ConfigurationOption.vue";
 import Handles from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/Handles.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { computed, onBeforeUnmount, onMounted, ref, toRefs, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, toRefs, watch } from "vue";
+import FillingsInsertPanel from "@/components/UMconstructor/views/modules/FillingsInsertPanel.vue";
 import { useFigureRightPage } from "@/utils/useFigureRightPage";
 import {
   FillingObject,
@@ -65,19 +66,8 @@ const step = ref<number>(1);
 
 const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 
-// Аккордеон для групп наполнений: открыта только одна группа
-const openedFillingGroupKey = ref<string | number | null>(null);
-
-const toggleFillingGroup = (key: string | number, event: Event) => {
-  const details = event.currentTarget as HTMLDetailsElement;
-  // Если только что открыли эту группу — закрываем остальные
-  if (details.open) {
-    openedFillingGroupKey.value = key;
-  } else if (openedFillingGroupKey.value === key) {
-    openedFillingGroupKey.value = null;
-  }
-  filteredMaterialList.value = [];
-};
+// ID группы внутренних ящиков для различения в UI
+const INNER_DRAWER_IDS = [15222587, 2166308];
 
 const { module, UMconstructor } = toRefs(props);
 const { createSurfaceList } = useFigureRightPage();
@@ -86,20 +76,6 @@ const createFacadeData = (fasadeIndex?: number) => {
   UMconstructor?.value?.FASADES.createFacadeData(fasadeIndex);
 };
 
-//Поиск по элементам наполнения
-const filteredMaterialList = ref<Array>([]); // отфильтрованный массив поиска
-const isSearch = computed(() => {
-  return filteredMaterialList.value.length > 0;
-});
-const onSearchChange = (e, totalMaterialList) => {
-  const query = e.target.value.trim();
-  if (!query) { filteredMaterialList.value = []; return; }
-  const words = query.toLowerCase().split(/\s+/);
-  filteredMaterialList.value = totalMaterialList.filter((item) => {
-    const name = item.NAME.toLowerCase();
-    return words.every((word) => name.includes(word));
-  });
-};
 
 const openFasadeSelector = (
   sec: number,
@@ -271,24 +247,22 @@ const showCurrentCol = (
 };
 
 const handleCellSelect = () => {
+  if (mode.value !== 'config') return;
   const { sec, cell, row, extra, item } = selectedFilling.value;
-  //Задержка нужна для того, чтоб рендер аккордионов обновился
+  // Задержка нужна для того, чтоб рендер успел обновить DOM
   UMconstructor?.value?.debounce(
     "handleCellSelectSectionFillings",
     () => {
       let idTag = `module_${sec}`;
 
       if (cell !== null) idTag += `_${cell}`;
-
       if (row !== null) idTag += `_${row}`;
-
       if (extra !== null) idTag += `_${extra}`;
-
       if (item !== null) idTag += ` ${item}`;
 
-      let domElem = document.getElementById(idTag);
+      const domElem = document.getElementById(idTag);
       if (domElem) {
-        domElem.scrollIntoView();
+        domElem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     },
     10,
@@ -359,13 +333,14 @@ watch(
   () => {
     selectedFilling.value =
       UMconstructor?.value?.UM_STORE.getSelected("fillings");
-
   },
 );
 
 watch(
   () => selectedFilling.value,
   () => {
+    handleCellSelect();
+
     const { sec, cell, row, extra, item } = selectedFilling.value;
     if (
       currentFasadeMaterial.value &&
@@ -427,95 +402,12 @@ watch(
       </article>
     </div>
 
-    <div class="UM splitter-container--product-data" v-if="mode === 'add'">
-      <div class="UM accordion accordion-fillings_list" v-if="fillings">
-        <div
-          class="UM splitter-container--product-items"
-          v-for="(fillingGroup, key) in fillings"
-          :key="key + fillingGroup.groupName"
-        >
-          <details
-            class="UM item-group"
-            :open="openedFillingGroupKey === key"
-            @toggle="toggleFillingGroup(key, $event)"
-          >
-            <summary>
-              <h3 class="UM item-group__title">
-                {{ fillingGroup.groupName }}
-              </h3>
-            </summary>
-
-            <div class="UM search">
-              <input
-                v-if="openedFillingGroupKey === key"
-                class="UM search--input"
-                type="text"
-                placeholder="Поиск"
-                @input="(value) => onSearchChange(value, fillingGroup.items)"
-              />
-            </div>
-
-            <div class="UM item-group-wrapper">
-              <ul class="list">
-                <!-- Все возможные материалы -->
-                <ul
-                  v-if="!isSearch"
-                  :class="['item-group-color']"
-                  style
-                  v-for="(filling, key1) in fillingGroup.items"
-                  :key="key1 + filling.NAME"
-                  @click="
-                    UMconstructor.FILLINGS.addFilling(
-                      filling,
-                      fillingGroup.groupID,
-                      module,
-                    )
-                  "
-                >
-                  <li class="item-group-name">
-                    <img
-                      class="name__bg"
-                      :src="_URL + filling.PREVIEW_PICTURE"
-                      :alt="filling.NAME"
-                    />
-                    <p class="name__text">
-                      {{ filling.NAME }}
-                    </p>
-                  </li>
-                </ul>
-
-                <!-- отфильтрованные материалы-->
-                <ul
-                  v-else
-                  :class="['item-group-color']"
-                  style
-                  v-for="(filling, key2) in filteredMaterialList"
-                  :key="key2 + filling.NAME"
-                  @click="
-                    UMconstructor.FILLINGS.addFilling(
-                      filling,
-                      fillingGroup.groupID,
-                      module,
-                    )
-                  "
-                >
-                  <li class="item-group-name">
-                    <img
-                      class="name__bg"
-                      :src="_URL + filling.PREVIEW_PICTURE"
-                      :alt="filling.NAME"
-                    />
-                    <p class="name__text">
-                      {{ filling.NAME }}
-                    </p>
-                  </li>
-                </ul>
-              </ul>
-            </div>
-          </details>
-        </div>
-      </div>
-    </div>
+    <FillingsInsertPanel
+      v-if="mode === 'add'"
+      :fillings="fillings"
+      :module="module"
+      :UMconstructor="UMconstructor"
+    />
 
     <div class="splitter-container--product-data" v-if="mode === 'config'">
       <section class="actions-wrapper">
@@ -552,24 +444,34 @@ watch(
               v-if="section.fillings?.length"
               v-for="(filling, fillingIndex) in section.fillings"
               :key="fillingIndex"
+              :id="`module_${secIndex} ${filling.id}`"
               :class="[
                 'actions-items--container',
                 {
                   active:
                     secIndex === selectedFilling.sec &&
-                    fillingIndex === selectedFilling.item - 1,
+                    selectedFilling.cell === null &&
+                    filling.id === selectedFilling.item,
                 },
               ]"
             >
               <article class="actions-items actions-items--left">
                 <div class="actions-items--left-wrapper">
                   <div class="actions-items--title">
-                    <p class="actions-title actions-title--part">
+                    <p
+                      :class="[
+                        'actions-title',
+                        'actions-title--part',
+                        { 'actions-title--inner-drawer': INNER_DRAWER_IDS.includes(filling.productGroupID) },
+                      ]"
+                      @click="showCurrentCol(secIndex, null, null, null, filling.id)"
+                    >
                       {{ filling.name }} №{{ filling.id }}
                     </p>
+
                     <button
                       class="no-select actions-btn actions-icon"
-                      @click="
+                      @click.stop="
                         UMconstructor.FILLINGS.deleteFilling(
                           secIndex,
                           fillingIndex,
@@ -586,7 +488,19 @@ watch(
                 </div>
               </article>
 
-              <article class="actions-items actions-items--right">
+              <!-- Внутренний ящик: только метка о принадлежности, позиция меняется перетаскиванием -->
+              <article
+                v-if="INNER_DRAWER_IDS.includes(filling.productGroupID)"
+                class="actions-items actions-items--right"
+              >
+                <div class="actions-items--right-items">
+                  <p class="actions-title actions-title--part actions-title--muted">
+                    Встроен во внешний ящик · {{ filling.width }}×{{ filling.height }} мм
+                  </p>
+                </div>
+              </article>
+
+              <article v-else class="actions-items actions-items--right">
                 <div class="actions-items--right-items">
                   <div class="actions-items--numbers">
                     <div class="actions-items--width">
@@ -801,14 +715,24 @@ watch(
                   <div
                     v-for="(filling, fillingIndex) in cell.fillings"
                     :key="fillingIndex"
-                    :class="'actions-items--container'"
+                    :id="`module_${secIndex}_${cellIndex} ${filling.id}`"
+                    :class="[
+                      'actions-items--container',
+                      {
+                        active:
+                          secIndex === selectedFilling.sec &&
+                          cellIndex === selectedFilling.cell &&
+                          selectedFilling.row === null &&
+                          filling.id === selectedFilling.item,
+                      },
+                    ]"
                   >
                     <article class="actions-items actions-items--left">
                       <div class="actions-items--left-wrapper">
                         <div class="actions-items--title">
                           <button
                             class="no-select actions-btn actions-icon"
-                            @click="
+                            @click.stop="
                               UMconstructor.FILLINGS.deleteFilling(
                                 secIndex,
                                 fillingIndex,
@@ -822,7 +746,10 @@ watch(
                               alt=""
                             />
                           </button>
-                          <p class="actions-title actions-title--part">
+                          <p
+                            class="actions-title actions-title--part"
+                            @click="showCurrentCol(secIndex, cellIndex, null, null, filling.id)"
+                          >
                             {{ filling.name }} №{{ filling.id }}
                           </p>
                         </div>
@@ -1054,6 +981,7 @@ watch(
                       <div
                         v-for="(filling, fillingIndex) in row.fillings"
                         :key="fillingIndex"
+                        :id="`module_${secIndex}_${cellIndex}_${rowIndex} ${filling.id}`"
                         :class="[
                           'actions-items--container',
                           {
@@ -1061,7 +989,8 @@ watch(
                               secIndex === selectedFilling.sec &&
                               cellIndex === selectedFilling.cell &&
                               rowIndex === selectedFilling.row &&
-                              fillingIndex === selectedFilling.item,
+                              selectedFilling.extra === null &&
+                              filling.id === selectedFilling.item,
                           },
                         ]"
                       >
@@ -1070,7 +999,7 @@ watch(
                             <div class="actions-items--title">
                               <button
                                 class="no-select actions-btn actions-icon"
-                                @click="
+                                @click.stop="
                                   UMconstructor.FILLINGS.deleteFilling(
                                     secIndex,
                                     fillingIndex,
@@ -1085,7 +1014,10 @@ watch(
                                   alt=""
                                 />
                               </button>
-                              <p class="actions-title actions-title--part">
+                              <p
+                                class="actions-title actions-title--part"
+                                @click="showCurrentCol(secIndex, cellIndex, rowIndex, null, filling.id)"
+                              >
                                 {{ filling.name }} №{{ filling.id }}
                               </p>
                             </div>
@@ -1201,6 +1133,7 @@ watch(
                             >
                               <div class="actions-inputs">
                                 <p class="actions-title">Высота фасада</p>
+                    
                                 <div :class="['actions-input--container']">
                                   <input
                                     type="number"
@@ -1324,6 +1257,7 @@ watch(
                           <div
                             v-for="(filling, fillingIndex) in extra.fillings"
                             :key="fillingIndex"
+                            :id="`module_${secIndex}_${cellIndex}_${rowIndex}_${extraIndex} ${filling.id}`"
                             :class="[
                               'actions-items--container',
                               {
@@ -1332,7 +1266,7 @@ watch(
                                   cellIndex === selectedFilling.cell &&
                                   rowIndex === selectedFilling.row &&
                                   extraIndex === selectedFilling.extra &&
-                                  fillingIndex === selectedFilling.item,
+                                  filling.id === selectedFilling.item,
                               },
                             ]"
                           >
@@ -1341,7 +1275,7 @@ watch(
                                 <div class="actions-items--title">
                                   <button
                                     class="no-select actions-btn actions-icon"
-                                    @click="
+                                    @click.stop="
                                       UMconstructor.FILLINGS.deleteFilling(
                                         secIndex,
                                         fillingIndex,
@@ -1357,7 +1291,10 @@ watch(
                                       alt=""
                                     />
                                   </button>
-                                  <p class="actions-title actions-title--part">
+                                  <p
+                                    class="actions-title actions-title--part"
+                                    @click="showCurrentCol(secIndex, cellIndex, rowIndex, extraIndex, filling.id)"
+                                  >
                                     {{ filling.name }} №{{ filling.id }}
                                   </p>
                                 </div>
@@ -1521,7 +1458,7 @@ watch(
 
 <style scoped lang="scss">
 .accordion {
-  border: unset;
+  // border: unset;
 
   &-fillings_list {
     gap: 1rem;
@@ -1542,6 +1479,7 @@ watch(
 }
 .config {
   max-width: 110px;
+  background-color: $white;
 }
 .actions {
   &-header {
@@ -1588,5 +1526,17 @@ watch(
   &-inputs {
     justify-content: space-between;
   }
+}
+
+
+.actions-title--inner-drawer {
+  color: #888;
+  font-style: italic;
+}
+
+.actions-title--muted {
+  color: #999;
+  font-size: 0.85em;
+  padding: 0.5rem 0;
 }
 </style>

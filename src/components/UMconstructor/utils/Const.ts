@@ -18,5 +18,5 @@ export const UM_PARAMS = {
     BACKGROUND_COLOR: "#FFFFFF",
     HOLE_OFFSET: 10,// Отступ от краёв
     SECTOR_PADDING: 0,
-    RASPASHNOY_ID: 1942652,
+    RASPASHNOY_ID: 1942652, // ID распашного шкафа
 }

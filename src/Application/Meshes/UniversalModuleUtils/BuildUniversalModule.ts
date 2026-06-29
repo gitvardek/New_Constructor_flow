@@ -15,7 +15,7 @@ import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
-import {TFasadeProp} from "@/types/types";
+import { TFasadeProp } from "@/types/types";
 
 export class BuildUniversalModule extends BuildProduct {
 
@@ -32,8 +32,7 @@ export class BuildUniversalModule extends BuildProduct {
         width: number,
         height: number,
         depth: number
-    }, moduleParams?: GridModule)
-    {
+    }, moduleParams?: GridModule) {
 
         // Режим чертежа
         const drowMode = this.menuStore.getDrowModeValue
@@ -681,9 +680,11 @@ export class BuildUniversalModule extends BuildProduct {
                         if (!isModel) {
                             PROPS.JSON_FILLINGS.push(productFilling)
                             const edge = this.edge_builder.createEdge(productFilling);
+                            const deffEdge = this.edge_builder.createVisibleEdge(productFilling);
                             const clonePos = productFilling.position.clone()
                             edge.position.set(clonePos.x, clonePos.y, clonePos.z)
-                            group.add(productFilling, edge)
+                            deffEdge.position.set(clonePos.x, clonePos.y, clonePos.z)
+                            group.add(productFilling, edge, deffEdge)
                         }
 
                         group.add(productFilling)

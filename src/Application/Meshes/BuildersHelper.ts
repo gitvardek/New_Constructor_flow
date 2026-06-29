@@ -17,7 +17,7 @@ export class BuildersHelper extends GlobalsData {
 
     constructor(root: THREETypes.TApplication) {
 
-        super();
+        super(root._appData);
         this.resources = root._resources
         this.scene = root._scene
         this.room = root._roomManager

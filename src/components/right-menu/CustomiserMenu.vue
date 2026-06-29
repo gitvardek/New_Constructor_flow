@@ -171,11 +171,12 @@ onUnmounted(() => {
   position: absolute;
   top: 0px;
   right: 0px;
-  padding: 0.7rem;
+  padding: 0 0.7rem;
   background: $white;
   box-shadow: 0px 0px 10px 0px #3030301a;
   z-index: 10;
   border-radius: 5px;
+  max-height: calc(100vh - var(--header-height));
   // transition: 0.5s ease-in-out;
   // transform: translateZ(-10px);
   // box-sizing: border-box;

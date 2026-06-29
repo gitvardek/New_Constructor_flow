@@ -1,6 +1,7 @@
 //@ts-nocheck
 
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
+import type { Application } from "@/Application/Core/Application.ts";
 import { UM_PARAMS } from "./../utils/Const.ts";
 import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManager.ts";
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
@@ -54,13 +55,14 @@ export default class UMconstructorClass {
     ALERT_FOOTER_REF: Ref = ref()
     DEBOUNCES: {}
 
-    constructor() {
+    constructor(root: Application) {
         this.CONST = UM_PARAMS
-        this.BUILDER = new UniversalGeometryBuilder(<Application>{}).buildProduct
+        this.BUILDER = root._universalGeometryBuilder?.buildProduct
 
         this.FASADES = new FasadesManager(this)
         this.FILLINGS = new FillingsManager(this)
         this.LOOPS = new LoopsManager(this)
+        this.FILLINGS.initCollisionRules()
         this.PROFILES = new ProfilesManager(this)
         this.SECTIONS = new SectionsManager(this)
         this.SIDECOLORS = new SidecolorsManager(this)
@@ -667,7 +669,11 @@ export default class UMconstructorClass {
                 return newSection
             }
 
-            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID && moduleGrid.sections.length > 1) { // <=====672
+            /** @Для_Распашного_класса */
+
+            //moduleGrid.sections.length > 1
+
+            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID ) {
                 const equalWidth = Math.floor(sectionsTotalWidth / moduleGrid.sections.length);
                 const remainder = sectionsTotalWidth - equalWidth * moduleGrid.sections.length;
                 moduleGrid.sections.forEach((section, i) => {

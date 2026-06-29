@@ -20,7 +20,7 @@ export class Filters extends GlobalsData {
     private readonly emptyHandleID = 69920
 
     constructor(root: THREETypes.TApplication) {
-        super();
+        super(root._appData);
         this.root = root
     }
 

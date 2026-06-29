@@ -38,16 +38,23 @@ const getFillings = computed(() => {
   fillingsGroups.map(groupID => {
     let fillingsGroup = UMconstructor?.value?.APP.CATALOG.SECTIONS[groupID]
 
-    if (!fillingsGroup.PRODUCTS) return // Проверка на наличие PRODUCTS
+    console.log(fillingsGroup, 'fillingsGroup')
+
+    if (!fillingsGroup.PRODUCTS) return
 
     objectsMatrix.push({
       groupName: fillingsGroup.NAME,
       groupID: fillingsGroup.ID,
       items: fillingsGroup.PRODUCTS.map(item => {
-        return UMconstructor?.value?.APP.CATALOG.PRODUCTS[item]
-      }).filter(item => item)
+        if (!item) return
+        const element = UMconstructor?.value?.APP.CATALOG.PRODUCTS[item];
+        element.groupID = fillingsGroup.ID
+        return element
+      }).filter(Boolean)
     })
   })
+
+  console.log(objectsMatrix, 'objectsMatrix')
 
   return objectsMatrix;
 });
@@ -55,7 +62,8 @@ const getFillings = computed(() => {
 </script>
 
 <template>
-  <div v-if="mode === 'module'">
+  <div v-if="mode === 'module'" class="right-panel">
+
     <h1 class="UM no-select">Секции</h1>
 
     <SectionsView ref="optionsRef" class="UM constructor2d-container--right--content"
@@ -63,7 +71,7 @@ const getFillings = computed(() => {
       :step="step" :UMconstructor="UMconstructor" />
   </div>
 
-  <div v-if="mode === 'fasades'">
+  <div v-if="mode === 'fasades'" class="right-panel">
     <h1 class="UM no-select">Фасады</h1>
 
     <FasadesView ref="optionsRef" class="UM constructor2d-container--right--content"
@@ -71,7 +79,7 @@ const getFillings = computed(() => {
       :step="step" :UMconstructor="UMconstructor" />
   </div>
 
-  <div v-if="mode === 'fillings'">
+  <div v-if="mode === 'fillings'" class="right-panel">
     <h1 class="UM no-select">Наполнение</h1>
 
     <FillingsView ref="optionsRef" class="UM constructor2d-container--right--content"
@@ -81,4 +89,8 @@ const getFillings = computed(() => {
 
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.right-panel {
+  height: 100%;
+}
+</style>

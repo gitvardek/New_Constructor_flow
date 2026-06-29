@@ -2,6 +2,7 @@
 
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 import * as THREE from "three";
 import {
     GridModule,
@@ -10,12 +11,10 @@ import {
     GridRowExtra,
     GridSection, TSelectedCell
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 
 export default class SectionsManager {
     scope: UMconstructorClass
-    private readonly debounceTimer = 1000
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope
@@ -93,8 +92,17 @@ export default class SectionsManager {
         }
 
         /**
-        *  Автоматическое добавление дверей при добавлении секции
-        */
+         *  Автоматическое добавление дверей при добавлении секции
+         */
+
+        // if (grid.productID === UM_PARAMS.RASPASHNOY_ID && !grid.isSlidingDoors && section?.fasades?.length > 0) {
+        //     for (let i = 0; i < count; i++) {
+        //         const newSecIndex = secIndex + 1 + i;
+        //         if (!grid.sections[newSecIndex].fasades?.length) {
+        //             this.scope.FASADES.addDoor(newSecIndex, grid, false);
+        //         }
+        //     }
+        // }
 
         if (!grid.isSlidingDoors && section?.fasades?.length > 0) {
             for (let i = 0; i < count; i++) {
@@ -104,10 +112,9 @@ export default class SectionsManager {
                 }
             }
         }
-        if (reset) {
-            this.scope.reset(grid)
-        }
 
+        if (reset)
+            this.scope.reset(grid)
     };
 
     addCell(
@@ -687,7 +694,7 @@ export default class SectionsManager {
             //grid = clone;
 
             this.scope.reset(grid)
-        }, this.debounceTimer)
+        }, 1000)
 
     };
 
@@ -970,7 +977,7 @@ export default class SectionsManager {
             grid = clone;
 
             this.scope.reset(grid)
-        }, this.debounceTimer)
+        }, 1000)
     };
 
     updateCellRowWidth(
@@ -1048,7 +1055,7 @@ export default class SectionsManager {
             grid = clone;
 
             this.scope.reset(grid)
-        }, this.debounceTimer)
+        }, 1000)
 
     };
 
@@ -1142,7 +1149,7 @@ export default class SectionsManager {
             grid = clone;
 
             this.scope.reset(grid)
-        }, this.debounceTimer)
+        }, 1000)
     };
 
     deleteSection(grid: GridModule = this.scope.UM_STORE.getUMGrid(), secIndex: number, reset: boolean = false) {
@@ -1181,6 +1188,7 @@ export default class SectionsManager {
         }
 
         this.scope.LOOPS.calcLoops(next ? secIndex + 1 : secIndex - 1, grid);
+
         if (grid.sections.length > 1) {
             grid.sections.splice(secIndex, 1);
         }

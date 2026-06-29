@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 // @ts-nocheck 31
-import { defineProps, ref, computed, defineEmits, onMounted } from "vue";
+import { defineProps, ref, computed, defineEmits, onMounted, nextTick } from "vue";
 import { _URL } from "@/types/constants";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
@@ -13,6 +13,10 @@ import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 const props = defineProps({
   millingList: Array,
   tabIndex: Number,
+  selectedId: {
+    type: Number,
+    default: null,
+  },
   tempWork: {
     type: Boolean,
     default: false,
@@ -26,6 +30,7 @@ const modelState = useModelState();
 const { getIntegratedHandleControllerData } = useHandlesAction();
 
 const selectMilling = ref<any>(null);
+const listRef = ref<HTMLElement | null>(null);
 
 let filteredMillingList = ref<Array>([]);
 const isSearch = computed(() => {
@@ -71,14 +76,24 @@ const changeMilling = (milling) => {
 };
 
 const onSearchChange = (e) => {
-  const query = e.target.value.trim();
-  if (!query) { filteredMillingList.value = []; return; }
-  const words = query.toLowerCase().split(/\s+/);
-  filteredMillingList.value = props.millingList.filter((item) => {
-    const name = item.NAME.toLowerCase();
-    return words.every((word) => name.includes(word));
-  });
+  const query = e.target.value.toLowerCase();
+  const filteredData = props.millingList.filter(
+    (item) => item.NAME.toLowerCase().includes(query) // Проверяем, содержит ли имя запрос
+  );
+
+  filteredMillingList.value = filteredData;
+  if (e.target.value === "") filteredMillingList.value = [];
 };
+
+onMounted(() => {
+  nextTick(() => {
+    const activeEl = listRef.value?.querySelector('.active') as HTMLElement | null;
+    if (!activeEl || !listRef.value) return;
+    listRef.value.scrollTop = activeEl.getBoundingClientRect().top
+      - listRef.value.getBoundingClientRect().top
+      + listRef.value.scrollTop;
+  });
+});
 </script>
 
 <template>
@@ -86,12 +101,13 @@ const onSearchChange = (e) => {
     <input class="search" type="text" placeholder="Поиск" @input="onSearchChange" />
 
     <div class="material-config_list">
-      <ul class="material-config_list__details_content">
+      <ul class="material-config_list__details_content" ref="listRef">
         <!-- Все виды фрезировок -->
         <li v-if="!isSearch" v-for="(milling, index) in props.millingList" :key="index">
           <Tooltip :key="index" :position="top" :theme="'dark'">
             <template #trigger>
-              <div class="material-config_item" @click="changeMilling(milling)">
+              <div class="material-config_item" @click="changeMilling(milling)"
+                :class="{ active: milling.ID === selectedId }">
                 <img class="material-config_item__img" :src="_URL + milling.PREVIEW_PICTURE" alt="" />
               </div>
             </template>
@@ -107,7 +123,8 @@ const onSearchChange = (e) => {
         <li v-else v-for="milling in filteredMillingList">
           <Tooltip :key="index" :position="top" :theme="'dark'">
             <template #trigger>
-              <div class="material-config_item" @click="changeMilling(milling)">
+              <div class="material-config_item" @click="changeMilling(milling)"
+                :class="{ active: milling.ID === selectedId }">
                 <img class="material-config_item__img" :src="_URL + milling.PREVIEW_PICTURE" alt="" />
               </div>
             </template>
@@ -125,5 +142,12 @@ const onSearchChange = (e) => {
 </template>
 
 <style scoped lang="scss">
+.active {
+  background-color: $strong-grey;
+}
 
+.material-config_list__details_content {
+  // max-height: 55vh;
+  overflow-y: auto;
+}
 </style>

@@ -121,7 +121,6 @@ class Helpers {
         let minX = Infinity;
         let minY = Infinity;
 
-
         for (const shape of shapes) {
             if (!shape.data.isVerticalItem) {
                 const bounds = shape.graphic.getBounds();
@@ -162,7 +161,7 @@ class Helpers {
             return MIN_SECTION_HEIGHT
 
         const sBounds = sector.getBounds()
-        const sMin = this.convertToTen(this.getMmWidth(sBounds.minY))
+        const sMin = this.convertToTen(this.getMmHeight(sBounds.minY))
         return maxY - sMin + UM_PARAMS.SECTOR_PADDING
     }
 
@@ -172,7 +171,7 @@ class Helpers {
             return MIN_SECTION_HEIGHT
 
         const sBounds = sector.getBounds()
-        const sMax = this.convertToTen(this.getMmWidth(sBounds.maxY))
+        const sMax = this.convertToTen(this.getMmHeight(sBounds.maxY))
         return sMax - minY + UM_PARAMS.SECTOR_PADDING
     }
 
@@ -237,6 +236,9 @@ class Shape extends Helpers {
 
     private distanceGraphics: Graphics | null = null; // Для хранения линий расстояний
     private distanceLabels: Text[] = []; // Для хранения текстовых меток
+    private collisionExclusionRules: Array<{ prop: string; values: any[] }> = [];
+    private hasCustomSectorBounds: boolean = false; // Флаг: bounds заданы вручную, не сбрасывать при drag
+    containerShape: Shape | null = null; // Внешний ящик-контейнер; исключается из проверки коллизий
 
     constructor({
         type,
@@ -252,7 +254,10 @@ class Shape extends Helpers {
         getPixelWidth,
         dragActive,
         calcDrawersFasades,
-        checkLoopsCollision
+        checkLoopsCollision,
+        collisionExclusionRules,
+        customSectorBounds,
+        containerShape,
     }:
         {
             type: string,
@@ -267,6 +272,9 @@ class Shape extends Helpers {
             getPixelWidth?: () => void,
             calcDrawersFasades?: () => void,
             checkLoopsCollision?: () => void,
+            collisionExclusionRules?: Array<{ prop: string; values: any[] }>,
+            customSectorBounds?: TBounds,
+            containerShape?: Shape,
             dementionContainer?: Container,
             dragActive: boolean,
         }) {
@@ -275,7 +283,7 @@ class Shape extends Helpers {
         this.sector = sector
 
         this.type = type;
-        this.sectorBounds = this.getSectorBounds(sector);
+        this.sectorBounds = customSectorBounds ?? this.getSectorBounds(sector);
 
         this.graphic = new Graphics();
         this.highlightGraphics = new Graphics();
@@ -284,18 +292,33 @@ class Shape extends Helpers {
         this.select = select
         this.render = render
 
-        if (getMmWidth)
+        if (getMmWidth) {
             this.getMmWidth = getMmWidth
-        if (getMmHeight)
+        }
+        if (getMmHeight) {
             this.getMmHeight = getMmHeight
-        if (getPixelWidth)
+        }
+        if (getPixelWidth) {
             this.getPixelWidth = getPixelWidth
-        if (getPixelHeight)
+        }
+        if (getPixelHeight) {
             this.getPixelHeight = getPixelHeight
-        if (calcDrawersFasades)
+        }
+        if (calcDrawersFasades) {
             this.calcDrawersFasades = calcDrawersFasades
-        if (checkLoopsCollision)
+        }
+        if (checkLoopsCollision) {
             this.checkLoopsCollision = checkLoopsCollision
+        }
+        if (collisionExclusionRules) {
+            this.collisionExclusionRules = collisionExclusionRules
+        }
+        if (containerShape) {
+            this.containerShape = containerShape
+        }
+        if (customSectorBounds) {
+            this.hasCustomSectorBounds = true
+        }
 
         this.dementionContainer = dementionContainer
 
@@ -354,20 +377,32 @@ class Shape extends Helpers {
         }
     }
 
+    private isExcludedFromCollision(selfData: any, otherData: any): boolean {
+        return this.collisionExclusionRules.some(rule => {
+            if (selfData[rule.prop] === undefined || !rule.values.includes(selfData[rule.prop])) return false
+            if (rule.collisionWith === undefined) return true
+            const types = Array.isArray(rule.collisionWith) ? rule.collisionWith : [rule.collisionWith]
+            return types.includes(otherData?.type)
+        })
+    }
+
     // Настройка перетаскивания
     setupDraggable() {
         let dragging = false;
         let dragOffset = { x: 0, y: 0 };
         let originalPosition = { x: 0, y: 0 };
+        // Кэш на время перетаскивания: пересчёт при каждом pointermove дорог
+        let cachedShapes: Shape[] = null;
         const self = this;
 
         const pointerdown = (event, graphic) => {
             graphic.cursor = "grabbing";
             this.select("fillings", <TSelectedCell>{
-                sec: this.sector.secIndex,
-                cell: this.sector.cellIndex,
-                row: this.sector.rowIndex,
-                extra: this.sector.extraIndex
+                sec: this.data.sec,
+                cell: this.data.cell,
+                row: this.data.row,
+                extra: this.data.extra,
+                item: this.data.id,
             });
             dragging = true;
             originalPosition = {
@@ -379,9 +414,53 @@ class Shape extends Helpers {
                 y: graphic.position.y - event.global.y,
             };
             graphic.alpha = 0.7;
+
+            if (self.data.innerDrawerConstraint) {
+                // Внутренний ящик: движение ограничено пространством фасада внешнего ящика
+                const c = self.data.innerDrawerConstraint
+                self.sectorBounds = {
+                    x: self.getPixelWidth(c.x),
+                    y: self.getPixelHeight(c.startY),
+                    width: self.getPixelWidth(c.width),
+                    height: self.getPixelHeight(c.height),
+                }
+                // Коллизия только с другими внутренними ящиками в том же пространстве
+                const INNER_DRAWER_IDS = [15222587, 2166308]
+                cachedShapes = self.sector.shapes.filter(
+                    s => s !== self && INNER_DRAWER_IDS.includes(s.data?.productGroupID)
+                )
+            } else {
+                self.sectorBounds = self.getSectorBounds(self.sector);
+
+                if (self.data.fasade || self.data.isProfile) {
+                    const curentSec = self.UM_STORE.getUMGrid()?.sections?.[self.data.sec]
+                    const fasadesDrawers = curentSec?.fasadesDrawers ?? [];
+                    const sectionSector = fasadesDrawers[0]?.sector?.sections?.[0]
+                    if (sectionSector?.children) {
+                        cachedShapes = []
+                        sectionSector.children.forEach(child => {
+                            if (child.secIndex === self.data.sec && child.shapes)
+                                cachedShapes.push(...child.shapes)
+                        })
+                    } else {
+                        cachedShapes = self.sector.shapes
+                    }
+                } else {
+                    cachedShapes = self.sector.shapes
+                }
+
+                // Внешний ящик: внутренние ящики не участвуют в проверке коллизии
+                // (checkOverlap расширяет границы фасада и всегда видит overlap с внутренним ящиком)
+                const OUTER_DRAWER_IDS_PC = [5726092, 6560591]
+                if (cachedShapes && OUTER_DRAWER_IDS_PC.includes(self.data.productGroupID)) {
+                    const INNER_IDS_PC = [15222587, 2166308]
+                    cachedShapes = cachedShapes.filter(s => !INNER_IDS_PC.includes(s.data?.productGroupID))
+                }
+            }
         }
 
         const pointermove = (event, graphic) => {
+
             if (dragging) {
                 // Вычисляем новые позиции
                 const newY = event.global.y + dragOffset.y;
@@ -407,8 +486,12 @@ class Shape extends Helpers {
                     self.highlightGraphics.position.x = adjustedX;
                     let hasCollisionX = false;
 
-                    for (const otherShape of this.sector.shapes) {
-                        if (self !== otherShape && self.checkOverlap(otherShape, true)) {
+                    for (const otherShape of cachedShapes) {
+                        if (self !== otherShape
+                            && self.containerShape !== otherShape
+                            && !self.isExcludedFromCollision(self.data, otherShape.data)
+                            && !self.isExcludedFromCollision(otherShape.data, self.data)
+                            && self.checkOverlap(otherShape, true)) {
                             hasCollisionX = true;
                             break;
                         }
@@ -424,28 +507,16 @@ class Shape extends Helpers {
                     self.highlightGraphics.position.y = adjustedY;
                     let hasCollisionY = false;
 
-                    let shapes = this.sector.shapes
+                    for (const otherShape of cachedShapes) {
+                        if ((self !== otherShape && self.data !== otherShape.data)
+                            && self.containerShape !== otherShape
+                            && !self.isExcludedFromCollision(self.data, otherShape.data)
+                            && !self.isExcludedFromCollision(otherShape.data, self.data)
+                            && self.checkOverlap(otherShape)) {
 
-                    if (self.data.fasade || self.data.isProfile) {
-                        const curentSec = self.UM_STORE.getUMGrid()?.sections?.[self.data.sec]
-                        const fasadesDrawers = curentSec.fasadesDrawers ?? [];
-                        const sectionSector = fasadesDrawers[0]?.sector?.sections?.[0]
-
-                        if (sectionSector?.children) {
-                            let allShapes = []
-                            sectionSector.children.forEach(child => {
-                                if (child.secIndex === self.data.sec && child.shapes)
-                                    allShapes.push(...child.shapes)
-                            })
-                            shapes = allShapes
-                        }
-                    }
-
-                    for (const otherShape of shapes) {
-                        if ((self !== otherShape && self.data !== otherShape.data) && self.checkOverlap(otherShape)) {
-
-                            if ((self.data.fasade && otherShape.data.fasade) && (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
-                                continue;
+                            if ((self.data.fasade && otherShape.data.fasade) && 
+                            (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
+                            continue;
 
                             hasCollisionY = true;
 
@@ -496,8 +567,25 @@ class Shape extends Helpers {
                         self.graphic.position.y = currentY;
                         self.highlightGraphics.position.y = currentY;
                     }
+
+                    // Внешний ящик: двигаем только вложенные ящики этого конкретного внешнего
+                    const OUTER_DRAWER_IDS = [5726092, 6560591]
+                    if (OUTER_DRAWER_IDS.includes(self.data.productGroupID)) {
+                        const deltaY = self.graphic.position.y - currentY
+                        if (deltaY !== 0) {
+                            const INNER_DRAWER_IDS = [15222587, 2166308]
+                            for (const shape of self.sector.shapes) {
+                                if (INNER_DRAWER_IDS.includes(shape.data?.productGroupID) &&
+                                    shape.data?.innerDrawerConstraint?.outerDrawerGroupId === self.data.innerDrawerGroupId) {
+                                    shape.graphic.position.y += deltaY
+                                    shape.highlightGraphics.position.y += deltaY
+                                }
+                            }
+                        }
+                    }
                 }
             }
+
         }
 
         this.graphic.on("pointerdown", (event) => pointerdown(event, this.graphic));
@@ -508,6 +596,7 @@ class Shape extends Helpers {
         const endDrag = () => {
             if (dragging) {
                 dragging = false;
+                cachedShapes = null;
                 self.graphic.alpha = 1;
 
                 this.data.Mwidth = 600;
@@ -519,6 +608,25 @@ class Shape extends Helpers {
                 } else {
                     this.data.x = Math.round(this.getMmWidth(self.graphic.position.x));
                     this.data.y = Math.round(this.getMmHeight(self.graphic.position.y));
+                }
+
+                // Внешний ящик: сохраняем позиции только вложенных ящиков этого конкретного внешнего
+                const OUTER_DRAWER_IDS_ED = [5726092, 6560591]
+                if (OUTER_DRAWER_IDS_ED.includes(this.data.productGroupID)) {
+                    const newOuterBodyYMm = this.getMmHeight(self.graphic.position.y)
+                    const INNER_DRAWER_IDS_ED = [15222587, 2166308]
+                    for (const shape of this.sector.shapes) {
+                        if (INNER_DRAWER_IDS_ED.includes(shape.data?.productGroupID) &&
+                            shape.data?.innerDrawerConstraint?.outerDrawerGroupId === this.data.innerDrawerGroupId) {
+                            if (shape.data.position) {
+                                shape.data.position.x = Math.round(this.getMmWidth(shape.graphic.position.x))
+                                shape.data.position.y = Math.round(this.getMmHeight(shape.graphic.position.y))
+                            }
+                            if (shape.data.innerDrawerConstraint) {
+                                shape.data.innerDrawerConstraint.startY = newOuterBodyYMm - shape.data.innerDrawerConstraint.height
+                            }
+                        }
+                    }
                 }
 
                 if (this.data.fasade || this.data.isProfile) {
@@ -571,27 +679,8 @@ class Shape extends Helpers {
             let otherShapeWidth = otherShape.width
 
             if (['loop', 'vertical_shelf'].includes(otherShape.data.type)) {
-                // Проверка наложения прямоугольников
-                verticalCheck = (
-                    (
-                        thisPosX + thisWidth <= otherShapePosX + otherShapeWidth &&
-                        thisPosX + thisWidth >= otherShapePosX
-                    ) ||
-                    (
-                        thisPosX <= otherShapePosX + otherShapeWidth &&
-                        thisPosX >= otherShapePosX
-                    )
-                ) ||
-                    (
-                        (
-                            otherShapePosX + otherShapeWidth <= thisPosX + thisWidth &&
-                            otherShapePosX + otherShapeWidth >= thisPosX
-                        ) ||
-                        (
-                            otherShapePosX <= thisPosX + thisWidth &&
-                            otherShapePosX >= thisPosX
-                        )
-                    );
+                verticalCheck = thisPosX < otherShapePosX + otherShapeWidth
+                    && otherShapePosX < thisPosX + thisWidth;
             } else
                 verticalCheck = true;
 
@@ -609,10 +698,10 @@ class Shape extends Helpers {
                 thisHeight = this.data.fasade ? this.getPixelHeight(this.data.fasade.height + 4) : thisHeight
 
                 otherShapePosY = otherShape.data.fasade ? otherShape.graphic.position.y -
-                    this.getPixelHeight(otherShape.data.fasade.height - otherShape.data.fasade.manufacturerOffset - otherShape.data.height + 2)
+                    otherShape.getPixelHeight(otherShape.data.fasade.height - otherShape.data.fasade.manufacturerOffset - otherShape.data.height + 2)
                     : otherShapePosY
 
-                otherShapeHeight = otherShape.data.fasade ? this.getPixelHeight(otherShape.data.fasade.height + 4) : otherShapeHeight
+                otherShapeHeight = otherShape.data.fasade ? otherShape.getPixelHeight(otherShape.data.fasade.height + 4) : otherShapeHeight
 
                 if (!(this.data.isProfile && otherShape.data.isProfile)) {
                     if (this.data.isProfile && otherShape.data.fasade) {
@@ -621,33 +710,14 @@ class Shape extends Helpers {
                     }
 
                     if (otherShape.data.isProfile && this.data.fasade) {
-                        otherShapePosY = otherShape.graphic.position.y - this.getPixelHeight(otherShape.data.isProfile.TYPE_PROFILE === 'l' ? 0 : otherShape.data.isProfile.manufacturerOffset)
-                        otherShapeHeight = this.getPixelHeight(otherShape.data.isProfile.offsetFasades)
+                        otherShapePosY = otherShape.graphic.position.y - otherShape.getPixelHeight(otherShape.data.isProfile.TYPE_PROFILE === 'l' ? 0 : otherShape.data.isProfile.manufacturerOffset)
+                        otherShapeHeight = otherShape.getPixelHeight(otherShape.data.isProfile.offsetFasades)
                     }
                 }
             }
 
-            // Проверка наложения прямоугольников
-            horizontalCheck = (
-                (
-                    thisPosY + thisHeight <= otherShapePosY + otherShapeHeight &&
-                    thisPosY + thisHeight >= otherShapePosY
-                ) ||
-                (
-                    thisPosY <= otherShapePosY + otherShapeHeight &&
-                    thisPosY >= otherShapePosY
-                )
-            ) ||
-                (
-                    (
-                        otherShapePosY + otherShapeHeight <= thisPosY + thisHeight &&
-                        otherShapePosY + otherShapeHeight >= thisPosY
-                    ) ||
-                    (
-                        otherShapePosY <= thisPosY + thisHeight &&
-                        otherShapePosY >= thisPosY
-                    )
-                );
+            horizontalCheck = thisPosY < otherShapePosY + otherShapeHeight
+                && otherShapePosY < thisPosY + thisHeight;
 
         }
 
@@ -698,7 +768,7 @@ class Shape extends Helpers {
                     (
                         pxPos.x + this.width <= this.sectorBounds.x + this.sectorBounds.width &&
                         pxPos.x + this.width >= this.sectorBounds.x
-                    ) ||
+                    ) &&
                     (
                         pxPos.x <= this.sectorBounds.x + this.sectorBounds.width &&
                         pxPos.x >= this.sectorBounds.x
@@ -708,7 +778,7 @@ class Shape extends Helpers {
                     (
                         pxPos.y + this.height <= this.sectorBounds.y + this.sectorBounds.height &&
                         pxPos.y + this.height >= this.sectorBounds.y
-                    ) ||
+                    ) &&
                     (
                         pxPos.y <= this.sectorBounds.y + this.sectorBounds.height &&
                         pxPos.y >= this.sectorBounds.y
@@ -930,8 +1000,7 @@ class Shape extends Helpers {
             // Стрелка у объекта (у начала линии, указывает вверх, к объекту), с небольшим смещением вниз
             this.drawArrowhead(graphics, startX, startY, 'up');
             // Стрелка на краю сектора (внутри сектора, указывает вниз, от фигуры)
-            this.drawArrowhead(graphics, endX, endY, 'down'); // Увеличено смещение до 5 пикселей
-            this.drawArrowhead(graphics, startX, startY, 'up');
+            this.drawArrowhead(graphics, endX, endY, 'down');
 
             let distance = endY - startY
             const bottomText = new Text({
@@ -987,6 +1056,7 @@ class Section extends Helpers {
         this._drawDimensions = _drawDimensions;
         this.opacity = opacity;
 
+
         this.createSection();
     }
 
@@ -1035,7 +1105,7 @@ class Section extends Helpers {
         const highlightPath = this.createPath();
 
         if (data.type === "fasade") {
-
+            console.log(cellPath)
         }
 
         if (cellPath.error) {
@@ -1060,11 +1130,11 @@ class Section extends Helpers {
         const x = 0;
         const y = 0;
         // Начинаем с верхнего левого угла
-        path.moveTo(x, y); 
+        path.moveTo(x, y);
         // Верхний правый угол
-        path.lineTo(x + this.width, y); 
+        path.lineTo(x + this.width, y);
         // Нижний правый угол
-        path.lineTo(x + this.width, y + this.height); 
+        path.lineTo(x + this.width, y + this.height);
         // Нижний левый угол
         path.lineTo(x, y + this.height);
         // Закрываем путь, возвращаясь к начальной точке
@@ -1170,7 +1240,7 @@ class ShapeAdjuster extends Helpers {
 
             return acc
 
-        }, { maxX: -0, maxY: -0, minX: 0, minY: 0 })
+        }, { maxX: -Infinity, maxY: -Infinity, minX: Infinity, minY: Infinity })
 
         return colBounds
     }
@@ -1235,9 +1305,10 @@ class ShapeAdjuster extends Helpers {
                 //minY = minY - this.getPixelHeight(moduleData.moduleThickness - 2)
             }
 
-            let totalMax = this.getMmHeight(maxY - minY - height)
-            for (let i = 0; i < totalMax; i++) {
-                let pixel_i = this.getPixelHeight(i)
+            const mmToPixel = this.getPixelHeight(1)
+            const totalMax = this.getMmHeight(maxY - minY - height)
+            for (let i = 0; i < totalMax; i += this.step) {
+                const pixel_i = i * mmToPixel
                 const y = this.convertToTen(minY + (bounds.height - height) - pixel_i);
 
                 shape.graphic.position.x = x;
@@ -1360,10 +1431,12 @@ class ShapeAdjuster extends Helpers {
                 bottomStartY = findBottomMinY + this.getPixelHeight(shape.data.fasade.height - shape.data.height - manufacturerOffset - (moduleData.moduleThickness - 2) * 2)
             }*/
 
+            const mmToPixel = this.getPixelHeight(1)
+
             let findPositionTop = null
             let totalMax = this.getMmHeight(topHeight - height)
-            for (let i = 0; i < totalMax; i++) {
-                let pixel_i = this.getPixelHeight(i)
+            for (let i = 0; i < totalMax; i += this.step) {
+                const pixel_i = i * mmToPixel
                 const y = this.convertToTen(findTopMinY + (topHeight - height) - pixel_i);
 
                 shape.graphic.position.x = x;
@@ -1383,8 +1456,8 @@ class ShapeAdjuster extends Helpers {
 
             let findPositionBottom = null
             totalMax = this.getMmHeight(findBottomMaxY - findBottomMinY - height)
-            for (let i = 0; i < totalMax; i++) {
-                let pixel_i = this.getPixelHeight(i)
+            for (let i = 0; i < totalMax; i += this.step) {
+                const pixel_i = i * mmToPixel
                 const y = this.convertToTen(bottomStartY + pixel_i);
 
                 shape.graphic.position.x = x;

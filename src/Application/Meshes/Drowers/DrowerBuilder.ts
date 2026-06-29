@@ -52,7 +52,8 @@ class DrowerBuilder {
         // model.position.x = (fasadePosition.POSITION_X) + curExpression["#DRAWWIDTH#"] * 0.5 + curExpression["#MATERIAL_THICKNESS#"];
         // model.position.y = y + fasadePosition.POSITION_Y! + this.parent.calculateFromString(drawer[1]) * 0.5 + 10;
         const edge = this.edgeBuilder.createEdge(model);
-        model.add(edge)
+        const deffEdge = this.edgeBuilder.createVisibleEdge(model);
+        model.add(edge, deffEdge)
 
         model.position.y = y + fasadePosition.POSITION_Y! + this.parent.calculateFromString(drawer) * 0.5 + 10;
         model.position.z = z + fasadePosition.POSITION_Z! - (depth - 48) * 0.5

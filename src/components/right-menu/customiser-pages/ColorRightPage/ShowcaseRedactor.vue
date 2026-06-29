@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 // @ts-nocheck 31
-import { defineProps, ref, computed, defineEmits } from "vue";
+import { defineProps, ref, computed, defineEmits, onMounted, nextTick } from "vue";
 import { _URL } from "@/types/constants";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
@@ -9,6 +9,10 @@ import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 const props = defineProps({
   showcaseList: Array,
   tabIndex: Number,
+  selectedId: {
+    type: Number,
+    default: null,
+  },
   tempWork: {
     type: Boolean,
     default: false,
@@ -20,6 +24,7 @@ const emit = defineEmits(["select_showcase"]);
 const eventBus = useEventBus();
 const modelState = useModelState();
 const selectPatina = ref<any>(null);
+const listRef = ref<HTMLElement | null>(null);
 
 const changeShowcase = (showcase) => {
   const { FASADE_PROPS } = modelState.getCurrentModel?.userData.PROPS.CONFIG;
@@ -39,12 +44,23 @@ const changeShowcase = (showcase) => {
     });
   }
 };
+
+onMounted(() => {
+  nextTick(() => {
+    const activeEl = listRef.value?.querySelector('.active') as HTMLElement | null;
+    if (!activeEl || !listRef.value) return;
+    listRef.value.scrollTop = activeEl.getBoundingClientRect().top
+      - listRef.value.getBoundingClientRect().top
+      + listRef.value.scrollTop;
+  });
+});
 </script>
 
 <template>
   <div class="material-config__wrapper">
-    <ul class="material-config_list__details_content">
-      <li class="material-config_item" v-for="(showcase, index) in props.showcaseList" :key="index">
+    <ul class="material-config_list__details_content" ref="listRef">
+      <li class="material-config_item" :class="{ active: showcase.ID === selectedId }"
+        v-for="(showcase, index) in props.showcaseList" :key="index">
         <Tooltip :position="top" :theme="'dark'">
           <template #trigger>
             <div @click="changeShowcase(showcase)">
@@ -67,5 +83,12 @@ const changeShowcase = (showcase) => {
 </template>
 
 <style scoped lang="scss">
+.active {
+  background-color: $strong-grey;
+}
 
+.material-config_list__details_content {
+  // max-height: 55vh;
+  overflow-y: auto;
+}
 </style>
