@@ -125,7 +125,7 @@ export class BuildUniversalModule extends BuildProduct {
             : null;
 
         const legs = legsHeight
-            ? this.buildLegs(PROPS, data, total, legsHeight)
+            ? this.leg_builder.buildLegs(PROPS, data, total, legsHeight)
             : null;
 
         const plinth = legsHeight > 0

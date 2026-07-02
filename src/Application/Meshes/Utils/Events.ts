@@ -854,14 +854,17 @@ export class MeshEvents extends BuildersHelper {
     public async processOptions(data) {
 
         if (!data) return
-        const { NAME, ID, cutSize } = data.option
-        // const isCutFasade = this.cutFasadeId.includes(parseInt(ID))
-
+        const { NAME, ID } = data.option
         if (!this._currentMesh) return;
-        // if (!cutSize) return
-        const { FASADE, FASADE_DEFAULT } = this._currentMesh.userData.PROPS;
-        // this.buildProduct.fasade_builder.createCutFasade({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data })
-        this.buildProduct.fasade_builder.processOptions({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data })
+
+        const { FASADE, FASADE_DEFAULT, LEG, CONFIG } = this._currentMesh.userData.PROPS;
+        const { width, height, depth } = CONFIG.SIZE;
+
+        if (NAME.includes('Опоры')) {
+            this.changeModelSize({ data: { width, height, depth } });
+            return;
+        }
+        this.buildProduct.fasade_builder.processOptions({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data });
 
     }
 
