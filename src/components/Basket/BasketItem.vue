@@ -1016,7 +1016,7 @@ const renderDescription = (data) => {
       if (key === "BACKWALL" && !value.COLOR) {
         result.push({ key: getPropDefinition(key)?.NAME, value: "Выключена" });
       }
-    } else if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
+    } else if (getPropDefinition(key)?.NAME && Array.isArray(value) && key !== "OPTION") {
       //У шкафов ЭКО фрезеровки, палитры и т.д. приходят в формате Array, а не Object
       value.forEach((doorData, doorNumber) => {
         if (typeof doorData === "number") {

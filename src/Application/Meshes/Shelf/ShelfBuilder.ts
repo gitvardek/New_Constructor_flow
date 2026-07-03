@@ -112,9 +112,8 @@ export class ShelfBuilder {
         const { width, height, depth } = SIZE
         const mechanizmTemp = height * 0.5 - 216
 
-        console.log(mechanizmTemp, 'mechanizmTemp')
 
-        const matType = props.BODY.userData.MATERIAL_TYPE ?? "MeshStandardMaterial";
+        const matType = props.BODY?.userData.MATERIAL_TYPE ?? "MeshStandardMaterial";
         const shelfMaterial = material || this.materialMap[matType] || this.materialMap.MeshStandardMaterial;
 
         const startPos = this.parent.getStartPosition(SIZE);
