@@ -1104,10 +1104,6 @@ class Section extends Helpers {
         const cellPath = this.createPath();
         const highlightPath = this.createPath();
 
-        if (data.type === "fasade") {
-            console.log(cellPath)
-        }
-
         if (cellPath.error) {
             defCellColor = '#f5caca';
             deffHighlightColor = '#f7e2e2';

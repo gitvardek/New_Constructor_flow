@@ -145,10 +145,6 @@ const checkTransitionTexture = (id: number) => {
   return start.includes(id);
 };
 
-onBeforeMount(() => {
-  console.log(props.materialList)
-})
-
 onMounted(() => {
   nextTick(() => {
     const activeEl = listRef.value?.querySelector('.active') as HTMLElement | null;

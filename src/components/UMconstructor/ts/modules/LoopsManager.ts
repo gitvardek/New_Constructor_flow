@@ -300,8 +300,6 @@ export default class LoopsManager {
                 allLoops.push(fasadeLoops)
         })
 
-        console.log(allLoops, 'allLoops')
-
         return allLoops
     }
 

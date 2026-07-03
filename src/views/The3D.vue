@@ -758,8 +758,9 @@ watch(
             !universalModuleData
           "
         /> -->
+        <!--   v-if="Object.keys(CutData).length == 0 && !universalModuleData" /> -->
         <ContentControllerButton @click="duplicateProduct"
-          v-if="Object.keys(CutData).length == 0 && !universalModuleData" />
+          v-if="Object.keys(CutData).length == 0" />
         <DeleteControllerButton v-if="Object.keys(CutData).length == 0" @click="removeModel(null)" />
       </div>
       <div class="controller-right">
@@ -1135,59 +1136,6 @@ watch(
         path {
           fill: black;
         }
-      }
-    }
-  }
-}
-
-.switch {
-  &__wrapper {
-    position: absolute;
-    bottom: 2rem;
-    right: 2rem;
-
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
-  }
-
-  &__title {
-    position: absolute;
-    bottom: 2rem;
-  }
-}
-
-.accordion {
-  padding: 0.5rem 1rem;
-  color: $alter-gray;
-  // background-color: #ffffff;
-  backdrop-filter: blur(5px);
-
-  &__header {
-    margin-right: 0.5rem;
-  }
-
-  &__summary {
-    gap: 10rem;
-  }
-
-  &__contant {
-    padding-top: 0.5rem;
-    border-top: 1px solid #a3a9b5;
-  }
-
-  &__text {
-    cursor: pointer;
-    transition-property: color;
-    transition-duration: 0.25s;
-    transition-timing-function: ease;
-
-    @media (hover: hover) {
-
-      /* when hover is supported */
-      &:hover {
-        color: $strong-grey;
       }
     }
   }

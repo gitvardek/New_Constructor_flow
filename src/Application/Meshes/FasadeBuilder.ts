@@ -78,13 +78,13 @@ export class FasadeBuilder {
         ELEMENT_TYPE: string,
         defaultConfig: THREETypes.TDefaultOptionsConfig,
         isLoad: boolean = false,
-        size: boolean = false
+        nstShalfs: boolean = false
     ) {
         const { defFasadeTop, defFasadeBottom, fasadsTop, fasadsBottom } = defaultConfig;
         const isDefault = fasadeColor === this.parent.project.default_fasade_color;
 
 
-        if (size && isDefault) return {
+        if (nstShalfs && isDefault) return {
             color: fasadeColor,
             pallite: null,
             milling: null
@@ -217,7 +217,7 @@ export class FasadeBuilder {
         defaultConfig,
         curBodyExceptions,
         isLoad = false,
-        size = false
+        nstShalfs = false
     }: {
         props: THREETypes.TObject,
         incomingModel?: number,
@@ -225,7 +225,7 @@ export class FasadeBuilder {
         defaultConfig: THREETypes.TDefaultOptionsConfig,
         curBodyExceptions?: boolean,
         isLoad?: boolean
-        size?: boolean
+        nstShalfs?: boolean
     }): THREE.Object3D {
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
@@ -243,7 +243,7 @@ export class FasadeBuilder {
             const haveShowcase = FASADE_POSITIONS[key].SHOWCASE === 1;
             const fasadePositionData = this.getFasadePosition(CONFIG, key, isUMmodule);
             const { color, pallite, milling } = this.resolveColorId(
-                fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad, size
+                fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad, nstShalfs
             );
 
             // Подготовка данных до создания меша

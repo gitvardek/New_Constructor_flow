@@ -159,14 +159,10 @@ onMounted(() => {
 .switch {
   &__wrapper {
     position: absolute;
-    bottom: 2rem;
-    right: 2rem;
+    bottom: 1rem;
+    left: 295px;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 85x;
-    // z-index: 10;
-    // pointer-events: auto;
   }
 
   &__title {
@@ -209,7 +205,7 @@ onMounted(() => {
     @media (hover: hover) {
       /* when hover is supported */
       &:hover {
-        color: $light-grey;
+        color: $dark-grey
       }
     }
   }

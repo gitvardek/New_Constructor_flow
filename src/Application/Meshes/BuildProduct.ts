@@ -454,7 +454,8 @@ export class BuildProduct extends BuildersHelper {
         parentGroup: THREE.Object3D,
         size?: { width: number; height: number; depth: number } | null,
         resize: boolean = false,
-        isLoad: false
+        isLoad: false,
+        nstShalfs: false
     ) {
         const drowMode = this.menuStore.getDrowModeValue;
         const total = new THREE.Object3D();
@@ -505,7 +506,7 @@ export class BuildProduct extends BuildersHelper {
         const plinth = legsHeight > 0 ? this.plinth_builder.buildPlinth(PROPS, legsHeight) : null;
 
         const fasade = fasadeProps.length
-            ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad, size })
+            ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad, nstShalfs })
             : null;
 
         const hasDrawers = fasadeProps.length > 0 && fasadeProps.some(item => item.DRAWER.drawer);
