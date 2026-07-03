@@ -33,6 +33,7 @@ import { BuildersHelper } from "./BuildersHelper"
 import { EdgeBuilder } from './EdgeBuilder/EdgeBuilder.ts';
 import { HandlesBuilder } from './Handles/Handles.ts';
 import { PlinthBuilder } from './PlinthBuilder/PlinthBuilder.ts';
+import { LegBuilder } from './LegBuilder/LegBuilder.ts';
 import { DrowerBuilder } from './Drowers/DrowerBuilder.ts';
 import { ShelfBuilder } from './Shelf/ShelfBuilder.ts';
 import { MirrorBuilder } from './MirrorBuilder/MirrorBuilder.ts';
@@ -63,6 +64,7 @@ export class BuildProduct extends BuildersHelper {
     alum_builder: AlumBuilder
     edge_builder: EdgeBuilder
     plinth_builder: PlinthBuilder
+    leg_builder: LegBuilder
     drower_builder: DrowerBuilder
     shelf_builder: ShelfBuilder
     mirror_builder: MirrorBuilder
@@ -95,6 +97,7 @@ export class BuildProduct extends BuildersHelper {
         this.tabletop_builder = new TableTopBuilder(this);
         this.drower_builder = new DrowerBuilder(this)
         this.plinth_builder = new PlinthBuilder(this)
+        this.leg_builder = new LegBuilder(this)
         this.shelf_builder = new ShelfBuilder(this)
         this.mirror_builder = new MirrorBuilder(this)
     }
@@ -456,7 +459,8 @@ export class BuildProduct extends BuildersHelper {
         parentGroup: THREE.Object3D,
         size?: { width: number; height: number; depth: number } | null,
         resize: boolean = false,
-        isLoad: false
+        isLoad: false,
+        nstShalfs: false
     ) {
         const drowMode = this.menuStore.getDrowModeValue;
         const total = new THREE.Object3D();
@@ -470,6 +474,8 @@ export class BuildProduct extends BuildersHelper {
         PROPS.SHELF = [];
         PROPS.ARROWS = [];
         PROPS.BODY = [];
+
+        console.log(CONFIG.OPTIONS, 'CONFIG')
 
         const productId = CONFIG.ID;
         const modelData = this._MODELS[CONFIG.MODELID];
@@ -505,11 +511,11 @@ export class BuildProduct extends BuildersHelper {
                 ? this.shelf_builder.createShelfs(PROPS, this._SHELF_POSITION[productId], tempMaterial, move)
                 : null;
 
-        const legs = legsHeight ? this.buildLegs(PROPS, data, total) : null;
+        const legs = legsHeight ? this.leg_builder.buildLegs(PROPS, data, total) : null;
         const plinth = legsHeight > 0 ? this.plinth_builder.buildPlinth(PROPS, legsHeight) : null;
 
         const fasade = fasadeProps.length
-            ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad })
+            ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad, nstShalfs })
             : null;
 
         const hasDrawers = fasadeProps.length > 0 && fasadeProps.some(item => item.DRAWER.drawer);
@@ -522,7 +528,7 @@ export class BuildProduct extends BuildersHelper {
         const arrows = this.addArrowSize({ object: body, props: PROPS, group: total });
 
         // Позиционирование по Y
-        const baseY = legsHeight * 0.5;
+        const baseY = this.leg_builder.getLegLength(PROPS) * 0.5;
         const topTablePos = this.getTableTopPosition(legs, body, tableTop, baseY)
 
         const parts: Array<[THREE.Object3D | null, number]> = [
@@ -545,7 +551,6 @@ export class BuildProduct extends BuildersHelper {
         if (body) {
             body.position.set(move.x, baseY, move.z);
             body.visible = !curBodyExceptions;
-            // body.updateMatrixWorld(true);
         }
 
         if (arrows) arrows.position.copy(body?.position ?? new THREE.Vector3());
@@ -809,98 +814,6 @@ export class BuildProduct extends BuildersHelper {
         if (BACKWALL && !BACKWALL.SHOW) {
             data.json.items = data.json.items.filter(item => item.id !== 'back');
         }
-    }
-
-    /** Создание ножек модели */
-    private buildLegs(
-        props: THREETypes.TObject,
-        model_data: THREETypes.TObject,
-        group: THREE.Object3D,
-        custom_leg_length?: number
-    ) {
-        const size = props.CONFIG.SIZE;
-        const leg_length = custom_leg_length ?? this.modelState.getModels[props.PRODUCT].leg_length;
-        const legs = new THREE.Object3D();
-        const start_position = this.getStartPosition(size);
-
-        const leg_position = model_data.json.legs ?? this.getLegPositions(start_position, size, model_data);
-
-        Object.values(leg_position as THREETypes.TObject[]).forEach((position) => {
-            const leg = this.createLeg(leg_length);
-            leg.position.set(
-                this.calculateFromString(position.x),
-                this.calculateFromString(position.y),
-                this.calculateFromString(position.z
-
-                ));
-            legs.add(leg);
-        });
-
-        legs.name = 'LEGS';
-        props.LEG = legs;
-        return legs;
-    }
-
-    // FIX: убрана мутация входного параметра start_position — теперь работаем с копией
-    private getLegPositions(
-        start_position: THREETypes.TObject,
-        size: THREETypes.TObject,
-        model: THREETypes.TObject
-    ) {
-        const corr_x = model ? this.calculateFromString(model.corr_x) : 0;
-        const corr_y = model ? this.calculateFromString(model.corr_y) : 0;
-        const corr_z = model ? this.calculateFromString(model.corr_z) : 0;
-
-        const x = start_position.x + corr_x;
-        const y = start_position.y + corr_y;
-        const z = start_position.z + corr_z;
-
-        const leg_position: { [key: string]: { x: number; y: number; z: number } } = {
-            '1': { x: x + 70, y, z: z + 70 },
-            '2': { x: x + size.width - 70, y, z: z + 70 },
-            '3': { x: x + size.width - 70, y, z: z + size.depth - 70 },
-            '4': { x: x + 70, y, z: z + size.depth - 70 },
-        };
-
-        if (model?.json?.sixLegs) {
-            leg_position['5'] = { x: x + size.width / 2, y, z: z + 70 };
-            leg_position['6'] = { x: x + size.width / 2, y, z: z + size.depth - 70 };
-        }
-
-        return leg_position;
-    }
-
-    private createLeg(leg_length: number) {
-        const material = new THREE.MeshPhongMaterial({
-            emissive: "#000000",
-            color: "#000000",
-            reflectivity: 0.05,
-        });
-
-        const topGeometry = new THREE.CylinderGeometry(14, 14, leg_length, 8);
-        const bottomGeometry = new THREE.CylinderGeometry(25, 25, 20, 12);
-        topGeometry.computeBoundingBox();
-        bottomGeometry.computeBoundingBox();
-
-        const group = new THREE.Object3D();
-        const top = new THREE.Mesh(topGeometry, material);
-        const bottom = new THREE.Mesh(bottomGeometry, material);
-
-        top.castShadow = true;
-        bottom.castShadow = true;
-
-        top.position.setY(-(leg_length / 2));
-        bottom.position.setY(-leg_length + 10);
-
-        // Запекаем трансформации в геометрию и сбрасываем позиции
-        [top, bottom].forEach(mesh => {
-            mesh.updateMatrix();
-            mesh.geometry.applyMatrix4(mesh.matrix);
-            mesh.position.set(0, 0, 0);
-        });
-
-        group.add(top, bottom, this.edge_builder.createEdge(top), this.edge_builder.createEdge(bottom));
-        return group;
     }
 
     /** Создание стрелок размеров модели */

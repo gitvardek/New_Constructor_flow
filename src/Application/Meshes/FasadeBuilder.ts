@@ -77,10 +77,19 @@ export class FasadeBuilder {
         MANUAL_NO_FASADE: boolean = false,
         ELEMENT_TYPE: string,
         defaultConfig: THREETypes.TDefaultOptionsConfig,
-        isLoad: boolean = false
+        isLoad: boolean = false,
+        nstShalfs: boolean = false,
     ) {
         const { defFasadeTop, defFasadeBottom, fasadsTop, fasadsBottom } = defaultConfig;
         const isDefault = fasadeColor === this.parent.project.default_fasade_color;
+
+        console.log(nstShalfs, fasadeColor, '<<<< FC >>>>')
+
+        if (nstShalfs && isDefault) return {
+            color: fasadeColor,
+            pallite: null,
+            milling: null
+        }
 
         switch (ELEMENT_TYPE) {
             case "element_down":
@@ -211,7 +220,8 @@ export class FasadeBuilder {
         isUMmodule = false,
         defaultConfig,
         curBodyExceptions,
-        isLoad = false
+        isLoad = false,
+        nstShalfs = false
     }: {
         props: THREETypes.TObject,
         incomingModel?: number,
@@ -220,6 +230,8 @@ export class FasadeBuilder {
         curBodyExceptions?: boolean,
         isLoad?: boolean
     }): THREE.Object3D {
+
+        console.log('All')
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
         const { deffShowcase } = defaultConfig;
@@ -236,7 +248,7 @@ export class FasadeBuilder {
             const haveShowcase = FASADE_POSITIONS[key].SHOWCASE === 1;
             const fasadePositionData = this.getFasadePosition(CONFIG, key, isUMmodule);
             const { color, pallite, milling } = this.resolveColorId(
-                fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad
+                fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad, nstShalfs
             );
 
             // Подготовка данных до создания меша
@@ -850,6 +862,8 @@ export class FasadeBuilder {
             curBodyExceptions
         }) as THREE.Object3D;
 
+        console.log(fasade, 'FF')
+
         // // Истинные размеры фасада и запись в CONFIG.FASADE_POSITIONS[key]
         const box = new THREE.Box3().setFromObject(fasade);
         const size = box.getSize(new THREE.Vector3());
@@ -1043,7 +1057,7 @@ export class FasadeBuilder {
 
         if (!this._MILLING[data]) return [null]
 
-        if(!fType)  return [null]
+        if (!fType) return [null]
 
         const prepare = this._MILLING[data].fasade_type.filter(el => {
 

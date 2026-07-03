@@ -129,13 +129,6 @@ export const useOptions = () => {
             });
         }
 
-        // opt.group === curOpt.group &&
-        // opt.close === curOpt.close &&
-        // opt.section === curOpt.section &&
-        // opt.id !== curOpt.id ||
-        // opt.section === curOpt.section &&
-        // opt.close === curOpt.close &&
-        // opt.id !== curOpt.id
 
         curOpt.active = values;
 
@@ -277,8 +270,6 @@ export const useOptions = () => {
             if (item.CONTANT.length > 0) return item
 
         })
-
-
 
         return filtered
     }

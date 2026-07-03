@@ -43,6 +43,7 @@ export class TableTopBuilder {
                         1 / texture.height
                     );
                     material.map.offset.set(0.5, 0.5);
+                    material.map.rotation = Math.PI * 0.5;
                     material.visible = true
                     material.needsUpdate = true
                 }

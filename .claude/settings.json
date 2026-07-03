@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"e:/VARDEK/WEB/NEW_CONSTRUCTOR/NEW_Constructor_2026/WORK/New_Constructor_flow/src/Application/Meshes/LegBuilder\")"
+    ],
+    "additionalDirectories": [
+      "e:\\VARDEK\\WEB\\NEW_CONSTRUCTOR\\NEW_Constructor_2026\\WORK\\New_Constructor_flow\\src\\Application\\Meshes"
+    ]
+  }
+}

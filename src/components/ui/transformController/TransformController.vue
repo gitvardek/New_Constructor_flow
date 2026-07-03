@@ -88,28 +88,22 @@ onMounted(() => {
 
     <div>
       <transition name="controller-toggle">
-        <Accordion
-          v-if="
-            curControllerValue.includes('Вращение') && transformControlsValue
-          "
-        >
+        <Accordion v-if="
+          curControllerValue.includes('Вращение') && transformControlsValue
+        ">
           <template #title>
             <h4 class="accordion__header">Шаг: {{ curAngleParam }}&deg;</h4>
           </template>
 
           <template #params="{ onToggle }">
             <ul class="quality-list">
-              <li
-                v-for="(data, index) in getTransformControlSnapAngles"
-                :key="index + data"
-                class="accordion__text"
+              <li v-for="(data, index) in getTransformControlSnapAngles" :key="index + data" class="accordion__text"
                 @click="
                   () => {
                     changeAngle(data);
                     onToggle();
                   }
-                "
-              >
+                ">
                 {{ data }}
               </li>
             </ul>
@@ -127,17 +121,12 @@ onMounted(() => {
 
           <template #params="{ onToggle }">
             <ul class="quality-list">
-              <li
-                v-for="(data, index) in controllerValue"
-                :key="index + data.name"
-                class="accordion__text"
-                @click="
-                  () => {
-                    changeControllerType(data);
-                    onToggle();
-                  }
-                "
-              >
+              <li v-for="(data, index) in controllerValue" :key="index + data.name" class="accordion__text" @click="
+                () => {
+                  changeControllerType(data);
+                  onToggle();
+                }
+              ">
                 {{ data.name }}
               </li>
             </ul>
@@ -147,10 +136,7 @@ onMounted(() => {
     </div>
 
     <div class="switch__container">
-      <Toggle
-        :model-value="transformControlsValue"
-        @update:model-value="toggleTransformMode"
-      />
+      <Toggle :model-value="transformControlsValue" @update:model-value="toggleTransformMode" />
     </div>
   </div>
 </template>
@@ -159,15 +145,13 @@ onMounted(() => {
 .switch {
   &__wrapper {
     position: absolute;
-    bottom: 2rem;
-    left: calc(400px);
-    /* transform: translate(0,50%); */
+    bottom: 1rem;
+    left: 295px;
+    // transform: translate(0, 2rem);
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 85x;
-    // z-index: 10;
-    // pointer-events: auto;
+
+
   }
 
   &__title {
@@ -198,6 +182,7 @@ onMounted(() => {
   &__header {
     margin-right: 0.5rem;
   }
+
   &__summary {
     gap: 10rem;
   }
@@ -212,7 +197,9 @@ onMounted(() => {
     transition-property: color;
     transition-duration: 0.25s;
     transition-timing-function: ease;
+
     @media (hover: hover) {
+
       /* when hover is supported */
       &:hover {
         color: $light-grey;

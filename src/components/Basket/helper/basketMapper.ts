@@ -259,6 +259,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
   const createFasadeData = (data) => {
     if (!data.fasade) return {}
+    if (data.fasade.material.COLOR === 7397) return false; //7397 - id без фасада
     return {
       fasade: {
         COLOR: data.fasade.material.COLOR,
@@ -294,13 +295,12 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
       const fasadeData = createFasadeData(el)
 
-      return {
+      const base = {
         ID: el.product,
         PATH: false,
         MATERIAL_ID: el.material, // Материал полки
         PRODUCT_TYPE: el.type,
         VALUE: el.VALUE,
-        FASADE: fasadeData,
         SIZE: { // Размеры
           width: el.size?.x || 0,
           height: el.size?.y || 0,
@@ -309,6 +309,10 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
         ADDITIVES: el.ADDITIVES || {},
         basketRenderPosition: el.basketRenderPosition || false,
       }
+
+      return fasadeData ? { ...base, FASADE: fasadeData } : base;
+
+
     }
 
   })

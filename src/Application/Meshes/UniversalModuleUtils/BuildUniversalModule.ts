@@ -117,6 +117,8 @@ export class BuildUniversalModule extends BuildProduct {
         const legsHeight = this._PRODUCTS[productId]?.leg_length || optionsLegs
         const baseY = legsHeight * 0.5;
 
+        console.log(baseY, legsHeight)
+
         // Сборка частей
         const { body, tempMaterial, move } = !this.isEmpty(modelData)
             ? this.createBody(data, PROPS, defaultConfig)
@@ -127,7 +129,7 @@ export class BuildUniversalModule extends BuildProduct {
             : null;
 
         const legs = legsHeight
-            ? this.buildLegs(PROPS, data, total, legsHeight)
+            ? this.leg_builder.buildLegs(PROPS, data, total, legsHeight)
             : null;
 
         const plinth = legsHeight > 0
@@ -174,9 +176,7 @@ export class BuildUniversalModule extends BuildProduct {
         }
         if (shelf) shelf.position.y = baseY;
         if (fasade) fasade.position.y = baseY;
-        // if (tableTop) {
-        //     tableTop.position.y = baseY + bodyHeight * 0.5 + tableTopHeight * 0.5;
-        // }
+
         arrows.position.copy(body?.position);
         arrows.position.y = baseY;
 
