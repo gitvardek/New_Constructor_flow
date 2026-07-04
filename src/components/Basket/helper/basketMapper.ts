@@ -262,11 +262,10 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
     return {
       fasade: {
         COLOR: data.fasade.material.COLOR,
-        size: {
-          height: data.fasade.height,
-          width: data.fasade.width
-        }
-
+      },
+      size: {
+        height: data.fasade.height,
+        width: data.fasade.width
       }
     }
   }
