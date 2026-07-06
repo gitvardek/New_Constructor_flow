@@ -159,7 +159,7 @@ watch(
       <div class="'cut-servise--item'" v-for="(profile, key, ndx) in props.profileData" :key="profile.NAME + ndx">
         <div :class="['cut-servise--wrapper']">
           <label class="control control-checkbox">
-            <input type="checkbox" :checked="profile.value" :disabled="profile.ID === 251698 && profile.value"
+            <input type="checkbox" :checked="profile.value" :disabled="profile.ID === 251698 && profile.value || props.profileData?.length === 1"
               @change="profileChacked($event, profile)" />
             <span class="control_indicator"></span>
             <span class="text-lg text-gray-800 font-medium">{{

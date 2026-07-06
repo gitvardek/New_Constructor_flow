@@ -514,9 +514,9 @@ class Shape extends Helpers {
                             && !self.isExcludedFromCollision(otherShape.data, self.data)
                             && self.checkOverlap(otherShape)) {
 
-                            if ((self.data.fasade && otherShape.data.fasade) && 
-                            (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
-                            continue;
+                            if ((self.data.fasade && otherShape.data.fasade) &&
+                                (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
+                                continue;
 
                             hasCollisionY = true;
 
@@ -665,6 +665,11 @@ class Shape extends Helpers {
 
         if (this === otherShape)
             return false;
+
+        if (this.isExcludedFromCollision(this.data, otherShape.data))
+            return false
+        if (this.isExcludedFromCollision(otherShape.data, this.data))
+            return false
 
         let verticalCheck = false;
         let horizontalCheck = false;

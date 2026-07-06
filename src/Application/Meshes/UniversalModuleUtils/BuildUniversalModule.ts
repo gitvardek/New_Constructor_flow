@@ -23,6 +23,8 @@ export class BuildUniversalModule extends BuildProduct {
     modelState = useModelState();
 
     heightCorrect: number = 0
+    private readonly correctPosZGroups: number[] = [2166309]
+    private readonly fillingOffset: number = 50
 
     constructor(root: THREETypes.TApplication) {
         super(root);
@@ -672,8 +674,16 @@ export class BuildUniversalModule extends BuildProduct {
                                 filling.position.z = sizeModule.depth - filling.size.z / 2 - (isSlidingDoors / 2 || 0);
                         }
 
+                        /** Проверка на корректировку положения по глубине */
+                        const isCorrectZPos = this.correctPosZGroups.includes(filling.productGroupID)
+                        //-------------------------------------------------------------------------------------
+
                         start_position.add(filling.position)
                         start_position.y += filling.size.y / 2 + full_horizont_height + baseOffset
+
+                        if (isCorrectZPos) {
+                            start_position.z = sizeModule.depth / 2 - filling.size.z / 2 - this.fillingOffset
+                        }
 
                         productFilling.position.copy(start_position)
 

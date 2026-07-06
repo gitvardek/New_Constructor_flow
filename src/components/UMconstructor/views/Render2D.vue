@@ -1604,17 +1604,21 @@ const createHorozontalCut = ({
 
 const checkPositionFillingToCreate = (data) => {
   const { sec, cell, row, extra } =
-    UMconstructor?.value?.UM_STORE.getSelected("module");
+    UMconstructor?.value?.UM_STORE.getSelected("module") ?? {};
 
   let position, tempShape;
 
-  const sector = sections[0].children.find(
-    (elem) =>
-      elem.secIndex === sec &&
-      elem.cellIndex === cell &&
-      elem.rowIndex === row &&
-      elem.extraIndex === extra,
-  );
+  const section = props.module.sections[sec];
+  const cellData = cell != null ? section?.cells[cell] : null;
+  const rowData = row != null ? cellData?.cellsRows?.[row] : null;
+  const extraData = extra != null ? rowData?.extras?.[extra] : null;
+
+  const sector =
+    extraData?.sector ||
+    rowData?.sector ||
+    cellData?.sector ||
+    section?.sector ||
+    props.module.sector;
 
   if (!sector) {
     return false;
@@ -1631,6 +1635,8 @@ const checkPositionFillingToCreate = (data) => {
     getPixelWidth,
     calcDrawersFasades,
     checkLoopsCollision,
+    collisionExclusionRules: UMconstructor.value.LOOPS.getCollisionExclusionRules(),
+    dragActive: false,
   });
 
   /** Проверяем на возможность размещения отверстия */
