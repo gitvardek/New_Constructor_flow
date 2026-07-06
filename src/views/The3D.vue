@@ -336,6 +336,20 @@ const duplicateProduct = async () => {
   eventBus.emit("A:Duplicate");
 };
 
+const waitForSceneLoad = (maxMs = 8000): Promise<void> =>
+  new Promise<void>((resolve) => {
+    const timeout = setTimeout(() => {
+      eventBus.off("A:ContantLoaded", onLoaded);
+      resolve();
+    }, maxMs);
+    const onLoaded = () => {
+      clearTimeout(timeout);
+      eventBus.off("A:ContantLoaded", onLoaded);
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    };
+    eventBus.on("A:ContantLoaded", onLoaded);
+  });
+
 const screenPrint = async () => {
   if (!VerdekConstructor.value) return;
 
@@ -370,11 +384,11 @@ const screenPrint = async () => {
       );
 
       try {
-        // Загружаем комнату в сцену через eventBus
+        // Загружаем комнату в сцену через eventBus; сразу регистрируем ожидание
+        // завершения загрузки (A:ContantLoaded), т.к. emit асинхронен
+        const loadPromise = waitForSceneLoad();
         eventBus.emit("A:Load", room.id);
-
-        // Ждем загрузки комнаты
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await loadPromise;
 
         // Принудительно рендерим сцену перед созданием скриншота
 
@@ -382,32 +396,24 @@ const screenPrint = async () => {
         console.log(
           `Создаем скриншот комнаты "${room.label || room.id}" в обычном режиме`,
         );
-        await new Promise<void>((resolve) => {
-          renderer.domElement.toBlob((blob: Blob | null) => {
-            if (blob) {
-              // Сохраняем скриншот в стор вместо скачивания
-              const cleanRoomName = (room.label || `Комната_${i + 1}`)
-                .replace(/[^a-zA-Z0-9а-яё\s-]/gi, "_")
-                .trim();
-              const screenshot = {
-                id: `${room.id}-normal-${Date.now()}`,
-                roomId: room.id,
-                roomLabel: room.label || `Комната_${i + 1}`,
-                mode: "normal" as const,
-                blob: blob,
-                timestamp: Date.now(),
-                fileName: `3d-screenshot-${cleanRoomName}-normal.png`,
-              };
-
-              screenshotsStore.addScreenshot(screenshot);
-              console.log(
-                `Скриншот комнаты "${room.label || room.id
-                }" в обычном режиме сохранен в стор`,
-              );
-            }
-            resolve();
-          }, "image/png");
-        });
+        {
+          const blob = await captureCompositeBlob();
+          if (blob) {
+            const cleanRoomName = (room.label || `Комната_${i + 1}`)
+              .replace(/[^a-zA-Z0-9а-яё\s-]/gi, "_")
+              .trim();
+            screenshotsStore.addScreenshot({
+              id: `${room.id}-normal-${Date.now()}`,
+              roomId: room.id,
+              roomLabel: room.label || `Комната_${i + 1}`,
+              mode: "normal" as const,
+              blob,
+              timestamp: Date.now(),
+              fileName: `3d-screenshot-${cleanRoomName}-normal.png`,
+            });
+            console.log(`Скриншот комнаты "${room.label || room.id}" в обычном режиме сохранен в стор`);
+          }
+        }
 
         // 2. Включаем режим чертежа
         console.log(
@@ -417,39 +423,31 @@ const screenPrint = async () => {
         const drawingModeValue = menuStore.getDrowModeValue;
         eventBus.emit("A:DrawingMode", drawingModeValue);
 
-        // Ждем применения режима чертежа
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Ждём 2 кадра — достаточно для применения материалов режима чертежа
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
         // 3. Создаем скриншот комнаты в режиме чертежа
         console.log(
           `Создаем скриншот комнаты "${room.label || room.id}" в режиме чертежа`,
         );
-        await new Promise<void>((resolve) => {
-          renderer.domElement.toBlob((blob: Blob | null) => {
-            if (blob) {
-              // Сохраняем скриншот в стор вместо скачивания
-              const cleanRoomName = (room.label || `Комната_${i + 1}`)
-                .replace(/[^a-zA-Z0-9а-яё\s-]/gi, "_")
-                .trim();
-              const screenshot = {
-                id: `${room.id}-drawing-${Date.now()}`,
-                roomId: room.id,
-                roomLabel: room.label || `Комната_${i + 1}`,
-                mode: "drawing" as const,
-                blob: blob,
-                timestamp: Date.now(),
-                fileName: `3d-screenshot-${cleanRoomName}-drawing.png`,
-              };
-
-              screenshotsStore.addScreenshot(screenshot);
-              console.log(
-                `Скриншот комнаты "${room.label || room.id
-                }" в режиме чертежа сохранен в стор`,
-              );
-            }
-            resolve();
-          }, "image/png");
-        });
+        {
+          const blob = await captureCompositeBlob();
+          if (blob) {
+            const cleanRoomName = (room.label || `Комната_${i + 1}`)
+              .replace(/[^a-zA-Z0-9а-яё\s-]/gi, "_")
+              .trim();
+            screenshotsStore.addScreenshot({
+              id: `${room.id}-drawing-${Date.now()}`,
+              roomId: room.id,
+              roomLabel: room.label || `Комната_${i + 1}`,
+              mode: "drawing" as const,
+              blob,
+              timestamp: Date.now(),
+              fileName: `3d-screenshot-${cleanRoomName}-drawing.png`,
+            });
+            console.log(`Скриншот комнаты "${room.label || room.id}" в режиме чертежа сохранен в стор`);
+          }
+        }
 
         // 4. Возвращаем режим чертежа в исходное состояние
         if (drawingModeValue !== currentDrawingMode) {
@@ -494,27 +492,98 @@ const screenPrint = async () => {
   }
 };
 
-const take3DScreenshot = () => {
-  if (VerdekConstructor.value) {
+// Составной скриншот: WebGL-canvas + CSS2D-лейблы (размерные линейки).
+// CSS2DRenderer рендерит лейблы в отдельный <div>, который не попадает в toBlob().
+// Решение: рисуем WebGL-кадр на offscreen-canvas, затем поверх — текст лейблов.
+const captureCompositeBlob = (): Promise<Blob | null> => {
+  return new Promise((resolve) => {
     try {
       const renderer = VerdekConstructor.value._renderer;
-      if (!renderer) {
-        console.error("Renderer не найден");
-        return;
+      if (!renderer) { resolve(null); return; }
+
+      const webglCanvas = renderer.domElement;
+      const labelContainer = VerdekConstructor.value._renderClass?.labelRenderer?.domElement as HTMLElement | null;
+
+      const composite = document.createElement("canvas");
+      composite.width = webglCanvas.width;
+      composite.height = webglCanvas.height;
+      const ctx = composite.getContext("2d");
+      if (!ctx) { resolve(null); return; }
+
+      // Слой 1: WebGL-кадр
+      ctx.drawImage(webglCanvas, 0, 0);
+
+      // Слой 2: CSS2D-лейблы
+      if (labelContainer) {
+        // scale = отношение физических пикселей canvas к CSS-пикселям
+        const scale = webglCanvas.width / (webglCanvas.offsetWidth || webglCanvas.width);
+        const containerRect = labelContainer.getBoundingClientRect();
+
+        labelContainer.querySelectorAll<HTMLElement>("*").forEach((el) => {
+          const text = el.textContent?.trim();
+          if (!text) return;
+
+          const cs = window.getComputedStyle(el);
+          if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return;
+
+          const rect = el.getBoundingClientRect();
+          // Элемент не отрендерен или скрыт
+          if (rect.width === 0 && rect.height === 0) return;
+
+          // Центр элемента относительно контейнера лейблов в физических пикселях
+          const cx = (rect.left - containerRect.left + rect.width / 2) * scale;
+          const cy = (rect.top - containerRect.top + rect.height / 2) * scale;
+
+          const fontSize = parseFloat(cs.fontSize) * scale;
+          const fontWeight = cs.fontWeight;
+          const fontFamily = cs.fontFamily;
+
+          ctx.save();
+          ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+          ctx.fillStyle = cs.color;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(text, cx, cy);
+          ctx.restore();
+        });
       }
 
-      renderer.domElement.toBlob((blob: Blob | null) => {
-        if (blob) {
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = "3d-screenshot.png";
-          link.click();
-          URL.revokeObjectURL(link.href);
-        }
-      }, "image/png");
+      composite.toBlob(resolve, "image/png");
     } catch (error) {
-      console.error("Ошибка при создании 3D скриншота:", error);
+      console.error("Ошибка при создании составного скриншота:", error);
+      resolve(null);
     }
+  });
+};
+
+const take3DScreenshot = () => {
+  if (!VerdekConstructor.value) return;
+
+  const doScreenshot = async () => {
+    const blob = await captureCompositeBlob();
+    if (blob) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "3d-screenshot.png";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+  };
+
+  // Ждём 2 кадра после готовности сцены — рендерер гарантированно обновит canvas
+  const waitFramesThenShot = () => {
+    requestAnimationFrame(() => requestAnimationFrame(doScreenshot));
+  };
+
+  if (roomState.getLoad) {
+    waitFramesThenShot();
+  } else {
+    // Сцена ещё загружается — откладываем до события завершения загрузки
+    const onLoaded = () => {
+      eventBus.off("A:ContantLoaded", onLoaded);
+      waitFramesThenShot();
+    };
+    eventBus.on("A:ContantLoaded", onLoaded);
   }
 };
 
@@ -759,8 +828,7 @@ watch(
           "
         /> -->
         <!--   v-if="Object.keys(CutData).length == 0 && !universalModuleData" /> -->
-        <ContentControllerButton @click="duplicateProduct"
-          v-if="Object.keys(CutData).length == 0" />
+        <ContentControllerButton @click="duplicateProduct" v-if="Object.keys(CutData).length == 0" />
         <DeleteControllerButton v-if="Object.keys(CutData).length == 0" @click="removeModel(null)" />
       </div>
       <div class="controller-right">
