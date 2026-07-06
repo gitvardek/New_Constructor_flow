@@ -8,6 +8,7 @@ import { GlobalsData } from './Utils/Globals'
 import { CUTTER_PARAMS } from "@/ConstructorTabletop/CutterScripts/CutterConst"
 import { label, userData } from 'three/webgpu'
 import { useToast } from "@/features/toaster/useToast"
+import { TUG_MODEL_DATA } from '../F-tug'
 export class BuildersHelper extends GlobalsData {
 
     resources: THREETypes.TResources
@@ -120,7 +121,10 @@ export class BuildersHelper extends GlobalsData {
         };
 
         if (PARAMS.MODELID) {
-            const modelData = this._MODELS[PARAMS.MODELID]
+            /** Для ТУГ */
+            // const modelData = this._MODELS[PARAMS.MODELID]
+            const modelData = PARAMS.MODELID === 5766313 ? TUG_MODEL_DATA : this._MODELS[PARAMS.MODELID];
+
             const model = this.expressionsReplace(modelData, expressions);
 
             if (model.width) size.width = parseInt(this.calculateFromString(model.width));

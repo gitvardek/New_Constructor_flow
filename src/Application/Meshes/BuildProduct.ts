@@ -40,6 +40,10 @@ import { MirrorBuilder } from './MirrorBuilder/MirrorBuilder.ts';
 
 import { UM_SAMPLE } from '../F-umModulesData.ts';
 
+
+//ТУГ
+import { TUG_PREMIUM_20, TUG_MODEL_DATA, TUG_MODEL_DATA_R } from '../F-tug.ts';
+
 export class BuildProduct extends BuildersHelper {
 
     root: THREETypes.TApplication;
@@ -113,11 +117,14 @@ export class BuildProduct extends BuildersHelper {
     //========================================================================================================
 
     getModel(
-        product_data: THREETypes.TObject,
+        _product_data: THREETypes.TObject,
         loaded_props?: THREETypes.TTotalProps,
         loaded_size?: THREETypes.TObject
     ): Promise<THREE.Object3D> {
         return new Promise(async (resolve) => {
+            console.log(_product_data)
+            const product_data = _product_data.ID === 5766313 ? TUG_PREMIUM_20 : _product_data
+
             const type = this._MODELS[product_data.models[0]];
 
             if (type.DAE) {
@@ -475,16 +482,23 @@ export class BuildProduct extends BuildersHelper {
         PROPS.ARROWS = [];
         PROPS.BODY = [];
 
-        console.log(CONFIG.OPTIONS, 'CONFIG')
+        console.log(CONFIG.ID, 'CONFIG')
 
         const productId = CONFIG.ID;
-        const modelData = this._MODELS[CONFIG.MODELID];
+
+        
+        const modelData = productId === 5766313 ? TUG_MODEL_DATA_R : this._MODELS[CONFIG.MODELID];
+        // const modelData = this._MODELS[CONFIG.MODELID];
+        console.log(modelData,productId === 5766303, 'modelData')
+
         const modelSize = size ?? CONFIG.SIZE;
         const bodyExceptions = this.project.default_overlay_id;
         const legsHeight = this._PRODUCTS[productId]?.leg_length;
         const fasadeProps = Object.values(CONFIG.FASADE_PROPS);
 
         const shelfCount = CONFIG.SHELFQUANT.current;
+
+        console.log(resize, CONFIG, '<<<<CONFIG>>>>')
 
 
         // Обновляем размер в конфиге

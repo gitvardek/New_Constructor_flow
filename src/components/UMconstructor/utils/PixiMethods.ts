@@ -666,6 +666,11 @@ class Shape extends Helpers {
         if (this === otherShape)
             return false;
 
+        if (this.isExcludedFromCollision(this.data, otherShape.data))
+            return false
+        if (this.isExcludedFromCollision(otherShape.data, this.data))
+            return false
+
         let verticalCheck = false;
         let horizontalCheck = false;
 

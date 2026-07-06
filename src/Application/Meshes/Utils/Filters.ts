@@ -65,6 +65,8 @@ export class Filters extends GlobalsData {
 
         const { FASADE_PROPS, ELEMENT_TYPE, FASADE_SIZE, FILLING, MODELID, MODEL } = params
 
+        console.log(FASADE_SIZE, 'FASADE_SIZE')
+
         FASADE_PROPS.length = 0;
 
         let sortFasadePositionList = [];
@@ -102,6 +104,8 @@ export class Filters extends GlobalsData {
         else {
             sortFasadePositionList = fasadeSorted
         }
+
+        console.log(sortFasadePositionList, 'sortFasadePositionList')
 
         //Фильтрация фасадов на принадлежность текущей компоновке
         if (FILLING) {
@@ -369,9 +373,12 @@ export class Filters extends GlobalsData {
             const key = fasadePos.find(pos => this._FASADE_POSITION[pos].FASADE_SIZE === size)
             return this._FASADE_POSITION[key]
 
-        })
+        }).filter(Boolean)
+
+        console.log(maped, '')
 
         const result = maped.reduce((object, value, index) => {
+            
             return { ...object, [value.FASADE_SIZE]: value };
         }, {});
 

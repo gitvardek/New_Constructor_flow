@@ -259,15 +259,19 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
   const createFasadeData = (data) => {
     if (!data.fasade) return {}
-    if (data.fasade.material.COLOR === 7397) return false; //7397 - id без фасада
-    return {
-      fasade: {
-        COLOR: data.fasade.material.COLOR,
-        size: {
-          height: data.fasade.height,
-          width: data.fasade.width
-        }
 
+    const { COLOR, GLASS, MILLING, PALETTE, PATINA } = data.fasade.material
+    if (COLOR === 7397) return false // 7397 - id без фасада
+
+    const extras = Object.fromEntries(
+      Object.entries({ GLASS, MILLING, PALETTE, PATINA }).filter(([, value]) => value)
+    )
+
+    return {
+      fasade: { COLOR, ...extras },
+      size: {
+        height: data.fasade.height,
+        width: data.fasade.width
       }
     }
   }

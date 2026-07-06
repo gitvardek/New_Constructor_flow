@@ -25,6 +25,7 @@ export class BuildUniversalModule extends BuildProduct {
     heightCorrect: number = 0
 
     private readonly correctPosZGroups: number[] = [2166309]
+    private readonly fillingOffset:number = 50
 
     constructor(root: THREETypes.TApplication) {
         super(root);
@@ -684,7 +685,8 @@ export class BuildUniversalModule extends BuildProduct {
                         start_position.y += filling.size.y / 2 + full_horizont_height + baseOffset
 
                         if (isCorrectZPos) {
-                            start_position.z = sizeModule.depth / 2 - filling.size.z / 2 - (sizeModule.depth - filling.size.z)
+                            // start_position.z = sizeModule.depth / 2 - filling.size.z / 2 - (sizeModule.depth - filling.size.z)
+                            start_position.z = sizeModule.depth / 2 - filling.size.z / 2 - this.fillingOffset
                         }
 
 

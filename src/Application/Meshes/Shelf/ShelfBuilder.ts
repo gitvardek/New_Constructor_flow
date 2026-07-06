@@ -41,11 +41,11 @@ export class ShelfBuilder {
         const { depth, width: initWidth } = props.CONFIG.SIZE;
         const correction = shelfs.WIDTH_CORRECTION;
         const startPos = this.parent.getStartPosition(props.CONFIG.SIZE);
-        const { BODY_DEPTH } = props.BODY.userData.trueSize
+        const { BODY_DEPTH } = props.BODY?.userData.trueSize
         const correctDepth = depth > BODY_DEPTH ? BODY_DEPTH : depth
 
 
-        const matType = props.BODY.userData.MATERIAL_TYPE ?? "MeshStandardMaterial";
+        const matType = props.BODY?.userData.MATERIAL_TYPE ?? "MeshStandardMaterial";
         const shelfMaterial = material || this.materialMap[matType] || this.materialMap.MeshStandardMaterial;
 
         props.SHELF = [];

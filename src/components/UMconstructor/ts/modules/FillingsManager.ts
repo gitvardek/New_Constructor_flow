@@ -217,10 +217,11 @@ export default class FillingsManager {
         isVerticalItem = false,
         isDrawer = false
     ) {
+        if (!product || !currentSpace) return false
 
         let width = product.width
         let height = product.height
-        let isSlidingDoors = grid.fasades ? 100 : 0
+        let isSlidingDoors = grid.fasades?.length ? 100 : 0
 
         if (!isVerticalItem && (height > currentSpace.height || product.ACTUAL_DEPT > grid.depth - isSlidingDoors)) {
             return false
@@ -228,8 +229,10 @@ export default class FillingsManager {
 
         if (isVerticalItem) {
             height = currentSpace.height;
-        } else if (width !== currentSpace.width)
+        } else {
+            // Для нефасадного наполнения ширина всегда подгоняется под пространство
             width = currentSpace.width;
+        }
 
         let tempFilling = {
             width,
@@ -237,6 +240,7 @@ export default class FillingsManager {
             data: product,
             isVerticalItem,
             isDrawer,
+            productGroupID: product.productGroupID,
         };
 
         return this.scope.RENDER_REF.checkPositionFillingToCreate(tempFilling);
@@ -251,6 +255,7 @@ export default class FillingsManager {
         console.log(productGroupID, 'productGroupID')
 
         const product = Object.assign({}, _product);
+        product.productGroupID = productGroupID;
         const { sec, cell, row, extra } = this.scope.UM_STORE.getSelected("module")
         const isHiTechProfile = this.scope.APP.PRODUCTS_TYPES[product.productType]?.CODE.includes("hi_tech_profile") || false
         const isBottomHiTechProfile = isHiTechProfile && this.scope.APP.PRODUCTS_TYPES[product.productType]?.CODE.includes("bottom") || false
