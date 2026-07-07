@@ -955,6 +955,7 @@ onBeforeUnmount(() => {
 }
 
 .accordion {
+  padding: 0.5rem 1rem;
   border: none;
   box-shadow: 4px 4px 4px 4px rgba(34, 60, 80, 0.11);
   transition-property: box-shadow;

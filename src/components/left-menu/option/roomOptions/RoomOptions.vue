@@ -290,8 +290,8 @@ onBeforeMount(() => {
 }
 
 .label__color {
-  height: 60px;
-  width: 60px;
+  height: 45px;
+  width: 45px;
   border-radius: 12px;
   cursor: pointer;
 }
