@@ -52,13 +52,15 @@ const handleSelect = (material: any) => {
 
             <template #trigger>
               <div class="material-config_item" @click="handleSelect(material)">
-                <img class="material-config_item__img" :src="_URL + material.PREVIEW_PICTURE" alt="" />
+                <img class="material-config_item__img" :src="_URL + material.PREVIEW_PICTURE" alt="" v-if="material.PREVIEW_PICTURE"/>
+                <p v-else class="material-config_item__img" :style="{backgroundColor: `#${material.RAL || material.HTML || ''}`}"> </p>
               </div>
             </template>
 
             <template #content>
               <div class="material-config_item__tool">
-                <img class="material-config_item__img tool" :src="_URL + material.PREVIEW_PICTURE" alt="" />
+                <img class="material-config_item__img tool" :src="_URL + material.PREVIEW_PICTURE" alt="" v-if="material.PREVIEW_PICTURE"/>
+                <p v-else class="material-config_item__img tool" :style="{backgroundColor: `#${material.RAL || material.HTML || ''}`}"> </p>
                 <p>{{ material.NAME }}</p>
               </div>
             </template>
