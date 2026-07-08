@@ -645,9 +645,12 @@ export class BuildersHelper extends GlobalsData {
     }
 
     public createPlinthParams(models) {
+        console.log(models)
+
         const basePlinth = Object.values(this._PLINTH)[0]
         const inProdModel = this._MODELS[models[0]]
-        const jsonPlinth = inProdModel.json.plinth
+        console.log(inProdModel, 'inProdModel')
+        const jsonPlinth = inProdModel?.json?.plinth
 
         if (jsonPlinth) {
             return {
