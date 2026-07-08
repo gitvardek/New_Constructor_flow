@@ -58,6 +58,8 @@ export class JsonBuilder {
         isRoomElement = false,
     }: CreateMeshParams): THREE.Object3D {
 
+        console.log(data, 'IIII')
+
         const json = data.json ?? data
         const group = new THREE.Object3D()
         const obj: Record<string, THREE.Mesh> = {}
@@ -275,6 +277,8 @@ export class JsonBuilder {
         if (isRoomElement) {
             this.parent.normalizeUVsTo01(geometry);
         }
+
+        console.log(geometry, 'geometry')
 
         geometry.computeBoundingBox();
 

@@ -2050,14 +2050,9 @@ function dragMove(event) {
   } = dragState;
 
   if (type === "vertical") {
-    let curMin =
-      minXleft < MIN_SECTION_WIDTH
-        ? MIN_SECTION_WIDTH
-        : minXleft || MIN_SECTION_WIDTH;
-    let nextMin =
-      minXRight < MIN_SECTION_WIDTH
-        ? MIN_SECTION_WIDTH
-        : minXRight || MIN_SECTION_WIDTH;
+    // Infinity не спасается через ||, поэтому проверяем isFinite явно
+    let curMin = !Number.isFinite(minXleft) || minXleft < MIN_SECTION_WIDTH ? MIN_SECTION_WIDTH : minXleft;
+    let nextMin = !Number.isFinite(minXRight) || minXRight < MIN_SECTION_WIDTH ? MIN_SECTION_WIDTH : minXRight;
 
     const deltaPixels = event.data.global.x - startX;
 
@@ -2182,7 +2177,7 @@ function dragMove(event) {
                     } else {
                       filling.width = extra.width;
                       filling.size.x = filling.width;
-                      filling.position.x += item.position.x - item.width / 2;
+                      filling.position.x = item.position.x - item.width / 2;
                     }
                   });
                 }
@@ -2331,7 +2326,7 @@ function dragMove(event) {
                     } else {
                       filling.width = extra.width;
                       filling.size.x = filling.width;
-                      filling.position.x += deltaPos1;
+                      filling.position.x = extra.position.x - extra.width / 2;
                     }
                   });
                 }
@@ -2344,7 +2339,7 @@ function dragMove(event) {
                   } else {
                     filling.width = item.width;
                     filling.size.x = filling.width;
-                    filling.position.x = deltaPos1;
+                    filling.position.x = item.position.x - item.width / 2;
                   }
                 });
               }
@@ -2455,14 +2450,9 @@ function dragMove(event) {
       }
     }
   } else if (type === "horizontal") {
-    let curMin =
-      minTop < MIN_SECTION_HEIGHT
-        ? MIN_SECTION_HEIGHT
-        : minTop || MIN_SECTION_HEIGHT;
-    let nextMin =
-      minBottom < MIN_SECTION_HEIGHT
-        ? MIN_SECTION_HEIGHT
-        : minBottom || MIN_SECTION_HEIGHT;
+    // Infinity не спасается через ||, поэтому проверяем isFinite явно
+    let curMin = !Number.isFinite(minTop) || minTop < MIN_SECTION_HEIGHT ? MIN_SECTION_HEIGHT : minTop;
+    let nextMin = !Number.isFinite(minBottom) || minBottom < MIN_SECTION_HEIGHT ? MIN_SECTION_HEIGHT : minBottom;
 
     const deltaPixels = event.data.global.y - startY;
 
@@ -3225,6 +3215,10 @@ const updateSizes = (
   minCurrent,
   minAdjacent,
 ) => {
+  // Защита от Infinity/NaN в минимальных значениях (возникает при section.minX = Infinity)
+  if (!Number.isFinite(minCurrent) || minCurrent < 0) minCurrent = 0;
+  if (!Number.isFinite(minAdjacent) || minAdjacent < 0) minAdjacent = 0;
+
   if (newValue < minCurrent) newValue = minCurrent;
 
   const newAdjacentSize = total - newValue;

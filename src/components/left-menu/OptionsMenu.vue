@@ -18,6 +18,7 @@ import { usePopupStore } from "@/store/appStore/popUpsStore";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useCustomiserStore } from "@/store/appStore/useCustomiserStore";
 import { useTransformController } from "../ui/transformController/useTransformController";
+import { useSceneState } from "@/store/appliction/useSceneState";
 
 import PopUpOptionsMenu from "@/components/left-menu/option/PopUpOptionsMenu.vue";
 import RoomOptionsMenu from "@/components/left-menu/option/RoomOptionsMenu.vue";
@@ -32,6 +33,7 @@ import Accordion from "../ui/accordion/Accordion.vue";
 const eventBus = useEventBus();
 const store = useModelStore();
 const modelState = useModelState();
+const sceneState = useSceneState();
 
 const menuStore = useMenuStore();
 const customiserStore = useCustomiserStore();
@@ -165,6 +167,8 @@ onBeforeMount(() => {
 });
 
 onMounted(() => {
+  console.log(sceneState.getCurrentProjectParams)
+
   eventBus.on("A:Selected", () => {
     // menuStore.closeAllMenus();
     menuStore.closeMenu("roomPar");
@@ -180,6 +184,15 @@ onUnmounted(() => {
   <section class="options">
     <div class="options__container">
       <div class="options-design">
+
+        <div class="options-header">
+          <h1 class="options__title">Проект</h1>
+          <div class="options-header__items">
+            <p class="goods-item__title"> Наименование: "{{ sceneState.getCurrentProjectParams.project_name }}"</p>
+            <p class="goods-item__title"> ID: {{ sceneState.getCurrentProjectParams.projectId }}</p>
+          </div>
+        </div>
+
         <h1 class="options__title">Проектирование</h1>
         <div class="goods">
           <!-- <div class="goods-item">
@@ -268,6 +281,16 @@ onUnmounted(() => {
   background-color: $bg;
   // transform-style: preserve-3d;
   z-index: 1;
+
+  &-header {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+
+    &__items {
+      padding: 0 1.5rem;
+    }
+  }
 
   &-design {
     z-index: 10;
@@ -507,6 +530,8 @@ onUnmounted(() => {
   overflow-y: auto;
   min-height: 0;
 
+  &-header {}
+
   &-items {
     min-height: 48px;
     position: relative;
@@ -567,6 +592,7 @@ onUnmounted(() => {
     }
 
     &__title {
+      overflow-wrap: break-word;
       font-size: 1.4rem;
       z-index: 5;
       transition: 0.15s;

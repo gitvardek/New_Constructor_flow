@@ -677,10 +677,6 @@ onMounted(async () => {
 
 // Хедер проекта
 .project-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 0.7rem;
   border: 1px solid $stroke;
   border-radius: 15px;
@@ -689,7 +685,10 @@ onMounted(async () => {
 .project-search {
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 10px;
+  width: 100%;
 
   &__input {
     min-width: 150px;
@@ -706,10 +705,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
+  flex-wrap: wrap;
+  // min-width: 0;
 
   &__input {
-    min-width: 140px;
+    max-width: 110px;
     width: auto;
   }
 
@@ -723,7 +723,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-left: 100px;
+  // margin-left: 100px;
   padding-left: 16px;
 
   &__input {
@@ -1010,6 +1010,7 @@ onMounted(async () => {
 .project-tabs {
   display: flex;
   align-self: flex-start;
+  flex-wrap: wrap;
   margin-left: 30px;
 
   &__tab {
@@ -1116,7 +1117,10 @@ onMounted(async () => {
 }
 
 .backend {
-  &-ids-select {}
+  &-ids-select {
+    max-width: 350px;
+    min-width: 100px;
+  }
 
 }
 

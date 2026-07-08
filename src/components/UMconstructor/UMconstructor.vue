@@ -69,6 +69,8 @@ const saveConfigCash = (PROPS) => {
   } = CONFIG
 
   if(MODULEGRID)
+    console.log(MODULEGRID, 'MODULEGRID')
+
     UMstore.setUMCashGrid(saveUMGrid(MODULEGRID))
 
   let universalModuleConfigCash = {

@@ -1109,7 +1109,7 @@ class Section extends Helpers {
         const cellPath = this.createPath();
         const highlightPath = this.createPath();
 
-        if (data.type === "fasade") {
+        if (data.type === "module") {
             console.log(cellPath)
         }
 

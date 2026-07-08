@@ -883,8 +883,6 @@ const renderDescription = computed(() => {
 
     for (const [key, value] of Object.entries(data)) {
 
-      console.log(data, '<<< Data >>>')
-
       if (
         getPropDefinition(key)?.NAME &&
         !isObject(value) &&
