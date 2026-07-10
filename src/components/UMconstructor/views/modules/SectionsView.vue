@@ -110,7 +110,7 @@ onMounted(() => {
               <div v-for="(cell, cellIndex) in section.cells" :key="cellIndex" :class="'UM actions-items--container'"
                 :id="`module_${secIndex}_${cellIndex}`">
                 <Accordion :open="cellIndex === selectedCell.cell"
-                  @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex) }">
+                  @toggle="(isOpen) => { if (isOpen && cellIndex !== selectedCell.cell) showCurrentCol(secIndex, cellIndex) }">
                   <template #title>
                     <h3 class="item-group__title">
                       {{ secIndex + 1 }}.{{ cellIndex + 1 }}
@@ -198,8 +198,8 @@ onMounted(() => {
 
                     <div v-for="(row, rowIndex) in cell.cellsRows" :key="rowIndex" :class="'actions-items--container'"
                       :id="`module_${secIndex}_${cellIndex}_${rowIndex}`">
-                      <Accordion :open="rowIndex === selectedCell.row"
-                        @toggle="(isOpen) => { if (isOpen && rowIndex !== selectedCell.row) showCurrentCol(secIndex, cellIndex, rowIndex) }">
+                      <Accordion :open="rowIndex === selectedCell.row && cellIndex === selectedCell.cell"
+                        @toggle="(isOpen) => { if (isOpen && (rowIndex !== selectedCell.row || cellIndex !== selectedCell.cell)) showCurrentCol(secIndex, cellIndex, rowIndex) }">
                         <template #title>
                           <h3 class="item-group__title">
                             {{ secIndex + 1 }}.{{ cellIndex + 1 }}.{{ rowIndex + 1 }}
