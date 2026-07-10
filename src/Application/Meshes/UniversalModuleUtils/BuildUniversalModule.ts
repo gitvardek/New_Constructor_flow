@@ -118,8 +118,6 @@ export class BuildUniversalModule extends BuildProduct {
         const legsHeight = this._PRODUCTS[productId]?.leg_length || optionsLegs
         const baseY = legsHeight * 0.5;
 
-        console.log(baseY, legsHeight)
-
         // Сборка частей
         const { body, tempMaterial, move } = !this.isEmpty(modelData)
             ? this.createBody(data, PROPS, defaultConfig)
@@ -224,7 +222,6 @@ export class BuildUniversalModule extends BuildProduct {
     };
 
     createProductObject(product_data: THREETypes.TObject, props) {
-        console.log(product_data, 'product_data')
 
         const CONFIG = super.createProductObject(product_data, props)
 
@@ -789,8 +786,6 @@ export class BuildUniversalModule extends BuildProduct {
     }
 
     createSubProductObject(filling: Object, data: THREETypes.TObject, props: THREETypes.TObject) {
-
-        console.log('SUB')
 
         let textureUrl = filling.isProfile ? this._COLOR[props.CONFIG['PROFILECOLOR']].TEXTURE :
             this._FASADE[filling.color ||

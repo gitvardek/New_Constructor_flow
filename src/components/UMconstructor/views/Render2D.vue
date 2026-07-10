@@ -101,6 +101,8 @@ const {
   MIN_FASADE_WIDTH,
   MIN_SLIDE_DOOR_WIDTH,
   MAX_SECTION_WIDTH,
+  MIN_TSARGA_WIDTH,
+  MAX_TSARGA_WIDTH,
 } = UM_PARAMS;
 
 const dragState = reactive({
@@ -412,8 +414,12 @@ const renderGrid = (_moduleGrid) => {
                 cellRow.extras
                   .slice()
                   .sort((a, b) => b.position.y - a.position.y)
-                  .forEach((extra, extraIndex, _extras) => {
+                  .forEach((extra, _sortedIndex, _extras) => {
+                    // Оригинальный индекс нужен чтобы PIXI click handler и Vue v-for использовали один и тот же индекс
+                    const extraIndex = cellRow.extras.indexOf(extra);
                     const RowpxHeight = getPixelHeight(extra.height);
+
+                    console.log(extraIndex, 'extraIndex')
 
                     extra.xOffset = rowxOffset;
                     extra.yOffset = rowyOffset;
@@ -445,6 +451,9 @@ const renderGrid = (_moduleGrid) => {
                 const colBond = shapeAdjuster.createColumnBounds(
                   cellRow.extras,
                 );
+
+                // Sector row-а = первая extra, чтобы toggleSectionColor мог подсветить ряд при выборе без extra
+                cellRow.sector = cellRow.extras[0]?.sector;
 
                 // Создаём ограничения для секторов по ширине
                 cellRow.shapesBond = colBond;
@@ -1386,6 +1395,8 @@ const createVerticalCut = ({
   rowIndex = null,
   extraIndex = null,
 }) => {
+
+
   let _cellIndex = cellIndex;
   let _rowIndex = rowIndex;
   let _extraIndex = extraIndex;
@@ -1659,6 +1670,7 @@ const checkPositionFillingToCreate = (data) => {
 
 // Выбор сектора, передача в родительский компонент
 const selectCell = (type: string, newSelectedCell: TSelectedCell) => {
+
   switch (type) {
     case "fillings": {
       UMconstructor?.value?.UM_STORE.setSelected(type, newSelectedCell);
@@ -1673,6 +1685,7 @@ const selectCell = (type: string, newSelectedCell: TSelectedCell) => {
           newSelectedCell.extra === d.extra &&
           newSelectedCell.item === d.id;
       });
+
       break;
     }
     case "fasades": {
@@ -1686,10 +1699,13 @@ const selectCell = (type: string, newSelectedCell: TSelectedCell) => {
       break;
     }
     default: {
+
       UMconstructor?.value?.UM_STORE.setSelected(type, newSelectedCell);
       UMconstructor?.value?.UM_STORE.setSelected("fillings", newSelectedCell);
       const { sec, cell, row, extra } =
         UMconstructor?.value?.UM_STORE.getSelected("module");
+      console.log(sec, cell, row, extra)
+
       toggleSectionColor(sec, cell, row, extra);
       break;
     }
@@ -1715,6 +1731,8 @@ const toggleSectionColor = (
     cell?.sector ||
     section?.sector ||
     props.module.sector;
+
+  console.log(sector, 'sector')
 
   sections[0].children.forEach((elem) => {
     if (elem.children[1]) elem.children[1].visible = false;
@@ -2025,11 +2043,16 @@ function onDragMove(event) {
   lastDragEvent.value = event;
 }
 
+function updateRowTsarga(row) {
+  if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+    row.tsarga = true;
+  } else {
+    delete row.tsarga;
+  }
+}
+
 function dragMove(event) {
   if (!dragState.isDragging || !lastDragEvent.value) return;
-
-  console.log('dragMove')
-
   const {
     type,
     secIndex,
@@ -2086,6 +2109,7 @@ function dragMove(event) {
 
     if (row) {
       row.width = newLeftWidth;
+      updateRowTsarga(row);
 
       row.extras?.forEach((item) => {
         item.width = row.width;
@@ -2102,6 +2126,7 @@ function dragMove(event) {
       let delta2 = nextRow.width - newRightWidth;
       nextRow.position.x += delta2 / 2;
       nextRow.width = newRightWidth;
+      updateRowTsarga(nextRow);
 
       nextRow.extras?.forEach((item) => {
         item.width = nextRow.width;
@@ -2151,9 +2176,15 @@ function dragMove(event) {
       section.width = newLeftWidth;
       section.position.x += deltaPos1;
 
-      section.cells.forEach((cell) => {
+      section.cells.forEach((cell, cellIdx) => {
         cell.width = section.width;
         cell.position.x = section.position.x;
+        // cells[0] и ячейки с cellsRows — царга не нужна; остальные — по ширине
+        if (cellIdx === 0 || cell.cellsRows?.length) {
+          delete cell.tsarga;
+        } else {
+          updateRowTsarga(cell);
+        }
 
         if (cell.cellsRows?.length) {
           let divideDelta = Math.floor(-delta1 / cell.cellsRows.length);
@@ -2164,6 +2195,7 @@ function dragMove(event) {
           cell.cellsRows.forEach((item) => {
             if (item.width + divideDelta >= MIN_SECTION_WIDTH) {
               item.width += divideDelta;
+              updateRowTsarga(item);
               item.position.x += divideDeltaPos1;
 
               item.extras?.forEach((extra) => {
@@ -2196,6 +2228,7 @@ function dragMove(event) {
               }
             } else {
               item.width = MIN_SECTION_WIDTH;
+              updateRowTsarga(item);
             }
 
             extraSize += item.width;
@@ -2206,6 +2239,7 @@ function dragMove(event) {
             : cell.cellsRows[0];
           if (lastRow.width + (newLeftWidth - extraSize) >= MIN_SECTION_WIDTH) {
             lastRow.width += newLeftWidth - extraSize;
+            updateRowTsarga(lastRow);
             lastRow.position.x += (newLeftWidth - extraSize) / 2;
 
             lastRow.fillings?.forEach((filling) => {
@@ -2241,6 +2275,7 @@ function dragMove(event) {
 
             if (lastRow) {
               lastRow.width += newLeftWidth - extraSize;
+              updateRowTsarga(lastRow);
               lastRow.position.x += (newLeftWidth - extraSize) / 2;
 
               lastRow.fillings?.forEach((filling) => {
@@ -2300,9 +2335,15 @@ function dragMove(event) {
       nextSection.width = newRightWidth;
       nextSection.position.x += deltaPos1;
 
-      nextSection.cells.forEach((cell) => {
+      nextSection.cells.forEach((cell, cellIdx) => {
         cell.width = nextSection.width;
         cell.position.x = nextSection.position.x;
+        // cells[0] и ячейки с cellsRows — царга не нужна; остальные — по ширине
+        if (cellIdx === 0 || cell.cellsRows?.length) {
+          delete cell.tsarga;
+        } else {
+          updateRowTsarga(cell);
+        }
 
         if (cell.cellsRows?.length) {
           let divideDelta = Math.floor(-delta2 / cell.cellsRows.length);
@@ -2313,6 +2354,7 @@ function dragMove(event) {
           cell.cellsRows.forEach((item) => {
             if (item.width + divideDelta >= MIN_SECTION_WIDTH) {
               item.width += divideDelta;
+              updateRowTsarga(item);
               item.position.x += divideDeltaPos;
 
               item.extras?.forEach((extra) => {
@@ -2345,6 +2387,7 @@ function dragMove(event) {
               }
             } else {
               item.width = MIN_SECTION_WIDTH;
+              updateRowTsarga(item);
             }
 
             extraSize += item.width;
@@ -2359,6 +2402,7 @@ function dragMove(event) {
             MIN_SECTION_WIDTH
           ) {
             lastRow.width += newRightWidth - extraSize;
+            updateRowTsarga(lastRow);
             lastRow.position.x += (newRightWidth - extraSize) / 2;
 
             lastRow.fillings?.forEach((filling) => {
@@ -2394,6 +2438,7 @@ function dragMove(event) {
 
             if (lastRow) {
               lastRow.width += newRightWidth - extraSize;
+              updateRowTsarga(lastRow);
               lastRow.position.x += (newRightWidth - extraSize) / 2;
 
               lastRow.fillings?.forEach((filling) => {
@@ -3419,6 +3464,7 @@ watch(
   () => UMconstructor?.value?.UM_STORE.getSelected("module"),
   () => {
     selectedCell.value = UMconstructor?.value?.UM_STORE.getSelected("module");
+
   },
 );
 watch(
@@ -3427,7 +3473,6 @@ watch(
     selectedFasade.value =
       UMconstructor?.value?.UM_STORE.getSelected("fasades");
 
-    console.log(currentModule.value, 'fasades')
   },
 );
 watch(
@@ -3435,7 +3480,6 @@ watch(
   () => {
     selectedFilling.value =
       UMconstructor?.value?.UM_STORE.getSelected("fillings");
-    console.log(currentModule.value, 'fillings')
   },
 );
 

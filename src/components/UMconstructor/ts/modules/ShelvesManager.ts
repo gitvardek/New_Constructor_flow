@@ -8,7 +8,7 @@ import {
     GridCellsRow,
     GridRowExtra,
 } from "@/components/UMconstructor/types/UMtypes.ts";
-
+import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 export default class ShelvesManager {
     scope: UMconstructorClass
@@ -73,6 +73,9 @@ export default class ShelvesManager {
             this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex });
         }
 
+        // Сбрасываем tsarga с базовой ячейки — будет переустановлена ниже
+        delete cell.tsarga;
+
         // Добавляем новую строку в эту колонку
         for (let i = 0; i < count; i++) {
 
@@ -89,8 +92,23 @@ export default class ShelvesManager {
                 newCell.height += deltaLastCell;
             }
 
+            // Новые ячейки получают царгу по ширине
+            if (newCell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && newCell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
+                newCell.tsarga = true;
+            }
+
             section.cells.splice(cellIndex || 0, 0, newCell);
         }
+
+        // Восстанавливаем tsarga базовой ячейки (она сместилась вглубь массива)
+        if (cell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && cell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
+            cell.tsarga = true;
+        } else {
+            delete cell.tsarga;
+        }
+
+        // Верхняя ячейка секции (cells[0]) царги не имеет — это крыша шкафа
+        delete section.cells[0].tsarga;
 
         this.scope.reset(grid)
     };
@@ -432,10 +450,28 @@ export default class ShelvesManager {
             count: number
         }) {
 
-        this.scope.SECTIONS.selectCell(secIndex, cellIndex, rowIndex);
         const { MIN_SECTION_WIDTH } = this.scope.CONST
+        const section = grid.sections[secIndex];
 
-        const cell = grid.sections[secIndex].cells[cellIndex]
+        // Если у секции ещё нет ячеек — создаём базовую из размеров секции
+        if (section.cells.length === 0) {
+            const baseCell = <GridCell>{
+                number: 1,
+                width: section.width,
+                height: section.height,
+                type: "cell",
+                position: new THREE.Vector2(section.position.x, section.position.y),
+            };
+            if (section.fillings?.length) {
+                this.scope.FILLINGS.clearFillings({ grid, secIndex });
+            }
+            section.cells.push(baseCell);
+            cellIndex = 0;
+        }
+
+        this.scope.SECTIONS.selectCell(secIndex, cellIndex, rowIndex);
+
+        const cell = section.cells[cellIndex];
 
         let row;
         if (cell.cellsRows?.length > 0) {
@@ -457,6 +493,9 @@ export default class ShelvesManager {
             }
         }
 
+        // Ячейка с cellsRows — контейнер столбцов, своя царга не нужна
+        delete cell.tsarga;
+
         const halfWidth = Math.floor((row.width - grid.moduleThickness * count) / (count + 1));
 
         if (halfWidth < MIN_SECTION_WIDTH) {
@@ -475,6 +514,13 @@ export default class ShelvesManager {
         // Обновляем ширину последней строки
         row.position.x = row.position.x - (row.width / 2 - halfWidth / 2)
         row.width = halfWidth;
+        
+
+        if (row.width >= UM_PARAMS.MIN_TSARGA_WIDTH && row.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
+            row.tsarga = true;
+        } else {
+            delete row.tsarga;
+        }
 
         // Добавляем новую строку в эту колонку
         for (let i = 0; i < count; i++) {
@@ -487,10 +533,18 @@ export default class ShelvesManager {
 
             if (i === count - 1) {
                 newRow.width += deltaLastRow;
+                if (newRow.width >= UM_PARAMS.MIN_TSARGA_WIDTH && newRow.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
+                    newRow.tsarga = true;
+                } else {
+                    delete newRow.tsarga;
+                }
             }
 
             cell.cellsRows.splice(rowIndex + 1 + i, 0, newRow);
         }
+
+        // Перенумерация всех рядов после вставки
+        cell.cellsRows.forEach((r, idx) => { r.number = idx + 1; });
 
         this.scope.reset(grid)
     };

@@ -258,14 +258,22 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
   }
 
   const createFasadeData = (data) => {
-    if (!data.fasade) return {}
+
+    if (!data.fasade) return false
 
     const { COLOR, GLASS, MILLING, PALETTE, PATINA } = data.fasade.material
-    if (COLOR === 7397) return false // 7397 - id без фасада
+
+
+    if (COLOR === 7397) {
+      return false // 7397 - id без фасада
+    }
 
     const extras = Object.fromEntries(
       Object.entries({ GLASS, MILLING, PALETTE, PATINA }).filter(([, value]) => value)
     )
+
+
+    if (!COLOR) return false;
 
     return {
       fasade: { COLOR, ...extras },
@@ -315,7 +323,6 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
       }
 
       return fasadeData ? { ...base, FASADE: fasadeData } : base;
-
 
     }
 

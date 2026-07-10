@@ -109,10 +109,8 @@ onMounted(() => {
 
               <div v-for="(cell, cellIndex) in section.cells" :key="cellIndex" :class="'UM actions-items--container'"
                 :id="`module_${secIndex}_${cellIndex}`">
-                <Accordion
-                  :open="cellIndex === selectedCell.cell"
-                  @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex) }"
-                >
+                <Accordion :open="cellIndex === selectedCell.cell"
+                  @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex) }">
                   <template #title>
                     <h3 class="item-group__title">
                       {{ secIndex + 1 }}.{{ cellIndex + 1 }}
@@ -128,20 +126,14 @@ onMounted(() => {
                           <div class="actions-inputs">
                             <p class="actions-title">Ширина</p>
                             <div :class="['actions-input--container']">
-                              <MainInput 
-                                @update:modelValue="(value: number) => UMconstructor.SECTIONS.updateSectionWidth({
-                                  grid: module,
-                                  secIndex,
-                                  value: value ?? UMconstructor.CONST.MIN_SECTION_WIDTH
-                                })" 
-                                :type="'number'" 
-                                :inputClass="'actions-input'" 
-                                :modelValue="section.width"
+                              <MainInput @update:modelValue="(value: number) => UMconstructor.SECTIONS.updateSectionWidth({
+                                grid: module,
+                                secIndex,
+                                value: value ?? UMconstructor.CONST.MIN_SECTION_WIDTH
+                              })" :type="'number'" :inputClass="'actions-input'" :modelValue="section.width"
                                 :min="UMconstructor.CONST.MIN_SECTION_WIDTH"
-                                :max="UMconstructor.CONST.MAX_SECTION_WIDTH" 
-                                :disabled="module.sections.length < 2"
-                                :step="step"
-                                :isUM="true" />
+                                :max="UMconstructor.CONST.MAX_SECTION_WIDTH" :disabled="module.sections.length < 2"
+                                :step="step" :isUM="true" />
 
                             </div>
                           </div>
@@ -151,19 +143,14 @@ onMounted(() => {
                           <div class="actions-inputs">
                             <p class="actions-title">Высота !</p>
                             <div :class="['actions-input--container']">
-                              <MainInput 
-                                @update:modelValue="(value: number) => UMconstructor.SHELVES.updateCellHeight({
-                                  grid: module,
-                                  secIndex,
-                                  cellIndex,
-                                  value: value ?? UMconstructor.CONST.MIN_SECTION_HEIGHT
-                                  })" 
-                                :type="'number'" 
-                                :inputClass="'actions-input'" 
-                                :modelValue="cell.height"
+                              <MainInput @update:modelValue="(value: number) => UMconstructor.SHELVES.updateCellHeight({
+                                grid: module,
+                                secIndex,
+                                cellIndex,
+                                value: value ?? UMconstructor.CONST.MIN_SECTION_HEIGHT
+                              })" :type="'number'" :inputClass="'actions-input'" :modelValue="cell.height"
                                 :min="UMconstructor.CONST.MIN_SECTION_HEIGHT"
-                                :max="section.height - UMconstructor.CONST.MIN_SECTION_HEIGHT" 
-                                :step="step"
+                                :max="section.height - UMconstructor.CONST.MIN_SECTION_HEIGHT" :step="step"
                                 :isUM="true" />
 
                             </div>
@@ -211,10 +198,8 @@ onMounted(() => {
 
                     <div v-for="(row, rowIndex) in cell.cellsRows" :key="rowIndex" :class="'actions-items--container'"
                       :id="`module_${secIndex}_${cellIndex}_${rowIndex}`">
-                      <Accordion
-                        :open="rowIndex === selectedCell.row"
-                        @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex, rowIndex) }"
-                      >
+                      <Accordion :open="rowIndex === selectedCell.row"
+                        @toggle="(isOpen) => { if (isOpen && rowIndex !== selectedCell.row) showCurrentCol(secIndex, cellIndex, rowIndex) }">
                         <template #title>
                           <h3 class="item-group__title">
                             {{ secIndex + 1 }}.{{ cellIndex + 1 }}.{{ rowIndex + 1 }}
@@ -283,10 +268,8 @@ onMounted(() => {
                           <div v-for="(extra, extraIndex) in row.extras" :key="extraIndex"
                             :class="'actions-items--container'"
                             :id="`module_${secIndex}_${cellIndex}_${rowIndex}_${extraIndex}`">
-                            <Accordion
-                              :open="extraIndex === selectedCell.extra"
-                              @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex, rowIndex, extraIndex) }"
-                            >
+                            <Accordion :open="extraIndex === selectedCell.extra && rowIndex === selectedCell.row"
+                              @toggle="(isOpen) => { if (isOpen) showCurrentCol(secIndex, cellIndex, rowIndex, extraIndex) }">
                               <template #title>
                                 <h3 class="item-group__title">
                                   {{ secIndex + 1 }}.{{ cellIndex + 1 }}.{{ rowIndex + 1 }}.{{ extraIndex + 1 }}
@@ -406,6 +389,15 @@ onMounted(() => {
                   </div>
 
                   <div v-if="!section.cells.length" class="actions-items--right-items-input-block">
+                    <CounterInput button-text="Верт. разделитель" model-value="1" max="10" min="1"
+                      input-class="actions-items--right-items-input-block-counter"
+                      button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button"
+                      type="number" @update:model-value="(count: number | string) => {
+                        UMconstructor.SHELVES.addRowCell({ grid: module, secIndex, cellIndex, rowIndex, count: parseInt(count) })
+                      }" />
+                  </div>
+
+                  <div v-if="!section.cells.length" class="actions-items--right-items-input-block">
                     <CounterInput button-text="Добавить полку" model-value="1" max="10" min="1"
                       input-class="actions-items--right-items-input-block-counter"
                       button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button"
@@ -432,5 +424,4 @@ onMounted(() => {
   gap: 0;
 
 }
-
 </style>
