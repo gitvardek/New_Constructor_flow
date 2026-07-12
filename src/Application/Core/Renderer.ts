@@ -93,7 +93,8 @@ export class Renderer {
             this.instance.physicallyCorrectLights = true;
 
             // this.instance.shadowMap.type = THREE.BasicShadowMap;
-            // this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
+            this.instance.shadowMap.enabled = true;
+            this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
             // this.instance.logarithmicDepthBuffer = true
             // this.instance.shadowMap.autoUpdate = true;
 
@@ -205,7 +206,9 @@ export class Renderer {
                 this.instance.physicallyCorrectLights = false;
                 this.instance.shadowMap.enabled = true;
 
-                this.instance.shadowMap.type = THREE.BasicShadowMap;
+                // this.instance.shadowMap.type = THREE.BasicShadowMap;
+                this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
+
                 // this.instance.toneMapping = THREE.ReinhardToneMapping;
                 // this.instance.toneMappingExposure = 1.8;
                 this.instance.receiveShadow = true;
@@ -218,7 +221,8 @@ export class Renderer {
 
                 // this.instance.physicallyCorrectLights = false;
                 this.instance.shadowMap.enabled = true;
-                this.instance.shadowMap.type = THREE.BasicShadowMap;
+                // this.instance.shadowMap.type = THREE.BasicShadowMap;
+                this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
                 // this.instance.toneMapping = THREE.ReinhardToneMapping;
                 // this.instance.toneMappingExposure = 1.8;
                 this.instance.receiveShadow = true;
@@ -232,7 +236,8 @@ export class Renderer {
                 // this.instance.physicallyCorrectLights = true;
                 this.instance.shadowMap.enabled = true;
                 // this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
-                this.instance.shadowMap.type = THREE.BasicShadowMap;
+                // this.instance.shadowMap.type = THREE.BasicShadowMap;
+                this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
                 // this.instance.toneMapping = THREE.ReinhardToneMapping;
                 // this.instance.toneMappingExposure = 1.8;
                 this.instance.receiveShadow = true;

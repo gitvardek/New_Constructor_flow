@@ -2528,36 +2528,6 @@ function dragMove(event) {
     }
 
     if (extra) {
-      // Проверяем коллизию с петлями перед применением изменений
-      const sectionLoopsE = section.loops;
-      if (sectionLoopsE?.length) {
-        const t = currentModule.value.moduleThickness;
-        const prospectiveDelta = newTopHeight - extra.height;
-        const newExtraPosY = extra.position.y - prospectiveDelta;
-        const boardBottom = newExtraPosY - t;
-        const boardTop = newExtraPosY;
-
-        let hasLoopCollision = false;
-        sectionLoopsE.forEach((doorLoops: any) => {
-          doorLoops.forEach((_loops: any) => {
-            if (hasLoopCollision || !_loops.coords?.length) return;
-            const halfH = _loops.height / 2;
-            _loops.coords.forEach((coord: number) => {
-              if (hasLoopCollision) return;
-              const loopMin = coord - halfH;
-              const loopMax = coord + halfH;
-              if (
-                (loopMin < boardBottom && loopMax > boardBottom) ||
-                (loopMin < boardTop && loopMax > boardTop)
-              ) {
-                hasLoopCollision = true;
-              }
-            });
-          });
-        });
-
-        if (hasLoopCollision) return;
-      }
 
       let delta1 = newTopHeight - extra.height;
       extra.height = newTopHeight;
@@ -2566,36 +2536,6 @@ function dragMove(event) {
       let nextExtra = row.extras[extraIndex + 1];
       nextExtra.height = newBottomHeight;
     } else {
-      // Проверяем коллизию с петлями перед применением изменений
-      const sectionLoops = section.loops;
-      if (sectionLoops?.length) {
-        const t = currentModule.value.moduleThickness;
-        const prospectiveDelta = cell.height - newTopHeight;
-        const newCellPosY = cell.position.y + prospectiveDelta;
-        const boardBottom = newCellPosY - t;
-        const boardTop = newCellPosY;
-
-        let hasLoopCollision = false;
-        sectionLoops.forEach((doorLoops: any) => {
-          doorLoops.forEach((_loops: any) => {
-            if (hasLoopCollision || !_loops.coords?.length) return;
-            const halfH = _loops.height / 2;
-            _loops.coords.forEach((coord: number) => {
-              if (hasLoopCollision) return;
-              const loopMin = coord - halfH;
-              const loopMax = coord + halfH;
-              if (
-                (loopMin < boardBottom && loopMax > boardBottom) ||
-                (loopMin < boardTop && loopMax > boardTop)
-              ) {
-                hasLoopCollision = true;
-              }
-            });
-          });
-        });
-
-        if (hasLoopCollision) return;
-      }
 
       let delta1 = cell.height - newTopHeight;
       cell.height = newTopHeight;
