@@ -3293,17 +3293,15 @@ const adjustSizeFromExternal = ({
 
 const clearRender = () => {
   sections.forEach((elem) => {
+    if (elem.destroyed) return;
     elem.removeChildren();
-    app.stage.removeChild(elem);
+    if (elem.parent) elem.removeFromParent();
     elem.destroy();
   });
 
   deviders.forEach((elem) => {
-    if (!elem.onDrag) {
-      if (elem.parent) {
-        elem.removeFromParent();
-      }
-
+    if (!elem.onDrag && !elem.destroyed) {
+      if (elem.parent) elem.removeFromParent();
       elem.destroy();
     }
   });
@@ -3318,14 +3316,15 @@ const clearRender = () => {
   loops.length = 0;
   handles.length = 0;
 
-  sectionsContainer.removeChildren();
-  loopsContainer.removeChildren();
-  handlesContainer.removeChildren();
-  lablesContainer.removeChildren();
-  fillingsContainer.removeChildren();
-  dementionContainer.removeChildren();
-  fasadesContainer.removeChildren();
+  if (sectionsContainer && !sectionsContainer.destroyed) sectionsContainer.removeChildren();
+  if (loopsContainer && !loopsContainer.destroyed) loopsContainer.removeChildren();
+  if (handlesContainer && !handlesContainer.destroyed) handlesContainer.removeChildren();
+  if (lablesContainer && !lablesContainer.destroyed) lablesContainer.removeChildren();
+  if (fillingsContainer && !fillingsContainer.destroyed) fillingsContainer.removeChildren();
+  if (dementionContainer && !dementionContainer.destroyed) dementionContainer.removeChildren();
+  if (fasadesContainer && !fasadesContainer.destroyed) fasadesContainer.removeChildren();
 };
+
 
 // Обходит иерархию sections → cells → cellsRows → extras → fillings
 // и возвращает селектор первого наполнения с его координатами.

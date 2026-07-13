@@ -29,6 +29,7 @@ export class PlinthBuilder {
         right: 'depth',
 
     }
+    private readonly plinthIds = { 1281043: 100, 1281044: 150 }
 
     constructor(parent: TBuildProduct) {
         this.scene = parent.scene
@@ -49,13 +50,15 @@ export class PlinthBuilder {
         return false
     }
 
-    public buildPlinth(props: any, legsHeight: number) {
+    public buildPlinth(props: any, legsHeight: number, defaultConfig: TDefaultOptionsConfig) {
         // const { PLINTH_MESH } = props
+        const plinth = defaultConfig?.plinth?.id
+        const plinthHeight = plinth ? this.plinthIds[defaultConfig.plinth.id] : legsHeight
         const plinthParent = new THREE.Object3D()
         const plinthActions = props.CONFIG.PLINTH_ACTIONS
         const sizes: TSize = { ...props.CONFIG.SIZE };
 
-        this.createPlinthMesh(props, plinthActions, sizes, plinthParent, legsHeight)
+        this.createPlinthMesh(props, plinthActions, sizes, plinthParent, plinthHeight)
         props.PLINTH_MESH = (plinthParent)
         return plinthParent
 

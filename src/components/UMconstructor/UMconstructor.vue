@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // @ts-nocheck
 import Modal from "@/components/ui/modals/Modal.vue";
-import {defineExpose, onBeforeUnmount, ref} from "vue";
+import {defineExpose, nextTick, onBeforeUnmount, ref} from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus.ts";
 import {saveUMGrid} from "@/components/UMconstructor/utils/PixiMethods.ts";
 import MainView from "@/components/UMconstructor/views/MainView.vue"
@@ -46,14 +46,16 @@ const saveUMData = ({ data, canvasHeight }) => {
   props.product.userData.PROPS.CONFIG.MODULEGRID = tmp_result;
   UMstore.setUMCashGrid(tmp_result)
   const {PROPS} = props.product.userData
-  saveConfigCash(PROPS)
+  saveConfigCash(PROPS, true)
 
   gridUMSaved.value = true;
   toaster.success('Модуль сохранен')
-  eventBus.emit("A:UM-update", UMstore.getUMCashGrid());
+  nextTick(() => {
+    eventBus.emit("A:UM-update", UMstore.getUMCashGrid());
+  });
 };
 
-const saveConfigCash = (PROPS) => {
+const saveConfigCash = (PROPS, skipGrid = false) => {
   const {CONFIG} = PROPS
   const {
     MODULEGRID,
@@ -68,8 +70,9 @@ const saveConfigCash = (PROPS) => {
     EXPRESSIONS
   } = CONFIG
 
-  if(MODULEGRID)
+  if (!skipGrid && MODULEGRID) {
     UMstore.setUMCashGrid(saveUMGrid(MODULEGRID))
+  }
 
   let universalModuleConfigCash = {
     HORIZONT,
@@ -109,7 +112,7 @@ const openUMRedactor = () => {
 
 const closeUMRedactor = () => {
   if (!gridUMSaved.value) {
-    props.product.userData.PROPS.CONFIG.MODULEGRID = saveUMGrid(UMstore.getUMCashGrid());
+    props.product.userData.PROPS.CONFIG.MODULEGRID = UMstore.getUMCashGrid();
     props.product.userData.PROPS.CONFIG = Object.assign(props.product.userData.PROPS.CONFIG, UMstore.getUMCashConfig());
   }
 

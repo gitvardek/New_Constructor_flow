@@ -503,7 +503,7 @@ export class BuildProduct extends BuildersHelper {
                 : null;
 
         const legs = legsHeight ? this.leg_builder.buildLegs(PROPS, data, total) : null;
-        const plinth = legsHeight > 0 ? this.plinth_builder.buildPlinth(PROPS, legsHeight) : null;
+        const plinth = legsHeight > 0 ? this.plinth_builder.buildPlinth(PROPS, legsHeight, defaultConfig) : null;
 
         const fasade = fasadeProps.length
             ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad, nstShalfs })
