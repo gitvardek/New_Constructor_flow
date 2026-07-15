@@ -3292,6 +3292,8 @@ const adjustSizeFromExternal = ({
 };
 
 const clearRender = () => {
+  console.log('CLEAR RENDER')
+
   sections.forEach((elem) => {
     if (elem.destroyed) return;
     elem.removeChildren();
