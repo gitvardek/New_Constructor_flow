@@ -65,6 +65,7 @@ const selectedFasade = ref<TSelectedCell>(<TSelectedCell>{});
 const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 const { module, UMconstructor } = toRefs(props);
 const currentModule = ref(null);
+let appReady = false;
 
 let app: Application,
   sectionsContainer: Container,
@@ -202,6 +203,7 @@ const updateTotalSize = (value, dimension) => {
   }
 
   calcMaxAreaSize();
+  if (!app) return;
 
   app.canvas.style.width = `${areaWidth.value}px`;
   app.canvas.style.height = `${areaHeight.value}px`;
@@ -273,7 +275,7 @@ const init = async () => {
   UMconstructor.value.setShapeAdjuster(shapeAdjuster);
   shapeAdjuster.setStep(props.step);
   addTicker();
-
+  appReady = true;
   renderGrid();
 };
 
@@ -350,6 +352,7 @@ const getHandlesPosition = (
 };
 
 const renderGrid = (_moduleGrid) => {
+  if (!appReady) return;
   clearRender();
   let xOffset = 0;
   let yOffset = 0;
@@ -3463,6 +3466,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  appReady = false;
   document.removeEventListener("mousemove", handleGlobalPointerMove, false);
   app.destroy(true);
 });
