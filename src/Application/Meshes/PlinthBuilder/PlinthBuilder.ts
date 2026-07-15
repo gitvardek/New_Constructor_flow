@@ -1,6 +1,6 @@
 //@ts-nocheck
 import * as THREE from 'three'
-import { TJSONBuilder, TBuildProduct, TSize, TDeepDispose, TEdgeBuilder, IProductFull, TModelData, TPlinthActions } from '@/types/types'
+import { TJSONBuilder, TDefaultOptionsConfig, TBuildProduct, TSize, TDeepDispose, TEdgeBuilder, IProductFull, TModelData, TPlinthActions } from '@/types/types'
 import { IProduct } from '@/types/interfases'
 import { object } from 'yup'
 
@@ -31,6 +31,8 @@ export class PlinthBuilder {
 
     }
 
+    private readonly plinthIds = { 1281043: 100, 1281044: 150 }
+
     constructor(parent: TBuildProduct) {
         this.scene = parent.scene
         this.deepDispose = parent.root._deepDispose!
@@ -50,13 +52,20 @@ export class PlinthBuilder {
         return false
     }
 
-    public buildPlinth(props: any, legsHeight: number) {
+    public buildPlinth(props: any, legsHeight: number, defaultConfig: TDefaultOptionsConfig) {
         // const { PLINTH_MESH } = props
+        console.log(defaultConfig, 'defaultConfig')
+
+        const plinth = defaultConfig?.plinth?.id
+        const plinthHeight = plinth ? this.plinthIds[defaultConfig.plinth.id] : legsHeight
+
+
+
         const plinthParent = new THREE.Object3D()
         const plinthActions = props.CONFIG.PLINTH_ACTIONS
         const sizes: TSize = { ...props.CONFIG.SIZE };
 
-        this.createPlinthMesh(props, plinthActions, sizes, plinthParent, legsHeight)
+        this.createPlinthMesh(props, plinthActions, sizes, plinthParent, plinthHeight)
         props.PLINTH_MESH = (plinthParent)
         return plinthParent
 
@@ -64,6 +73,8 @@ export class PlinthBuilder {
 
     private createPlinthMesh(props: any, plinthActions: TPlinthActions, size: TSize, plinthParent: THREE.Object3D, legsHeight: number) {
         // const { PLINTH_MESH } = props
+        console.log(size, '<<<<size>>>>')
+
         const product: IProductFull = this.buildProduct._PRODUCTS[props.PRODUCT]
         const { id, plinthSurfase } = this.buildProduct.getDefaultOptionsConfig().plinth
 
@@ -116,6 +127,8 @@ export class PlinthBuilder {
             const startSize = size[sizeKey];
             const plinthWidth = startSize - config.widthOffset;
 
+            console.log(plinthWidth, 'plinthWidth')
+
             const model = this.createPlinth({ width: plinthWidth, plinthProd, plinthModel, material, startPosition, key, legsHeight });
 
 
@@ -167,6 +180,8 @@ export class PlinthBuilder {
         aabb.getSize(size);
 
         model.userData.PLINTH_WIDTH = size.x
+
+        console.log(size.x, 'size.x')
         return model;
     }
 
@@ -230,9 +245,9 @@ export class PlinthBuilder {
         const { PLINTH_MESH, CONFIG } = PROPS
         const { PLINTH_ACTIONS, SIZE } = CONFIG
 
-        console.log(PLINTH_MESH,PLINTH_MESH.length > 0)
+        console.log(PLINTH_MESH, PLINTH_MESH.length > 0)
 
-        if (PLINTH_MESH  instanceof THREE.Object3D) {
+        if (PLINTH_MESH instanceof THREE.Object3D) {
             this.deepDispose.clearParent(PLINTH_MESH)
             this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH)
         }

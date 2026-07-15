@@ -188,7 +188,9 @@ export class FasadeBuilder {
         }
 
         // Ручки
-        if (fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
+        console.log(fasadeData.HANDLES.id, 'ID')
+
+        if (fasadeData.HANDLES.id && fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
             const handleId = fasadeData.HANDLES.id;
             const handleModel = this._APP.CATALOG.PRODUCTS[handleId].models[0];
 
@@ -476,6 +478,8 @@ export class FasadeBuilder {
         const rawFasadePosition = this.parent._FASADE_POSITION[fasadeList];
         const fasDepthTocheck = rawFasadePosition?.FASADE_DEPTH;
 
+        console.log(fasadePositionData, '<<<<<fasadePositionData>>>>>')
+
         if (!fasDepthTocheck) {
             const { result } = this.processFasadeCreation({
                 fasadePositionData,
@@ -762,10 +766,12 @@ export class FasadeBuilder {
                 return { fasade, fasadeEdge }
             }
         }
+
+        console.log(fasade_position, 'NONE MODEL')
         // Если нет готовой модели — создаём стандартный фасад
         const geometryConfig = {
             x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH),
-            y: eval(fasade_position.FASADE_HEIGHT),
+            y: this.parent.calculateFromString(fasade_position.FASADE_HEIGHT),
             z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH),
         };
         const geometry = this.parent.createExtrudeBoxGeometry(geometryConfig);
@@ -862,15 +868,14 @@ export class FasadeBuilder {
             curBodyExceptions
         }) as THREE.Object3D;
 
-        console.log(fasade, 'FF')
-
         // // Истинные размеры фасада и запись в CONFIG.FASADE_POSITIONS[key]
         const box = new THREE.Box3().setFromObject(fasade);
         const size = box.getSize(new THREE.Vector3());
+        const fasadeDepth = size.z > 1 ? size.z : fasadePositionData.FASADE_DEPTH;
         const sizeRec = {
             FASADE_WIDTH: size.x,
             FASADE_HEIGHT: size.y,
-            FASADE_DEPTH: size.z
+            FASADE_DEPTH: fasadeDepth
         };
 
 
@@ -880,7 +885,7 @@ export class FasadeBuilder {
 
         FASADE_POSITIONS[key].FASADE_WIDTH = size.x;
         FASADE_POSITIONS[key].FASADE_HEIGHT = size.y;
-        FASADE_POSITIONS[key].FASADE_DEPTH = size.z;
+        FASADE_POSITIONS[key].FASADE_DEPTH = fasadeDepth;
 
         result.userData.trueSize = sizeRec;
         result.userData.type = FASADE_TYPE;

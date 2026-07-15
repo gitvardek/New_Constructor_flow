@@ -66,6 +66,8 @@ const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 const { module, UMconstructor } = toRefs(props);
 const currentModule = ref(null);
 
+let appReady = false;
+
 let app: Application,
   sectionsContainer: Container,
   lablesContainer: Container,
@@ -205,6 +207,7 @@ const updateTotalSize = (value, dimension) => {
 
   calcMaxAreaSize();
 
+  if (!app) return;
   app.canvas.style.width = `${areaWidth.value}px`;
   app.canvas.style.height = `${areaHeight.value}px`;
   app.renderer.resize(areaWidth.value, areaHeight.value);
@@ -276,6 +279,7 @@ const init = async () => {
   shapeAdjuster.setStep(props.step);
   addTicker();
 
+  appReady = true;
   renderGrid();
 };
 
@@ -352,6 +356,7 @@ const getHandlesPosition = (
 };
 
 const renderGrid = (_moduleGrid) => {
+  if (!appReady) return;
   clearRender();
   let xOffset = 0;
   let yOffset = 0;
@@ -3334,17 +3339,15 @@ const adjustSizeFromExternal = ({
 
 const clearRender = () => {
   sections.forEach((elem) => {
+    if (elem.destroyed) return;
     elem.removeChildren();
-    app.stage.removeChild(elem);
+    if (elem.parent) elem.removeFromParent();
     elem.destroy();
   });
 
   deviders.forEach((elem) => {
-    if (!elem.onDrag) {
-      if (elem.parent) {
-        elem.removeFromParent();
-      }
-
+    if (!elem.onDrag && !elem.destroyed) {
+      if (elem.parent) elem.removeFromParent();
       elem.destroy();
     }
   });
@@ -3359,13 +3362,13 @@ const clearRender = () => {
   loops.length = 0;
   handles.length = 0;
 
-  sectionsContainer.removeChildren();
-  loopsContainer.removeChildren();
-  handlesContainer.removeChildren();
-  lablesContainer.removeChildren();
-  fillingsContainer.removeChildren();
-  dementionContainer.removeChildren();
-  fasadesContainer.removeChildren();
+  if (sectionsContainer && !sectionsContainer.destroyed) sectionsContainer.removeChildren();
+  if (loopsContainer && !loopsContainer.destroyed) loopsContainer.removeChildren();
+  if (handlesContainer && !handlesContainer.destroyed) handlesContainer.removeChildren();
+  if (lablesContainer && !lablesContainer.destroyed) lablesContainer.removeChildren();
+  if (fillingsContainer && !fillingsContainer.destroyed) fillingsContainer.removeChildren();
+  if (dementionContainer && !dementionContainer.destroyed) dementionContainer.removeChildren();
+  if (fasadesContainer && !fasadesContainer.destroyed) fasadesContainer.removeChildren();
 };
 
 // Обходит иерархию sections → cells → cellsRows → extras → fillings
@@ -3502,6 +3505,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  appReady = false;
   document.removeEventListener("mousemove", handleGlobalPointerMove, false);
   app.destroy(true);
 });

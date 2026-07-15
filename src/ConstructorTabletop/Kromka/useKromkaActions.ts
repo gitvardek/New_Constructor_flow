@@ -79,7 +79,7 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                     serv.value === true
                 );
 
-                console.log(HEMLIST[REC_HEM[0]], 'HEMLIST[REC_HEM[0]]')
+            console.log(HEMLIST[REC_HEM[0]], 'HEMLIST[REC_HEM[0]]')
 
             const hasProfileKromka = activeProfile.show_props && activeProfile.show_props?.includes("hem")
 
@@ -108,7 +108,8 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
     const checkKromkaActiveUM = (toptableData: TToptableUMProp) => {
 
-        const parent = modelState.getCurrentRaspilParent
+        // const parent = modelState.getCurrentRaspilParent
+        const parent = modelState.getCurrentModel
         const { PROPS: { PRODUCT, CONFIG } } = parent!.userData;
         const { HEM, REC_HEM } = PRODUCTS[PRODUCT]
 

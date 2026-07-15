@@ -278,8 +278,6 @@ export class JsonBuilder {
             this.parent.normalizeUVsTo01(geometry);
         }
 
-        console.log(geometry, 'geometry')
-
         geometry.computeBoundingBox();
 
         return geometry

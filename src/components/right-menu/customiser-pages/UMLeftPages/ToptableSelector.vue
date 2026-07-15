@@ -347,4 +347,7 @@ onBeforeUnmount(() => {
     gap: 17px;
   }
 }
+.material-config__wrapper{
+  max-height: 40vh;
+}
 </style>

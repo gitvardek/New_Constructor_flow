@@ -193,7 +193,7 @@ export class Renderer {
 
         if (!this.scene || !this.camera) return
         this.instance.render(this.scene, this.camera);
-        this.cullLabelsByDistance();
+        // this.cullLabelsByDistance();
         this.labelRenderer.render(this.scene, this.camera);
     }
 

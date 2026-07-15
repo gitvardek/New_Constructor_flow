@@ -117,13 +117,14 @@ export class BuildProduct extends BuildersHelper {
     //========================================================================================================
 
     getModel(
-        _product_data: THREETypes.TObject,
+        product_data: THREETypes.TObject,
         loaded_props?: THREETypes.TTotalProps,
         loaded_size?: THREETypes.TObject
     ): Promise<THREE.Object3D> {
         return new Promise(async (resolve) => {
-            console.log(_product_data)
-            const product_data = _product_data.ID === 5766313 ? TUG_PREMIUM_20 : _product_data
+            // console.log(_product_data)
+            // const product_data = _product_data.ID === 5766313 ? TUG_PREMIUM_20 : _product_data
+            //   const product_data = _product_data.ID === 5766313 ? TUG_PREMIUM_20 : _product_data
 
             const type = this._MODELS[product_data.models[0]];
 
@@ -482,14 +483,11 @@ export class BuildProduct extends BuildersHelper {
         PROPS.ARROWS = [];
         PROPS.BODY = [];
 
-        console.log(CONFIG.ID, 'CONFIG')
-
         const productId = CONFIG.ID;
 
-        
-        const modelData = productId === 5766313 ? TUG_MODEL_DATA_R : this._MODELS[CONFIG.MODELID];
-        // const modelData = this._MODELS[CONFIG.MODELID];
-        console.log(modelData,productId === 5766303, 'modelData')
+
+        // const modelData = productId === 5766313 ? TUG_MODEL_DATA : this._MODELS[CONFIG.MODELID];
+        const modelData = this._MODELS[CONFIG.MODELID];
 
         const modelSize = size ?? CONFIG.SIZE;
         const bodyExceptions = this.project.default_overlay_id;
@@ -497,9 +495,6 @@ export class BuildProduct extends BuildersHelper {
         const fasadeProps = Object.values(CONFIG.FASADE_PROPS);
 
         const shelfCount = CONFIG.SHELFQUANT.current;
-
-        console.log(resize, CONFIG, '<<<<CONFIG>>>>')
-
 
         // Обновляем размер в конфиге
         if (size) {
@@ -526,7 +521,7 @@ export class BuildProduct extends BuildersHelper {
                 : null;
 
         const legs = legsHeight ? this.leg_builder.buildLegs(PROPS, data, total) : null;
-        const plinth = legsHeight > 0 ? this.plinth_builder.buildPlinth(PROPS, legsHeight) : null;
+        const plinth = legsHeight > 0 ? this.plinth_builder.buildPlinth(PROPS, legsHeight, defaultConfig) : null;
 
         const fasade = fasadeProps.length
             ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad, nstShalfs })
@@ -608,6 +603,7 @@ export class BuildProduct extends BuildersHelper {
         defaultConfig: THREETypes.TDefaultOptionsConfig,
         modelSize
     ) {
+
         const { CONFIG } = props;
         const { ELEMENT_TYPE, MODULE_COLOR, ID } = CONFIG;
         const { defModuleTop, defModuleBottom, moduleTop, moduleBottom } = defaultConfig;
@@ -666,6 +662,8 @@ export class BuildProduct extends BuildersHelper {
 
         // Применяем кастомные перекрытия элементов через вспомогательный метод
         this.applyBodyOverrides(data, CONFIG, moduleColorObject);
+
+        console.log(data, 'BODEY DATA')
 
         const body = this.json_builder.createMesh({
             data: { ...data, ...modelSize },
@@ -736,6 +734,8 @@ export class BuildProduct extends BuildersHelper {
         CONFIG: THREETypes.TConfig,
         moduleColor: any
     ) {
+        console.log(moduleColor)
+
         const { TOPFASADECOLOR, TSARGA, BACKWALL } = CONFIG;
         const moduleThickness = this._FASADE[CONFIG.FASADE_PROPS[0]?.COLOR]?.DEPTH || moduleColor?.DEPTH || 18;
         const startPos = this.getStartPosition(CONFIG.SIZE);

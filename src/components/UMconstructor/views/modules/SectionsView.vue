@@ -418,10 +418,13 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .accordion {
-  padding: 0.5rem 1rem;
   border-radius: 0;
   border-bottom: 1px solid $dark-stroke;
   gap: 0;
 
+}
+
+.actions-items--container {
+  padding: 1rem 0.75rem;
 }
 </style>

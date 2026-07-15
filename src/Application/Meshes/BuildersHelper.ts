@@ -30,8 +30,12 @@ export class BuildersHelper extends GlobalsData {
         let model_data = { ...data }
         let color = this._FASADE[props.CONFIG.MODULE_COLOR]
         const colorWidth = color?.DEPTH || 18;
-        const leftWidth = props.CONFIG.LEFTSIDECOLOR?.COLOR ? this._FASADE[props.CONFIG.LEFTSIDECOLOR.COLOR]?.DEPTH : colorWidth || 18;
-        const rightWidth = props.CONFIG.RIGHTSIDECOLOR?.COLOR ? this._FASADE[props.CONFIG.RIGHTSIDECOLOR.COLOR]?.DEPTH : colorWidth || 18;
+        const leftWidth = props.CONFIG.LEFTSIDECOLOR?.COLOR
+            ? (this._FASADE[props.CONFIG.LEFTSIDECOLOR.COLOR]?.DEPTH ?? colorWidth)
+            : colorWidth;
+        const rightWidth = props.CONFIG.RIGHTSIDECOLOR?.COLOR
+            ? (this._FASADE[props.CONFIG.RIGHTSIDECOLOR.COLOR]?.DEPTH ?? colorWidth)
+            : colorWidth;
 
         model_data = this.expressionsReplace(
             model_data,
@@ -44,7 +48,7 @@ export class BuildersHelper extends GlobalsData {
                 "#RIGHT_THICKNESS#": rightWidth,
                 "#HORIZONT#": props.CONFIG.NOBOTTOM ? 0 :
                     props.CONFIG.HORIZONT || props.CONFIG.HORIZONT === 0 ? props.CONFIG.HORIZONT :
-                        props.EXPRESSIONS["#HORIZONT#"] || 78,  //78 - стандартная высота цоколя на случай отсутствия данных
+                        props.EXPRESSIONS?.["#HORIZONT#"] || 78,
             },
         )
 
@@ -53,20 +57,27 @@ export class BuildersHelper extends GlobalsData {
             props.CONFIG.EXPRESSIONS
         )
 
+        console.log(model_data, 'model_data')
+
         return model_data
     };
 
     public getProductSize(PARAMS: any, productData: THREETypes.TObject) {
 
         const product = this._PRODUCTS[PARAMS.ID];
+        if (!product) {
+            console.warn(`getProductSize: product not found for ID=${PARAMS.ID}`);
+            return { width: parseFloat(productData.width), height: parseFloat(productData.height), depth: parseFloat(productData.depth) };
+        }
+
         const materialThickness = this._FASADE[PARAMS.MODULE_COLOR]?.DEPTH ?? 18;
         const horizont = PARAMS.NOBOTTOM ? 0 : PARAMS.HORIZONT ?? 78;
 
-        const filling = this._FILLING[product.FILLING[0]] || {};
+        const filling = this._FILLING[product.FILLING?.[0]] || {};
         const { FASADE_PROPS, SIZEEDITJOINDEPTH } = PARAMS
 
         // Вычисляем высоту один раз
-        const roomHeight = this.root._roomManager._currentRoomHeight;
+        const roomHeight = this.root._roomManager?._currentRoomHeight;
         const resolvedHeight = productData.height === "#ROOM_HEIGHT#" ? roomHeight : productData.height;
 
         // Базовые подстановки
@@ -78,7 +89,7 @@ export class BuildersHelper extends GlobalsData {
             "#MHEIGHT#": resolvedHeight,
             "#MODUL_MHEIGHT#": resolvedHeight,
             "#MODUL_HEIGHT#": resolvedHeight,
-            "#Y#": productData.height,
+            "#Y#": resolvedHeight,
             "#MDEPTH#": productData.depth,
             "#MODUL_MDEPTH#": productData.depth,
             "#MODUL_DEPTH#": productData.depth,
@@ -92,20 +103,29 @@ export class BuildersHelper extends GlobalsData {
         };
 
         // Обработка фасадных размеров
-        Object.entries(PARAMS.FASADE_SIZE).forEach(([_, value], ndx) => {
-            const incomeData = FASADE_PROPS[ndx].SIZES
-            const customKey = `FASADESIZE${ndx + 1}`
-            expressions[`#${customKey}#`] = incomeData.id;
+        if (PARAMS.FASADE_SIZE) {
+            Object.entries(PARAMS.FASADE_SIZE).forEach(([_, value], ndx) => {
+                const fasadeProp = FASADE_PROPS?.[ndx];
+                if (!fasadeProp) return;
 
-            if (customKey === "FASADESIZE1" || customKey === "FASADESIZE2") {
-                const size = this._FASADESIZE[incomeData.id];
-                const suffix = customKey.endsWith("1") ? "1" : "2";
-                expressions[`#FASADESIZEWIDTH${suffix}#`] = incomeData.params.FASADE_WIDTH ?? size.WIDTH;
-                expressions[`#FASADESIZEDEPTH${suffix}#`] = size.DEPTH;
-                expressions[`#FASADESIZEDIFFWIDTH${suffix}#`] = size.DIFFWIDTH;
-                expressions[`#FASADESIZEDIFFDEPTH${suffix}#`] = size.DIFFDEPTH;
-            }
-        });
+                const incomeData = fasadeProp.SIZES;
+                if (!incomeData) return;
+
+                const customKey = `FASADESIZE${ndx + 1}`;
+                expressions[`#${customKey}#`] = incomeData.id;
+
+                if (customKey === "FASADESIZE1" || customKey === "FASADESIZE2") {
+                    const size = this._FASADESIZE[incomeData.id];
+                    if (!size) return;
+
+                    const suffix = customKey.endsWith("1") ? "1" : "2";
+                    expressions[`#FASADESIZEWIDTH${suffix}#`] = incomeData.params?.FASADE_WIDTH ?? size.WIDTH;
+                    expressions[`#FASADESIZEDEPTH${suffix}#`] = size.DEPTH;
+                    expressions[`#FASADESIZEDIFFWIDTH${suffix}#`] = size.DIFFWIDTH;
+                    expressions[`#FASADESIZEDIFFDEPTH${suffix}#`] = size.DIFFDEPTH;
+                }
+            });
+        }
 
         PARAMS.EXPRESSIONS = expressions;
 
@@ -114,7 +134,6 @@ export class BuildersHelper extends GlobalsData {
             : productData.depth;
 
         const size = {
-
             width: parseFloat(productData.width),
             height: parseFloat(resolvedHeight),
             depth: parseFloat(depthCalc),
@@ -122,21 +141,21 @@ export class BuildersHelper extends GlobalsData {
 
         if (PARAMS.MODELID) {
             /** Для ТУГ */
-            // const modelData = this._MODELS[PARAMS.MODELID]
-            const modelData = PARAMS.MODELID === 5766313 ? TUG_MODEL_DATA : this._MODELS[PARAMS.MODELID];
+            const modelData = this._MODELS[PARAMS.MODELID];
+            // const modelData = PARAMS.MODELID === 5766313 ? TUG_MODEL_DATA : this._MODELS[PARAMS.MODELID];
 
-            const model = this.expressionsReplace(modelData, expressions);
-
-            if (model.width) size.width = parseInt(this.calculateFromString(model.width));
-            if (model.height) size.height = parseInt(this.calculateFromString(model.height));
-            if (model.depth) size.depth = parseInt(this.calculateFromString(model.depth));
+            if (modelData && typeof modelData === 'object') {
+                const model = this.expressionsReplace(modelData, expressions);
+                if (model.width) size.width = parseFloat(this.calculateFromString(model.width)) || size.width;
+                if (model.height) size.height = parseFloat(this.calculateFromString(model.height)) || size.height;
+                if (model.depth) size.depth = parseFloat(this.calculateFromString(model.depth)) || size.depth;
+            }
         }
 
         // Запасные значения
         size.width ||= parseFloat(productData.width);
         size.height ||= parseFloat(resolvedHeight);
         size.depth ||= parseFloat(productData.depth);
-
 
         return size;
     }
@@ -454,14 +473,9 @@ export class BuildersHelper extends GlobalsData {
     }
 
     public addIfNotExists(array, obj) {
-        const exists = array.some(item =>
+        return !array.some(item =>
             Object.keys(obj).every(key => item[key] === obj[key])
         );
-
-        if (!exists) {
-            return true
-        }
-        return false
     }
 
     public getRandomInt(min: number, max: number) {
@@ -470,42 +484,9 @@ export class BuildersHelper extends GlobalsData {
         return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
     }
 
+    /** @deprecated Использует удалённое API Three.js (faces/faceVertexUvs). Вместо этого используйте normalizeUVsTo01. */
     public planarUV(geometry) {
-
-
-        geometry.computeBoundingBox();
-
-        var max = geometry.boundingBox.max,
-            min = geometry.boundingBox.min;
-        var offset = new THREE.Vector2(0 - min.x, 0 - min.y);
-        var range = new THREE.Vector2(max.x - min.x, max.y - min.y);
-        // var faces = geometry.faces;
-
-        const faces = geometry.getAttribute('position');
-
-        for (let i = 0; i < faces.count; i += 3) {
-
-            const a = i;
-            const b = i + 1;
-            const c = i + 2;
-
-        }
-
-        geometry.getAttribute('uv')[0] = [];
-
-        for (var i = 0; i < faces.length; i++) {
-
-            var v1 = geometry.vertices[faces[i].a],
-                v2 = geometry.vertices[faces[i].b],
-                v3 = geometry.vertices[faces[i].c];
-
-            geometry.faceVertexUvs[0].push([
-                new THREE.Vector2((v1.x + offset.x) / range.x, (v1.y + offset.y) / range.y),
-                new THREE.Vector2((v2.x + offset.x) / range.x, (v2.y + offset.y) / range.y),
-                new THREE.Vector2((v3.x + offset.x) / range.x, (v3.y + offset.y) / range.y)
-            ]);
-        }
-        geometry.uvsNeedUpdate = true;
+        console.warn('planarUV is deprecated and non-functional. Use normalizeUVsTo01 instead.');
     }
 
     public normalizeUVsTo01(geometry: THREE.BufferGeometry) {
@@ -579,8 +560,7 @@ export class BuildersHelper extends GlobalsData {
     }
 
     public createCutterParams(uslugi) {
-        // const SERVISES = CUTTER_PARAMS.CUT_SERVISES
-        // console.log(uslugi, ' ====== uslugi =====', SERVISES)
+        const SERVISES = CUTTER_PARAMS.CUT_SERVISES ?? [];
 
         const result = uslugi.map(obj1 => {
             const obj2 = SERVISES.find(o => o.ID === obj1.ID);
@@ -596,33 +576,28 @@ export class BuildersHelper extends GlobalsData {
                 merged.POSITION = merged.POSITION.toLowerCase()
                 if (merged.POSITION === 'center') {
                     let sercher
-                    if (merged.radiogroups.length) {
+                    if (merged.radiogroups?.length) {
                         sercher = merged.radiogroups.join('_');
                         merged.POSITION = sercher;
                     }
                 }
-            }
-
-            else {
+            } else {
                 merged = { ...obj1 };
 
                 if (!merged.POSITION) {
                     let sercher
-                    if (merged.radiogroups.length) {
+                    if (merged.radiogroups?.length) {
                         sercher = merged.radiogroups.join('_');
                         ['left', 'right'].forEach(el => {
                             if (sercher.includes(el)) sercher += '_bottom'
                         })
                         merged.POSITION = sercher;
-                    }
-                    else {
+                    } else {
                         merged.POSITION = 'global';
                     }
-
-
                 }
             }
-            // if (!merged) return
+
             if ("width" in merged) {
                 const w1 = obj1.width;
                 const w2 = obj2 ? obj2.width : undefined;
@@ -636,18 +611,14 @@ export class BuildersHelper extends GlobalsData {
                 }
             }
 
-            if (merged.POSITION.includes('kromka')) {
+            if (merged.POSITION?.includes('kromka')) {
                 merged.POSITION = merged.POSITION + '_global'
             }
 
             return merged;
-
         })
 
-        // .filter(el => el.ID !== 98683);
         return result
-
-        // .filter(el => parseInt(el.separated) !== 0);
     }
 
     public createPlinthParams(models) {

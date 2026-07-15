@@ -25,7 +25,7 @@ export class BuildUniversalModule extends BuildProduct {
     heightCorrect: number = 0
 
     private readonly correctPosZGroups: number[] = [2166309]
-    private readonly fillingOffset:number = 50
+    private readonly fillingOffset: number = 50
 
     constructor(root: THREETypes.TApplication) {
         super(root);
@@ -931,6 +931,8 @@ export class BuildUniversalModule extends BuildProduct {
     };
 
     calcSubElementsAdditives(PROPS) {
+        const fillingsZeroPosition = ['drawer', 'profile']
+
         const fasadeThickness = this._FASADE[PROPS.CONFIG.MODULE_COLOR]?.DEPTH || 18
 
         Object.entries(PROPS.CONFIG.SECTIONS).forEach(([sectionNumber, sectionConf]) => {
@@ -988,10 +990,8 @@ export class BuildUniversalModule extends BuildProduct {
                                     }
                                 })
 
-                            let relative_posY = Math.floor(positionY + (element.type !== 'drawer' ? element.size.y / 2 : 0) - (element.fasade?.manufacturerOffset || 0))
-
-
-
+                            //element.type !== 'drawer'    
+                            let relative_posY = Math.floor(positionY + (!fillingsZeroPosition.includes(element.type) ? element.size.y / 2 : 0) - (element.fasade?.manufacturerOffset || 0))
                             element.basketRenderPosition = positionY
 
                             if (leftObj) {
