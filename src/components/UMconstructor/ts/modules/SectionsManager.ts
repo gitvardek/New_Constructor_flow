@@ -433,6 +433,8 @@ export default class SectionsManager {
                 }
             }
 
+            this.scope.SHELVES.recalcSectionTsarga(section);
+            if (nextSection) this.scope.SHELVES.recalcSectionTsarga(nextSection);
             this.scope.reset(grid)
         }, 1000)
 

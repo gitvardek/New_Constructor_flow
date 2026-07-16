@@ -239,7 +239,9 @@ onMounted(() => {
                                   button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button"
                                   type="number" @update:model-value="(count: number | string) => {
                                     UMconstructor.SHELVES.addRowCell({ grid: module, secIndex, cellIndex, rowIndex, count: parseInt(count) })
-                                  }" />
+                                  }" 
+                                  v-if="!row.extras?.length" 
+                                  />
                               </div>
 
                               <div v-if="!row.extras?.length" class="actions-items--right-items-input-block">

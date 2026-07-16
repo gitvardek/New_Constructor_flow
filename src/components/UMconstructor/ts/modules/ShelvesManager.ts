@@ -107,9 +107,7 @@ export default class ShelvesManager {
             delete cell.tsarga;
         }
 
-        // Верхняя ячейка секции (cells[0]) царги не имеет — это крыша шкафа
-        delete section.cells[0].tsarga;
-
+        this.recalcSectionTsarga(section);
         this.scope.reset(grid)
     };
 
@@ -426,6 +424,9 @@ export default class ShelvesManager {
         if (currentSection.cells.length <= 1)
             currentSection.cells.length = 0
 
+        if (currentSection.cells.length > 0)
+            this.recalcSectionTsarga(currentSection);
+
         grid = clone;
         this.scope.SECTIONS.selectCell(secIndex, 0)
 
@@ -514,13 +515,6 @@ export default class ShelvesManager {
         // Обновляем ширину последней строки
         row.position.x = row.position.x - (row.width / 2 - halfWidth / 2)
         row.width = halfWidth;
-        
-
-        if (row.width >= UM_PARAMS.MIN_TSARGA_WIDTH && row.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
-            row.tsarga = true;
-        } else {
-            delete row.tsarga;
-        }
 
         // Добавляем новую строку в эту колонку
         for (let i = 0; i < count; i++) {
@@ -533,11 +527,6 @@ export default class ShelvesManager {
 
             if (i === count - 1) {
                 newRow.width += deltaLastRow;
-                if (newRow.width >= UM_PARAMS.MIN_TSARGA_WIDTH && newRow.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
-                    newRow.tsarga = true;
-                } else {
-                    delete newRow.tsarga;
-                }
             }
 
             cell.cellsRows.splice(rowIndex + 1 + i, 0, newRow);
@@ -546,6 +535,7 @@ export default class ShelvesManager {
         // Перенумерация всех рядов после вставки
         cell.cellsRows.forEach((r, idx) => { r.number = idx + 1; });
 
+        this.recalcSectionTsarga(section);
         this.scope.reset(grid)
     };
 
@@ -621,6 +611,8 @@ export default class ShelvesManager {
                     }
                 }
             }
+            const section = clone.sections[secIndex];
+            this.recalcSectionTsarga(section);
             grid = clone;
 
             this.scope.reset(grid)
@@ -638,8 +630,8 @@ export default class ShelvesManager {
         const prev = currentCell.cellsRows[rowIndex - 1];
 
         const combinedWidth = next
-            ? currentCell.width + next.width
-            : currentCell.width + prev.width;
+            ? currentRow.width + next.width + grid.moduleThickness
+            : currentRow.width + prev.width + grid.moduleThickness;
 
 
         next ? (next.position.x = next.position.x - next.width / 2 + combinedWidth / 2) : (prev.position.x = prev.position.x - prev.width / 2 + combinedWidth / 2);
@@ -654,6 +646,7 @@ export default class ShelvesManager {
         if (currentCell.cellsRows.length <= 1)
             delete currentCell.cellsRows
 
+        this.recalcSectionTsarga(currentSection);
         grid = clone;
         this.scope.SECTIONS.selectCell(secIndex, cellIndex)
         this.scope.reset(grid)
@@ -739,6 +732,7 @@ export default class ShelvesManager {
             row.extras.splice(extraIndex || 0, 0, newExtra);
         }
 
+        this.recalcSectionTsarga(grid.sections[secIndex]);
         this.scope.reset(grid)
     };
 
@@ -861,8 +855,45 @@ export default class ShelvesManager {
         if (currentRow.extras.length <= 1)
             delete currentRow.extras
 
+        this.recalcSectionTsarga(currentSection);
         grid = clone;
         this.scope.SECTIONS.selectCell(secIndex, cellIndex, rowIndex)
         this.scope.reset(grid)
     };
+
+    recalcSectionTsarga(section) {
+        const { MIN_TSARGA_WIDTH, MAX_TSARGA_WIDTH } = UM_PARAMS;
+        // section.cells должен быть уже отсортирован по убыванию position.y (cells[0] = верхняя = крыша)
+        section.cells.forEach((cell, cellIdx) => {
+            const isCellRoof = cellIdx === 0;
+
+            if (cell.cellsRows?.length > 0) {
+                delete cell.tsarga;
+                cell.cellsRows.forEach(row => {
+                    if (row.extras?.length > 0) {
+                        delete row.tsarga;
+                        row.extras.forEach((extra, extraIdx) => {
+                            if (isCellRoof && extraIdx === 0) {
+                                delete extra.tsarga;
+                            } else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+                                extra.tsarga = true;
+                            } else {
+                                delete extra.tsarga;
+                            }
+                        });
+                    } else if (!isCellRoof && row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+                        row.tsarga = true;
+                    } else {
+                        delete row.tsarga;
+                    }
+                });
+            } else if (!isCellRoof && cell.width >= MIN_TSARGA_WIDTH && cell.width <= MAX_TSARGA_WIDTH) {
+                cell.tsarga = true;
+            } else {
+                delete cell.tsarga;
+            }
+        });
+    }
 }
+
+

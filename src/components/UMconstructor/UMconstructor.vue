@@ -51,6 +51,8 @@ const saveUMData = ({ data, canvasHeight }) => {
   gridUMSaved.value = true;
   toaster.success('Модуль сохранен')
   nextTick(() => {
+    console.log(tmp_result, 'MODULEGRID')
+
     eventBus.emit("A:UM-update", UMstore.getUMCashGrid());
   });
 };

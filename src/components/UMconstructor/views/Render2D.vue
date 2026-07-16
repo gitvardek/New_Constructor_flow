@@ -424,8 +424,6 @@ const renderGrid = (_moduleGrid) => {
                     const extraIndex = cellRow.extras.indexOf(extra);
                     const RowpxHeight = getPixelHeight(extra.height);
 
-                    console.log(extraIndex, 'extraIndex')
-
                     extra.xOffset = rowxOffset;
                     extra.yOffset = rowyOffset;
 
@@ -1057,6 +1055,10 @@ const createSector = ({
   sector.addChild(cell.cellGraphics);
   sector.addChild(cell.highlightGraphics);
 
+  if (cellData.tsarga && gridType !== "fasades") {
+    createTsarga({ width, sector });
+  }
+
   if (gridType === "fasades") {
     fasades.push(sector);
   } else if (!_sector) sections.push(sector);
@@ -1319,6 +1321,14 @@ const createFilling = (data, sector) => {
   fillings.push(filling.highlightGraphics);
   fillingsMap.push(filling);
   sector.shapes.push(filling);
+};
+
+//Создаём Царгу
+const createTsarga = ({ width, sector }) => {
+  const tsarga = new Graphics();
+  tsarga.rect(0, 0, width, getPixelHeight(18));
+  tsarga.fill({ color: 0x5EC455, alpha: 0.85 });
+  sector.addChild(tsarga);
 };
 
 // Отрисовываем номер ячейки
@@ -2048,8 +2058,21 @@ function onDragMove(event) {
   lastDragEvent.value = event;
 }
 
-function updateRowTsarga(row) {
-  if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+function updateRowTsarga(row, isCellRoof = false) {
+
+  if (row.extras?.length > 0) {
+    delete row.tsarga;
+    row.extras.forEach((extra, key) => {
+      if (isCellRoof && key == 0) {
+        delete extra.tsarga;
+      }
+      else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+        extra.tsarga = true;
+      } else {
+        delete extra.tsarga;
+      }
+    });
+  } else if (!isCellRoof && row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
     row.tsarga = true;
   } else {
     delete row.tsarga;
@@ -2114,7 +2137,7 @@ function dragMove(event) {
 
     if (row) {
       row.width = newLeftWidth;
-      updateRowTsarga(row);
+      updateRowTsarga(row, cellIndex === 0);
 
       row.extras?.forEach((item) => {
         item.width = row.width;
@@ -2131,7 +2154,7 @@ function dragMove(event) {
       let delta2 = nextRow.width - newRightWidth;
       nextRow.position.x += delta2 / 2;
       nextRow.width = newRightWidth;
-      updateRowTsarga(nextRow);
+      updateRowTsarga(nextRow, cellIndex === 0);
 
       nextRow.extras?.forEach((item) => {
         item.width = nextRow.width;
@@ -2200,7 +2223,7 @@ function dragMove(event) {
           cell.cellsRows.forEach((item) => {
             if (item.width + divideDelta >= MIN_SECTION_WIDTH) {
               item.width += divideDelta;
-              updateRowTsarga(item);
+              updateRowTsarga(item, cellIdx === 0);
               item.position.x += divideDeltaPos1;
 
               item.extras?.forEach((extra) => {
@@ -2233,7 +2256,7 @@ function dragMove(event) {
               }
             } else {
               item.width = MIN_SECTION_WIDTH;
-              updateRowTsarga(item);
+              updateRowTsarga(item, cellIdx === 0);
             }
 
             extraSize += item.width;
@@ -2244,7 +2267,7 @@ function dragMove(event) {
             : cell.cellsRows[0];
           if (lastRow.width + (newLeftWidth - extraSize) >= MIN_SECTION_WIDTH) {
             lastRow.width += newLeftWidth - extraSize;
-            updateRowTsarga(lastRow);
+            updateRowTsarga(lastRow, cellIdx === 0);
             lastRow.position.x += (newLeftWidth - extraSize) / 2;
 
             lastRow.fillings?.forEach((filling) => {
@@ -2280,7 +2303,7 @@ function dragMove(event) {
 
             if (lastRow) {
               lastRow.width += newLeftWidth - extraSize;
-              updateRowTsarga(lastRow);
+              updateRowTsarga(lastRow, cellIdx === 0);
               lastRow.position.x += (newLeftWidth - extraSize) / 2;
 
               lastRow.fillings?.forEach((filling) => {
@@ -2359,7 +2382,7 @@ function dragMove(event) {
           cell.cellsRows.forEach((item) => {
             if (item.width + divideDelta >= MIN_SECTION_WIDTH) {
               item.width += divideDelta;
-              updateRowTsarga(item);
+              updateRowTsarga(item, cellIdx === 0);
               item.position.x += divideDeltaPos;
 
               item.extras?.forEach((extra) => {
@@ -2392,7 +2415,7 @@ function dragMove(event) {
               }
             } else {
               item.width = MIN_SECTION_WIDTH;
-              updateRowTsarga(item);
+              updateRowTsarga(item, cellIdx === 0);
             }
 
             extraSize += item.width;
@@ -2407,7 +2430,7 @@ function dragMove(event) {
             MIN_SECTION_WIDTH
           ) {
             lastRow.width += newRightWidth - extraSize;
-            updateRowTsarga(lastRow);
+            updateRowTsarga(lastRow, cellIdx === 0);
             lastRow.position.x += (newRightWidth - extraSize) / 2;
 
             lastRow.fillings?.forEach((filling) => {
@@ -2443,7 +2466,7 @@ function dragMove(event) {
 
             if (lastRow) {
               lastRow.width += newRightWidth - extraSize;
-              updateRowTsarga(lastRow);
+              updateRowTsarga(lastRow, cellIdx === 0);
               lastRow.position.x += (newRightWidth - extraSize) / 2;
 
               lastRow.fillings?.forEach((filling) => {

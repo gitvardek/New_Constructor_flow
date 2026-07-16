@@ -6,6 +6,7 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
 import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
+import { HiTechProfileData } from '@/components/UMconstructor/types/UMtypes'
 
 const appDataStore = useAppData()
 
@@ -285,45 +286,41 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
   }
 
   const item = arr.map(el => {
+
+    const base = {
+      ID: el.product,
+      PATH: false,
+      MATERIAL_ID: el.material, // Материал полки
+      PRODUCT_TYPE: el.type,
+      SIZE: { // Размеры
+        width: el.size?.x || 0,
+        height: el.size?.y || 0,
+        depth: el.size?.z || 0
+      },
+      ADDITIVES: el.ADDITIVES || {},
+      basketRenderPosition: el.basketRenderPosition || false,
+    }
+
     if (el.type === 'section_partition') {
       return {
+        ...base,
         PARTITION_ID: el.product,
         SECTION_ID: el.id, // ID товара полки
-        SIZE: { // Размеры
-          width: el.size?.x || 0,
-          height: el.size?.y || 0,
-          depth: el.size?.z || 0
-        },
         UP_POSITION: el.ADDITIVES?.top?.additive_position,
         DOWN_POSITION: el.ADDITIVES?.bottom?.additive_position,
-        MATERIAL_ID: el.material, // Материал полки
-        ADDITIVES: el.ADDITIVES || {},
-        ID: el.product,
-        PATH: false,
-        PRODUCT_TYPE: el.type,
-        basketRenderPosition: el.basketRenderPosition || false,
+
       }
-    } else {
-
-      const fasadeData = createFasadeData(el)
-
-      const base = {
-        ID: el.product,
-        PATH: false,
-        MATERIAL_ID: el.material, // Материал полки
-        PRODUCT_TYPE: el.type,
+    } else if (el.type === 'profile') {
+      return {
+        ...base,
         VALUE: el.VALUE,
-        SIZE: { // Размеры
-          width: el.size?.x || 0,
-          height: el.size?.y || 0,
-          depth: el.size?.z || 0
-        },
-        ADDITIVES: el.ADDITIVES || {},
-        basketRenderPosition: el.basketRenderPosition || false,
+        MATERIAL_ID: el.isProfile.COLOR,
+        SIZE: el.size?.x || 0
       }
-
-      return fasadeData ? { ...base, FASADE: fasadeData } : base;
-
+    }
+    else {
+      const fasadeData = createFasadeData(el)
+      return fasadeData ? { ...base, FASADE: fasadeData, VALUE: el.VALUE, } : { ...base, VALUE: el.VALUE, };
     }
 
   })
@@ -559,6 +556,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
     Object.keys(CONFIG.SECTIONS).forEach(sectionKey => {
       const section = CONFIG.SECTIONS[sectionKey];
       if (section?.fillings && section.fillings.length) {
+        console.log(section, 'section')
         legacyProps[`SECTIONSFILLING${sectionKey}`] = creatSectionFilling(section.fillings);
       }
     });
