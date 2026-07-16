@@ -718,7 +718,7 @@ const prepareData = () => {
   }
 
   // Текущие выбранные значения
-  if (COLOR && _FASADE[COLOR]) {
+  if (COLOR && _FASADE[COLOR] || props.elementIndex=='PROFILECOLOR') {
     const { NAME, PREVIEW_PICTURE } = fasadeData;
     currentSurfaceData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
     isSurfaceSelected.value = true;
