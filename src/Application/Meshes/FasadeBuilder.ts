@@ -184,7 +184,7 @@ export class FasadeBuilder {
         }
 
         // Ручки
-        if (fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
+        if (fasadeData.HANDLES.id && fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
             const handleId = fasadeData.HANDLES.id;
             const handleModel = this._APP.CATALOG.PRODUCTS[handleId].models[0];
 
@@ -655,7 +655,7 @@ export class FasadeBuilder {
                     parent_size: {
                         x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH ?? props.CONFIG.SIZE.width),
                         y: eval(fasade_position.FASADE_HEIGHT),
-                        z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH),
+                        z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH ?? 16 ),
                         mX: props.CONFIG.SIZE.width,
                         mY: props.CONFIG.SIZE.height,
                         mZ: props.CONFIG.SIZE.depth
@@ -758,7 +758,7 @@ export class FasadeBuilder {
         const geometryConfig = {
             x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH),
             y: this.parent.calculateFromString(fasade_position.FASADE_HEIGHT),
-            z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH),
+            z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH ?? 16),
         };
         const geometry = this.parent.createExtrudeBoxGeometry(geometryConfig);
         const material = new THREE.MeshStandardMaterial();

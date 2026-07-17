@@ -141,13 +141,9 @@ const onSelectMaterial = (data) => {
   console.log(data, "data");
 
   /** ============== Данные размера выбранного Фасада ==============*/
-  // const { sec, cell, row } = umStorage.getSelected("fasades");
-  // const { sections } = umStorage.getUMGrid();
-  // const curSection = sections[sec];
-  // const curFasade = curSection.fasades[cell][row];
-  // const { width: FASADE_WIDTH, height: FASADE_HEIGHT } = curFasade;
 
   const selected = umStorage.getSelected("fasades");
+  const isDowerSelect = umStorage.getSelected("fillings")
 
   //======================================================================
 
@@ -161,7 +157,7 @@ const onSelectMaterial = (data) => {
   let haveShowcase;
   let dataOfFasadeType;
 
-  if (props.isFasade) {
+  if (props.isFasade && !isDowerSelect) {
     const checkConversation = checkFasadeConversations(
       data.ID,
       props.fasadeSize || FASADE[props.elementIndex].userData.trueSize,
