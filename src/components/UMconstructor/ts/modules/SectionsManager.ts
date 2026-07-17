@@ -97,6 +97,11 @@ export default class SectionsManager {
             }
         }
 
+        // Пересчёт царги для изменённых секций
+        for (let i = 0; i <= count; i++) {
+            this.scope.SHELVES.recalcSectionTsarga(grid.sections[secIndex + i]);
+        }
+
         if (reset)
             this.scope.reset(grid)
     };
@@ -482,6 +487,9 @@ export default class SectionsManager {
         }
 
         this.selectCell(0, 0)
+
+        // Пересчёт царги для объединённой секции
+        this.scope.SHELVES.recalcSectionTsarga(next || prev);
 
         if (reset)
             this.scope.reset(grid)

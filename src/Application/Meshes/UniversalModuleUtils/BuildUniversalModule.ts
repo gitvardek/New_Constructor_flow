@@ -326,8 +326,26 @@ export class BuildUniversalModule extends BuildProduct {
                 })
 
             let cells = [...section.cells].reverse()
-            cells?.forEach((cell, cellIndex) => {
 
+            // Возвращает tsarga верхней границы ячейки, в т.ч. когда царга на уровне rows/extras
+            const getCellTopTsarga = (cell) => {
+                if (!cell) return undefined;
+                if (cell.tsarga) return cell.tsarga;
+                if (cell.cellsRows?.length) {
+                    const hasTsarga = cell.cellsRows.some(row => {
+                        if (row.extras?.length) {
+                            const sorted = [...row.extras].sort((a, b) => a.position.y - b.position.y);
+                            return sorted[sorted.length - 1]?.tsarga;
+                        }
+                        return row.tsarga;
+                    });
+                    return hasTsarga ? true : undefined;
+                }
+                return undefined;
+            }
+
+            cells?.forEach((cell, cellIndex) => {
+                console.log(cell.tsarga, 'cell')
                 if (cellIndex > 0)
                     curSection.fillings.push({  //Добавляем полку, как товар наполнения
                         position: new THREE.Vector3(cell.position.x, cell.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
@@ -337,10 +355,10 @@ export class BuildUniversalModule extends BuildProduct {
                         id: curSection.fillings.length + 1,
                         material: PROPS.CONFIG.MODULE_COLOR,
                         type: 'shelf',
+                        tsarga: getCellTopTsarga(cells[cellIndex - 1])
                     })
 
                 cell.cellsRows?.forEach((row, rowIndex) => {
-
                     if (rowIndex > 0)
                         curSection.fillings.push({  //Добавляем верт. полку, как товар наполнения
                             position: new THREE.Vector3(row.position.x - row.width / 2 - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] / 2,
@@ -353,7 +371,8 @@ export class BuildUniversalModule extends BuildProduct {
                             type: 'vertical_shelf',
                         })
 
-                    row.extras?.slice().sort((a, b) => a.position.y - b.position.y).forEach((extra, extraIndex) => {
+                    row.extras?.slice().sort((a, b) => a.position.y - b.position.y).forEach((extra, extraIndex, sortedExtras) => {
+                        console.log(extra.tsarga,  extra.number, 'extra')
                         if (extraIndex > 0)
                             curSection.fillings.push({  //Добавляем полку, как товар наполнения
                                 position: new THREE.Vector3(extra.position.x, extra.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
@@ -363,6 +382,7 @@ export class BuildUniversalModule extends BuildProduct {
                                 id: curSection.fillings.length + 1,
                                 material: PROPS.CONFIG.MODULE_COLOR,
                                 type: 'shelf',
+                                tsarga: sortedExtras[extraIndex - 1]?.tsarga
                             })
 
                         extra.fillings?.forEach((filling) => {
