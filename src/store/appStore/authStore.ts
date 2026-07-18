@@ -9,7 +9,7 @@ import { setCookie, getCookie, deleteCookie, COOKIE_NAMES } from '@/components/a
 import { useToast } from '@/features/toaster/useToast'
 
 const TOKEN_EXPIRATION_HOURS = 24
-const REFRESH_BEFORE_EXPIRY_MS =12 * 60 * 60 * 1000 // обновлять за 1 час до истечения
+const REFRESH_BEFORE_EXPIRY_MS = 12 * 60 * 60 * 1000 // обновлять за 1 час до истечения
 const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true'
 const DEV_USER: UserData = {
   avatar: null,
@@ -60,7 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
 
-      
+
 
       if (!token) {
         throw new Error('Токен не найден');
@@ -150,6 +150,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
+    if (!token) {
+      return { DATA: { type: 'error', message: 'Токен не найден' } }
+    }
     const response = await AuthService.getCheckUser(token);
 
     return response;
