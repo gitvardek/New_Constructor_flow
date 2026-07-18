@@ -332,6 +332,16 @@ export const useAuthStore = defineStore('auth', () => {
     scheduleTokenRefresh()
   }
 
+  // Синхронизация выхода между вкладками: если в другой вкладке удалили куку — разлогиниваемся
+  if (typeof window !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isAuthenticated.value) {
+        if (!getCookie(COOKIE_NAMES.AUTH_TOKEN)) {
+          logout()
+        }
+      }
+    })
+  }
 
   const setCheckout = (value: bollean) => {
     isCheckURL.value = value;
