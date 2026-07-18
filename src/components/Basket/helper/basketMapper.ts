@@ -610,7 +610,7 @@ function createPlinthData(filteredData: TTotalProps) {
       PRODUCT: plinthID,
       PROPS: { COLOR: plinthSurfase },
       QUANTITY: count,
-      BASKETID: 10001, // Уникальный фиксированный ID для плинтусов
+      BASKETID: 'plinth', // Уникальный фиксированный ID для плинтусов
       TOTAL_WIDTH: globalWidth,
       TYPE: "scene"
     }
@@ -651,7 +651,7 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
       PRODUCT: tableTopId,
       PROPS: {},
       QUANTITY: count,
-      BASKETID: 10002, // Уникальный фиксированный ID для столешниц
+      BASKETID: 'tabletop', // Уникальный фиксированный ID для столешниц
       TOTAL_WIDTH: globalWidth,
       TYPE: "scene"
     }
@@ -822,14 +822,19 @@ export function createGlobalData(filteredData: TTotalProps) {
 
 export function updateGlobalData() {
 
-  const exeptedId = [10001, 10002]
+  const exeptedId = ['plinth', 'tabletop'];
 
   const content = useRoomContantData().getRoomContantDataForBasket
-  const roomDataCopy = JSON.parse(content)
+  let roomDataCopy: any
+  try {
+    roomDataCopy = typeof content === 'string' ? JSON.parse(content) : content
+  } catch {
+    roomDataCopy = []
+  }
   const { mainConstructor } = useBasketStorage()
 
   try {
-    const updatedData = mainConstructor.value.filter(el => !exeptedId.includes(el.BASKETID))
+    const updatedData = mainConstructor.value.filter(el => !exeptedId.includes(String(el.BASKETID)))
     const plinthData = createPlinthData(roomDataCopy);
     const tableTopData = createDefaultTableTopData(roomDataCopy)
 

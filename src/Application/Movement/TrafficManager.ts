@@ -235,6 +235,8 @@ export class TrafficManager {
                 }
             }
 
+            if (!target) return;
+
             this.removeFromRoom({ product: target });
         });
 
