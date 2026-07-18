@@ -100,13 +100,11 @@ const handleBlur = (field: 'login' | 'password') => {
 
 const handleSubmit = async () => {
   try {
-
     await authStore.login({
       login: authForm.value.login,
       password: authForm.value.password
     })
-  } catch (error) {
-    throw new Error('Неизвестный тип ответа от сервера')
+  } catch {
   }
 }
 

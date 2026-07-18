@@ -60,6 +60,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
 
+      
+
       if (!token) {
         throw new Error('Токен не найден');
       }
@@ -68,7 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (res.DATA.type === 'error') {
         await logout()
         useToast().error('Доступ запрещен!')
-        // return;
+        return;
       }
 
 
