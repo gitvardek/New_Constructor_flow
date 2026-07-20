@@ -103,9 +103,6 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
     const checkKromkaActiveUM = (toptableData: TToptableUMProp) => {
 
-        const parent = modelState.getCurrentRaspilParent
-        const { PROPS: { PRODUCT, CONFIG } } = parent!.userData;
-        const { HEM, REC_HEM } = PRODUCTS[PRODUCT]
 
         let hasActiveKromka = false
 
@@ -117,6 +114,8 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         const productId = toptableData?.TABLE
 
         const activeProfile = toptableData?.PROFILE ? tempProfileData.value.find((el) => el.ID === toptableData.PROFILE) : tempProfileData.value.find((prof) => prof.value);
+
+        const { HEM, REC_HEM } = PRODUCTS[productId]
 
         if (tempProfileData.value.length > 0) {
 
@@ -195,7 +194,9 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
         if (!kromkaActive.value) return
 
-        const parent = modelState.getCurrentRaspilParent
+        const parent = modelState.getCurrentRaspilParent ?? modelState.getCurrentModel
+        if (!parent) return;
+
         const { PROPS } = parent!.userData;
         const { PRODUCT } = PROPS
         const { HEM } = PRODUCTS[PRODUCT]
@@ -212,13 +213,28 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         if (!kromkaActive.value || !productId)
             return
 
-        const { HEM } = PRODUCTS[productId]
+        const { HEM, REC_HEM } = PRODUCTS[productId]
         const hemList = HEM.map((el: number) => {
             return HEMLIST[el]
         }).filter(Boolean)
 
         tempKromkaList.value = hemList
-        createKromkaCardData()
+
+        const currentId = tempKromkaId.value
+        const defaultHem = HEMLIST[REC_HEM?.[0]]
+        const target = hemList.find(el => el.ID === currentId)
+            ?? hemList.find(el => el.ID === defaultHem?.ID)
+            ?? hemList[0]
+
+        if (target) {
+            cardData.value = {
+                NAME: target.NAME,
+                PREVIEW_PICTURE: _URL + target.PREVIEW_PICTURE,
+            }
+            if (currentId == null) {
+                tempKromkaId.value = target.ID
+            }
+        }
     }
 
 
