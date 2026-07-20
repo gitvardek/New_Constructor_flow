@@ -7,7 +7,7 @@ import Plinth from "./Plinth/Plinth.vue";
 
 import defaultTab from "@/components/ui/tabs/defaultTab.vue";
 import { Tab } from "@/components/ui/tabs/defaultTab.vue";
-import { useFigureRightPage, IFigureItems } from "./useFigureRightPage";
+import { useFigureRightPage, IFigureItems } from "../../../../utils/useFigureRightPage";
 
 interface ITabChangeParams {
   index: number;
@@ -75,7 +75,7 @@ const filteredFigure = computed(() => {
 
 <style lang="scss" scoped>
 .figure {
-  height: calc(100vh - 220px);
+  height: calc(100vh - 180px);
   display: flex;
   flex-direction: column;
   gap: 10px;

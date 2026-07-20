@@ -52,12 +52,12 @@ const sendError = async () => {
 
   &__title {
     margin-bottom: 30px;
-    font-size: 32px;
+    font-size: 3.2rem;
     font-weight: 600;
   }
   &
   &__text {
-    font-size: 18px;
+    font-size: 1.8rem;
     color: $dark-grey;
   }
 
@@ -79,7 +79,7 @@ const sendError = async () => {
   .error__button {
     width: 132px;
     height: 50px;
-    font-size: 16px;
+    font-size: 1.6rem;
     font-weight: 500;
     border: none;
     border-radius: 15px;
@@ -97,7 +97,7 @@ const sendError = async () => {
     margin: 20px 0;
      
     .success__text {
-      font-size: 18px;
+      font-size: 1.8rem;
       font-weight: 500;
     }
   }

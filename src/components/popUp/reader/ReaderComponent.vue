@@ -76,7 +76,7 @@ const props = withDefaults(defineProps<Props>(), {
   gap: 15px;
 
   .reader-text {
-    font-size: 16px;
+    font-size: 1.6rem;
   }
 
   .reader-imtext {
@@ -129,7 +129,7 @@ const props = withDefaults(defineProps<Props>(), {
       transition: background 0.2s;
       
       &::after {
-        font-size: 7px;
+        font-size: 0.7rem;
         color: #A3A9B5;
         font-weight: bold;
       }

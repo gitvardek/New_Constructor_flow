@@ -49,7 +49,7 @@
     }
 
     &__link > * {
-        font-size: 17px;
+        font-size: 1.6rem;
         display: inline;
         white-space: nowrap;
         overflow: hidden;
@@ -65,7 +65,7 @@
     &__label {
       display: block;
       text-align: center;
-      font-size: 16px;
+      font-size: 1.6rem;
       margin-bottom: 8px;
       color: $red;
     }
@@ -77,7 +77,7 @@
       gap: 12px;
   
       .btn {
-        font-size: 16px;
+        font-size: 1.6rem;
         border: none;
         padding: 8px 16px;
         border-radius: 8px;

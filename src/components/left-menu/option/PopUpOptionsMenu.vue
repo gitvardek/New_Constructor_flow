@@ -48,6 +48,8 @@ const filteredData = computed(() => {
         );
       })
       .sort((a, b) => a.SORT - b.SORT);
+  } else {
+    console.log("empty");
   }
 });
 
@@ -75,6 +77,7 @@ const closeMenu = (menuType: MenuType) => {
 };
 
 const openPopup = async (item) => {
+
   try {
     const { data } = await axios.post(`/api/modeller/product/getbyid/`, {
       ID: item.ID,
@@ -117,7 +120,9 @@ const closeInfoPopup = () => {
   };
 };
 
+onBeforeMount(() => {
 
+});
 </script>
 
 <template>
@@ -167,31 +172,42 @@ const closeInfoPopup = () => {
 
 <style lang="scss" scoped>
 .options-popup {
-  width: max-content;
-  max-width: 575px;
-  min-width: 210px;
+  max-width: 40rem;
   position: absolute;
-  top: 15px;
+  // top: 15px;
   // left: -840px;
   left: 320px;
-  padding: 15px;
+  padding: 0.5rem;
   background: $white;
   box-shadow: 0px 0px 10px 0px #3030301a;
   z-index: -1;
-  border-radius: 15px;
+  border-radius: 0.5rem;
+  font-size: 1.4rem;
   // transition: 0.5s ease-in-out;
   // transform: translateZ(-10px);
 
+  &-isempty {
+    font-size: 1.4rem;
+  }
+
   &__container {
-    max-height: 80vh;
-    display: flex;
-    flex-wrap: wrap;
+    // display: flex;
+    // flex-wrap: wrap;
+    // gap: 12px;
+    // flex: 1;
+    display: grid;
+    grid-template-columns: repeat(
+      3,
+      1fr
+    ); /* Создает ровно 4 колонки одинаковой ширины */
     gap: 10px;
-    overflow: auto;
+    padding: 0.5rem;
+    padding-right: 0.85rem;
+    overflow-y: auto;
 
     .popup-items {
-      width: 167px;
-      min-height: 240px;
+      width: 11rem;
+      // min-height: 7.5rem;
       display: flex;
       flex-direction: column;
       padding: 10px;
@@ -206,21 +222,21 @@ const closeInfoPopup = () => {
       transition-timing-function: ease;
 
       &__title {
-        font-size: 15px;
+        font-size: 1.2rem;
         font-weight: 500;
       }
       .popup-items-picture {
         position: relative;
         .popup-items__question {
           position: absolute;
-          top: 10px;
-          right: 5px;
+          top: 0px;
+          right: 0px;
           cursor: pointer;
         }
         .popup-items__image {
-          height: 150px;
-          width: 150px;
-          padding: 10px;
+          height: 6rem;
+          width: 6rem;
+          padding: 3px;
           background: #ffffff;
           border-radius: 15px;
           object-fit: contain;
@@ -236,7 +252,10 @@ const closeInfoPopup = () => {
   }
 
   &.active {
-    left: 330px;
+    left: 29rem;
+    overflow-y: auto;
+    min-height: 0;
+    height: calc(100vh - var(--header-height));
   }
 }
 </style>

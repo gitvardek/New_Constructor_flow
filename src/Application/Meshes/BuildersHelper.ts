@@ -7,6 +7,7 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { GlobalsData } from './Utils/Globals'
 import { CUTTER_PARAMS } from "@/ConstructorTabletop/CutterScripts/CutterConst"
 import { label, userData } from 'three/webgpu'
+import { useToast } from "@/features/toaster/useToast"
 export class BuildersHelper extends GlobalsData {
 
     resources: THREETypes.TResources
@@ -16,7 +17,7 @@ export class BuildersHelper extends GlobalsData {
 
     constructor(root: THREETypes.TApplication) {
 
-        super();
+        super(root._appData);
         this.resources = root._resources
         this.scene = root._scene
         this.room = root._roomManager
@@ -131,7 +132,6 @@ export class BuildersHelper extends GlobalsData {
         size.height ||= parseFloat(resolvedHeight);
         size.depth ||= parseFloat(productData.depth);
 
-
         return size;
     }
 
@@ -155,31 +155,44 @@ export class BuildersHelper extends GlobalsData {
         return obj;
     };
 
-    public expressionsReplace(obj: any, expressions: THREETypes.TObject) {
+    public expressionsReplace<T>(obj: T, expressions: Record<string, number | string>): T {
         if (!expressions || !Object.keys(expressions).length) return obj;
 
-        let objStr: THREETypes.TObject | string | number = obj;
+        const isObject = obj !== null && typeof obj === "object";
 
-        if (typeof obj === "object") {
-            objStr = JSON.stringify(obj);
-        }
+        const replaced = Object.entries(expressions).reduce(
+            (acc, [key, value]) => acc.split(key).join(String(value ?? 0)),
+            isObject ? JSON.stringify(obj) : String(obj)
+        );
 
-        Object.entries(expressions).forEach(([k, v]) => {
-            if (typeof objStr !== "number") {
-                // Защита от undefined/null значений
-                const replacement = v ?? 0;
-                objStr = (objStr as string).split(k).join(String(replacement));
-            }
-        });
-
-        if (typeof obj === "object") {
-            return JSON.parse(objStr as string);
-        } else {
-            return objStr;
-        }
+        return isObject ? JSON.parse(replaced) : replaced as T;
     }
 
-    public calculateFromString(expression) {
+    // public expressionsReplace(obj: any, expressions: THREETypes.TObject) {
+    //     if (!expressions || !Object.keys(expressions).length) return obj;
+
+    //     let objStr: THREETypes.TObject | string | number = obj;
+
+    //     if (typeof obj === "object") {
+    //         objStr = JSON.stringify(obj);
+    //     }
+
+    //     Object.entries(expressions).forEach(([k, v]) => {
+    //         if (typeof objStr !== "number") {
+    //             // Защита от undefined/null значений
+    //             const replacement = v ?? 0;
+    //             objStr = (objStr as string).split(k).join(String(replacement));
+    //         }
+    //     });
+
+    //     if (typeof obj === "object") {
+    //         return JSON.parse(objStr as string);
+    //     } else {
+    //         return objStr;
+    //     }
+    // }
+
+    public calculateFromString<T>(expression: T) {
         try {
             const func = new Function("return " + expression);
             return func();
@@ -263,31 +276,43 @@ export class BuildersHelper extends GlobalsData {
                 material.needsUpdate = true;
 
             }
+        }).catch(() => {
+            material.map = null;
+            material.color = new THREE.Color(0xffffff);
+            material.needsUpdate = true;
+            useToast().warning('Текстура временно недоступна');
         });
     }
 
 
     public async getMaterial({ material, url, texture_size }: { material: any, url: string, texture_size?: THREETypes.TObject }) {
-        const loadedMaterial = await this.resources.startLoading(url, 'texture', (file) => {
-            if (file instanceof THREE.Texture) {
-                file.colorSpace = THREE.SRGBColorSpace
-                material.map = file
-                if (texture_size) {
-                    material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
-                    material.map.repeat.set(
-                        1 / texture_size.width,
-                        1 / texture_size.height
-                    );
-                    material.map.offset.set(0.5, 0.5);
+        try {
+            const loadedMaterial = await this.resources.startLoading(url, 'texture', (file) => {
+                if (file instanceof THREE.Texture) {
+                    file.colorSpace = THREE.SRGBColorSpace
+                    material.map = file
+                    if (texture_size) {
+                        material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
+                        material.map.repeat.set(
+                            1 / texture_size.width,
+                            1 / texture_size.height
+                        );
+                        material.map.offset.set(0.5, 0.5);
+                    }
+                    material.needsUpdate = true;
                 }
-                material.needsUpdate = true;
-
-            }
-        });
-        return loadedMaterial
+            });
+            return loadedMaterial;
+        } catch {
+            material.map = null;
+            material.color = new THREE.Color(0xffffff);
+            material.needsUpdate = true;
+            useToast().warning('Текстура временно недоступна');
+        }
     }
 
     public createNishaMaterial(url, size, comand) {
+        // console.log(comand)
 
 
         const material = new THREE.MeshStandardMaterial({
@@ -417,6 +442,7 @@ export class BuildersHelper extends GlobalsData {
             extrusionSettings
         );
 
+        // console.log(geometry, 'KKgeometry')
 
         return geometry;
     }
@@ -548,6 +574,7 @@ export class BuildersHelper extends GlobalsData {
 
     public createCutterParams(uslugi) {
         // const SERVISES = CUTTER_PARAMS.CUT_SERVISES
+        // console.log(uslugi, ' ====== uslugi =====', SERVISES)
 
         const result = uslugi.map(obj1 => {
             const obj2 = SERVISES.find(o => o.ID === obj1.ID);
@@ -618,9 +645,12 @@ export class BuildersHelper extends GlobalsData {
     }
 
     public createPlinthParams(models) {
+        console.log(models)
+
         const basePlinth = Object.values(this._PLINTH)[0]
         const inProdModel = this._MODELS[models[0]]
-        const jsonPlinth = inProdModel.json.plinth
+        console.log(inProdModel, 'inProdModel')
+        const jsonPlinth = inProdModel?.json?.plinth
 
         if (jsonPlinth) {
             return {

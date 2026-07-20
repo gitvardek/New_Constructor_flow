@@ -26,6 +26,7 @@ const emit = defineEmits<{
 }>();
 
 const handleSelect = (value: any, type: string, extras: string | undefined) => {
+
   emit("select", value, type, extras);
   // eventBus.emit('A:GlobalParapsSelect')
 };
@@ -71,8 +72,9 @@ watch(
 <style lang="scss" scoped>
 .color-select {
   position: absolute;
-  left: 575px;
+  left: 40rem;
   width: 100%;
+  height: calc(100vh - var(--header-height));
   max-width: 373px;
   display: flex;
   flex-direction: column;
@@ -100,14 +102,14 @@ watch(
     gap: 10px;
 
     &__title {
-      font-size: 15px;
+      font-size: 1.5rem;
       font-weight: 500;
     }
   }
 }
 
 .color__title {
-  font-size: 18px;
+  font-size: 1.8rem;
   margin: 0;
 }
 </style>

@@ -47,7 +47,7 @@ select {
       -webkit-appearance: none;
       -moz-appearance: none;
       background: url('@/assets/img/arrow-down.png') no-repeat right 10px center;
-    font-size: 16px;
+    font-size: 1.6rem;
     font-weight: 600;
     outline: none;
 }

@@ -43,6 +43,7 @@ export class CustomBoxHelper {
 
             this.boxHelper = new THREE.BoxHelper(this.selectedObject, 0x00ff00)
 
+            // console.log(this.boxHelper, '!!this.boxHelper')
             this.boxHelper.material.depthTest = false;
             this.boxHelper.material.depthWrite = false;
             this.boxHelper.material.opacity = 0.5
@@ -88,6 +89,7 @@ export class CustomBoxHelper {
 
         const boxHelper = new THREE.BoxHelper(object, color)
 
+        // console.log(this.boxHelper, '!!this.boxHelper')
         boxHelper.material.depthTest = false;
         boxHelper.material.depthWrite = false;
         boxHelper.material.opacity = 1

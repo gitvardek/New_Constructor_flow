@@ -21,6 +21,8 @@ const optionList = ref([]);
 const createList = () => {
   if (!props.umMechanizm) {
     const { data } = createOptionList();
+  
+
     optionList.value = data;
     return;
   }
@@ -41,8 +43,8 @@ const changeValue = (event: InputEvent, option: TRootOptionType) => {
 
 const UMMechanizmChange = (event: InputEvent, id: number) => {
   activateMechanismAndDeactivateOthers(optionList.value, id);
-
   props.segment.MECHANISM = event.target!.checked ? parseInt(id) : null;
+
 };
 
 const activateMechanismAndDeactivateOthers = (data, targetId) => {
@@ -121,7 +123,7 @@ onBeforeMount(() => {
 
   &__title {
     margin-right: 50px;
-    font-size: 18px;
+    font-size: 1.8rem;
     font-weight: 600;
   }
 

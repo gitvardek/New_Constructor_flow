@@ -104,8 +104,8 @@ const imageStyle = computed(() => ({
 const initialsStyle = computed(() => ({
   backgroundColor: generateColorFromName(authStore.userData.name),
   color: '#ffffff',
-  width: '48px',
-  height: '48px',
+  width: '35px',
+  height: '35px',
   fontSize: authStore.userInitials.length > 2 ? '14px' : '18px',
   fontWeight: '600',
   display: 'flex',
@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
   color: white;
   padding: 6px 12px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 1.2rem;
   font-weight: 500;
   white-space: nowrap;
   pointer-events: none;
@@ -236,7 +236,7 @@ onBeforeUnmount(() => {
   top: -4px;
   right: -4px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 1rem;
   min-width: 18px;
   height: 18px;
   display: flex;
@@ -283,6 +283,7 @@ onBeforeUnmount(() => {
   z-index: 1000;
   overflow: hidden;
   border: 1px solid #e2e8f0;
+  font-size: 1.4rem;
 }
 
 .dropdown-item {
@@ -375,7 +376,7 @@ onBeforeUnmount(() => {
   .avatar-image, .avatar-initials {
     width: 40px;
     height: 40px;
-    font-size: 14px;
+    font-size: 1.4rem;
   }
   
   .avatar-status {

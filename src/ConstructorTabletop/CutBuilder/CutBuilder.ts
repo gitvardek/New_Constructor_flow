@@ -60,7 +60,6 @@ class TableTopCreator extends BuildersHelper {
 
         if (object.userData.groupId) {
 
-
             const parent: THREE.Object3D = this.root._scene?.getObjectByProperty('id', object.userData.groupId)!;
 
 
@@ -95,7 +94,6 @@ class TableTopCreator extends BuildersHelper {
         }
 
 
-
         let { RASPIL_LIST, CONFIG } = object.userData.PROPS
         const { USLUGI, KROMKA } = CONFIG
 
@@ -124,7 +122,6 @@ class TableTopCreator extends BuildersHelper {
 
     private createSections(path, xOffset = 0, yOffset = 0) {
         const shape = new THREE.Shape();
-
 
         // let lastPoint = new THREE.Vector2();
 
@@ -290,7 +287,7 @@ class TableTopCreator extends BuildersHelper {
                     mesh.userData.rotation = null
                 }
 
-                this.createCollisionData(mesh, size, raspil, groupId, row.roundCut, uslugi);
+                this.createCollisionData(mesh, size, raspil, groupId, row, uslugi);
                 this.addArrowSize(mesh, row)
 
                 meshes.push(mesh);
@@ -313,6 +310,7 @@ class TableTopCreator extends BuildersHelper {
 
     // private _createShape(row, parent, material_1, material_2) {
     //     const { xOffset, yOffset, width, height, holes } = row;
+    //     console.log(parent, 'SHAPE parent')
 
     //     let startGeometry = CSG.fromMesh(parent);
     //     let material = new THREE.MeshPhongMaterial({
@@ -489,6 +487,8 @@ class TableTopCreator extends BuildersHelper {
     }) {
         const RASPIL_COUNT = raspilCount ?? object.userData.PROPS.RASPIL_COUNT
         const resultData = []
+        // console.log(object, 'PAR')
+        // console.log(`PARENT-${RASPIL_COUNT}`, `CURRENT-${meshes.length}`)
 
         meshes.forEach(mesh => {
             const worldPosition = new THREE.Vector3();
@@ -507,6 +507,7 @@ class TableTopCreator extends BuildersHelper {
             this.root._scene?.add(mesh); // Добавляем меш напрямую на сцену
             this.roomManager._roomContant = mesh
 
+            // console.log(mesh.userData.position, mesh.userData.rotation, 'ROW')
 
             if (mesh.userData.position && mesh.userData.rotation && RASPIL_COUNT === meshes.length) {
 
@@ -595,22 +596,28 @@ class TableTopCreator extends BuildersHelper {
         return `#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0')}`;
     }
 
-    private createCollisionData(mesh: THREE.Object3D, { width, depth, height }: { width: number, depth: number, height: number }, raspil: [], groupId: number | null, roundCut: THREETypes.TObject, uslugi) {
+    private createCollisionData(mesh: THREE.Object3D,
+        { width, depth, height }: { width: number, depth: number, height: number },
+        raspil: [],
+        groupId: number | null,
+        row: THREETypes.TObject,
+        uslugi) {
+
         const data = {
-            DEPTH: roundCut.radius ? roundCut.radius * 0.5 : height * 0.5,
+            DEPTH: row.roundCut.radius ? row.roundCut.radius * 0.5 : height * 0.5,
             HEIGHT: depth * 0.5,
-            WIDTH: roundCut.radius ? roundCut.radius * 0.5 : width * 0.5
+            WIDTH: row.roundCut.radius ? row.roundCut.radius * 0.5 : width * 0.5
         }
 
         const aabb = new THREE.Box3().setFromObject(mesh);
         const obb = new OBB().fromBox3(aabb);
 
         mesh.userData.trueSizes = data
-
-
         mesh.userData.elementType = 'raspil'
 
         mesh.userData.PROPS = {
+            RAYCAST: !row.disabled,
+            DISABLE_MOVE: false,
             CONFIG: {
                 UNIFORM_TEXTURE: {
                     group: null

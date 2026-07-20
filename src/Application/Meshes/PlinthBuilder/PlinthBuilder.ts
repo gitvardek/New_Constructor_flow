@@ -29,6 +29,7 @@ export class PlinthBuilder {
         right: 'depth',
 
     }
+    private readonly plinthIds = { 1281043: 100, 1281044: 150 }
 
     constructor(parent: TBuildProduct) {
         this.scene = parent.scene
@@ -49,20 +50,22 @@ export class PlinthBuilder {
         return false
     }
 
-    public buildPlinth(props: any, legsHeight: number) {
+    public buildPlinth(props: any, legsHeight: number, defaultConfig: TDefaultOptionsConfig) {
         // const { PLINTH_MESH } = props
+        const plinth = defaultConfig?.plinth?.id
+        const plinthHeight = plinth ? this.plinthIds[defaultConfig.plinth.id] : legsHeight
         const plinthParent = new THREE.Object3D()
         const plinthActions = props.CONFIG.PLINTH_ACTIONS
         const sizes: TSize = { ...props.CONFIG.SIZE };
 
-        this.createPlinthMesh(props, plinthActions, sizes, plinthParent, legsHeight)
+        this.createPlinthMesh(props, plinthActions, sizes, plinthParent, plinthHeight)
         props.PLINTH_MESH = (plinthParent)
         return plinthParent
 
     }
 
     private createPlinthMesh(props: any, plinthActions: TPlinthActions, size: TSize, plinthParent: THREE.Object3D, legsHeight: number) {
-        // const { PLINTH_MESH } = props
+
         const product: IProductFull = this.buildProduct._PRODUCTS[props.PRODUCT]
         const { id, plinthSurfase } = this.buildProduct.getDefaultOptionsConfig().plinth
 
@@ -75,6 +78,8 @@ export class PlinthBuilder {
         const startPosition = this.buildProduct.getStartPosition(size);
         const havePlinth = this.checkHavePLinth(props);
         const plinthConfigs = this.getPlinthConfigs(size);
+        let totalPlinthWidth = 0
+        let plinthList = []
 
         if (havePlinth) {
 
@@ -88,8 +93,17 @@ export class PlinthBuilder {
                 model.position.set(position.x, startPosition.y, position.z);
                 model.rotation.set(rotation.x, rotation.y, rotation.z);
 
+                totalPlinthWidth += model.userData.PLINTH_WIDTH
+
                 plinthParent.add(model);
             });
+
+            try {
+                plinthActions.front.plinthWidth = totalPlinthWidth
+            }
+            catch (e) {
+                console.error(`Ошибка метода << createPlinthMesh >> ${e}`)
+            }
 
             return;
         }
@@ -105,12 +119,19 @@ export class PlinthBuilder {
             const plinthWidth = startSize - config.widthOffset;
 
             const model = this.createPlinth({ width: plinthWidth, plinthProd, plinthModel, material, startPosition, key, legsHeight });
+
+
             model.position.set(config.posX, startPosition.y, config.posZ);
             model.rotation.set(0, config.rotY, 0);
-            // PLINTH_MESH.push(model)
-            model.visible = item.value;
+
+            model.visible = item.value
+            item.plinthWidth = model.userData.PLINTH_WIDTH
+
+
             plinthParent.add(model);
         });
+
+        plinthParent.userData.PLINTH_LIST = plinthList
     }
 
     private createPlinth({
@@ -133,11 +154,18 @@ export class PlinthBuilder {
 
         const model = this.jsonBuilder.createMesh({ data: convertedData });
         const edgeBody = this.edgeBuilder.createEdge(model)
-        model.add(edgeBody)
+        const defEdge = this.edgeBuilder.createVisibleEdge(model)
+        model.add(edgeBody, defEdge)
         model.castShadow = true
         model.name = 'PLINTH';
         model.userData.type = key || 'front'
         model.position.setY(startPosition.y);
+
+        const aabb = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        aabb.getSize(size);
+        model.userData.PLINTH_WIDTH = size.x
+
         return model;
     }
 
@@ -200,7 +228,9 @@ export class PlinthBuilder {
         const { PROPS } = parent.userData
         const { PLINTH_MESH, CONFIG } = PROPS
         const { PLINTH_ACTIONS, SIZE } = CONFIG
-        this.deepDispose.clearParent(PLINTH_MESH)
-        this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH)
+        if (PLINTH_MESH instanceof THREE.Object3D) {
+            this.deepDispose.clearParent(PLINTH_MESH)
+            this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH)
+        }
     }
 }

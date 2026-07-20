@@ -144,7 +144,6 @@ const jsonBlank = `{
     "project_name": "blankroom",
     "table_top_type_auto": true,
     "default_table_model": 69919,
-    "default_table_color": null,
     "default_fasade_color": 7397,
     "default_module_color": 199675,
     "default_fasade_top": 7397,
@@ -270,6 +269,7 @@ export const loadBlankRoom = async (customProject?: typeof projectData) => {
 
     window.C2D.layers.planner.init(true)
     window.C2D.layers.doorsAndWindows.init(true)
+
   } catch (error) {
     console.error('Ошибка предварительной инициализации комнаты', error)
   }

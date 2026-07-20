@@ -19,6 +19,7 @@ import {
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { useOptions } from "@/components/right-menu/customiser-pages/RailsRightPage/useOptions.ts";
 import ToptableSelector from "@/components/right-menu/customiser-pages/UMLeftPages/ToptableSelector.vue";
+
 const props = defineProps({
   module: {
     type: Object,
@@ -69,7 +70,8 @@ const { module, objectData, visualizationRef, UMconstructor } = toRefs(props);
 const APP = useAppData().getAppData;
 const modelState = useModelState();
 const productData = ref(null);
-const { checkActive } = useOptions();
+
+const { checkActive, resetGlobal } = useOptions();
 
 const currentOption = ref<string | boolean>(false);
 const panelRef = ref<HTMLElement | null>(null);
@@ -104,6 +106,7 @@ const getToptableList = () => {
     return toptableProductsList.value;
   }
 };
+
 const changeTopMaterialsList = (isToptable: boolean = false) => {
   if (isToptable) {
     materialList.value = getToptableList();
@@ -259,6 +262,7 @@ const getMaterialsList = () => {
 };
 
 const createFacadeData = (fasadeIndex) => {
+
   const productId = modelState.getCurrentModel.userData.PROPS.PRODUCT;
   const { FACADE } = modelState._PRODUCTS[productId];
   modelState.createCurrentModelFasadesData({
@@ -415,6 +419,7 @@ const selectOption = (
         objectData.value.CONFIG[currentOption.value]["PALETTE"] = palette;
       break;
   }
+
   emit("eccentric-action");
   reset();
 };
@@ -498,26 +503,17 @@ onBeforeUnmount(() => {
   <div class="UM actions-wrapper">
     <div :class="'UM actions-items--container'">
       <div class="UM config-options">
-        <div
-          v-for="(value, part) in getMaterialsParts(objectData)"
-          :key="part"
-          class="UM option-small"
-        >
-          <div
-            :class="[
-              'UM option-small-item',
-              { active: currentOption === part },
-            ]"
-            @click.stop="getOption(part)"
-          >
+        <div v-for="(value, part) in getMaterialsParts(objectData)" :key="part" class="UM option-small">
+          <div :class="[
+            'UM option-small-item',
+            { active: currentOption === part },
+          ]" @click.stop="getOption(part)">
             {{ partsNames[part] }}
 
-            <div
-              :class="[
-                'UM option-small-item-chevron',
-                { active: currentOption === part },
-              ]"
-            >
+            <div :class="[
+              'UM option-small-item-chevron',
+              { active: currentOption === part },
+            ]">
               ❯
             </div>
           </div>
@@ -527,75 +523,42 @@ onBeforeUnmount(() => {
   </div>
 
   <transition name="slide--left" mode="out-in">
-    <div
-      class="UM color--left"
-      v-if="currentOption"
-      key="color--left-select"
-      ref="panelRef"
-    >
+    <div class="UM color--left" v-if="currentOption" key="color--left-select" ref="panelRef">
       <div class="UM color--left-select" key="color--left-select">
         <h1 class="UM color__title">{{ partsNames[currentOption] }}</h1>
         <ClosePopUpButton class="UM menu__close" @close="closeMenu()" />
 
-        <p
-          class="UM color__title color__switch"
-          v-if="currentOption === 'PROFILECOLOR'"
-        >
+        <p class="UM color__title color__switch" v-if="currentOption === 'PROFILECOLOR'">
           Профили в размер секции
-          <Toggle
-            v-model="module.profilesConfig.onSectionSize"
-            @change="changeProfilesWidth(module.profilesConfig.onSectionSize)"
-          />
+          <Toggle v-model="module.profilesConfig.onSectionSize"
+            @change="changeProfilesWidth(module.profilesConfig.onSectionSize)" />
         </p>
 
         <div class="color__switch" v-if="currentOption === 'TOPFASADECOLOR'">
           <h1 :class="['color__switch__text', { active: !toptableMode }]">
             Накладка
           </h1>
-          <Toggle
-            v-model="toptableMode"
-            @change="changeTopMaterialsList(toptableMode)"
-          />
+          <Toggle v-model="toptableMode" @change="changeTopMaterialsList(toptableMode)" />
           <h1 :class="['color__switch__text', { active: toptableMode }]">
             Столешница
           </h1>
         </div>
 
         <div v-if="currentOption === 'TOPFASADECOLOR' && toptableMode">
-          <ToptableSelector
-            :product-list="materialList"
-            :module="module"
-            :UMconstructor="UMconstructor"
-            :type="`TABLE`"
-            @parent-callback="selectOption"
-          />
+          <ToptableSelector :product-list="materialList" :module="module" :UMconstructor="UMconstructor" :type="`TABLE`"
+            @parent-callback="selectOption" />
         </div>
         <div v-else>
-          <AdvanceCorpusMaterialRedactor
-            class="color--left-select-item"
-            v-if="getCurrentRedactor"
-            :key="currentOption"
-            :element-data="getCurrentValue"
-            :element-index="currentOption"
-            :material-list="materialList"
-            :fasade-size="elementSize"
-            @parent-callback="selectOption"
-          />
-          <CorpusMaterialRedactor
-            v-else
-            class="color--left-select-item"
-            :is2Dconstructor="true"
-            :material-list="materialList"
-            :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
-            @parent-callback="selectOption"
-          />
+          <AdvanceCorpusMaterialRedactor class="color--left-select-item" v-if="getCurrentRedactor" :key="currentOption"
+            :element-data="getCurrentValue" :element-index="currentOption" :material-list="materialList"
+            :fasade-size="elementSize" @parent-callback="selectOption" />
+          <CorpusMaterialRedactor v-else class="color--left-select-item" :is2Dconstructor="true"
+            :material-list="materialList" :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
+            @parent-callback="selectOption" />
         </div>
 
-        <HiTechSideprofile
-          v-if="currentOption === 'PROFILECOLOR' && getSideProfile"
-          class="color--left-select-item"
-          :module="module"
-        />
+        <HiTechSideprofile v-if="currentOption === 'PROFILECOLOR' && getSideProfile" class="color--left-select-item"
+          :module="module" />
       </div>
     </div>
   </transition>
@@ -621,4 +584,8 @@ onBeforeUnmount(() => {
     }
   }
 }
+.container{
+  max-height: calc(var(--modal-large-height) - 115px)
+}
+
 </style>

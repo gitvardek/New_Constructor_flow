@@ -10,6 +10,7 @@ import { useAppData } from "@/store/appliction/useAppData";
 import { useModelState } from '@/store/appliction/useModelState';
 import { useSceneState } from '@/store/appliction/useSceneState';
 import { useRoomState } from '@/store/appliction/useRoomState';
+import { useFigureRightPage } from '@/utils/useFigureRightPage';
 
 
 
@@ -21,16 +22,21 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     const APP = computed(() => appStore.getAppData || {})
     const _WALL = computed(() => APP.value.WALL || {})
     const _FLOOR = computed(() => APP.value.FLOOR || {})
+    const _HANDLES = computed(() => APP.value.HANDLES || {})
 
     const sceneState = useSceneState();
     const modelState = useModelState()
     const roomState = useRoomState();
-    const startParams = computed(() => sceneState.getStartProgectParams)
+    const handleMethods = useFigureRightPage();
+
+
+    const startParams = computed(() => sceneState.getStartProjectParams)
     // const currentSceneParams = sceneState.getCurrentProjectParams
 
-    const shadowValue = ref<boolean>(false)
-    const refractionValue = ref<boolean>(false)
-    const startHeightClamp = ref<number | string>(startParams.value?.height_clamp)
+    const shadowValue = ref<boolean>(false);
+    const refractionValue = ref<boolean>(false);
+    const startHeightClamp = ref<number | string>(startParams.value?.height_clamp);
+    const emptyTableTopId = ref<string | number>('69919');
 
     const lightRange = ref<TLightRange>({
         pointLight: startParams.value.lights.pointLight.intensity,
@@ -77,7 +83,8 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
         wall: 'default_wall',
         floor: 'default_floor',
         tableTop: 'default_table_model',
-        plinth: 'default_plinth_body'
+        plinth: 'default_plinth_body',
+        handles: 'default_handles'
     }
 
     /** Для сохранения проекта */
@@ -89,7 +96,8 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
         wall: 'default_wall',
         floor: 'default_floor',
         tableTop: 'default_table_model',
-        plinth: 'default_plinth_body'
+        plinth: 'default_plinth_body',
+        handles: 'default_handles'
     }
 
     // Вместо статичной деструктуризации:
@@ -99,13 +107,14 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     let defaultModuleBottom = ref(startParams.value?.default_module_color)
     let defaultFasadeTop = ref(startParams.value?.default_fasade_color)
     let defaultFasadeBottom = ref(startParams.value?.default_fasade_color)
-    let defaulttableTop = ref(startParams.value?.default_table_model)
+    let defaultTableTop = ref(startParams.value?.default_table_model)
     let defaultPalitTop = ref(startParams.value?.default_palit_top)
     let defaultPalitBottom = ref(startParams.value?.default_palit_bottom)
     let defaultMillingBottom = ref(startParams.value?.default_milling_bottom)
     let defaultMillingTop = ref(startParams.value?.default_milling_top)
     let defaultPlinthBody = ref(startParams.value?.default_plinth_body)
     let defaultPlinthColor = ref(startParams.value?.default_plinth_color)
+    let defaultHandles = ref(startParams.value?.default_handles)
 
     const globalOptions = ref<TOptionsMap>({
         wall: {
@@ -158,12 +167,12 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
             palitteTitle: 'Цвет Палитры',
             millingTitle: 'Тип Фрезеровки'
         },
-        // tableTop: {
-        //     id: defaulttableTop,
-        //     global: false,
-        //     title: "Тип столешницы",
-        //     label: 'Для всех комнат'
-        // },
+        tableTop: {
+            id: defaultTableTop.value,
+            global: false,
+            title: "Тип столешницы",
+            label: 'Для всех комнат'
+        },
         plinth: {
             id: defaultPlinthBody.value,
             plinthSurfase: defaultPlinthColor.value,
@@ -172,7 +181,15 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
             label: 'Для всех комнат',
             plinthTitle: 'Тип фасада цокольных планок',
             prefix: 'plinth',
-        }
+        },
+
+        handles: {
+            id: defaultHandles.value,
+            global: false,
+            title: "Тип ручек",
+            label: 'Для всех комнат'
+        },
+
 
     });
 
@@ -260,13 +277,14 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
             Array.isArray(prods) ? prods : []
         );
 
-        const uniqueProductIds = [...new Set([...allProducts, '69919'])];
-
-        const defaultTableTopData = Object.fromEntries(
-            uniqueProductIds.map(id => [id, PRODUCTS[id]])
-        );
+        const uniqueProductIds = [...new Set([...allProducts, emptyTableTopId.value])];
+        const defaultTableTopData = uniqueProductIds.map(id => PRODUCTS[id]).sort((a, b) => { a.SORT - b.SORT }).reverse();
 
         return defaultTableTopData
+    }
+
+    const getDefaultHandlresData = () => {
+        return handleMethods.createDefaultHandleList();
     }
 
     //--------------------------------------------------
@@ -360,7 +378,7 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     };
 
     const resetGlobalOptions = () => {
-        const startParams = sceneState.getStartProgectParams
+        const startParams = sceneState.getStartProjectParams
 
         for (const key in globalOptions.value) {
             const optionKey = key as keyof TOptionsMap
@@ -399,6 +417,7 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     }
 
     const getGlobalOptions = computed(() => {
+
         return globalOptions.value
     })
 
@@ -509,12 +528,12 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
                 palitteTitle: 'Цвет Палитры',
                 millingTitle: 'Тип Фрезеровки'
             },
-            // tableTop: {
-            //     id: defaulttableTop,
-            //     global: false,
-            //     title: "Тип столешницы",
-            //     label: 'Для всех комнат'
-            // },
+            tableTop: {
+                id: newParams.default_table_model,
+                global: false,
+                title: "Тип столешницы",
+                label: 'Для всех комнат'
+            },
             plinth: {
                 id: newParams.default_plinth_body,
                 plinthSurfase: newParams.default_plinth_color,
@@ -524,10 +543,15 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
                 label: 'Для всех комнат',
                 plinthTitle: 'Тип фасада цокольных планок',
                 prefix: 'plinth',
-            }
+            },
+            handles: {
+                id: newParams.default_handles ?? startParams.value.default_handles,
+                global: false,
+                title: "Тип ручек",
+                label: 'Для всех комнат'
+            },
 
         }
-
     })
 
     return {
@@ -546,6 +570,7 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
         getDefaultPalitData,
         getDefaultMillingData,
         getDefaultTotalPlinthData,
+        getDefaultHandlresData,
         getTotalPlinthColorData,
 
         getGlobalOptions,

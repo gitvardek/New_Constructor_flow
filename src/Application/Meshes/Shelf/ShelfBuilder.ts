@@ -57,6 +57,8 @@ export class ShelfBuilder {
             posKey: "x" | "y",
             namePrefix: string
         ) => {
+
+            const { height } = props.CONFIG.SIZE;
             let accumulatedWidth = initWidth;
 
             shelfs[axis].forEach((shelfExpression, index) => {
@@ -64,8 +66,11 @@ export class ShelfBuilder {
                     accumulatedWidth += correction;
                 }
 
-                const geometry = new BoxGeometry(accumulatedWidth - 32, 16, correctDepth);
+                const geometry = posKey === "x"
+                    ? new BoxGeometry(16, height - 32, correctDepth)
+                    : new BoxGeometry(accumulatedWidth - 32, 16, correctDepth);
                 const mesh: Mesh = new Mesh(geometry, shelfMaterial);
+
 
                 mesh.receiveShadow = true;
                 mesh.castShadow = true;
@@ -85,7 +90,8 @@ export class ShelfBuilder {
 
                 // Создаём кромки (если edge_builder доступен в контексте)
                 const edge = this.edgeBuilder.createEdge(mesh);
-                parent.add(mesh, edge);
+                const defEdge = this.edgeBuilder.createVisibleEdge(mesh);
+                parent.add(mesh, edge, defEdge);
             });
         };
 
@@ -102,6 +108,7 @@ export class ShelfBuilder {
         const { SHELF, CONFIG } = props
         const { SHELFQUANT, SIZE, MECHANISM } = CONFIG
 
+        // console.log(MECHANISM, '==== MECHANISM ====')
 
         const total = SHELFQUANT.max!
         const current = SHELFQUANT.current!
@@ -111,7 +118,7 @@ export class ShelfBuilder {
         const mechanizmTemp = height * 0.5 - 216
 
 
-        const matType = props.BODY.userData.MATERIAL_TYPE ?? "MeshStandardMaterial";
+        const matType = props.BODY?.userData.MATERIAL_TYPE ?? "MeshStandardMaterial";
         const shelfMaterial = material || this.materialMap[matType] || this.materialMap.MeshStandardMaterial;
 
         const startPos = this.parent.getStartPosition(SIZE);
@@ -136,7 +143,8 @@ export class ShelfBuilder {
             (SHELF as Mesh[]).push(mesh);
 
             const edge = this.edgeBuilder.createEdge(mesh);
-            parent.add(mesh, edge);
+            const defEdge = this.edgeBuilder.createVisibleEdge(mesh);
+            parent.add(mesh, edge, defEdge);
         }
 
         return parent;

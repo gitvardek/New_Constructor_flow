@@ -33,6 +33,7 @@ export function handlerStageMouseUp(this: any, e: PIXI.FederatedPointerEvent): v
       if (pointInRoom) {
         this.drawObjects[drawObjectsIndex].roomId = rooms[i].id;
         roomIdFound = true;
+        console.log('>>> Объект находится внутри комнаты:', rooms[i].id);
         break;
       }
 
@@ -43,6 +44,7 @@ export function handlerStageMouseUp(this: any, e: PIXI.FederatedPointerEvent): v
       const wall = this.parent.layers.planner.objectWalls.find((el: ObjectWall) => el.id === drawObjects.belongsToWall.id);
       if (wall && wall.roomId) {
         this.drawObjects[drawObjectsIndex].roomId = wall.roomId;
+        console.log('>>> roomId взят из стены при отпускании мыши:', wall.roomId);
       } else {
         // Если стена не найдена или у стены нет roomId, устанавливаем null
         this.drawObjects[drawObjectsIndex].roomId = null;

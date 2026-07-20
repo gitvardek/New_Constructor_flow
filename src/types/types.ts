@@ -142,7 +142,8 @@ export type TOptionItem = {
   millingData?: TMilling[] | null
   plinthTitle?: string,
   plinthSurfase?: number | string | null,
-  plinthData?: TFasadeItem[] | null
+  plinthData?: TFasadeItem[] | null,
+  handlesData?: IProductFull[]
 };
 
 export type TLightRange = {
@@ -159,8 +160,9 @@ export type TOptionsMap = {
   // palitteBottom?: TOptionItem;
   fasadsTop: TOptionItem;
   fasadsBottom: TOptionItem;
-  tableTop: TOptionItem
-  plinth: TOptionItem
+  tableTop: TOptionItem;
+  plinth: TOptionItem;
+  handles: TOptionItem;
 };
 
 export type TTextureActionMap = {
@@ -175,6 +177,7 @@ export type TTextureActionMap = {
   millingTotal: "A:ChangeMillingTotal",
   plinth: "A:ChangePlinthBody",
   plinthColor: "A:ChangePlinthColor"
+  handles: "A:ChangeHandlesTotal"
 
 };
 
@@ -309,6 +312,7 @@ export type TDefaultOptionsConfig = {
   fasadsBottom: TOptionItem;
   tableTop: TOptionItem
   plinth: TOptionItem
+  handles: TOptionItem
 }
 
 //------------------
@@ -508,30 +512,33 @@ export type TConfig = {
 }
 
 export type TTotalProps = {
-  ARROWS: THREE.Object3D[],
-  BODY: THREE.Object3D,
+  ARROWS: THREE.Object3D[] | null,
+  BODY: THREE.Object3D | null,
+  BODY_DEFAULT?: THREE.Object3D | null,
   CONFIG: TConfig,
-  DRAWERS: THREE.Object3D[],
+  DRAWERS: THREE.Object3D[] | {},
   EXPRESSIONS: {},
   FASADE: THREE.Object3D[],
   FASADE_DEFAULT: THREE.Object3D[],
   GLASS: {},
-  HANDLES: THREE.Object3D[],
+  HANDLES: THREE.Object3D[] | {},
   HIDDENCHILDREN: {},
   HIDDEN: false,
   JSON_FILLINGS: THREE.Object3D[],
-  LEG: THREE.Object3D,
+  LEG: THREE.Object3D | null | [],
+  MILLINGS?: THREE.Object3D[],
   PRODUCT: number,
-  PLINTH_MESH: null,
-  RASPIL: TCanvasData,
+  PLINTH_MESH: null | THREE.Object3D[],
+  RASPIL: TCanvasData | [],
   RASPIL_LIST: TRaspilPart[],
   RASPIL_COUNT: number,
   SHELF: THREE.Object3D[] | THREE.Mesh[] | [],
   SEPARATED: [],
   SECTIONSOBJ: [],
   SECTIONCONTROL: [],
-  TABLETOP: null,
-  NAME: string
+  TABLETOP: null | {},
+  NAME: string,
+  RAYCAST: boolean
 }
 
 
@@ -766,7 +773,7 @@ type TUniformTexture = {
   color: NumStr | null
 }
 
-type TOption = {
+export type TOption = {
   id: NumStr | null,
   active: boolean,
   group: NumStr | null,

@@ -148,6 +148,7 @@ export class UniformTextureBuilder extends UniformTextureUtils {
 
                 const flatedUniformGroup = this.createTexture.flattenArray(element.parts.flat())
 
+                // console.log(flatedUniformGroup, 'DEL GROUP')
 
                 flatedUniformGroup.forEach((item) => {
 
@@ -262,9 +263,12 @@ export class UniformTextureBuilder extends UniformTextureUtils {
             totalHeight += this.createTexture.getMaxLevelHeight(level)
         })
 
+        // console.log(levelsWidth)
 
         totalWidth = Math.max(...levelsWidth);
 
+        // console.log(totalWidth, totalHeight, '--TTWH')
+        // console.log(this.maxGroupHeight, this.maxGroupWidth, '--MMWH')
 
 
         //--------------------------------------------------------------------------------------------------
@@ -288,6 +292,7 @@ export class UniformTextureBuilder extends UniformTextureUtils {
 
         this.currentGroupHeight = totalHeight
         this.currentGroupWidth = totalWidth
+        // console.log(this.temporaryGroups)
         this.uniformEvents.uniformState.setPreGroup(this.temporaryGroups.length); // Отправляем значение для отображения кнопки "создать"
 
     }
@@ -406,6 +411,7 @@ export class UniformTextureBuilder extends UniformTextureUtils {
 
     /** Добавить к группе */
     addToUniformGroup(product: THREE.Object3D, group?: number) {
+        // console.log('ADD')
 
         let totalHeight = 0
         let totalWidth = 0
@@ -476,10 +482,13 @@ export class UniformTextureBuilder extends UniformTextureUtils {
                 groupColor: color
             })
 
+        // console.log(indexedParts, '1')
+        // console.log(indexedParts[0], 'arrayWithOriginals')
 
 
         currentGroup!.parts = indexedParts.group
 
+        // console.log(currentGroup.parts, currentGroup, 'parts_2')
 
         groupSize.currentHeight = totalHeight
         groupSize.currentWidth = totalWidth
@@ -490,6 +499,7 @@ export class UniformTextureBuilder extends UniformTextureUtils {
 
     /** Удалить из группы */
     removeFromUniformGroup(product: THREE.Object3D) {
+        // console.log('REMOVE')
 
         if (this.uniformGroups.length < 1) return
 
@@ -623,6 +633,7 @@ export class UniformTextureBuilder extends UniformTextureUtils {
     async getBackupTexture(data) {
         try {
             const material = await this.createBackupTexture(data);
+            // console.log('Material created:', material);
             return material
 
         } catch (error) {

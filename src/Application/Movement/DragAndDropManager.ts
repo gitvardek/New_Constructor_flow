@@ -23,6 +23,7 @@ export class DragAndDropManager {
     boxHelper: THREETypes.TCustomBoxHelper
 
     setObject: THREETypes.TSetObject
+    private readonly UM_LIST = [3954672, 1942652]
 
     // roomParams: { [key: string]: number | 0 } | THREEInterfases.IWallSizes
 
@@ -94,8 +95,7 @@ export class DragAndDropManager {
                 const surface = intersects[0].object;
                 // this.eventBus.emit('U:Drop')
 
-
-                if (productData.moduleType || productData.ID == 3954672) {
+                if (this.UM_LIST.includes(productData.ID) || productData.moduleType) {
                     object = await this.universalGeometryBuilder.createModel(productData)
                 } else {
                     object = await this.geometryBuilder.createModel(productData);
@@ -121,6 +121,7 @@ export class DragAndDropManager {
 
             } catch (error) {
                 console.error('Error parsing JSON data:', error);
+                // console.log('Received data:', data);
             }
         }
     }

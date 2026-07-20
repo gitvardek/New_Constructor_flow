@@ -42,7 +42,7 @@ export class EdgeBuilder {
         })
 
         this.defaultLineMaterial = new THREE.LineBasicMaterial({
-            color: 'rgba(232, 232, 232, 1)', linewidth: 1,
+            color: 'rgb(0, 0, 0)', linewidth: 1,
             // depthTest: false,
             // depthWrite: false,
             transparent: true,
@@ -55,17 +55,31 @@ export class EdgeBuilder {
         const edgeBody = new THREE.Object3D()
         // Привязываем ссылку на родителя для возможного внешнего использования
         edgeBody.userData.parentProduct = manualParent ?? this.parent
+
+        // Матрица object нужна для перевода world-трансформа меша в локальное пространство object
+        object.updateMatrixWorld(true)
+        const invObjectMatrix = new THREE.Matrix4().copy(object.matrixWorld).invert()
+
         object.traverse((child) => {
             if (child instanceof THREE.Mesh) {
+                // Трансформ child относительно object (с учётом всей иерархии родителей)
+                const relativeMatrix = new THREE.Matrix4().multiplyMatrices(invObjectMatrix, child.matrixWorld)
+
                 // линии
                 const edge = this.createSingleEdge({ mesh: child, name: object.name, manualParent, material: this.lineMaterial })
-                if (edge) edgeBody.add(edge)
+                if (edge) {
+                    edge.applyMatrix4(relativeMatrix)
+                    edgeBody.add(edge)
+                }
 
                 // плоскости
                 const face = this.createSingleFace(child, object.name, manualParent)
+                face.applyMatrix4(relativeMatrix)
                 edgeBody.add(face)
             }
         })
+
+        object.matrix.decompose(edgeBody.position, edgeBody.quaternion, edgeBody.scale)
 
         edgeBody.userData.edge = true
         edgeBody.visible = false
@@ -75,13 +89,22 @@ export class EdgeBuilder {
     public createVisibleEdge(object: THREE.Object3D) {
         const edgeBody = new THREE.Object3D()
 
+        object.updateMatrixWorld(true)
+        const invObjectMatrix = new THREE.Matrix4().copy(object.matrixWorld).invert()
+
         object.traverse((child) => {
             if (child instanceof THREE.Mesh) {
+                const relativeMatrix = new THREE.Matrix4().multiplyMatrices(invObjectMatrix, child.matrixWorld)
                 // линии
                 const edge = this.createSingleEdge({ mesh: child, name: 'default', material: this.defaultLineMaterial })
-                edgeBody.add(edge)
+                if (edge) {
+                    edge.applyMatrix4(relativeMatrix)
+                    edgeBody.add(edge)
+                }
             }
         })
+
+        object.matrix.decompose(edgeBody.position, edgeBody.quaternion, edgeBody.scale)
 
         return edgeBody
     }
@@ -110,10 +133,6 @@ export class EdgeBuilder {
         )
         meshEdge.renderOrder = 1;
 
-        meshEdge.rotation.copy(mesh.rotation)
-        meshEdge.position.copy(mesh.position)
-        meshEdge.scale.copy(mesh.scale)
-
         if (name != 'default') {
             meshEdge.userData.edge = true
             meshEdge.userData.name = name
@@ -128,11 +147,6 @@ export class EdgeBuilder {
 
         let faceMesh = new THREE.Mesh(mesh.geometry, material)
         if (name === 'fasade') faceMesh.renderOrder = 1;
-
-
-        faceMesh.rotation.copy(mesh.rotation)
-        faceMesh.position.copy(mesh.position)
-        faceMesh.scale.copy(mesh.scale)
 
         faceMesh.userData.edge = true
         faceMesh.userData.name = name

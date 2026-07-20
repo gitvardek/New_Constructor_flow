@@ -1,12 +1,15 @@
 //@ts-nocheck
 import { IBasket, IBasketFacade } from "@/types/basket";
+import { TTotalProps, PLINTH_ACTIONS } from "@/types/types";
 import { useAppData } from "@/store/appliction/useAppData"
-
+import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
+import { useRoomContantData } from '@/store/appliction/useRoomContantData'
+import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 
 const appDataStore = useAppData()
 
-
 function createFacadeProps(objProps: any): IBasketFacade[] {
+
 
   return objProps.CONFIG.FASADE_PROPS
     ? objProps.CONFIG.FASADE_PROPS.map((fp: any, index: number) => {
@@ -253,48 +256,74 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
     return [];
   }
 
+  const createFasadeData = (data) => {
+
+    if (!data.fasade) return false
+
+    const { COLOR, GLASS, MILLING, PALETTE, PATINA } = data.fasade.material
+
+
+    if (COLOR === 7397) {
+      return false // 7397 - id без фасада
+    }
+
+    const extras = Object.fromEntries(
+      Object.entries({ GLASS, MILLING, PALETTE, PATINA }).filter(([, value]) => value)
+    )
+
+
+    if (!COLOR) return false;
+
+    return {
+      fasade: { COLOR, ...extras },
+      size: {
+        height: data.fasade.height,
+        width: data.fasade.width
+      }
+    }
+  }
 
   const item = arr.map(el => {
+
+    const base = {
+      ID: el.product,
+      PATH: false,
+      MATERIAL_ID: el.material, // Материал полки
+      PRODUCT_TYPE: el.type,
+      SIZE: { // Размеры
+        width: el.size?.x || 0,
+        height: el.size?.y || 0,
+        depth: el.size?.z || 0
+      },
+      ADDITIVES: el.ADDITIVES || {},
+      basketRenderPosition: el.basketRenderPosition || false,
+    }
+
     if (el.type === 'section_partition') {
       return {
+        ...base,
         PARTITION_ID: el.product,
         SECTION_ID: el.id, // ID товара полки
-        SIZE: { // Размеры
-          width: el.size?.x || 0,
-          height: el.size?.y || 0,
-          depth: el.size?.z || 0
-        },
         UP_POSITION: el.ADDITIVES?.top?.additive_position,
         DOWN_POSITION: el.ADDITIVES?.bottom?.additive_position,
-        MATERIAL_ID: el.material, // Материал полки
-        ADDITIVES: el.ADDITIVES || {},
-        ID: el.product,
-        PATH: false,
-        PRODUCT_TYPE: el.type,
-        basketRenderPosition: el.basketRenderPosition || false,
       }
-    } else {
+    } else if (el.type === 'profile') {
       return {
-        ID: el.product,
-        PATH: false,
-        MATERIAL_ID: el.material, // Материал полки
-        PRODUCT_TYPE: el.type,
+        ...base,
         VALUE: el.VALUE,
-        SIZE: { // Размеры
-          width: el.size?.x || 0,
-          height: el.size?.y || 0,
-          depth: el.size?.z || 0
-        },
-        ADDITIVES: el.ADDITIVES || {},
-        basketRenderPosition: el.basketRenderPosition || false,
+        MATERIAL_ID: el.isProfile.COLOR,
+        SIZE: el.size?.x || 0
       }
+    }
+    else {
+      const fasadeData = createFasadeData(el)
+      return fasadeData ? { ...base, FASADE: fasadeData, VALUE: el.VALUE } : { ...base, VALUE: el.VALUE };
     }
 
   })
 
   return item
 }
-
 function convertModuleToLegacyFormat(newModuleObject) {
   if (!newModuleObject?.CONFIG) {
     return {};
@@ -369,6 +398,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
   }
   else {
     const result = {}
+
     CONFIG.MODULEGRID.sections.forEach((section, number) => {
       const sectionNumber = number + 1;
       const sectionKey = `SECTIONS${sectionNumber}`;
@@ -547,7 +577,90 @@ function removeEmptyObjects(obj) {
   return result;
 }
 
-export function createBasketItem(objProps: any, index: number, key: any = ''): IBasket {
+function createPlinthData(filteredData: TTotalProps) {
+
+  if (!filteredData) return;
+
+  const emptyPlinthId = 70096
+  const plinthLengthDefault = 4000
+  const { getGlobalOptions } = useRoomOptions()
+  const plinthID = getGlobalOptions?.plinth?.id
+  const plinthSurfase = getGlobalOptions?.plinth?.plinthSurfase
+
+  const plinth = filteredData.map((obj: TTotalProps, key: string) => {
+    const data = obj.data
+    if (!data) return
+    const { CONFIG: { PLINTH_ACTIONS } } = data
+    let totalWidth = 0
+    for (let el in PLINTH_ACTIONS) {
+      if (PLINTH_ACTIONS[el].value) {
+        totalWidth += PLINTH_ACTIONS[el].plinthWidth
+      }
+    }
+
+    return totalWidth
+
+  }).filter(Boolean)
+
+  const globalWidth = plinth.reduce((total, amount) => total + amount, 0);
+  const count = Math.ceil(globalWidth / plinthLengthDefault)
+
+  if (count > 0 && plinthID !== emptyPlinthId) {
+    return {
+      PRODUCT: plinthID,
+      PROPS: { COLOR: plinthSurfase },
+      QUANTITY: count,
+      BASKETID: 'plinth', // Уникальный фиксированный ID для плинтусов
+      TOTAL_WIDTH: globalWidth,
+      TYPE: "scene"
+    }
+  }
+  return false
+
+}
+
+function createDefaultTableTopData(filteredData: TTotalProps) {
+
+  if (!filteredData) return;
+
+  const emptyTableTopId = 69919
+  const tableTopLengthDefault = 3000
+  const { getGlobalOptions } = useRoomOptions()
+  const tableTopId = getGlobalOptions?.tableTop?.id
+
+  console.log(tableTopId, emptyTableTopId)
+
+  if (tableTopId === emptyTableTopId) return false
+
+  const tableTop = filteredData.map((obj: TTotalProps, key: string) => {
+    const data = obj.data
+    if (!data) return
+    const { CONFIG: { SIZE } } = data
+    let totalWidth = 0
+    if (SIZE.width) totalWidth += SIZE.width
+
+    return totalWidth
+
+  }).filter(Boolean)
+
+  const globalWidth = tableTop.reduce((total, amount) => total + amount, 0);
+  const count = Math.ceil(globalWidth / tableTopLengthDefault)
+
+  if (count > 0) {
+    return {
+      PRODUCT: tableTopId,
+      PROPS: {},
+      QUANTITY: count,
+      BASKETID: 'tabletop', // Уникальный фиксированный ID для столешниц
+      TOTAL_WIDTH: globalWidth,
+      TYPE: "scene"
+    }
+  }
+  return false
+}
+
+
+export function createBasketItem(objProps: TTotalProps, index: number, key: any = ''): IBasket {
 
   const props: any = {};
 
@@ -604,7 +717,6 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
       })
     }
 
-
     // props.PROFILE = '251698';
     props.PROFILE = objProps.CONFIG.PROFILE.filter(el => el.value === true)[0]?.ID
   }
@@ -627,6 +739,7 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
     function createRaspil(data) {
       return data.flat().map(el => { return `${el.width}мм` }).join(' x ');
     }
+
     props.USLUGIraspil = createRaspil(objProps.RASPIL.data);
   }
 
@@ -656,6 +769,8 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
     props.SHELFQUANT = objProps.CONFIG.SHELFQUANT?.current;
   }
 
+  if (objProps.CONFIG.SIZEEDITJOINDEPTH) { props.SIZEEDITJOINDEPTH = objProps.CONFIG.SIZEEDITJOINDEPTH }
+
   if (objProps.CONFIG.SECTIONS) {
     const propsUM = convertModuleToLegacyFormat(objProps);
     const cleanedData = removeEmptyObjects(propsUM);
@@ -683,6 +798,53 @@ export function createBasketItem(objProps: any, index: number, key: any = ''): I
       QUANTITY: 1,
       TYPE: "scene",
     };
+  }
+}
+
+export function createGlobalData(filteredData: TTotalProps) {
+
+  /**
+   *  Создание общей data для плинтусов
+   */
+  const totalData = new Array
+
+  const { getGlobalOptions } = useRoomOptions()
+
+  const plinthData = createPlinthData(filteredData)
+  const tableTopData = createDefaultTableTopData(filteredData)
+
+  if (plinthData) totalData.push(plinthData)
+  if (tableTopData) totalData.push(tableTopData)
+
+  return totalData
+
+}
+
+export function updateGlobalData() {
+
+  const exeptedId = ['plinth', 'tabletop'];
+
+  const content = useRoomContantData().getRoomContantDataForBasket
+  let roomDataCopy: any
+  try {
+    roomDataCopy = typeof content === 'string' ? JSON.parse(content) : content
+  } catch {
+    roomDataCopy = []
+  }
+  const { mainConstructor } = useBasketStorage()
+
+  try {
+    const updatedData = mainConstructor.value.filter(el => !exeptedId.includes(String(el.BASKETID)))
+    const plinthData = createPlinthData(roomDataCopy);
+    const tableTopData = createDefaultTableTopData(roomDataCopy)
+
+    updatedData.push(plinthData, tableTopData);
+    const result = updatedData.filter(Boolean);
+
+    mainConstructor.value = result
+
+  } catch (e) {
+    console.warn(`Ошибка в методе updateGlobalData ${e}`)
   }
 }
 

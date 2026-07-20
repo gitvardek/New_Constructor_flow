@@ -229,6 +229,8 @@ const uploadProjectTech = async (id: string | number) => {
     if (projectData) {
       projectState.resetState();
       projectState.setInitialState(projectData);
+      console.log(projectData, "----PROD");
+
       try {
         schemeTransition.clearStore();
         // 1. Обновляем данные проекта в sceneState
@@ -764,6 +766,7 @@ const getNavData = () => {
   height: 85vh;
   overflow-x: hidden;
   overflow-y: auto;
+  font-size: 1.4rem;
 
   &-header {
     display: flex;
@@ -777,7 +780,7 @@ const getNavData = () => {
 
     &__title {
       font-weight: 600;
-      font-size: 32px;
+      font-size: 3.2rem;
       line-height: 100%;
       text-align: center;
     }
@@ -873,7 +876,7 @@ const getNavData = () => {
             border-radius: 50%;
             border: 1px solid #ccc;
             background: #f5f5f5;
-            font-size: 11px;
+            font-size: 1.2rem;
             line-height: 1;
             display: flex;
             align-items: center;
@@ -896,7 +899,7 @@ const getNavData = () => {
             border-radius: 6px;
             background: #ffffff;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            font-size: 12px;
+            font-size: 1.2rem;
             text-align: left;
 
             z-index: 5;
@@ -1004,14 +1007,14 @@ const getNavData = () => {
   }
 
   &-name {
-    font-size: 14px;
+    font-size: 1.4rem;
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   &-size {
-    font-size: 12px;
+    font-size: 1.2rem;
     opacity: 0.7;
     margin-top: 2px;
   }

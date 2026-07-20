@@ -8,17 +8,19 @@
       >
         Корзина
       </button>
-      <!-- <button
+    <!-- ================    /** ДЛЯ МАСТЕРА  */ ================ 
+      <button
         class="basket-tabs__tab"
         :class="{ 'basket-tabs__tab--active': activeTab === 'order' }"
         @click="activeTab = 'order'"
       >
         Форма заказа
-      </button> -->
+      </button> 
+    ========================================================== -->
       <ClosePopUpButton
         class="basket-tabs__close-btn"
         @click="closePopup"
-      /> 
+      />
     </div>
 
     <template v-if="activeTab === 'basket'">
@@ -66,14 +68,8 @@
       </div>
 
       <div class="basket-footer">
-        <div
-          v-if="
-            productDelayData &&
-            productDelayData.length > 0 &&
-            productDelayData[0].type !== 'error'
-          "
-          class="basket-footer__notification"
-        >
+
+        <div v-if="productDelayData && productDelayData.length > 0 && productDelayData[0].type !== 'error'" class="basket-footer__notification">
           <div v-for="productItem in productDelayData">
             <h3 class="">{{ productItem?.data?.title }}</h3>
             <!-- <div>{{ productItem.data.max_delay_date }}</div> -->
@@ -83,42 +79,26 @@
           </div>
         </div>
 
+
+
         <div class="basket-footer">
           <div class="basket-footer-info">
-            <p class="basket__sum">
-              Общая стоимость: <span>{{ totalPrice }}</span>
-            </p>
-            <p class="basket__sum-no" v-if="!oldPrice">
-              Общая стоимость без скидки: <span>{{ totalOldPrice }}</span>
-            </p>
+            <p class="basket__sum">Общая стоимость: <span>{{ totalPrice }}</span></p>
+            <p class="basket__sum-no" v-if="!oldPrice">Общая стоимость без скидки: <span>{{ totalOldPrice }}</span></p>
           </div>
           <div class="basket-footer-buttons">
             <div class="basket__error" v-if="errorBasket">
               <p class="error__title"></p>
-              <p class="error__title">Ошибка - {{ errorCount }} шт.</p>
+              <p class="error__title">Ошибка - {{ errorCount }} шт. </p>
             </div>
             <button class="basket__close" @click="closePopup">Закрыть</button>
             <button class="basket__save">Печать</button>
-            <button
-              class="basket__order"
-              @click="setInvoice"
-              :disabled="
-                errorBasket || technologistStorage.getTechnologistProject()
-              "
-            >
-              Оформить заказ
-            </button>
+            <button class="basket__order" @click="setInvoice" :disabled="errorBasket || technologistStorage.getTechnologistProject()">Оформить заказ</button>
           </div>
-          <div
-            class="basket__technologist__wrapper"
-            v-if="technologistStorage.getTechnologistProject()"
-          >
+          <div class="basket__technologist__wrapper" v-if="technologistStorage.getTechnologistProject()">
             <div class="basket__technologist__wrapper__container">
               <p class="error__title">Это проект технолога!</p>
-              <p class="error__title">
-                Чтобы его оформить перейдите к нужной карточке сделки в окне
-                "Технолог" и нажмите "Оформить заказ".
-              </p>
+              <p class="error__title"> Чтобы его оформить перейдите к нужной карточке сделки в окне "Технолог" и нажмите "Оформить заказ".</p>
             </div>
           </div>
         </div>
@@ -135,26 +115,16 @@
 
       <div class="order-footer">
         <div class="basket-footer-info">
-          <p class="order-footer__title">
-            Стоимость с учётом выбранных услуг:
-            <span>{{ finalOrderPrice }}</span>
-          </p>
-          <p class="basket__sum">
-            Общая стоимость: <span>{{ totalPrice }}</span>
-          </p>
-          <p class="basket__sum-no" v-if="!oldPrice">
-            Общая стоимость без скидки: <span>{{ totalOldPrice }}</span>
-          </p>
+          <p class="order-footer__title">Стоимость с учётом выбранных услуг: <span>{{ finalOrderPrice }}</span></p>
+          <p class="basket__sum">Общая стоимость: <span>{{ totalPrice }}</span></p>
+          <p class="basket__sum-no" v-if="!oldPrice">Общая стоимость без скидки: <span>{{ totalOldPrice }}</span></p>
         </div>
 
         <div class="basket-footer-buttons">
-          <button class="basket__close" @click="closePopup">Закрыть</button>
-          <button
-            class="basket__order"
-            type="button"
-            @click="handleOrderFormSubmit"
-            :disabled="isOrderFormSubmitting"
-          >
+          <button class="basket__close" @click="closePopup">
+            Закрыть
+          </button>
+          <button class="basket__order" type="button" @click="handleOrderFormSubmit" :disabled="isOrderFormSubmitting">
             Отправить
           </button>
         </div>
@@ -165,94 +135,79 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { usePopupStore } from "@/store/appStore/popUpsStore";
-import ClosePopUpButton from "../ui/svg/ClosePopUpButton.vue";
-import BasketTable from "./BasketTable.vue";
-import { useBasketStore } from "@/store/appStore/useBasketStore";
-import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { IBasketResponse, IProduct } from "@/types/basket";
-import { useAppData } from "@/store/appliction/useAppData";
+import { usePopupStore } from '@/store/appStore/popUpsStore';
+import ClosePopUpButton from '../ui/svg/ClosePopUpButton.vue';
+import BasketTable from "./BasketTable.vue"
+import { useBasketStore } from '@/store/appStore/useBasketStore';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { IBasketResponse, IProduct } from '@/types/basket';
+import { useAppData } from "@/store/appliction/useAppData"
 import { useRoomState } from "@/store/appliction/useRoomState";
 import { useEventBus } from "@/store/appliction/useEventBus";
-import { useRoomOptions } from "../left-menu/option/roomOptions/useRoomOptons";
-import { useBasketStorage } from "@/store/appStore/basket/useBasketStorage";
+import { useRoomOptions } from '../left-menu/option/roomOptions/useRoomOptons';
+import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage';
 
-import orderForm from "@/features/orderForm/components/orderForm.vue";
+import orderForm from '@/features/orderForm/components/orderForm.vue';
 
-const {
-  basketData,
-  basketDelay,
-  allBasketDelay,
-  syncBasket,
-  syncBasketDelay,
-  syncBasketMulti,
-  syncInvoce,
-} = useBasketStore();
+const { basketData, basketDelay, allBasketDelay, syncBasket, syncBasketDelay, syncBasketMulti, syncInvoce} = useBasketStore();
 import { useConfigStore } from "@/store/appStore/useConfigStore";
 
 const { oldPrice, isFeedbackProject } = useConfigStore();
-import { useTechnologistStorage } from "@/store/appStore/technologist/useTechnologistStorage.ts";
+import {useTechnologistStorage} from "@/store/appStore/technologist/useTechnologistStorage.ts";
 
 const popupStore = usePopupStore();
 const items = ref<IBasketResponse[] | null>(null);
 const productDelayData = ref([]);
-const loading = ref(true);
+const loading = ref(true)
 const errorBasket = ref(false);
 const errorCount = ref(0);
 const appDataStore = useAppData();
 const roomState = useRoomState();
 // const rooms = roomState.getRooms;
 
-const { resetGlobalOptions } = useRoomOptions();
+const {
+  resetGlobalOptions,
+} = useRoomOptions();
+
 
 // Реактивные переменные
 const rooms = computed(() => roomState.getRooms || []);
 const roomsID = computed(() => roomState.getRoomId);
-const selectedRoomId = ref<string>("all"); // 'all' для всех комнат или ID конкретной комнаты
-const selectedRoomLabel = ref<string>("");
+const selectedRoomId = ref<string>('all'); // 'all' для всех комнат или ID конкретной комнаты
+const selectedRoomLabel = ref<string>('');
 const roomsBasketData = ref<IRoomBasketData[]>([]); // Данные корзин всех комнат
 
 const eventBus = useEventBus();
 const technologistStorage = useTechnologistStorage();
 
+
 // Ключ для принудительной перерисовки
 const basketUpdateKey = ref(0);
-const activeTab = ref<"basket" | "order">("basket");
+const activeTab = ref<'basket' | 'order'>('basket');
 const orderFormRef = ref<any>(null);
 const isOrderFormSubmitting = ref(false);
-const orderFormServiceCalc = ref<
-  Array<{
-    code: string;
-    checked: boolean;
-    calcType: string;
-    min: number;
-    percent: number;
-  }>
->([]);
+const orderFormServiceCalc = ref<Array<{
+  code: string
+  checked: boolean
+  calcType: string
+  min: number
+  percent: number
+}>>([]);
 
 const closePopup = () => {
-  popupStore.closePopup("basket");
+  popupStore.closePopup('basket');
 };
 const openPopupFormBasket = () => {
-  popupStore.openPopup("formbasket");
+  popupStore.openPopup('formbasket');
 };
 
 // Вычисляемые свойства для данных корзины
 const mainItems = computed(() => {
-  return (
-    items.value?.products?.filter(
-      (item: IProduct) =>
-        item.product?.TYPE === "scene" || item.product?.TYPE === "umscene",
-    ) || []
-  );
+  return items.value?.products?.filter((item: IProduct) => item.product?.TYPE === "scene" || item.product?.TYPE === "umscene" ) || [];
 });
 
 const additionalItems = computed(() => {
-  return (
-    items.value?.products?.filter(
-      (item: IProduct) => item.product?.TYPE === "catalog",
-    ) || []
-  );
+  return items.value?.products?.filter((item: IProduct) => item.product?.TYPE === "catalog") || [];
 });
 
 const totalPrice = computed(() => {
@@ -265,13 +220,10 @@ const totalOldPrice = computed(() => {
 
 const baseOrderPriceValue = computed<number>(() => {
   const sum = items.value?.basket?.sum;
-  if (typeof sum === "number" && Number.isFinite(sum)) return sum;
+  if (typeof sum === 'number' && Number.isFinite(sum)) return sum;
 
-  const raw = String(totalPrice.value ?? "");
-  const normalized = raw
-    .replace(/[^\d.,-]/g, "")
-    .replace(/\s+/g, "")
-    .replace(",", ".");
+  const raw = String(totalPrice.value ?? '');
+  const normalized = raw.replace(/[^\d.,-]/g, '').replace(/\s+/g, '').replace(',', '.');
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
 });
@@ -279,7 +231,7 @@ const baseOrderPriceValue = computed<number>(() => {
 const serviceSurchargeTotal = computed<number>(() => {
   return orderFormServiceCalc.value.reduce((acc, service) => {
     if (!service.checked) return acc;
-    if (String(service.calcType).toLowerCase() !== "perc") return acc;
+    if (String(service.calcType).toLowerCase() !== 'perc') return acc;
 
     const percentAmount = (baseOrderPriceValue.value * service.percent) / 100;
     const surcharge = percentAmount < service.min ? service.min : percentAmount;
@@ -287,35 +239,30 @@ const serviceSurchargeTotal = computed<number>(() => {
   }, 0);
 });
 
-const finalOrderPriceValue = computed<number>(
-  () => baseOrderPriceValue.value + serviceSurchargeTotal.value,
-);
+const finalOrderPriceValue = computed<number>(() => baseOrderPriceValue.value + serviceSurchargeTotal.value);
 
 const formatPriceRub = (value: number): string => {
   const rounded = Math.round(value * 100) / 100;
   const isInt = Number.isInteger(rounded);
-  const formatted = rounded.toLocaleString("ru-RU", {
+  const formatted = rounded.toLocaleString('ru-RU', {
     minimumFractionDigits: isInt ? 0 : 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
   return `${formatted} руб`;
 };
 
-const finalOrderPrice = computed(() =>
-  formatPriceRub(finalOrderPriceValue.value),
-);
+const finalOrderPrice = computed(() => formatPriceRub(finalOrderPriceValue.value));
 
-const onOrderFormServiceCalcChange = (
-  value: Array<{
-    code: string;
-    checked: boolean;
-    calcType: string;
-    min: number;
-    percent: number;
-  }>,
-) => {
+const onOrderFormServiceCalcChange = (value: Array<{
+  code: string
+  checked: boolean
+  calcType: string
+  min: number
+  percent: number
+}>) => {
   orderFormServiceCalc.value = Array.isArray(value) ? value : [];
 };
+
 
 const setInvoice = () => {
 
@@ -329,7 +276,7 @@ const setInvoice = () => {
 
 const handleOrderFormSubmit = async () => {
   if (!orderFormRef.value?.submitForm) {
-    console.warn("Order form submit method not found");
+    console.warn('Order form submit method not found');
     return;
   }
 
@@ -349,21 +296,22 @@ const updateBasketData = async () => {
     basketUpdateKey.value++;
     loading.value = false;
   } catch (error) {
-    console.error("Ошибка при обновлении корзины:", error);
+    console.error('Ошибка при обновлении корзины:', error);
   }
 };
+
 
 const selectRoom = async (id) => {
   selectedRoomId.value = id;
-  if (id !== "all") {
-    loadRoom(id);
+  if(id !== "all") {
+    loadRoom(id)
   } else {
-    getBasket();
+    getBasket()
   }
-};
+}
 
 const getBasket = () => {
-  roomsBasketData.value = rooms.value.flatMap((el) => {
+  roomsBasketData.value = rooms.value.flatMap(el => {
     const roomBasket = JSON.parse(el.basket);
     
     return [
@@ -373,8 +321,8 @@ const getBasket = () => {
   });
   
   // allBasket(roomsBasketData.value);
-  syncBasketMulti(roomsBasketData.value);
-};
+  syncBasketMulti(roomsBasketData.value)
+}
 
 const loadRoom = async (id: number) => {
   await roomState.setLoad(false);
@@ -389,8 +337,14 @@ const loadRoom = async (id: number) => {
   }, 10);
 };
 
+
 onMounted(async () => {
+
   selectedRoomId.value = roomState.getRoomId || 'all';
+  // if(rooms.length > 1) {
+  //   getBasket();
+  // } else {
+  // }
   updateBasketData();
   await syncBasketDelay();
 });
@@ -421,44 +375,51 @@ watch(() => useBasketStore().basketData, (newValue) => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 30px;
+  gap: 5px;
   background: white;
   border-radius: 15px;
   padding: 15px;
   width: 100%;
   box-sizing: border-box;
-  max-height: 80vh;
+  max-height: var(--modal-large-height);
   height: 100%;
-  max-width: 1447px;
+  max-width: var(--modal-large-width);
   width: 90vw;
+
   .basket-header {
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
     width: 100%;
+
     &__title {
       font-weight: 600;
-      font-size: 32px;
+      font-size: 3.2rem;
       line-height: 100%;
       letter-spacing: 0%;
       text-align: center;
     }
   }
+
   &__additional-table {
     margin-top: 2rem;
   }
+
   .basket-container {
     width: 100%;
     height: 100%;
     overflow-y: auto;
+
     &__main-table {
+
       // margin-bottom: 2rem;
       .basket-table {
-        background-color: #f6f5fa;
+        background-color: #F6F5FA;
         border-radius: 15px;
       }
     }
+
   }
 
   .basket-footer {
@@ -468,6 +429,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
     align-items: center;
     flex-wrap: wrap;
     gap: 20px;
+    font-size: 1.4rem;
 
     @media (max-width: 768px) {
       flex-direction: column-reverse;
@@ -530,8 +492,9 @@ watch(() => useBasketStore().basketData, (newValue) => {
       }
 
       button {
-        width: 114px;
-        height: 50px;
+        // width: 114px;
+        // height: 50px;
+        padding: 0.5rem 1rem;
         background: $stroke;
         border-radius: 15px;
         border: none;
@@ -548,7 +511,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
       }
 
       .basket__save {
-        width: 132px;
+        // width: 132px;
         color: $white;
         font-weight: 600;
         background-color: $black;
@@ -560,7 +523,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
       }
 
       .basket__order {
-        width: 174px;
+        // width: 174px;
         color: $white;
         font-weight: 600;
         background-color: $red;
@@ -569,8 +532,9 @@ watch(() => useBasketStore().basketData, (newValue) => {
           width: auto;
           flex: 2;
         }
+
         &:disabled {
-          background-color: #a3a9b5;
+          background-color: #A3A9B5;
           cursor: not-allowed;
         }
       }
@@ -584,7 +548,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
     position: absolute;
     top: 1px;
     left: 0;
-    animation: rotate 1s linear infinite;
+    animation: rotate 1s linear infinite
   }
 
   &__loader::before,
@@ -599,48 +563,57 @@ watch(() => useBasketStore().basketData, (newValue) => {
   }
 
   &__loader::after {
-    border-color: #da444c;
-    animation:
-      prixClipFix 2s linear infinite,
-      rotate 0.5s linear infinite reverse;
+    border-color: #DA444C;
+    animation: prixClipFix 2s linear infinite, rotate 0.5s linear infinite reverse;
     inset: 6px;
   }
+
   &__sum {
     font-weight: 600;
     line-height: 100%;
     letter-spacing: 0%;
+
   }
+
   &__sum-no {
     // font-weight: 600;
     line-height: 100%;
     letter-spacing: 0%;
+
   }
 }
 
+
+
 @keyframes rotate {
   0% {
-    transform: rotate(0deg);
+    transform: rotate(0deg)
   }
+
   100% {
-    transform: rotate(360deg);
+    transform: rotate(360deg)
   }
 }
 
 @keyframes prixClipFix {
   0% {
-    clip-path: polygon(50% 50%, 0 0, 0 0, 0 0, 0 0, 0 0);
+    clip-path: polygon(50% 50%, 0 0, 0 0, 0 0, 0 0, 0 0)
   }
+
   25% {
-    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 0, 100% 0, 100% 0);
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 0, 100% 0, 100% 0)
   }
+
   50% {
-    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 100% 100%, 100% 100%);
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 100% 100%, 100% 100%)
   }
+
   75% {
-    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 100%);
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 100%)
   }
+
   100% {
-    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 0);
+    clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 0)
   }
 }
 
@@ -648,9 +621,10 @@ watch(() => useBasketStore().basketData, (newValue) => {
   background: #cfe2ff;
   width: 100%;
   border-radius: 8px;
-  padding: 12px;
-  max-height: 114px;
+  padding: 5px;
+  max-height: 70px;
   overflow-y: auto;
+  font-size: 1.2rem;
 }
 
 .room-tabs {
@@ -660,13 +634,14 @@ watch(() => useBasketStore().basketData, (newValue) => {
   justify-content: center;
   margin-top: 10px;
   margin-right: auto;
+
   .room-tab {
     padding: 8px 16px;
     background: #f0f0f0;
     border: none;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.4rem;
     transition: all 0.3s ease;
 
     &:hover {
@@ -688,8 +663,8 @@ watch(() => useBasketStore().basketData, (newValue) => {
   align-items: center;
 
   &__tab {
-    padding: 12px 24px;
-    font-size: 14px;
+    padding:0.5rem 1rem;
+    font-size: 1.4rem;
     font-weight: 500;
     border: none;
     cursor: pointer;
@@ -714,7 +689,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
 
   &__close-btn {
     margin-left: auto;
-    fill: #a3a9b5;
+    fill: #A3A9B5;
     cursor: pointer;
     flex-shrink: 0;
   }
@@ -727,6 +702,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
   align-items: center;
   gap: 20px;
   flex-wrap: wrap;
+  font-size: 1.4rem;
 
   @media (max-width: 768px) {
     flex-direction: column-reverse;
@@ -737,7 +713,8 @@ watch(() => useBasketStore().basketData, (newValue) => {
 .order-footer__title {
   margin: 0 0 6px;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 1.4rem;
   color: #272727;
 }
 </style>
+

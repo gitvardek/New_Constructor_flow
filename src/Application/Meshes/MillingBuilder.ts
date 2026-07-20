@@ -46,6 +46,7 @@ export class MillingBuilder extends MillingsUtils {
     // // Получаем данные фрезеровки
     // const millingData = this.millingsStore[millingKey] ?? this.millingsStore[2462671];
 
+    // console.log('=== CREATE MILLING ===', millingParams)
 
     // Клонируем базовую геометрию
     let startGeometry = defaultGeometry.clone();
@@ -124,13 +125,17 @@ export class MillingBuilder extends MillingsUtils {
     // Применяем патину, если указана
     if (patina != null) {
       const startMaterial = object.userData.millingMaterial;
-      const { geometry, material } = this.patinaBuilder.createPatinaColor({
+      const patinaResult = this.patinaBuilder.createPatinaColor({
         geometry: newGeometry,
         patinaId: patina,
         startMaterial
       });
-      object.geometry = geometry;
-      object.material = material;
+      if (patinaResult) {
+        object.geometry = patinaResult.geometry;
+        object.material = patinaResult.material;
+      } else {
+        object.geometry = newGeometry;
+      }
     } else {
       object.geometry = newGeometry;
     }
@@ -435,6 +440,7 @@ export class MillingBuilder extends MillingsUtils {
     svgStr = svgStr.replaceAll('wth', width.toString()).replaceAll('hgh', height.toString());
     if (radius) svgStr = svgStr.replaceAll('radius', radius.toString());
 
+    svgStr = svgStr.replace(/--/g, '-')
     // Обрабатываем выражения в скобках
     while (/\(([^()]+)\)/g.test(svgStr)) {
       svgStr = svgStr.replace(/\(([^()]+)\)/g, (_, expr) => {

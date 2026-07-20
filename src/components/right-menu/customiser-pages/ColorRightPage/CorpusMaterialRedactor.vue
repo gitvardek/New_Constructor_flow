@@ -72,7 +72,7 @@ const prepareData = () => {
 }
 
 // const prepareData = () => {
-  
+
 //   const { NAME, DETAIL_PICTURE } = props.isNisha
 //       ? modelState._WALL[selectedSurfaceID.value]
 //       : modelState._FASADE[selectedSurfaceID.value];
@@ -122,10 +122,10 @@ const deleteSelectedOptions = (type: string) => {
 watch(() => props.type, () => {
   if (props.type === "backwall")
     selectedSurfaceID.value =
-        modelState.getCurrentModel.userData.PROPS.CONFIG.BACKWALL?.COLOR;
+      modelState.getCurrentModel.userData.PROPS.CONFIG.BACKWALL?.COLOR;
   else
     selectedSurfaceID.value =
-        modelState.getCurrentModel.userData.PROPS.CONFIG.MODULE_COLOR;
+      modelState.getCurrentModel.userData.PROPS.CONFIG.MODULE_COLOR;
 
   prepareData()
 })
@@ -135,11 +135,7 @@ watch(() => props.type, () => {
   <div class="container" v-if="!is2Dconstructor">
     <h2 class="container__title">Конфигурация корпуса</h2>
     <div class="configuration">
-      <ConfigurationOption
-        :type="'surface'"
-        :data="currentSurfaceData"
-        @delete-choise="deleteSelectedOptions"
-      />
+      <ConfigurationOption :type="'surface'" :data="currentSurfaceData" @delete-choise="deleteSelectedOptions" />
       <!-- <ConfigurationOption
         v-if="isMillingExist"
         :type="'milling'"
@@ -147,26 +143,14 @@ watch(() => props.type, () => {
         @delete-choise="deleteSelectedOptions"
       /> -->
     </div>
-    <SurfaceRedactor
-      :materialList="props.materialList"
-      :type="'module'"
-      @select="changeModuleTexture"
-      v-if="!isNisha"
-    />
-    <MaterialSelector
-      :materials="props.materialList"
-      @select="changeModuleTexture"
-      v-if="isNisha"
-    />
+    <SurfaceRedactor :materialList="props.materialList" :type="'module'" @select="changeModuleTexture"
+      v-if="!isNisha" />
+    <MaterialSelector :materials="props.materialList" @select="changeModuleTexture" v-if="isNisha" />
   </div>
 
   <div class="container container--2D-constructor" v-else>
     <div class="configuration">
-      <ConfigurationOption
-        :type="props.type"
-        :data="currentSurfaceData"
-        @delete-choise="deleteSelectedOptions"
-      />
+      <ConfigurationOption :type="props.type" :data="currentSurfaceData" @delete-choise="deleteSelectedOptions" />
       <!-- <ConfigurationOption
         v-if="isMillingExist"
         :type="'milling'"
@@ -175,18 +159,10 @@ watch(() => props.type, () => {
       /> -->
     </div>
 
-    <SurfaceRedactor
-      v-if="props.type === 'surface' || props.type === 'backwall'"
-      :materialList="props.materialList"
-      :type="'module'"
-      @select="changeModuleTexture"
-    />
+    <SurfaceRedactor v-if="props.type === 'surface' || props.type === 'backwall'" :materialList="props.materialList"
+      :type="'module'" @select="changeModuleTexture" />
 
-    <MaterialSelector
-      v-else
-      :materials="props.materialList"
-      @select="changeModuleTexture"
-    />
+    <MaterialSelector v-else :materials="props.materialList" @select="changeModuleTexture" />
   </div>
 </template>
 
@@ -194,10 +170,10 @@ watch(() => props.type, () => {
 .container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 1rem;
   border: 1px solid $stroke;
   border-radius: 10px;
-  padding: 15px;
+  padding: 5px;
   max-height: 100vh;
   overflow: hidden;
   box-sizing: border-box;

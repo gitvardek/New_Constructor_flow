@@ -153,7 +153,7 @@ export const BasketService = {
         }
       );
 
-      // Проверяем успешный ответ и наличие токена
+
       if (data.DATA && data.DATA.type === "success" && data.DATA.token) {
         // Сохраняем токен в cookie
 

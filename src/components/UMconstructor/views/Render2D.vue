@@ -64,6 +64,8 @@ const selectedCell = ref<TSelectedCell>(<TSelectedCell>{});
 const selectedFasade = ref<TSelectedCell>(<TSelectedCell>{});
 const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 const { module, UMconstructor } = toRefs(props);
+const currentModule = ref(null);
+let appReady = false;
 
 let app: Application,
   sectionsContainer: Container,
@@ -84,10 +86,12 @@ const sectionLables: (Graphics | Text)[] = [];
 const deviders: Graphics[] = [];
 const dementions: Graphics[] = [];
 const fillings: Graphics[] = [];
+const fillingsMap: Shape[] = []; // Shape-экземпляры наполнений для прямого управления highlight
 const fasades: Graphics[] = [];
 const loops: Container[] = [];
 const handles: Container[] = [];
 
+const RASPASHNOY_ID = UM_PARAMS.RASPASHNOY_ID
 const {
   CONST_MAX_AREA_WIDTH,
   CONST_MAX_AREA_HEIGHT,
@@ -97,6 +101,7 @@ const {
   MIN_FASADE_HEIGHT,
   MIN_FASADE_WIDTH,
   MIN_SLIDE_DOOR_WIDTH,
+  MAX_SECTION_WIDTH,
 } = UM_PARAMS;
 
 const dragState = reactive({
@@ -154,16 +159,21 @@ const calcDrawersFasades = (secIndex, fillingData = false) => {
   UMconstructor?.value?.FASADES.EXTERNAL_FASADES.calcDrawersFasades(
     secIndex,
     fillingData,
-    module.value,
+    currentModule.value,
   );
 };
 
 const checkLoopsCollision = (secIndex) => {
-  UMconstructor?.value?.LOOPS.checkLoopsCollision(secIndex, module.value);
+  console.log('checkLoopsCollision')
+
+  UMconstructor?.value?.LOOPS.checkLoopsCollision(
+    secIndex,
+    currentModule.value,
+  );
 };
 
 const resetModule = () => {
-  UMconstructor?.value?.reset(module.value);
+  UMconstructor?.value?.reset(currentModule.value);
 };
 
 const pixelRatioWidth = computed(() => TOTAL_WIDTH.value / areaWidth.value);
@@ -193,6 +203,7 @@ const updateTotalSize = (value, dimension) => {
   }
 
   calcMaxAreaSize();
+  if (!app) return;
 
   app.canvas.style.width = `${areaWidth.value}px`;
   app.canvas.style.height = `${areaHeight.value}px`;
@@ -264,7 +275,7 @@ const init = async () => {
   UMconstructor.value.setShapeAdjuster(shapeAdjuster);
   shapeAdjuster.setStep(props.step);
   addTicker();
-
+  appReady = true;
   renderGrid();
 };
 
@@ -341,6 +352,7 @@ const getHandlesPosition = (
 };
 
 const renderGrid = (_moduleGrid) => {
+  if (!appReady) return;
   clearRender();
   let xOffset = 0;
   let yOffset = 0;
@@ -404,7 +416,7 @@ const renderGrid = (_moduleGrid) => {
                   .slice()
                   .sort((a, b) => b.position.y - a.position.y)
                   .forEach((extra, extraIndex, _extras) => {
-                    const RowpxHeight = getPixelWidth(extra.height);
+                    const RowpxHeight = getPixelHeight(extra.height);
 
                     extra.xOffset = rowxOffset;
                     extra.yOffset = rowyOffset;
@@ -464,8 +476,8 @@ const renderGrid = (_moduleGrid) => {
                   cellRow.maxY = Math.max(
                     0,
                     cellRow.position.y +
-                      cellRow.height -
-                      (moduleGrid.height - maxY),
+                    cellRow.height -
+                    (moduleGrid.height - maxY),
                   );
                 }
                 if (minX > 0) {
@@ -645,21 +657,24 @@ const renderGrid = (_moduleGrid) => {
               tmp_top_loop_pos =
                 pos[0] +
                 tmpLoopData.height / 2 -
-                (!module.value.noBottom ? 0 : module.value.moduleThickness);
+                (!currentModule.value.noBottom
+                  ? 0
+                  : currentModule.value.moduleThickness);
             } else {
               tmp_top_loop_pos =
                 pos +
                 tmpLoopData.height / 2 -
-                (!module.value.noBottom ? 0 : module.value.moduleThickness);
+                (!currentModule.value.noBottom
+                  ? 0
+                  : currentModule.value.moduleThickness);
             }
 
-            let tmp_y_pos = module.value.height - tmp_top_loop_pos;
+            let tmp_y_pos = currentModule.value.height - tmp_top_loop_pos;
 
             tmpLoopData.yOffset = getPixelHeight(tmp_y_pos);
 
             // Отрисовываем секцию
             if (isTopLoops) {
-
               loopSector = createLoop({
                 x: getPixelWidth(pos[1]),
                 y: tmpLoopData.yOffset,
@@ -720,7 +735,7 @@ const renderGrid = (_moduleGrid) => {
       });
     }
 
-    if (!module.value?.isSlidingDoors) {
+    if (!currentModule.value?.isSlidingDoors) {
       section.fasades.forEach((column, colIndex) => {
         if (!column.length) return;
 
@@ -729,7 +744,7 @@ const renderGrid = (_moduleGrid) => {
 
         column.forEach((row, rowIndex, col) => {
           let fasadeYOffset = getPixelHeight(
-            module.value.height - row.position.y - row.height,
+            currentModule.value.height - row.position.y - row.height,
           );
 
           const pxHeight = getPixelHeight(row.height);
@@ -765,7 +780,7 @@ const renderGrid = (_moduleGrid) => {
               {
                 position: new THREE.Vector2(
                   row.position.x,
-                  module.value.height - row.position.y,
+                  currentModule.value.height - row.position.y,
                 ),
                 size: { width: row.width, height: row.height },
               },
@@ -802,7 +817,7 @@ const renderGrid = (_moduleGrid) => {
       section.fasadesDrawers?.forEach((row, rowIndex, col) => {
         const pxWidth = getPixelWidth(row.width);
         let fasadeYOffset = getPixelHeight(
-          module.value.height - row.position.y - row.height,
+          currentModule.value.height - row.position.y - row.height,
         );
 
         const pxHeight = getPixelHeight(row.height);
@@ -838,7 +853,7 @@ const renderGrid = (_moduleGrid) => {
             {
               position: new THREE.Vector2(
                 row.position.x,
-                module.value.height - row.position.y,
+                currentModule.value.height - row.position.y,
               ),
               size: { width: row.width, height: row.height },
             },
@@ -868,14 +883,14 @@ const renderGrid = (_moduleGrid) => {
     }
   });
 
-  if (module.value?.isSlidingDoors) {
-    module.value?.fasades?.forEach((column, colIndex) => {
+  if (currentModule.value?.isSlidingDoors) {
+    currentModule.value?.fasades?.forEach((column, colIndex) => {
       const pxWidth = getPixelWidth(column[0].width);
       let fasadeXOffset = getPixelWidth(column[0].position.x);
 
       column.forEach((row, rowIndex, col) => {
         let fasadeYOffset = getPixelHeight(
-          module.value.height - row.position.y - row.height,
+          currentModule.value.height - row.position.y - row.height,
         );
 
         const pxHeight = getPixelHeight(row.height);
@@ -957,8 +972,8 @@ const createModule = ({ x, y, width, height, moduleData }) => {
   const sectorBounds = shapeAdjuster.getSectorBounds(sector);
   sector.bound = sectorBounds;
 
-  moduleData.maxY = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.maxY));
-  moduleData.minY = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.minY));
+  moduleData.maxY = shapeAdjuster.convertToTen(getMmHeight(sectorBounds.maxY));
+  moduleData.minY = shapeAdjuster.convertToTen(getMmHeight(sectorBounds.minY));
   moduleData.maxX = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.maxX));
   moduleData.minX = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.minX));
 
@@ -1008,6 +1023,7 @@ const createSector = ({
     gridType === mode.value,
     opacity,
   );
+
   const selected =
     gridType === "fasades"
       ? selectedFasade
@@ -1041,6 +1057,7 @@ const createSector = ({
 
   if (gridType === "fasades") {
     if (!cellData.manufacturerOffset && mode.value === "fasades") {
+
       let tmpRowIndex = section.findIndex((item) => item.id === cellData.id);
       cell.cellGraphics.on("pointerdown", () => {
         selectCell(gridType, <TSelectedCell>{
@@ -1056,6 +1073,9 @@ const createSector = ({
       cell.cellGraphics.cursor = "pointer";
     }
   } else {
+
+
+
     cell.cellGraphics.on("pointerdown", () => {
       selectCell(gridType, <TSelectedCell>{
         sec: sectionIndex,
@@ -1075,8 +1095,8 @@ const createSector = ({
     const sectorBounds = shapeAdjuster.getTotalBounds(sector, cellData);
     sector.bound = sectorBounds;
 
-    cellData.maxY = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.maxY));
-    cellData.minY = shapeAdjuster.convertToTen(getMmWidth(sectorBounds.minY));
+    cellData.maxY = shapeAdjuster.convertToTen(getMmHeight(sectorBounds.maxY));
+    cellData.minY = shapeAdjuster.convertToTen(getMmHeight(sectorBounds.minY));
   }
 
   cellData.sector = sector;
@@ -1206,6 +1226,24 @@ const createFilling = (data, sector) => {
     data.position.y = sectorYMMPos;
   }
 
+  // Для внутренних ящиков (15222587, 2166308) ограничиваем перемещение
+  // пределами фасада внешнего ящика. Constraint хранится в data.innerDrawerConstraint (мм).
+  const OUTER_DRAWER_IDS = [5726092, 6560591]
+  let customSectorBounds = undefined
+  let containerShape = undefined
+
+  if (data.innerDrawerConstraint) {
+    const c = data.innerDrawerConstraint
+    customSectorBounds = {
+      x: getPixelWidth(c.x),
+      y: getPixelHeight(c.startY),
+      width: getPixelWidth(c.width),
+      height: getPixelHeight(c.height),
+    }
+    // Ищем контейнер для исключения коллизии с ним
+    containerShape = sector.shapes.find(s => OUTER_DRAWER_IDS.includes(s.data?.productGroupID))
+  }
+
   const filling = new Shape({
     type: data.type,
     position: data.position,
@@ -1222,6 +1260,9 @@ const createFilling = (data, sector) => {
     dementions,
     dementionContainer,
     dragActive: mode.value === "fillings",
+    collisionExclusionRules: UMconstructor.value.LOOPS.getCollisionExclusionRules(),
+    customSectorBounds,
+    containerShape,
   });
 
   data.sector = filling.sector;
@@ -1265,6 +1306,7 @@ const createFilling = (data, sector) => {
 
   fillings.push(filling.graphic);
   fillings.push(filling.highlightGraphics);
+  fillingsMap.push(filling);
   sector.shapes.push(filling);
 };
 
@@ -1352,7 +1394,7 @@ const createVerticalCut = ({
   let _extraIndex = extraIndex;
   let _cell = cell;
 
-  const curSec = module.value.sections[sectionIndex];
+  const curSec = currentModule.value.sections[sectionIndex];
   const curCell = curSec?.cells?.[_cellIndex];
   const curRow = curCell?.cellsRows?.[_rowIndex];
   const curExtra = curRow?.extras?.[_extraIndex];
@@ -1361,7 +1403,7 @@ const createVerticalCut = ({
     case "rowCell":
       if (
         _rowIndex == curCell.cellsRows?.length - 1 &&
-        sectionIndex < module.value.sections.length - 1
+        sectionIndex < currentModule.value.sections.length - 1
       ) {
         _cellIndex = null;
         _rowIndex = null;
@@ -1379,7 +1421,7 @@ const createVerticalCut = ({
     case "rowExtra":
       if (
         _rowIndex == curCell.cellsRows?.length - 1 &&
-        sectionIndex < module.value.sections.length - 1
+        sectionIndex < currentModule.value.sections.length - 1
       ) {
         _cellIndex = null;
         _rowIndex = null;
@@ -1394,7 +1436,7 @@ const createVerticalCut = ({
       } else return;
       break;
     case "cell":
-      if (sectionIndex < module.value.sections.length - 1) {
+      if (sectionIndex < currentModule.value.sections.length - 1) {
         _cellIndex = null;
         _rowIndex = null;
         _extraIndex = null;
@@ -1419,7 +1461,7 @@ const createVerticalCut = ({
   divider.rect(
     0,
     0,
-    getPixelWidth(module.value.moduleThickness + 4),
+    getPixelWidth(currentModule.value.moduleThickness + 4),
     convertTotalHeight,
   );
 
@@ -1434,7 +1476,9 @@ const createVerticalCut = ({
 
   dashVert.rect(0, 0, 0, convertTotalHeight);
   dashVert.stroke({ width: 1, color: "#5D6069" });
+
   divider.dev_name = `dev${divider.uid}`;
+
 
   divider.position.set(
     _cell.xOffset + pxWidth - getPixelWidth(2),
@@ -1478,7 +1522,7 @@ const createHorozontalCut = ({
   let _extraIndex = extraIndex;
   let _cell = cell;
 
-  const curSec = module.value.sections[sectionIndex];
+  const curSec = currentModule.value.sections[sectionIndex];
   const curCell = curSec?.cells?.[_cellIndex];
   const curRow = curCell?.cellsRows?.[_rowIndex];
   const curExtra = curRow?.extras?.[_extraIndex];
@@ -1527,7 +1571,7 @@ const createHorozontalCut = ({
     _cell.xOffset,
     _cell.yOffset + pxHeight - getPixelHeight(2),
     pxWidth,
-    getPixelHeight(module.value.moduleThickness + 4),
+    getPixelHeight(currentModule.value.moduleThickness + 4),
   );
   divider.fill("#c53545");
   divider.alpha = 0;
@@ -1563,17 +1607,21 @@ const createHorozontalCut = ({
 
 const checkPositionFillingToCreate = (data) => {
   const { sec, cell, row, extra } =
-    UMconstructor?.value?.UM_STORE.getSelected("module");
+    UMconstructor?.value?.UM_STORE.getSelected("module") ?? {};
 
   let position, tempShape;
 
-  const sector = sections[0].children.find(
-    (elem) =>
-      elem.secIndex === sec &&
-      elem.cellIndex === cell &&
-      elem.rowIndex === row &&
-      elem.extraIndex === extra,
-  );
+  const section = props.module.sections[sec];
+  const cellData = cell != null ? section?.cells[cell] : null;
+  const rowData = row != null ? cellData?.cellsRows?.[row] : null;
+  const extraData = extra != null ? rowData?.extras?.[extra] : null;
+
+  const sector =
+    extraData?.sector ||
+    rowData?.sector ||
+    cellData?.sector ||
+    section?.sector ||
+    props.module.sector;
 
   if (!sector) {
     return false;
@@ -1590,6 +1638,8 @@ const checkPositionFillingToCreate = (data) => {
     getPixelWidth,
     calcDrawersFasades,
     checkLoopsCollision,
+    collisionExclusionRules: UMconstructor.value.LOOPS.getCollisionExclusionRules(),
+    dragActive: false,
   });
 
   /** Проверяем на возможность размещения отверстия */
@@ -1616,9 +1666,16 @@ const selectCell = (type: string, newSelectedCell: TSelectedCell) => {
     case "fillings": {
       UMconstructor?.value?.UM_STORE.setSelected(type, newSelectedCell);
       UMconstructor?.value?.UM_STORE.setSelected("module", newSelectedCell);
-      const { sec, cell, row, extra, item } =
-        UMconstructor?.value?.UM_STORE.getSelected("fillings");
-      toggleFillingColor(sec, cell, row, item, extra);
+      selectedFilling.value = newSelectedCell;
+      fillingsMap.forEach(shape => {
+        const d = shape.data;
+        shape.highlightGraphics.visible =
+          newSelectedCell.sec === d.sec &&
+          newSelectedCell.cell === d.cell &&
+          newSelectedCell.row === d.row &&
+          newSelectedCell.extra === d.extra &&
+          newSelectedCell.item === d.id;
+      });
       break;
     }
     case "fasades": {
@@ -1705,7 +1762,11 @@ const toggleFillingColor = (
   const extra = row?.extras?.[extraIndex];
 
   const curSegment = extra || row || cell || section || props.module;
-  const sector = curSegment?.fillings?.[itemIndex]?.sector;
+  // На уровне секции item = filling.id (с 1), а не индекс массива — ищем по id
+  const fillingObj = (cellIndex === null && rowIndex === null && extraIndex === null)
+    ? curSegment?.fillings?.find(f => f.id === itemIndex)
+    : curSegment?.fillings?.[itemIndex]
+  const sector = fillingObj?.sector;
 
   sections[0].children.forEach((elem) => {
     if (elem.children[1]) elem.children[1].visible = false;
@@ -1717,7 +1778,10 @@ const toggleFillingColor = (
 
 // Обработчик для вертикального перетаскивания (между колонками)
 function onVerticalDragStart(event) {
+
   const module = props.module;
+  if (module.productID === RASPASHNOY_ID) return
+
   // event.stopPropagation();
   cursorCheck = true;
   const sectionIndex = this.section;
@@ -1852,6 +1916,7 @@ function onVerticalDragStart(event) {
 // Обработчик для горизонтального перетаскивания (между строками)
 function onHorizontalDragStart(event) {
   // event.stopPropagation();
+  console.log('onHorizontalDragStart')
 
   const module = props.module;
   // event.stopPropagation();
@@ -1958,11 +2023,15 @@ function onHorizontalDragStart(event) {
 function onDragMove(event) {
   if (!event) return;
 
+  console.log('onDragMove')
+
   lastDragEvent.value = event;
 }
 
 function dragMove(event) {
   if (!dragState.isDragging || !lastDragEvent.value) return;
+
+  console.log('dragMove')
 
   const {
     type,
@@ -2074,6 +2143,17 @@ function dragMove(event) {
 
       let nextSection = next || prev;
 
+      if (newLeftWidth > MAX_SECTION_WIDTH) {
+        deltaMm -= newLeftWidth - MAX_SECTION_WIDTH;
+        newLeftWidth = MAX_SECTION_WIDTH;
+        newRightWidth = startRightWidth - deltaMm;
+      } else if (newRightWidth > MAX_SECTION_WIDTH) {
+        deltaMm += newRightWidth - MAX_SECTION_WIDTH;
+        newRightWidth = MAX_SECTION_WIDTH;
+        newLeftWidth = startLeftWidth + deltaMm;
+      }
+
+      fillings
       let delta1 = section.width - newLeftWidth;
       let deltaPos1 = next ? -delta1 / 2 : delta1 / 2;
       section.width = newLeftWidth;
@@ -2087,7 +2167,7 @@ function dragMove(event) {
           let divideDelta = Math.floor(-delta1 / cell.cellsRows.length);
           let divideDeltaPos1 = next ? divideDelta / 2 : -divideDelta / 2;
           let extraSize =
-            (cell.cellsRows.length - 1) * module.value.moduleThickness;
+            (cell.cellsRows.length - 1) * currentModule.value.moduleThickness;
 
           cell.cellsRows.forEach((item) => {
             if (item.width + divideDelta >= MIN_SECTION_WIDTH) {
@@ -2236,7 +2316,7 @@ function dragMove(event) {
           let divideDelta = Math.floor(-delta2 / cell.cellsRows.length);
           let divideDeltaPos = next ? -divideDelta / 2 : divideDelta / 2;
           let extraSize =
-            (cell.cellsRows.length - 1) * module.value.moduleThickness;
+            (cell.cellsRows.length - 1) * currentModule.value.moduleThickness;
 
           cell.cellsRows.forEach((item) => {
             if (item.width + divideDelta >= MIN_SECTION_WIDTH) {
@@ -2448,7 +2528,7 @@ function dragMove(event) {
             let divideDelta = Math.floor(-delta1 / row.extras.length);
             let divideDeltaPos1 = divideDelta;
             let extraSize =
-              (row.extras.length - 1) * module.value.moduleThickness;
+              (row.extras.length - 1) * currentModule.value.moduleThickness;
 
             row.extras.forEach((item) => {
               if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -2562,7 +2642,7 @@ function dragMove(event) {
             let divideDelta = Math.floor(-delta2 / row.extras.length);
             let divideDeltaPos2 = -divideDelta;
             let extraSize =
-              (row.extras.length - 1) * module.value.moduleThickness;
+              (row.extras.length - 1) * currentModule.value.moduleThickness;
 
             row.extras.forEach((item) => {
               if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -2659,6 +2739,9 @@ function dragMove(event) {
 }
 
 const onDragEnd = (event) => {
+
+  console.log('onDragEnd')
+
   if (dragState.element) {
     delete dragState.element.onDrag;
     if (dragState.element.parent) {
@@ -2699,6 +2782,7 @@ const handleGlobalPointerMove = (event) => {
     mouseX > app.renderer.width ||
     mouseY > app.renderer.height
   ) {
+    // console.log("Курсор вне холста (глобальная проверка)");
     onDragEnd();
   }
 };
@@ -2714,6 +2798,7 @@ const adjustSectionSize = (
   const minValue =
     dimension === "width" ? MIN_SECTION_WIDTH : MIN_SECTION_HEIGHT;
   newValue = Math.max(Math.floor(newValue / props.step) * props.step, minValue);
+  if (dimension === "width") newValue = Math.min(newValue, MAX_SECTION_WIDTH);
   let calcValue;
 
   const module = props.module;
@@ -3210,18 +3295,18 @@ const adjustSizeFromExternal = ({
 };
 
 const clearRender = () => {
+  console.log('CLEAR RENDER')
+
   sections.forEach((elem) => {
+    if (elem.destroyed) return;
     elem.removeChildren();
-    app.stage.removeChild(elem);
+    if (elem.parent) elem.removeFromParent();
     elem.destroy();
   });
 
   deviders.forEach((elem) => {
-    if (!elem.onDrag) {
-      if (elem.parent) {
-        elem.removeFromParent();
-      }
-
+    if (!elem.onDrag && !elem.destroyed) {
+      if (elem.parent) elem.removeFromParent();
       elem.destroy();
     }
   });
@@ -3231,22 +3316,91 @@ const clearRender = () => {
   deviders.length = 0;
   dementions.length = 0;
   fillings.length = 0;
+  fillingsMap.length = 0;
   fasades.length = 0;
   loops.length = 0;
   handles.length = 0;
 
-  sectionsContainer.removeChildren();
-  loopsContainer.removeChildren();
-  handlesContainer.removeChildren();
-  lablesContainer.removeChildren();
-  fillingsContainer.removeChildren();
-  dementionContainer.removeChildren();
-  fasadesContainer.removeChildren();
+  if (sectionsContainer && !sectionsContainer.destroyed) sectionsContainer.removeChildren();
+  if (loopsContainer && !loopsContainer.destroyed) loopsContainer.removeChildren();
+  if (handlesContainer && !handlesContainer.destroyed) handlesContainer.removeChildren();
+  if (lablesContainer && !lablesContainer.destroyed) lablesContainer.removeChildren();
+  if (fillingsContainer && !fillingsContainer.destroyed) fillingsContainer.removeChildren();
+  if (dementionContainer && !dementionContainer.destroyed) dementionContainer.removeChildren();
+  if (fasadesContainer && !fasadesContainer.destroyed) fasadesContainer.removeChildren();
+};
+
+
+// Обходит иерархию sections → cells → cellsRows → extras → fillings
+// и возвращает селектор первого наполнения с его координатами.
+const findFirstFilling = (grid) => {
+  for (let si = 0; si < (grid?.sections?.length ?? 0); si++) {
+    const sec = grid.sections[si];
+    if (sec.fillings?.length > 0)
+      return { sec: si, cell: null, row: null, extra: null, item: sec.fillings[0].id };
+    for (let ci = 0; ci < (sec.cells?.length ?? 0); ci++) {
+      const cell = sec.cells[ci];
+      if (cell.fillings?.length > 0)
+        return { sec: si, cell: ci, row: null, extra: null, item: cell.fillings[0].id };
+      for (let ri = 0; ri < (cell.cellsRows?.length ?? 0); ri++) {
+        const rowObj = cell.cellsRows[ri];
+        if (rowObj.fillings?.length > 0)
+          return { sec: si, cell: ci, row: ri, extra: null, item: rowObj.fillings[0].id };
+        for (let ei = 0; ei < (rowObj.extras?.length ?? 0); ei++) {
+          const extra = rowObj.extras[ei];
+          if (extra.fillings?.length > 0)
+            return { sec: si, cell: ci, row: ri, extra: ei, item: extra.fillings[0].id };
+        }
+      }
+    }
+  }
+  return null;
 };
 
 const changeConstructorMode = (_mode) => {
   mode.value = _mode;
+
+  const grid = props.module;
+
+  // Наполнения: highlight задаётся при createFilling через highlightGraphics.visible,
+  // поэтому обновляем selectedFilling ДО renderGrid
+  if (_mode === 'fillings') {
+    const sel = findFirstFilling(grid);
+    if (sel) {
+      selectedFilling.value = sel;
+      UMconstructor?.value?.UM_STORE.setSelected('fillings', sel);
+    }
+  } else {
+    // При выходе из режима наполнений снимаем выделение
+    selectedFilling.value = <TSelectedCell>{};
+    UMconstructor?.value?.UM_STORE.setSelected('fillings', null);
+  }
+
+  if (_mode === 'fasades') {
+    // Фасады: обновляем стор ДО renderGrid только для правой панели;
+    // canvas-подсветку делаем через toggleFasadeColor ПОСЛЕ renderGrid,
+    // т.к. segment.sector устанавливается во время рендера
+    const hasModuleFasades = grid?.fasades?.length > 0 && grid.fasades[0]?.length > 0;
+    const firstSecWithFasades = grid?.sections?.findIndex(s => s.fasades?.length > 0);
+    const hasSectionFasades = firstSecWithFasades >= 0;
+    if (hasModuleFasades || hasSectionFasades) {
+      const sel = { sec: hasModuleFasades ? null : firstSecWithFasades, cell: 0, row: 0 };
+      selectedFasade.value = sel;
+      UMconstructor?.value?.UM_STORE.setSelected('fasades', sel);
+    }
+  }
+
   renderGrid();
+
+  // Фасады: после рендера сектор уже привязан к данным — подсвечиваем первый
+  if (_mode === 'fasades') {
+    const hasModuleFasades = grid?.fasades?.length > 0 && grid.fasades[0]?.length > 0;
+    const firstSecWithFasades = grid?.sections?.findIndex(s => s.fasades?.length > 0);
+    const hasSectionFasades = firstSecWithFasades >= 0;
+    if (hasModuleFasades || hasSectionFasades) {
+      toggleFasadeColor(hasModuleFasades ? null : firstSecWithFasades, 0, 0);
+    }
+  }
 };
 
 const destroy = () => {
@@ -3261,7 +3415,7 @@ const addTicker = () => {
 };
 
 const setModuleGrid = (grid) => {
-  module.value = grid;
+  currentModule.value = grid;
 };
 
 watch(
@@ -3282,6 +3436,8 @@ watch(
   () => {
     selectedFasade.value =
       UMconstructor?.value?.UM_STORE.getSelected("fasades");
+
+    console.log(currentModule.value, 'fasades')
   },
 );
 watch(
@@ -3289,6 +3445,7 @@ watch(
   () => {
     selectedFilling.value =
       UMconstructor?.value?.UM_STORE.getSelected("fillings");
+    console.log(currentModule.value, 'fillings')
   },
 );
 
@@ -3304,12 +3461,12 @@ onMounted(() => {
   init();
   selectedCell.value = UMconstructor?.value?.UM_STORE.getSelected("module");
   selectedFasade.value = UMconstructor?.value?.UM_STORE.getSelected("fasades");
-  selectedFilling.value =
-    UMconstructor?.value?.UM_STORE.getSelected("fillings");
+  selectedFilling.value = UMconstructor?.value?.UM_STORE.getSelected("fillings");
   document.addEventListener("mousemove", handleGlobalPointerMove, false);
 });
 
 onUnmounted(() => {
+  appReady = false;
   document.removeEventListener("mousemove", handleGlobalPointerMove, false);
   app.destroy(true);
 });
@@ -3331,10 +3488,7 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    class="visualization-interactive"
-    :style="`height:${areaHeight}px width:${areaWidth}px`"
-  >
+  <div class="visualization-interactive" :style="`height:${areaHeight}px width:${areaWidth}px`">
     <canvas ref="canvasContainer"></canvas>
   </div>
   <!-- :style="'height:getMaxAreaHeight'" -->

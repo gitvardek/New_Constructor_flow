@@ -198,6 +198,7 @@ const handleSubmit = async () => {
     cityID: ''
   })
 
+
   response.DATA.type === 'success' ?  toaster.success("Заявка успешно отправлена") : toaster.error("Ошибка при отправке заявки");
   closePopup();
 
@@ -268,13 +269,13 @@ const validPhone = (phone) => {
                   /^[0-9]{11}$/.test(digits);
   
   if (isValid) {
-
+    console.log('Номер валиден');
     // Автоматически форматируем в правильный вид
     const formatted = `+7 (${digits.substring(1, 4)}) ${digits.substring(4, 7)}-${digits.substring(7, 9)}-${digits.substring(9)}`;
-;
+    console.log('Отформатированный номер:', formatted);
     return true;
   } else {
-
+    console.log('Номер невалиден');
     return false;
   }
 };
@@ -314,7 +315,7 @@ watch(() => form.clientPhone, (newPhone) => {
   }
 
   &__title {
-    font-size: 32px;
+    font-size: 3.2rem;
     font-weight: 600;
     text-align: center;
   }
@@ -338,7 +339,7 @@ watch(() => form.clientPhone, (newPhone) => {
     border-radius: 8px;
     background-color: rgba($red, 0.1);
     color: $red;
-    font-size: 14px;
+    font-size: 1.4rem;
   }
 
   &__form {
@@ -384,7 +385,7 @@ watch(() => form.clientPhone, (newPhone) => {
     padding: 12px 24px;
     border: none;
     border-radius: 12px;
-    font-size: 16px;
+    font-size: 1.6rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -420,12 +421,12 @@ watch(() => form.clientPhone, (newPhone) => {
   &__label {
     display: block;
     margin-bottom: 8px;
-    font-size: 14px;
+    font-size: 1.4rem;
     font-weight: 500;
     color: $dark-grey;
     span { 
       color: #da444c;
-      font-size: 18px;
+      font-size: 1.8rem;
       display: inline-block;
     }
   }
@@ -436,7 +437,7 @@ watch(() => form.clientPhone, (newPhone) => {
     padding: 12px 16px;
     border: 1px solid $stroke;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 1.6rem;
     font-family: inherit;
     transition: border-color 0.2s ease;
     background: $white;
@@ -466,7 +467,7 @@ watch(() => form.clientPhone, (newPhone) => {
     .form-field__error {
       display: block;
       margin-top: 4px;
-      font-size: 12px;
+      font-size: 1.2rem;
       color: $red;
     }
   }
@@ -483,7 +484,7 @@ watch(() => form.clientPhone, (newPhone) => {
     }
     
     &__title {
-      font-size: 20px;
+      font-size: 2.0rem;
     }
     
     &__actions {

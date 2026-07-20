@@ -1,10 +1,10 @@
 <script setup lang="ts">
 //@ts-nocheck
 
-import {onBeforeMount, ref} from "vue";
+import { onBeforeMount, ref } from "vue";
 import MainButton from "@/components/ui/buttons/MainButton.vue";
-import {usePopupStore} from "@/store/appStore/popUpsStore.ts";
-import {useTechnologistStorage} from "@/store/appStore/technologist/useTechnologistStorage.ts";
+import { usePopupStore } from "@/store/appStore/popUpsStore.ts";
+import { useTechnologistStorage } from "@/store/appStore/technologist/useTechnologistStorage.ts";
 
 const props = defineProps({
   project: {
@@ -16,33 +16,30 @@ const props = defineProps({
 const popupStore = usePopupStore();
 const technologistStorage = useTechnologistStorage();
 
-const currentProject = ref<Object|boolean>(false);
+const currentProject = ref<Object | boolean>(false);
 
 const openTechonologistForm = () => {
   technologistStorage.setCurrentProjectID(currentProject.value.id);
   popupStore.openPopup('technologist-form')
 }
 
-onBeforeMount(()=>{
+onBeforeMount(() => {
   currentProject.value = props.project || false;
 })
 </script>
 
 <template>
-  <MainButton
-      :className="'technologist-button'"
-      @click="openTechonologistForm"
-  >
+  <MainButton :className="'technologist-button'" @click="openTechonologistForm">
     Проверить технологом
   </MainButton>
 </template>
 
 <style scoped lang="scss">
-.technologist-button{
+.technologist-button {
   border: blue solid 1px;
   border-radius: 15px;
-  font-size: 16px;
-  padding: 10px 15px;
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
   margin-bottom: 1rem;
   font-weight: 500;
   outline: none;

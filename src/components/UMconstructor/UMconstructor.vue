@@ -1,20 +1,20 @@
 <script setup lang="ts">
 // @ts-nocheck
 import Modal from "@/components/ui/modals/Modal.vue";
-import {defineExpose, onBeforeUnmount, ref} from "vue";
+import {defineExpose, nextTick, onBeforeUnmount, ref} from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus.ts";
 import {saveUMGrid} from "@/components/UMconstructor/utils/PixiMethods.ts";
 import MainView from "@/components/UMconstructor/views/MainView.vue"
 import {useUMStorage} from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import {useToast} from "@/features/toaster/useToast.ts";
 import UMLoader from "@/components/UMconstructor/UMLoader.vue";
+import type { Application } from "@/Application/Core/Application";
 
-const props = defineProps({
-  product: {
-    type: Object || null,
-    required: true,
-  },
-});
+type Props = {
+  product: Record<any | any> | null;
+  verdekConstructor: Application;
+};
+const props = defineProps<Props>();
 
 const eventBus = useEventBus();
 const UMstore = useUMStorage()
@@ -46,14 +46,16 @@ const saveUMData = ({ data, canvasHeight }) => {
   props.product.userData.PROPS.CONFIG.MODULEGRID = tmp_result;
   UMstore.setUMCashGrid(tmp_result)
   const {PROPS} = props.product.userData
-  saveConfigCash(PROPS)
+  saveConfigCash(PROPS, true)
 
   gridUMSaved.value = true;
   toaster.success('Модуль сохранен')
-  eventBus.emit("A:UM-update", UMstore.getUMCashGrid());
+  nextTick(() => {
+    eventBus.emit("A:UM-update", UMstore.getUMCashGrid());
+  });
 };
 
-const saveConfigCash = (PROPS) => {
+const saveConfigCash = (PROPS, skipGrid = false) => {
   const {CONFIG} = PROPS
   const {
     MODULEGRID,
@@ -68,8 +70,9 @@ const saveConfigCash = (PROPS) => {
     EXPRESSIONS
   } = CONFIG
 
-  if(MODULEGRID)
+  if (!skipGrid && MODULEGRID) {
     UMstore.setUMCashGrid(saveUMGrid(MODULEGRID))
+  }
 
   let universalModuleConfigCash = {
     HORIZONT,
@@ -109,7 +112,7 @@ const openUMRedactor = () => {
 
 const closeUMRedactor = () => {
   if (!gridUMSaved.value) {
-    props.product.userData.PROPS.CONFIG.MODULEGRID = saveUMGrid(UMstore.getUMCashGrid());
+    props.product.userData.PROPS.CONFIG.MODULEGRID = UMstore.getUMCashGrid();
     props.product.userData.PROPS.CONFIG = Object.assign(props.product.userData.PROPS.CONFIG, UMstore.getUMCashConfig());
   }
 
@@ -148,6 +151,7 @@ defineExpose({
           :productData="universalModuleData.PROPS"
           :canvasHeight="universalModuleData.canvasHeight"
           :canvasWidth="universalModuleData.canvasWidth"
+          :verdekConstructor="verdekConstructor"
           @close-modal="closeUMRedactor"
         >
           <template #save>
@@ -209,8 +213,8 @@ defineExpose({
 .modal {
   &--tableTop {
     border: none;
-    width: 95vw;
-    height: 95vh;
+    max-height: var(--modal-large-height);
+    max-width: var(--modal-large-width);
     display: none;
     border-radius: 8px;
     overflow: hidden;

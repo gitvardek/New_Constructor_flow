@@ -492,7 +492,7 @@ onMounted(() => {
 
   &__label {
     display: block;
-    font-size: 16px;
+    font-size: 1.6rem;
     margin-bottom: 8px;
     color: $strong-grey;
     padding-right: 28px;
@@ -508,7 +508,7 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     margin-top: 2px;
-    font-size: 16px;
+    font-size: 1.6rem;
     color: $strong-grey;
     user-select: none;
     margin-bottom: 0;
@@ -548,7 +548,7 @@ onMounted(() => {
   }
 
   &__toolbar-label {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: $strong-grey;
   }
 
@@ -566,7 +566,7 @@ onMounted(() => {
     align-items: center;
 
     .btn {
-      font-size: 14px;
+      font-size: 1.4rem;
       border: none;
       padding: 10px 14px;
       border-radius: 10px;
@@ -581,7 +581,7 @@ onMounted(() => {
 
   &__add-room-button {
     flex: 0 0 auto;
-    font-size: 13px;
+    font-size: 1.3rem;
     border: none;
     padding: 8px 12px;
     border-radius: 10px;
@@ -594,7 +594,7 @@ onMounted(() => {
     border: none;
     border-radius: 10px;
     background-color: $white;
-    font-size: 16px;
+    font-size: 1.6rem;
     color: #111111;
     outline: none;
     box-sizing: border-box;
@@ -644,7 +644,7 @@ onMounted(() => {
   }
 
   &__field-label {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: $strong-grey;
   }
 
@@ -671,7 +671,7 @@ onMounted(() => {
     border: none;
     border-radius: 10px;
     background-color: $white;
-    font-size: 16px;
+    font-size: 1.6rem;
     color: #111111;
     outline: none;
     box-sizing: border-box;
@@ -695,14 +695,14 @@ onMounted(() => {
     border-radius: 12px;
     background: #6fa35c;
     color: #fff;
-    font-size: 28px;
+    font-size: 2.8rem;
     line-height: 1;
     cursor: pointer;
   }
 
   &__row-actions {
     .btn {
-      font-size: 14px;
+      font-size: 1.4rem;
       border: none;
       padding: 10px 14px;
       border-radius: 10px;
@@ -741,12 +741,12 @@ onMounted(() => {
     border-radius: 999px;
     background: #dedede;
     color: #666;
-    font-size: 12px;
+    font-size: 1.2rem;
     padding: 2px 8px;
   }
 
   &__warning-note {
-    font-size: 12px;
+    font-size: 1.2rem;
     line-height: 1.3;
     color: #7b6200;
   }
@@ -758,7 +758,7 @@ onMounted(() => {
     border-radius: 6px;
     background: transparent;
     color: $red;
-    font-size: 14px;
+    font-size: 1.4rem;
     line-height: 1;
     cursor: pointer;
     padding: 0;
@@ -778,7 +778,7 @@ onMounted(() => {
   }
 
   &__geometry-note {
-    font-size: 15px;
+    font-size: 1.4rem;
     line-height: 1.3;
     color: #c45200;
     font-style: italic;
@@ -787,7 +787,7 @@ onMounted(() => {
   &__angle-note {
     margin: 0 0 8px 0;
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: 1.2rem;
     line-height: 1.4;
     color: #555;
     background: #f5f5f5;

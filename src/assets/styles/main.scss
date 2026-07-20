@@ -4,6 +4,12 @@
 @use "checkbox.scss";
 @use "colors.scss" as *;
 
+:root {
+  --header-height: 6rem;
+  --modal-large-height: 95vh;
+  --modal-large-width: 95vw;
+}
+
 html,
 body,
 #app {
@@ -12,6 +18,7 @@ body,
   padding: 0;
   overflow: hidden;
   font-family: "Gilroy";
+  font-size: calc(62.5%)
 }
 
 body {
@@ -46,13 +53,20 @@ button {
 button {
   outline: none;
   cursor: pointer;
+  font-size: 1.4rem;
+
   &:focus {
     outline: none;
   }
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 1.6rem;
   font-weight: 600;
 }
 
@@ -60,6 +74,7 @@ input {
   margin: 0;
   bottom: 0;
   font-family: "Gilroy";
+  font-size: 1.4rem;
   border: none;
   background-color: $bg;
   border-radius: 15px;
@@ -106,8 +121,8 @@ p {
 }
 
 .light-radial__button {
-  width: 50px;
-  height: 50px;
+  width: 35px;
+  height: 35px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -130,6 +145,7 @@ p {
   @media (hover: hover) {
     &:hover {
       border-color: $strong-grey;
+
       svg {
         path {
           fill: $strong-grey;
@@ -150,8 +166,7 @@ p {
 }
 
 .black-radial__button {
-  width: 50px;
-  height: 50px;
+  padding: 0.8rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -162,8 +177,9 @@ p {
 }
 
 .grey-radial__button {
-  width: 50px;
-  height: 50px;
+  // width: 35px;
+  // height: 35px;
+  padding: 1.7rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -171,11 +187,24 @@ p {
   border-radius: 360px;
   background: $stroke;
   cursor: pointer;
+  transition-property: border-color, background-color;
+  ;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
 
   &.bask {
-    width: 42px;
-    height: 42px;
+    padding: 1rem;
+    transition-property: background-color;
+    transition-duration: 0.25s;
+    transition-timing-function: ease;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: $dark-stroke;
+      }
+    }
   }
+
   svg {
     path {
       fill: $strong-grey;
@@ -208,9 +237,137 @@ p {
   }
 }
 
+.search {
+  width: 98%;
+  border-radius: 15px;
+  padding: 10px 15px;
+  font-size: 1.2rem;
+}
+
+.material-config {
+
+  &__wrapper {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    max-height: 100vh;
+    overflow: hidden;
+    margin-right: 0px;
+    // border: 1px solid grey;
+    // border-radius: 15px;
+    // padding: 1rem;
+    font-size: 1.4rem;
+  }
+
+  &_list {
+    height: 100%;
+    // max-height: calc(85vh - 110px);
+    margin-top: 1rem;
+    // padding-right: 0.5rem;
+    overflow-y: scroll;
+
+    &__details {
+      border-radius: 15px;
+      padding: 0.5rem 0;
+
+      @media (hover: hover) {
+        &:hover {
+          background: $bg;
+        }
+      }
+
+      &_content {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 5px;
+      }
+    }
+  }
+
+  &_item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 15px;
+    background-color: $bg;
+
+    transition-property: background-color;
+    transition-duration: 0.25s;
+    transition-timing-function: ease;
+
+
+    &__img,
+    &__html {
+      height: 45px;
+      width: 45px;
+      padding: 5px;
+      border-radius: 15px;
+      background-color: $white;
+
+      &.tool {
+        height: 85px;
+        width: 85px;
+      }
+
+    }
+
+    &__tool {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      max-width: 15rem;
+
+    }
+
+    &__html {}
+
+    &__name {
+      margin-left: 30px;
+    }
+
+    @media (hover: hover) {
+      &:hover {
+        color: #000000;
+        background-color: $dark-stroke;
+        border-color: #000000;
+      }
+    }
+
+  }
+
+  &_title {
+    margin-left: 5px;
+  }
+
+}
+
+
+
+.configuration {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  &__item {
+    height: 50px;
+    border: 1px solid grey;
+    border-radius: 5px;
+  }
+
+  @media (min-height: 1000px) {
+    gap: 17px;
+  }
+}
+
 .button {
   &__rounded {
-    padding: 25px;
+    padding: 1.7rem;
     background-color: transparent;
     border: 1px solid $dark-grey;
     border-radius: 100px;
@@ -228,6 +385,7 @@ p {
       }
     }
   }
+
   &__filled {
     padding: 25px;
     color: $strong-grey;
@@ -262,6 +420,7 @@ p {
 .icon {
   position: relative;
   font-size: 15px;
+
   &::before {
     transform: translate(-50%, -50%);
     top: 50%;
@@ -274,10 +433,14 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 15px;
+  padding: 1rem;
   background-color: $stroke;
   border-radius: 360px;
   cursor: pointer;
+  transition-property: background-color fill border-color; 
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+
 
   &.active {
     background-color: $red;
@@ -292,6 +455,26 @@ p {
           fill: $white;
         }
       }
+    }
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: $red;
+
+      svg {
+        path {
+          fill: $white;
+        }
+
+        g {
+          path {
+            fill: $white;
+          }
+        }
+      }
+
+
     }
   }
 }
@@ -313,6 +496,7 @@ p {
   &:focus {
     outline: none;
   }
+
   svg {
     path {
       fill: $strong-grey;
@@ -347,6 +531,7 @@ p {
       background-color: $clicked-red;
     }
   }
+
   @media (hover: hover) {
     &:hover {
       svg {
@@ -364,9 +549,14 @@ p {
   }
 }
 
+.toast {
+  font-size: 1.4rem;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-thumb {
   background-color: rgba(100, 100, 100, 0.6);
   border-radius: 10px;

@@ -208,7 +208,6 @@ export default class DoorsAndWindows {
 
       dataObjsects.forEach((object: any) => { // добавляем объекты на холст
 
-
         const NameObjects: string | null = this.parent.IDObjects.find((item: { id: string | number; name: string; }) => item.id === object.id)?.name ?? null;
         if (!NameObjects) {
           console.warn(`Object with id ${object.id} not found in IDObjects`);
@@ -228,6 +227,7 @@ export default class DoorsAndWindows {
         if (!getBelongsToWall) {
           getBelongsToWall = this.findNearestWall(objectPosition, 50);
           if (getBelongsToWall) {
+            console.log(`Wall not found by polygon check, using nearest wall (id: ${getBelongsToWall.id})`);
           }
         }
         
@@ -385,6 +385,7 @@ export default class DoorsAndWindows {
 
         if (result) {
           
+          console.log(`Object ${id} initialized`);
           
           // рисуем объект на холсте
           this.draw(id);
@@ -397,6 +398,7 @@ export default class DoorsAndWindows {
 
     // здесь убрали подписки обработчиков
 
+    console.log('DoorsAndWindows layer initialized with', this.drawObjects.length, 'objects');
 
   }
 
@@ -499,6 +501,7 @@ export default class DoorsAndWindows {
         if (pointInRoom) {
           objectData.roomId = rooms[i].id;
           roomIdFound = true;
+          console.log('>>> Объект находится внутри комнаты:', rooms[i].id);
           break;
         }
 
@@ -509,6 +512,7 @@ export default class DoorsAndWindows {
         const wall = this.parent.layers.planner.objectWalls.find((el: ObjectWall) => el.id === getBelongsToWall.id);
         if (wall && wall.roomId) {
           objectData.roomId = wall.roomId;
+          console.log('>>> roomId взят из стены:', wall.roomId);
         }
       }
 

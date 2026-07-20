@@ -92,7 +92,6 @@ export const useConversationActions = () => {
     }
 
     const checkFasadeConversations = (fasadeId: number, size: TFasadeTrueSizes) => {
-
         const curModel = modelState.getCurrentModel
         const { FASADE_WIDTH, FASADE_HEIGHT } = size
         const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel)
@@ -126,8 +125,7 @@ export const useConversationActions = () => {
                         FASADE_WIDTH >= el.GROUP_SIZE.MIN_WIDTH
                     );
                 if (check) return el;
-            })
-            .filter(Boolean);
+            }).filter(Boolean);
 
 
         return tempList;
@@ -146,8 +144,7 @@ export const useConversationActions = () => {
                 if (tmp_fasades.length)
                     return { ...el, FASADES: tmp_fasades }
             }
-        })
-            .filter(Boolean);
+        }).filter(Boolean);
 
 
         return tempList;
@@ -181,8 +178,19 @@ export const useConversationActions = () => {
             // @ts-ignore
             const check = checkMillingConversations(el.COLOR, el.MILLING)
         })
+    }
 
+    const expressionsReplace = <T>(obj: T, expressions: Record<string, number | string>): T => {
+        if (!expressions || !Object.keys(expressions).length) return obj;
 
+        const isObject = obj !== null && typeof obj === "object";
+
+        const replaced = Object.entries(expressions).reduce(
+            (acc, [key, value]) => acc.split(key).join(String(value ?? 0)),
+            isObject ? JSON.stringify(obj) : String(obj)
+        );
+
+        return isObject ? JSON.parse(replaced) : replaced as T;
     }
 
     return {
@@ -192,7 +200,8 @@ export const useConversationActions = () => {
         filterFasadeConversations,
         filterMaterialsConversations,
         checkMillingConversations,
-        onResizeMillingCheck
+        onResizeMillingCheck,
+        expressionsReplace
     }
 
 }

@@ -37,6 +37,7 @@ export const useEventBus = defineStore('eventBus', () => {
   function off<T = any>(event: EventName, callback: EventCallback<T>) {
     if (listeners.value[event]) {
       listeners.value[event] = listeners.value[event].filter(cb => cb !== callback);
+      // console.log('destroy off event:', event);
     }
   }
 

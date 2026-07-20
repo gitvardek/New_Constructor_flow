@@ -128,6 +128,7 @@ export class Room extends BuildersHelper {
     }
 
     loadRoom(light, roomId?: string | number) {
+        // console.log(roomId, 'roomId')
         this.roomLight = light
         const params = this.getStartSize(roomId)
         this.createRoom(params)
@@ -255,7 +256,6 @@ export class Room extends BuildersHelper {
         // Отправляем материал в хранилище
         this.roomState.tempRoomUpdate(materialId, 'wall')
         this.wallTextureId = materialId
-
 
     }
 

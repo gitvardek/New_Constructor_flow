@@ -3,10 +3,21 @@ import type { IBasket } from '@/types/basket'
 
 const STORAGE_KEY = 'basket-data'
 
-export function useBasketStorage() {
-  const mainConstructor = ref<IBasket[]>([])
-  const mainCatalog = ref<IBasket[]>([])
+const mainConstructor = ref<IBasket[]>([])
+const mainCatalog = ref<IBasket[]>([])
 
+watch([mainConstructor, mainCatalog], () => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      mainConstructor: mainConstructor.value,
+      mainCatalog: mainCatalog.value
+    }))
+  } catch (e) {
+    console.error('Error saving basket data', e)
+  }
+}, { deep: true })
+
+export function useBasketStorage() {
   // Инициализация из localStorage
   const initializeFromStorage = () => {
     try {
@@ -20,18 +31,6 @@ export function useBasketStorage() {
       console.error('Error parsing saved basket data', e)
     }
   }
-
-  // Автосохранение при изменениях
-  watch([mainConstructor, mainCatalog], () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        mainConstructor: mainConstructor.value,
-        mainCatalog: mainCatalog.value
-      }))
-    } catch (e) {
-      console.error('Error saving basket data', e)
-    }
-  }, { deep: true })
 
   const clearStorage = () => {
     localStorage.removeItem(STORAGE_KEY)

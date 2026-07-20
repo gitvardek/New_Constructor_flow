@@ -119,7 +119,7 @@ watch(
     border: none;
     padding: 0.5rem 0.5rem;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     &--decrease {
       border-radius: 5px 0 0 5px;
     }
@@ -132,7 +132,7 @@ watch(
     text-align: center;
     border: 1px solid #ddd;
     padding: 0.5rem;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
   }
 
   input::-webkit-outer-spin-button,

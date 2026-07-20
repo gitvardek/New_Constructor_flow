@@ -4,59 +4,60 @@ import { computed, readonly, ref } from 'vue'
 import { useBasketApi } from '@/store/appStore/basket/useBasketApi'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { useRoomContantData } from '../appliction/useRoomContantData'
-import { createBasketItem } from '@/components/Basket/helper/basketMapper'
+import { createBasketItem, createGlobalData, updateGlobalData } from '@/components/Basket/helper/basketMapper'
+import { TTotalProps } from "@/types/types";
 import type { IBasket, IBasketResponse, BasketItemType } from '@/types/basket'
 import { useAppData } from '../appliction/useAppData'
 
 // Вспомогательные функции
 
 // Генерация ID
-const generateUniqueId = (): string => 
+const generateUniqueId = (): string =>
   `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
 // Формирования массива ручик фасадов
 const countHandles = (items: any[]): number[] => {
   const handles: number[] = []
-  
+
   items.forEach(item => {
-    if(item?.HANDLES) {
+    if (item?.HANDLES) {
       item.HANDLES.forEach(handle => {
-        if(handle?.ID && handle.ID !== 69920) {
+        if (handle?.ID && handle.ID !== 69920) {
           handles.push(handle.ID)
         }
       })
     }
     else {
       item.PROPS?.FASADE?.forEach(facade => {
-        if(facade.HANDLES?.ID && facade.HANDLES?.ID !== 69920) {
+        if (facade.HANDLES?.ID && facade.HANDLES?.ID !== 69920) {
           handles.push(facade.HANDLES.ID)
         }
       })
     }
   })
-  
+
   return handles
 }
 
 // Преобразование данных для получение цены ручик фасадов
 const transformCountHandles = (numbers: number[]) => {
-    const countMap = new Map();
-    // Подсчитываем повторения
-    numbers.forEach(num => {
-        countMap.set(num, (countMap.get(num) || 0) + 1);
-    });
+  const countMap = new Map();
+  // Подсчитываем повторения
+  numbers.forEach(num => {
+    countMap.set(num, (countMap.get(num) || 0) + 1);
+  });
 
-    return Array.from(countMap.entries()).map(([id, quantity]) => ({
-      BASKETID: generateUniqueId(),
-      PRODUCT: id,
-      PROPS: {
-        ID: id,
-        IGNORE_SIZE: 0,
-        NOT_DISCOUNT: 1.25,
-      },
-      QUANTITY: quantity,
-      TYPE: "catalog",
-    }));
+  return Array.from(countMap.entries()).map(([id, quantity]) => ({
+    BASKETID: generateUniqueId(),
+    PRODUCT: id,
+    PROPS: {
+      ID: id,
+      IGNORE_SIZE: 0,
+      NOT_DISCOUNT: 1.25,
+    },
+    QUANTITY: quantity,
+    TYPE: "catalog",
+  }));
 }
 
 export const useBasketStore = defineStore('basket', () => {
@@ -97,28 +98,58 @@ export const useBasketStore = defineStore('basket', () => {
   const addFromScene = () => {
 
     const roomContantData = useRoomContantData().getRoomContantDataForBasket
-    const roomDataCopy = JSON.parse(roomContantData)
-    const sceneItems = Object.entries(roomDataCopy)
-      .filter(([_, obj]: [string, any]) => obj.data.PRODUCT)
-      .filter(([_, obj]: [string, any]) => {
-        // Проверяем, есть ли ID в массиве decor
+    let roomDataCopy: any
+    try {
+      roomDataCopy = typeof roomContantData === 'string' ? JSON.parse(roomContantData) : roomContantData
+    } catch {
+      roomDataCopy = []
+    }
+
+    const filtered = getFilteredData()
+
+    const sceneItems = filtered
+      .map((obj: TTotalProps, key: string) =>
+        createBasketItem(obj.data, mainConstructor.value.length, obj.basketId)
+      )
+
+    const globalData = createGlobalData(filtered)
+
+    mainConstructor.value = [...sceneItems, ...globalData]
+
+  }
+
+  /** 
+   * Вспомогательные функции 
+  */
+
+  const getFilteredData = () => {
+    const roomContantData = useRoomContantData().getRoomContantDataForBasket
+    let roomDataCopy: any
+    try {
+      roomDataCopy = typeof roomContantData === 'string' ? JSON.parse(roomContantData) : roomContantData
+    } catch {
+      roomDataCopy = []
+    }
+
+    return Object.values(roomDataCopy)
+      .filter((obj: any) => obj.data.PRODUCT)
+      .filter((obj: any) => {
         const itemId = obj.data.CONFIG?.ID;
         const decorIds = appDataStore.getAppData.decor || [];
         return !decorIds.includes(itemId);
       })
-      .map(([key, obj]: [string, any]) => 
-        createBasketItem(obj.data, mainConstructor.value.length, obj.basketId)
-      )
-
-    mainConstructor.value = sceneItems
   }
 
+  /** ---------------------------------------------------------- */
+
   const removeItem = (type: string, basketId: string) => {
-    const list = type === 'scene' ? mainConstructor : mainCatalog
+
+    const list = (type === 'scene' || type === 'umscene') ? mainConstructor : mainCatalog
     const index = list.value.findIndex(item => String(item.BASKETID) === String(basketId))
-    
+
     if (index !== -1) {
       list.value.splice(index, 1)
+      updateGlobalData()
       syncBasket();
     }
   }
@@ -130,7 +161,7 @@ export const useBasketStore = defineStore('basket', () => {
   const updateQuantity = (basketId: string, type: string, quantity: number) => {
     const list = type === 'catalog' ? mainCatalog.value : mainConstructor.value
     const item = list.find(i => String(i.BASKETID) === String(basketId))
-    
+
     if (item) {
       item.QUANTITY = quantity
       syncBasket();
@@ -142,18 +173,20 @@ export const useBasketStore = defineStore('basket', () => {
     basketData.value = null
     syncBasket();
   }
-  
-  const loadBasket = async (data: any) => { 
+
+  const loadBasket = async (data: any) => {
+    // console.log('datadata', data);
     mainConstructor.value = data.scene;
     mainCatalog.value = data.catalog;
+    // console.log('allBasketItems.value', allBasketItems.value);
     syncBasket();
   }
 
   const creatDataBasket = () => {
     const currentHandlesData = countHandles(mainConstructor.value)
-    const data = currentHandlesData.length > 0 
-        ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)] 
-        : allBasketItems.value
+    const data = currentHandlesData.length > 0
+      ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)]
+      : allBasketItems.value
     return {
       BASKET: data,
       TYPE_PRICE: 25,
@@ -161,46 +194,51 @@ export const useBasketStore = defineStore('basket', () => {
   }
 
   const syncBasket = async (): Promise<IBasketResponse | null> => {
+
     const currentHandlesData = countHandles(mainConstructor.value)
-    const data = currentHandlesData.length > 0 
-        ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)] 
-        : allBasketItems.value
+    const data = currentHandlesData.length > 0
+      ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)]
+      : allBasketItems.value
     const result = await syncBasketWithServer(data)
     if (result) {
       basketData.value = result
     }
+
     return result
   }
   const syncBasketMulti = async (data): Promise<IBasketResponse | null> => {
+
     const result = await syncBasketWithServer(data)
     if (result) {
       basketData.value = result
     }
+
     return result
   }
   const syncBasketDelay = async (): Promise<IBasketResponse | null> => {
     const currentHandlesData = countHandles(mainConstructor.value)
-    const data = currentHandlesData.length > 0 
-        ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)] 
-        : allBasketItems.value
+    const data = currentHandlesData.length > 0
+      ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)]
+      : allBasketItems.value
 
     const result = await syncBasketProductDelay(data)
+    console.log('result', result);
     // Используем basketDelay.value для реактивного обновления
     if (result) {
       basketDelay.value = Array.isArray(result) ? result : [result]
     } else {
       basketDelay.value = []
     }
-    
+
     return result
   }
 
-  const syncInvoce = async (technologistBasket: boolean|Object = false): Promise<IBasketResponse | null> => {
+  const syncInvoce = async (technologistBasket: boolean | Object = false): Promise<IBasketResponse | null> => {
     const currentHandlesData = countHandles(mainConstructor.value)
-    const data = currentHandlesData.length > 0 
-        ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)] 
-        : allBasketItems.value
-    
+    const data = currentHandlesData.length > 0
+      ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)]
+      : allBasketItems.value
+
     // const result = await syncBasketWithServer(data)
     const result = await syncInvoice(data, technologistBasket)
     return result

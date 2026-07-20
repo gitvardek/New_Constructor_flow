@@ -46,10 +46,9 @@ export class ModelsBuilder {
         const path = url ?? modelData.file ?? modelData.DAE
         const PROD = this.parent._PRODUCTS[props.PRODUCT]
 
-
         let normolized;
 
-        let model
+        let model;
 
         const { width = 0, height = 0, depth = 0 } = props.CONFIG.SIZE ?? {}
         model = this.parent.expressionsReplace(modelData, {
@@ -57,20 +56,6 @@ export class ModelsBuilder {
             "#Y#": height,
             "#Z#": depth,
         })
-
-        // if (props.CONFIG.SIZE) {
-
-        //     const { width, height, depth } = props.CONFIG.SIZE
-        //     model = this.parent.expressionsReplace(modelData, {
-        //         "#X#": width,
-        //         "#Y#": height,
-        //         "#Z#": depth,
-        //     })
-        // }
-        // else {
-        //     model = modelData
-        // }
-
 
         return new Promise((resolve, reject) => {
 
@@ -88,11 +73,11 @@ export class ModelsBuilder {
                 const normolized = this.normalizeUploadedModel(file, model, editSize) as THREE.Object3D;
                 const { corr_z, corr_y, corr_x } = model
                 const correction = {
+
                     x: corr_x ? parseFloat(corr_x) : 0,
                     y: corr_y ? parseFloat(corr_y) : 0,
                     z: corr_z ? parseFloat(corr_z) : 0
                 }
-
 
                 if (model.model_type.length === 0) {
 
@@ -178,19 +163,24 @@ export class ModelsBuilder {
         box.setFromObject(model);
         box.getCenter(center)
 
-        if (params.width || params.height || params.depth)
+        if (params.width || params.height || params.depth) {
+
             this.changeModelScale(model, new THREE.Vector3(
                 params.width || params.scale || 1,
                 params.height || params.scale || 1,
                 params.depth || params.scale || 1))
+        }
+
         else if (size) {
+
             this.changeModelScale(model, new THREE.Vector3(
                 size.width || params.scale || 1,
                 size.height || params.scale || 1,
                 size.depth || params.scale || 1))
         }
-        else
+        else {
             model.scale.x = model.scale.y = model.scale.z = params.scale;
+        }
         return model;
     }
 

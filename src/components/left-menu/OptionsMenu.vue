@@ -18,6 +18,8 @@ import { usePopupStore } from "@/store/appStore/popUpsStore";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useCustomiserStore } from "@/store/appStore/useCustomiserStore";
 import { useTransformController } from "../ui/transformController/useTransformController";
+import { useSceneState } from "@/store/appliction/useSceneState";
+import { useProjectStore } from "@/features/quickActions/project/store/useProjectStore.ts";
 
 import PopUpOptionsMenu from "@/components/left-menu/option/PopUpOptionsMenu.vue";
 import RoomOptionsMenu from "@/components/left-menu/option/RoomOptionsMenu.vue";
@@ -32,10 +34,12 @@ import Accordion from "../ui/accordion/Accordion.vue";
 const eventBus = useEventBus();
 const store = useModelStore();
 const modelState = useModelState();
+const sceneState = useSceneState();
 
 const menuStore = useMenuStore();
 const customiserStore = useCustomiserStore();
 const popupStore = usePopupStore();
+const projectStore = useProjectStore()
 
 const {
   getTransformControlsValue,
@@ -115,11 +119,9 @@ const filterCatalog = (type) => {
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const onSearchChange = (e: Event) => {
-  const value = e.target.value.trim();
+  const query = e.target.value.trim();
 
-  clearTimeout(debounceTimeout);
-
-  if (!value) {
+  if (!query) {
     filteredProductList.value = [];
     return;
   }
@@ -129,13 +131,13 @@ const onSearchChange = (e: Event) => {
     customiserStore.hideCustomiserPopup();
   }
 
-  debounceTimeout = setTimeout(() => {
-    const reg = new RegExp(value.toLowerCase(), "g");
-    const filteredData = Object.values(_PRODUCTS).filter((prod) =>
-      reg.test(prod.NAME.toLowerCase()),
-    );
-    filteredProductList.value = filteredData;
-  }, 400);
+  const words = query.toLowerCase().split(/\s+/);
+  const filteredData = Object.values(_PRODUCTS).filter((prod) => {
+    const name = prod.NAME.toLowerCase();
+    return words.every((word) => name.includes(word));
+  })
+  filteredProductList.value = filteredData;
+
 };
 
 const clearSearch = () => {
@@ -179,6 +181,20 @@ onUnmounted(() => {
   <section class="options">
     <div class="options__container">
       <div class="options-design">
+
+        <div class="options-header">
+          <h1 class="options__title">Проект</h1>
+          <div class="options-header__items">
+            <div class="options-header__item">
+              <h3>Наименование:</h3> <p class="goods-item__title">"{{ sceneState.getCurrentProjectParams.project_name
+                }}"</p>
+            </div>
+            <div class="options-header__item">
+              <h3>ID:</h3> <p class="goods-item__title">{{ projectStore.getProjectId() }}</p>
+            </div>
+          </div>
+        </div>
+
         <h1 class="options__title">Проектирование</h1>
         <div class="goods">
           <!-- <div class="goods-item">
@@ -187,19 +203,15 @@ onUnmounted(() => {
             <div class="radial-sphere"></div>
           </div> -->
 
-          <div
-            class="goods-item"
-            :class="{ active: menuStore.openMenus == 'roomPar' }"
-            @click="showRoomParMenu"
-          >
-            <S2DAppartSVG class="goods-item__image" />
+          <div class="goods-item" :class="{ active: menuStore.openMenus == 'roomPar' }" @click="showRoomParMenu">
+            <!-- <S2DAppartSVG class="goods-item__image" /> -->
             <p class="goods-item__title">Параметры помещения</p>
-            <div class="radial-sphere"></div>
+            <!-- <div class="radial-sphere"></div> -->
           </div>
         </div>
       </div>
 
-      <div class="options-design">
+      <div class="options-design options-design--list">
         <h1 class="options__title">Товары</h1>
 
         <div class="goods-items" @click="openPopup('catalog')">
@@ -208,13 +220,7 @@ onUnmounted(() => {
           <div class="radial-sphere"></div>
         </div>
 
-        <input
-          ref="productSerch"
-          class="search"
-          type="text"
-          placeholder="Поиск"
-          @input="onSearchChange"
-        />
+        <input ref="productSerch" class="search" type="text" placeholder="Поиск" @input="onSearchChange" />
         <!-- <MainSelect
           v-model="selectedSectionType"
           :options="catalogSectionsType"
@@ -227,17 +233,14 @@ onUnmounted(() => {
             </p>
           </template>
           <template #params="{ onToggle }">
-            <ul class="list__details_contant">
+            <ul class="list__details_content">
               <li v-for="(section, key) in catalogSectionsType" :key="key">
-                <div
-                  class="list__item"
-                  @click="
-                    () => {
-                      selectCatalog(key);
-                      onToggle();
-                    }
-                  "
-                >
+                <div class="list__item" @click="
+                  () => {
+                    selectCatalog(key);
+                    onToggle();
+                  }
+                ">
                   <p class="list__name">{{ catalogSectionsType[key] }}</p>
                 </div>
               </li>
@@ -246,44 +249,25 @@ onUnmounted(() => {
         </Accordion>
 
         <div class="goods">
-          <div
-            v-for="(item, index) in filteredCatalogSections"
-            :key="index"
-            class="goods-item"
-            :class="{
-              active:
-                menuStore.openMenus == 'tech' &&
-                item.ID === menuStore.menuContentsByID,
-            }"
-            @click="showTechMenu(item.ID, item.PRODUCTS)"
-          >
-            <S2DAppartSVG class="goods-item__image" />
+          <div v-for="(item, index) in filteredCatalogSections" :key="index" class="goods-item" :class="{
+            active:
+              menuStore.openMenus == 'tech' &&
+              item.ID === menuStore.menuContentsByID,
+          }" @click="showTechMenu(item.ID, item.PRODUCTS)">
+            <!-- <S2DAppartSVG class="goods-item__image" /> -->
             <p class="goods-item__title">{{ item.NAME }}</p>
-            <div class="radial-sphere"></div>
+            <!-- <div class="radial-sphere"></div> -->
           </div>
         </div>
       </div>
     </div>
     <transition name="slide--left">
-      <PopUpOptionsMenu
-        :filteredData="filteredProductList"
-        v-if="menuStore.openMenus == 'tech'"
-        @close-menu="clearSearch"
-      />
+      <PopUpOptionsMenu :filteredData="filteredProductList" v-if="menuStore.openMenus == 'tech'"
+        @close-menu="clearSearch" />
     </transition>
     <transition name="slide--left">
-      <RoomOptionsMenu
-        v-if="menuStore.openMenus == 'roomPar'"
-        ref="roomOptionsRef"
-      />
+      <RoomOptionsMenu v-if="menuStore.openMenus == 'roomPar'" ref="roomOptionsRef" />
     </transition>
-
-    <div class="options__camera">
-      <h1 class="options__title">Позиция камеры</h1>
-      <div class="options__camera--container">
-        <DirectionControl @changeDirectionPos="changeCameraPos" />
-      </div>
-    </div>
   </section>
 </template>
 
@@ -293,26 +277,52 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 315px;
+  max-width: 29rem;
   height: 100%;
   border-right: 1px solid $light-stroke;
   background-color: $bg;
   // transform-style: preserve-3d;
   z-index: 1;
+
+  &-header {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+
+    &__items {
+      padding: 0 1.5rem;
+    }
+    &__item{
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+
   &-design {
     z-index: 10;
     display: flex;
     flex-direction: column;
     gap: 5px;
+
+    &--list {
+      height: 100vh;
+      /* или height: calc(100vh - высота_хедера) */
+      overflow: hidden;
+    }
   }
+
   &__title {
     margin-bottom: 10px;
   }
+
   &-group {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
+
   &-item {
     height: 50px;
     position: relative;
@@ -321,6 +331,7 @@ onUnmounted(() => {
     gap: 25px;
     cursor: pointer;
     padding: 0 15px;
+
     &__title {
       z-index: 5;
       transition: 0.15s;
@@ -341,6 +352,7 @@ onUnmounted(() => {
       }
     }
   }
+
   &__container {
     display: flex;
     flex-direction: column;
@@ -349,10 +361,7 @@ onUnmounted(() => {
     position: relative;
     background: $bg;
     transform-style: preserve-3d;
-
-    // @media screen and (min-width: 1329px) {
-    //   padding: 10px 20px;
-    // }
+    overflow: hidden;
 
     .room {
       display: flex;
@@ -375,10 +384,12 @@ onUnmounted(() => {
         z-index: 1;
         border-radius: 15px;
 
+
         &__container {
           display: flex;
           flex-direction: column;
           gap: 15px;
+          font-size: 1.4rem;
 
           .room-select {
             display: flex;
@@ -411,7 +422,7 @@ onUnmounted(() => {
                 }
 
                 .label__text {
-                  font-size: 15px;
+                  font-size: 1.4rem;
                   font-weight: 600;
                   color: $strong-grey;
                 }
@@ -448,7 +459,7 @@ onUnmounted(() => {
                   }
 
                   .label__text {
-                    font-size: 15px;
+                    font-size: 1.4rem;
                     font-weight: 600;
                     color: $strong-grey;
                   }
@@ -480,6 +491,7 @@ onUnmounted(() => {
         z-index: 1;
         border-radius: 15px;
         transition: 0.5s ease-in-out;
+        font-size: 1.4rem;
 
         .menu__close {
           position: absolute;
@@ -503,7 +515,7 @@ onUnmounted(() => {
             gap: 10px;
 
             &__title {
-              font-size: 15px;
+              font-size: 1.4rem;
               font-weight: 500;
             }
           }
@@ -515,50 +527,16 @@ onUnmounted(() => {
       }
     }
   }
-  &__camera {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    padding: 0px 10px;
-    margin-bottom: auto;
-    background: $bg;
-
-    transition-property: opacity, filter;
-    transition-duration: 0.3s;
-    transition-timing-function: ease;
-
-    &--container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    @media screen and (min-width: 1329px) {
-      padding: 0 20px;
-    }
-  }
-}
-
-.icon {
-  font-size: var(--font);
-}
-
-.button {
-  &__rounded {
-    padding: var(--value);
-  }
 }
 
 .goods {
-  max-height: 30vh;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  flex: 1;
+  /* занимает всё оставшееся место */
+  gap: 0.3rem;
   overflow-y: auto;
-
-  // @media screen and (min-width: 1329px) {
-  //   max-height: 30vh;
-  // }
+  min-height: 0;
 
   &-items {
     min-height: 48px;
@@ -571,6 +549,7 @@ onUnmounted(() => {
     transition: 0.15s ease-in-out;
 
     &__title {
+      font-size: 1.4rem;
       z-index: 5;
       transition: 0.15s;
     }
@@ -581,6 +560,7 @@ onUnmounted(() => {
 
     &.active {
       .goods-item__title {
+
         color: $white;
       }
 
@@ -592,16 +572,35 @@ onUnmounted(() => {
   }
 
   &-item {
-    min-height: 50px;
     position: relative;
     display: flex;
     align-items: center;
     gap: 25px;
-    padding: 0 15px;
+    padding: 1rem 1.5rem;
     cursor: pointer;
-    transition: 0.15s ease-in-out;
+    transition: 0.25s ease;
+    background-color: $bg;
+    border-radius: 4rem;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: $red;
+        color: $white;
+      }
+    }
+
+    &.active {
+      background-color: $red;
+
+      .goods-item__title {
+        color: $white;
+      }
+    }
 
     &__title {
+      max-width: 245px;
+      overflow-wrap: break-word;
+      font-size: 1.4rem;
       z-index: 5;
       transition: 0.15s;
     }
@@ -610,37 +609,9 @@ onUnmounted(() => {
       z-index: 5;
     }
   }
-
-  .goods-item {
-    min-height: 50px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 25px;
-    padding: 0 15px;
-    cursor: pointer;
-    transition: 0.15s ease-in-out;
-
-    &.active {
-      .goods-item__title {
-        color: $white;
-      }
-
-      .radial-sphere {
-        max-width: 300px;
-        background: $red;
-      }
-    }
-  }
 }
 
 .list {
-  &__details_contant {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-top: 5px;
-  }
   &__item {
     color: $black;
     cursor: pointer;
@@ -671,10 +642,7 @@ onUnmounted(() => {
   transition: 0.15s;
 }
 
-.search {
-  width: 95%;
-  border-radius: 15px;
-  padding: 10px 15px;
-  background-color: $stroke;
+.accordion {
+  padding: 1rem 1.5rem;
 }
 </style>

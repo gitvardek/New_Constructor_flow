@@ -16,8 +16,12 @@ interface Props {
 }
 
 const kromkaActions = useKromkaActions();
-const { getCurretKromkaList, getKromkaActive, checkKromkaActive, getCurretKromkaListUM } =
-  kromkaActions;
+const {
+  getCurretKromkaList,
+  getKromkaActive,
+  checkKromkaActive,
+  getCurretKromkaListUM,
+} = kromkaActions;
 
 const props = withDefaults(defineProps<Props>(), {
   step: 1,
@@ -40,7 +44,7 @@ const cutChacked = (event: Event, item: Record<string, string>) => {
 };
 
 const profileChacked = (event: Event, profile: Record<string, string>) => {
-
+  // console.log(profile, ' ==== profile ====')
 
   emit("cut-profileData", event.target.checked, profile);
 };
@@ -87,18 +91,22 @@ const profileData = computed(() => {
 onBeforeMount(() => {
   if (props.isUM) {
     getCurretKromkaListUM(props.currentSection?.TABLE);
-  }
-  else {
+  } else {
     getCurretKromkaList();
   } // profileDataParse.value = props.profileData();
 });
 
+watch(
+  () => props,
+  () => {
+    // console.log("serviseData");
+  },
+);
 </script>
 
 <template>
   <div class="splitter-container--cut">
-
-    <div v-if="!isUM">
+    <div class="splitter-container--cut-wraper" v-if="!isUM">
       <div :class="['splitter-container--cut-header', getContainerHeight]">
         <h3 class="splitter-title">Услуги</h3>
         <button class="actions-btn actions-icon" @click="toggleCutServise">
@@ -107,32 +115,18 @@ onBeforeMount(() => {
       </div>
 
       <div :class="['splitter-container--cut-servise', getContainerHeight]">
-        <div
-            v-for="(item, key) in props.serviseData"
-            :key="key + item.NAME"
-            :class="['cut-servise--item', { error: item.error }]"
-        >
-          <div
-              :class="['cut-servise--wrapper', { error: item.error }]"
-              v-if="item.visible"
-          >
+        <div v-for="(item, key) in props.serviseData" :key="key + item.NAME"
+          :class="['cut-servise--item', { error: item.error }]">
+          <div :class="['cut-servise--wrapper', { error: item.error }]" v-if="item.visible">
             <label class="control control-checkbox">
-              <input
-                  type="checkbox"
-                  :checked="item.value"
-                  @change="cutChacked($event, item)"
-              />
+              <input type="checkbox" :checked="item.value" @change="cutChacked($event, item)" />
               <span class="control_indicator"></span>
               <span class="text-lg text-gray-800 font-medium">{{
-                  item.NAME
-                }}</span>
+                item.NAME
+              }}</span>
             </label>
 
-            <Tooltip
-                v-if="item.error"
-                :theme="'dark'"
-                :content="`${SERVISE_ERRORS[item.error]}`"
-            >
+            <Tooltip v-if="item.error" :theme="'dark'" :content="`${SERVISE_ERRORS[item.error]}`">
               <template #trigger>
                 <button class="actions-btn actions-icon">
                   <img class="actions-icon--help" src="/icons/help.svg" alt="" />
@@ -145,48 +139,28 @@ onBeforeMount(() => {
           <div class="actions-inputs" v-if="item.EURO_WIDTH && item.value">
             <p class="actions-title">Ширина</p>
             <div class="actions-input--container">
-              <MainInput
-                  :inputClass="'actions-input'"
-                  v-model="item.EURO_WIDTH"
-                  :min="200"
-                  :max="getMaxWidth"
-                  :type="'number'"
-                  @update:modelValue="
-                (newValue) => updateEuroWidth(newValue, item.NAME)
-              "
-              />
+              <MainInput :inputClass="'actions-input'" v-model="item.EURO_WIDTH" :min="200" :max="getMaxWidth"
+                :type="'number'" @update:modelValue="
+                  (newValue) => updateEuroWidth(newValue, item.NAME)
+                " />
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div
-      class="splitter-container--cut-header"
-      v-if="props.profileData?.length > 0"
-    >
+    <div class="splitter-container--cut-header" v-if="props.profileData?.length > 0">
       <div class="splitter-container--cut-header">
         <h3 class="splitter-title">Профиль</h3>
       </div>
     </div>
 
-    <div
-      class="splitter-container--cut-servise"
-      v-if="props.profileData?.length > 0"
-    >
-      <div
-        class="'cut-servise--item'"
-        v-for="(profile, key, ndx) in props.profileData"
-        :key="profile.NAME + ndx"
-      >
+    <div class="splitter-container--cut-servise" v-if="props.profileData?.length > 0">
+      <div class="'cut-servise--item'" v-for="(profile, key, ndx) in props.profileData" :key="profile.NAME + ndx">
         <div :class="['cut-servise--wrapper']">
           <label class="control control-checkbox">
-            <input
-              type="checkbox"
-              :checked="profile.value"
-              :disabled="profile.ID === 251698 && profile.value"
-              @change="profileChacked($event, profile)"
-            />
+            <input type="checkbox" :checked="profile.value" :disabled="profile.ID === 251698 && profile.value || props.profileData?.length === 1"
+              @change="profileChacked($event, profile)" />
             <span class="control_indicator"></span>
             <span class="text-lg text-gray-800 font-medium">{{
               profile.NAME
@@ -206,15 +180,33 @@ onBeforeMount(() => {
 .splitter {
   &-container {
     &--cut {
-      &-servise {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      overflow-y: auto;
+
+      &-wraper {
+        max-height: calc(100% - 250px);
+        min-height: 50vh;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        padding: 0 10px 10px 10px;
-        gap: 5px;
-        overflow-y: scroll;
+      }
 
-        // height: 100%;
-        // max-height: 60%;
+      &-servise {
+        // display: flex;
+        // flex-direction: column;
+        // padding: 0 10px 10px 10px;
+        // gap: 5px;
+        // overflow-y: scroll;
+
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        /* занимает всё оставшееся место */
+        gap: 0.3rem;
+        overflow-y: auto;
+        min-height: 0;
 
         border-bottom: 1px solid #ecebf1;
 
@@ -248,6 +240,7 @@ onBeforeMount(() => {
     flex-direction: column;
     // padding: 0 5px 5px 5px;
     border-radius: 5px;
+
     &.error {
       background-color: #d56b6b32;
     }

@@ -14,6 +14,7 @@ import { OBBHelper } from '../Utils/CalculateBoundingBox';
 
 import { useEventBus } from '@/store/appliction/useEventBus';
 import { useRoomState } from '@/store/appliction/useRoomState';
+import { useRoomContantData } from "@/store/appliction/useRoomContantData";
 import { useModelState } from '@/store/appliction/useModelState';
 import { useSceneState } from '@/store/appliction/useSceneState';
 import { useUniformState } from "@/store/appliction/useUniformState";
@@ -22,7 +23,7 @@ import { SetObject } from '../Utils/SetObject';
 import { GeometryBuilder } from '../Meshes/GeometryBuilder';
 import { Room } from './Room';
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
-import { saveUMGrid } from "@/components/2DmoduleConstructor/utils/Methods.ts";
+import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 // import CreateShape from '../2DScene/CreateShape';
 
 
@@ -30,6 +31,7 @@ export class RoomManager extends Room {
 
     private eventsStore: ReturnType<typeof useEventBus> = useEventBus()
     private roomState: ReturnType<typeof useRoomState> = useRoomState()
+    private roomContentData: ReturnType<typeof useRoomContantData> = useRoomContantData()
     private modelState: ReturnType<typeof useModelState> = useModelState()
     private uniformState: ReturnType<typeof useUniformState> = useUniformState()
     private OBBCollider: OBBCollider = new OBBCollider()
@@ -96,7 +98,7 @@ export class RoomManager extends Room {
 
         intersects.forEach(object => {
 
-            if (!object.userData?.current && object.visible && !object.userData.disableRaycast) {
+            if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
                 const box = new THREE.Box3().setFromObject(object);
                 const boxTop = new THREE.Box3().setFromObject(object);
                 box.max.y = 3000;
@@ -118,8 +120,8 @@ export class RoomManager extends Room {
 
         intersects.forEach(object => {
 
-            if (!object.userData?.current && object.visible) {
-                
+            if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
+
                 const center = object.userData.aabb.getCenter(new THREE.Vector3())
                 const obb = object.userData.obb.clone()
                 // obb.center.copy(object.position)
@@ -287,27 +289,6 @@ export class RoomManager extends Room {
 
     }
 
-    // save(): string[] {
-
-    //     const convert = Object.values(this.contant)
-    //         .filter(item => item.userData.elementType !== 'raspil')
-    //         .map(item => {
-    //             return {
-    //                 id: item.userData.globalData,
-    //                 position: item.position.clone(),
-    //                 rotation: item.rotation.clone(),
-    //                 obb: item.userData.obb,
-    //                 data: this.convertProps(item),
-    //                 type: item.userData.elementType,
-    //                 size: item.userData.PROPS.CONFIG.SIZE
-
-    //             }
-
-    //         });
-    //     const result = JSON.stringify(convert)
-
-    //     return result
-    // }
 
     saveSingle(item: THREE.Object3D, duplicate: boolean = false): any {
 
@@ -409,6 +390,9 @@ export class RoomManager extends Room {
         }
 
         delete this.contant[id]
+
+        const savedData = this.save()
+        this.roomContentData.setRoomContantDataForBasket(savedData)
     }
 
     async update(loadData?: string[]) {
@@ -434,7 +418,7 @@ export class RoomManager extends Room {
         this.uniformState.clearUniformGroupMembership();
     }
 
-    async loadSingle(data: any): Promise<number> {
+    async loadSingle(data: any, copy: boolean = false): Promise<number> {
 
         const model = typeof data === 'string' ? JSON.parse(data) : data;
 
@@ -451,12 +435,20 @@ export class RoomManager extends Room {
 
             /** @Загрузка_модели */
 
-            let builder = loadData.CONFIG?.MODULEGRID ? this.universalGeometryBuilder : this.geometryBuilder;
+            const isUM = loadData.CONFIG?.MODULEGRID
+
+            let builder = isUM ? this.universalGeometryBuilder : this.geometryBuilder;
+
+            /** @Копирование_объекта */
+            if (!isUM) {
+                builder?.isCopy(copy)
+            }
+            //----------------------------------------------------------------------------------------
 
             const object = await builder!.createModel(
                 this.modelState.getModels[model.id] as THREEInterfases.IModelsData,
                 loadData,
-                size
+                size,
             );
 
             /** @Создаём_объект_в_сцене */
@@ -465,6 +457,7 @@ export class RoomManager extends Room {
                 object,
                 rotate: rotation,
                 point,
+                boxHelper: copy
             });
 
             /** @Столешница */
@@ -500,24 +493,31 @@ export class RoomManager extends Room {
             curProd.userData.current = false
         }
         catch (e) {
+            console.log('❌ Контекст userData.current потерян')
         }
-        const { MOUSE_POSITION } = curProd.userData
 
         const saved = await this.saveSingle(curProd, true)
-        await this.loadSingle(saved)
-        this.createTotalObbBounds()
-        this.root._trafficManager?.moveManager?.setSelectObj(this.root._trafficManager._currentObject)
 
+        const beforeIds = new Set(Object.keys(this.contant))
+        await this.loadSingle(saved, this.root._customBoxHelper)
+        const newId = Object.keys(this.contant).find(id => !beforeIds.has(id))
+        const newObject = newId ? this.contant[newId] : null
+
+        if (!newObject) return;
+        newObject.userData.PROPS.DISABLE_MOVE = false;
+        newObject.userData.current = true
+
+        this.root._trafficManager?.moveManager?.setSelectObj(newObject);
 
         document.addEventListener('mousemove', this.addMouseEvent, false)
 
+        this.createTotalObbBounds();
+
         this.eventBus.emit('A:Duplicated')
         this.duplicateSwitch = true
-
-
     }
 
-    private bindMouseEvent(event: MouseEvent) {
+    private addMouseEvent = (event: MouseEvent) => {
         this.root._trafficManager?.moveManager?.handleInteractionMove(event.clientX, event.clientY)
     }
 

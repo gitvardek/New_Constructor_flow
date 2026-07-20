@@ -128,7 +128,7 @@ function goToPage(page: number) {
     border-radius: 8px;
     background: #fff;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 2rem;
     line-height: 1;
     color: #333;
     transition: background 0.2s, border-color 0.2s;
@@ -158,7 +158,7 @@ function goToPage(page: number) {
     border-radius: 8px;
     background: #fff;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.4rem;
     transition: background 0.2s, border-color 0.2s, color 0.2s;
 
     &:hover {
@@ -187,7 +187,7 @@ function goToPage(page: number) {
     border: none;
     background: transparent;
     cursor: default;
-    font-size: 14px;
+    font-size: 1.4rem;
     color: #999;
   }
 }

@@ -40,27 +40,101 @@ export const usePrint = () => {
       const appDataStore = useAppData();
       const appData = appDataStore.getAppData;
       
-      // Функция для получения названия цвета корпуса
-      const getBodyColorName = (colorId: any): string => {
-        if (!colorId) return '—';
-        if (appData?.COLOR && appData.COLOR[colorId]) {
-          return appData.COLOR[colorId].NAME || `Цвет ${colorId}`;
+      // Построение текстового описания товара из PROPS (аналог renderDescription в BasketItem.vue)
+      const buildItemDescription = (product: any): string[] => {
+        const rows: string[] = [];
+        const props = product?.PROPS;
+        if (!props) return rows;
+
+        const resolveColor = (id: any): string => {
+          if (!id) return '';
+          return appData?.FASADE?.[id]?.NAME || appData?.COLOR?.[id]?.NAME || String(id);
+        };
+
+        // DOORS: цвета фасадов UM по секциям/дверям/частям
+        if (props.DOORS) {
+          for (const [doorNum, doorData] of Object.entries(props.DOORS as any)) {
+            for (const [partNum, partData] of Object.entries(doorData as any)) {
+              if (typeof partData === 'number') {
+                rows.push(`Цвет фасада ${doorNum}: дверь ${doorNum} часть ${+partNum + 1}: ${resolveColor(partData)}`);
+              } else {
+                for (const [elemNum, matId] of Object.entries(partData as any)) {
+                  rows.push(`Цвет фасада ${doorNum}: дверь ${partNum} часть ${+elemNum + 1}: ${resolveColor(matId)}`);
+                }
+              }
+            }
+          }
         }
-        if (appData?.FASADE && appData.FASADE[colorId]) {
-          return appData.FASADE[colorId].NAME || `Цвет ${colorId}`;
+
+        // FASADE: массив фасадов для обычных товаров
+        if (!props.DOORS && Array.isArray(props.FASADE)) {
+          props.FASADE.forEach((fasade: any, i: number) => {
+            const n = i + 1;
+            if (fasade.COLOR) rows.push(`Цвет ${n}: ${resolveColor(fasade.COLOR)}`);
+            if (fasade.MILLING) rows.push(`Фрезеровка ${n}: ${appData?.MILLING?.[fasade.MILLING]?.NAME || fasade.MILLING}`);
+            if (fasade.PALETTE) rows.push(`Палитра ${n}: ${appData?.PALETTE?.[fasade.PALETTE]?.NAME || fasade.PALETTE}`);
+            if (fasade.GLASS) rows.push(`Стекло ${n}: ${appData?.GLASS?.[fasade.GLASS]?.NAME || fasade.GLASS}`);
+            if (fasade.PATINA) rows.push(`Патина ${n}: ${appData?.PATINA?.[fasade.PATINA]?.NAME || fasade.PATINA}`);
+          });
         }
-        return `Цвет ${colorId}`;
+
+        // BODY: размеры
+        const size = props.BODY?.SIZE;
+        if (size?.WIDTH) rows.push(`Ширина: ${size.WIDTH}`);
+        if (size?.HEIGHT) rows.push(`Высота: ${size.HEIGHT}`);
+        if (size?.DEPTH) rows.push(`Глубина: ${size.DEPTH}`);
+
+        // Цвет корпуса: для UM — MODULECOLOR, для обычных — BODY.COLOR
+        const bodyColorId = props.MODULECOLOR || props.BODY?.COLOR;
+        if (bodyColorId) rows.push(`Цвет корпуса: ${resolveColor(bodyColorId)}`);
+
+        // Задняя / боковые стенки
+        if (props.BACKWALL?.COLOR) rows.push(`Задняя стенка: ${resolveColor(props.BACKWALL.COLOR)}`);
+        if (props.LEFTSIDECOLOR?.COLOR) rows.push(`Левая стенка: ${resolveColor(props.LEFTSIDECOLOR.COLOR)}`);
+        if (props.RIGHTSIDECOLOR?.COLOR) rows.push(`Правая стенка: ${resolveColor(props.RIGHTSIDECOLOR.COLOR)}`);
+        if (props.TOPFASADECOLOR?.COLOR) rows.push(`Накладка на крышку: ${resolveColor(props.TOPFASADECOLOR.COLOR)}`);
+
+        // Вариант компоновки (FILLING)
+        if (props.FILLING) {
+          const fillingName = appData?.CATALOG?.PRODUCTS?.[props.FILLING]?.NAME;
+          if (fillingName) rows.push(`Вариант компоновки: ${fillingName}`);
+        }
+
+        // Горизонт
+        if (props.HORIZONT !== undefined && props.HORIZONT !== null) {
+          rows.push(`Горизонт: ${props.HORIZONT}`);
+        }
+
+        // Опции
+        if (Array.isArray(props.OPTION) && props.OPTION.length) {
+          props.OPTION.forEach((optId: any) => {
+            const name = appData?.OPTION?.[optId]?.NAME;
+            if (name) rows.push(`Опции: ${name}`);
+          });
+        }
+
+        // Размеры секций SECTIONS1..10
+        for (let i = 1; i <= 10; i++) {
+          const val = props[`SECTIONS${i}`];
+          if (val !== undefined && val !== null) rows.push(`Размер секции ${i}: ${val}`);
+        }
+
+        // Наполнение секций SECTIONSFILLING1..10
+        for (let i = 1; i <= 10; i++) {
+          const filling = props[`SECTIONSFILLING${i}`];
+          if (Array.isArray(filling) && filling.length) {
+            rows.push(`Наполнение секции ${i}:`);
+            filling.forEach((f: any, idx: number) => {
+              const pName = appData?.CATALOG?.PRODUCTS?.[f.ID]?.NAME || `Товар ${f.ID}`;
+              const pos = f.VALUE ? `поз. ${f.VALUE} мм` : '';
+              rows.push(`  ${idx + 1} ${pName}: — ${pos}`);
+            });
+          }
+        }
+
+        return rows;
       };
-      
-      // Функция для получения названия цвета фасада
-      const getFacadeColorName = (colorId: any): string => {
-        if (!colorId) return 'Без фасада';
-        if (appData?.FASADE && appData.FASADE[colorId]) {
-          return appData.FASADE[colorId].NAME || `Фасад ${colorId}`;
-        }
-        return `Фасад ${colorId}`;
-      };
-      
+
       console.log('Найдено скриншотов для печати:', screenshots.length);
       if (screenshots.length > 0) {
         console.log('Детали скриншотов:', screenshots.map(s => ({
@@ -70,35 +144,21 @@ export const usePrint = () => {
         })));
       }
       
-      // Данные корзины (можно передавать как параметр)
+      // Данные корзины
       const cartData = {
         items: basketData?.products?.map((item: any) => {
-          // Парсим форматированные строки в числа для расчетов
-          const parsePrice = (priceStr: string | undefined): number => {
-            if (!priceStr) return 0;
-            // Убираем все символы кроме цифр и запятой/точки
-            const cleaned = priceStr.replace(/[^\d,.-]/g, '').replace(',', '.');
-            return parseFloat(cleaned) || 0;
-          };
-
-          const unitPrice = parsePrice(item.product?.unitPriceFormat);
-          const allPrice = parsePrice(item.product?.allPriceFormat);
-          const allPriceOld = parsePrice(item.product?.allPriceOldFormat);
-          const quantity = item.product?.quantity || 1;
-
           return {
             name: item.product?.NAME || 'Неизвестный товар',
-            bodyColor: getBodyColorName(item.product?.PROPS?.BODY?.COLOR),
-            facadeColor: getFacadeColorName(item.product?.PROPS?.FASADE?.[0]?.COLOR),
-            quantity: quantity,
-            price: unitPrice,
-            amount: allPrice,
-            amountWithoutDiscount: allPriceOld,
-            previewPicture: item.product?.PREVIEW_PICTURE || null
+            description: buildItemDescription(item.product),
+            quantity: item.product?.quantity || 1,
+            unitPrice: item.product?.unitPriceFormat || '—',
+            allPrice: item.product?.allPriceFormat || '—',
+            allPriceOld: item.product?.allPriceOldFormat || '—',
+            previewPicture: item.product?.PREVIEW_PICTURE || null,
           };
         }) || [],
-        total: basketData?.basket?.sum || 0,
-        totalWithoutDiscount: basketData?.basket?.sumOld || 0
+        totalFormat: basketData?.basket?.sumFormat || '—',
+        totalOldFormat: basketData?.basket?.sumFormatOld || '—',
       };
 
       // Показываем индикатор загрузки
@@ -201,25 +261,28 @@ export const usePrint = () => {
                       ${item.previewPicture ? `<img src="${_URL}${item.previewPicture}" alt="${item.name}" class="item-photo-img" />` : '—'}
                     </td>
                     <td class="item-name">
-                      ${item.name}<br/>
-                      <small style="color: #666;">Цвет корпуса: ${item.bodyColor}</small><br/>
-                      <small style="color: #666;">Фасад: ${item.facadeColor}</small>
+                      <strong>${item.name}</strong>
+                      ${item.description.length ? item.description.map(row =>
+                        row.startsWith('  ')
+                          ? `<span style="display:block;padding-left:12px;font-size:11px;color:#777;line-height:1.4;">${row.trim()}</span>`
+                          : `<span style="display:block;font-size:11px;color:#555;line-height:1.4;">${row}</span>`
+                      ).join('') : ''}
                     </td>
                     <td class="item-quantity">${item.quantity}</td>
-                    <td class="item-price">${item.price.toLocaleString('ru-RU')} ₽</td>
-                    <td class="item-amount">${item.amount.toLocaleString('ru-RU')} ₽</td>
-                    <td class="item-amount-no-discount">${item.amountWithoutDiscount.toLocaleString('ru-RU')} ₽</td>
+                    <td class="item-price">${item.unitPrice}</td>
+                    <td class="item-amount">${item.allPrice}</td>
+                    <td class="item-amount-no-discount">${item.allPriceOld}</td>
                   </tr>
                 `).join('')}
                   </tbody>
                   <tfoot>
                     <tr class="summary-row">
                       <td colspan="4" class="summary-label">Итого без скидки:</td>
-                      <td colspan="2" class="summary-value total-no-discount">${cartData.totalWithoutDiscount.toLocaleString('ru-RU')} ₽</td>
+                      <td colspan="2" class="summary-value total-no-discount">${cartData.totalOldFormat}</td>
                     </tr>
                     <tr class="summary-row">
                       <td colspan="4" class="summary-label">Итого со скидкой:</td>
-                      <td colspan="2" class="summary-value total-price">${cartData.total.toLocaleString('ru-RU')} ₽</td>
+                      <td colspan="2" class="summary-value total-price">${cartData.totalFormat}</td>
                     </tr>
                   </tfoot>
                 </table>

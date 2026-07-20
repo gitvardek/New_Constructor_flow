@@ -123,7 +123,7 @@ const closeModal = () => {
 
   .title {
     margin: 0;
-    font-size: 32px;
+    font-size: 3.2rem;
     font-weight: 600;
     text-align: center;
   }
@@ -154,7 +154,7 @@ const closeModal = () => {
 
   .subtitle {
     margin: 0;
-    font-size: 18px;
+    font-size: 1.8rem;
     color: #A3A9B5;
     text-align: center;
   }

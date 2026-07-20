@@ -98,7 +98,7 @@ onMounted(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__contant">
+            <ul class="quality-list">
               <li
                 v-for="(data, index) in getTransformControlSnapAngles"
                 :key="index + data"
@@ -126,7 +126,7 @@ onMounted(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__contant">
+            <ul class="quality-list">
               <li
                 v-for="(data, index) in controllerValue"
                 :key="index + data.name"
@@ -159,21 +159,17 @@ onMounted(() => {
 .switch {
   &__wrapper {
     position: absolute;
-    bottom: 2rem;
-    right: 2rem;
+    bottom: 1rem;
+    left: 295px;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 85x;
-    // z-index: 10;
-    // pointer-events: auto;
   }
 
   &__title {
     position: absolute;
     bottom: 2rem;
     margin: 0;
-    font-size: 1rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: #333;
     padding: 0.35rem 0.75rem;
@@ -201,11 +197,6 @@ onMounted(() => {
     gap: 10rem;
   }
 
-  &__contant {
-    padding-top: 0.5rem;
-    border-top: 1px solid #a3a9b5;
-  }
-
   &__text {
     cursor: pointer;
     transition-property: color;
@@ -214,9 +205,13 @@ onMounted(() => {
     @media (hover: hover) {
       /* when hover is supported */
       &:hover {
-        color: $light-grey;
+        color: $dark-grey
       }
     }
   }
+}
+.quality-list {
+  padding-top: 0.5rem;
+  border-top: 1px solid $dark-grey;
 }
 </style>

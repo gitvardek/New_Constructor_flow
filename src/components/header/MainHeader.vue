@@ -499,6 +499,7 @@ watch(
       }
 
       roomState.routConvertData(newPath);
+
       menuStore.setRulerVisibility(true);
       menuStore.setDrowModeValue(false);
       modelState.setCurrentModel(null);
@@ -560,9 +561,12 @@ onBeforeUnmount(() => {
   <section class="header">
     <div class="header__container">
       <div class="header-main">
-        <router-link to="/" class="header-link">
+        <!-- <router-link to="/" class="header-link">
           <img class="header-link__logo" src="@/assets/img/logo.png" />
-        </router-link>
+        </router-link> -->
+        <div class="header-link">
+               <img class="header-link__logo" src="@/assets/img/logo.png" />
+        </div>
         <div class="header-main-ui">
           <div
             :class="['history', 'history__btns', getHistoruBtnsState]"
@@ -653,7 +657,7 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .header {
   width: 100%;
-  height: 90px;
+  height: var(--header-height);
   display: flex;
   align-items: center;
   border-bottom: 1px solid $light-stroke;
@@ -687,8 +691,8 @@ onBeforeUnmount(() => {
 }
 
 .header-utilitys-basket {
-  width: 201px;
-  height: 50px;
+  width: 150px;
+  height: 3.5rem;
   display: flex;
   border: 1.2px solid $black;
   border-radius: 50px;
@@ -701,7 +705,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 1.6rem;
 }
 
 .header-main {
@@ -709,12 +713,14 @@ onBeforeUnmount(() => {
   max-width: 665px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
 
   &-ui {
     width: 100%;
     display: flex;
     align-items: center;
     gap: 30px;
+    justify-content: end;
 
     .header-ui-group {
       display: flex;
@@ -725,11 +731,13 @@ onBeforeUnmount(() => {
 
 .header-link {
   width: 100%;
-  max-width: 315px;
+  max-width: 125px;
 
   &__logo {
-    width: 154px;
-    height: 61px;
+    // width: 154px;
+    // height: 61px;
+    width: 100%;
+    height: 100%;
   }
 }
 .history {

@@ -20,6 +20,7 @@ export class PatinaBuilder {
         geometry.computeVertexNormals();
         geometry.computeBoundingBox();
 
+        // console.log(startMaterial, '=== startMaterial')
 
         const defaultColor = startMaterial.color;
         const defaultRoughness = startMaterial.roughness;

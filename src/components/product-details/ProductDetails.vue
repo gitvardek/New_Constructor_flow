@@ -27,8 +27,49 @@
   // Обработчики для демонстрации альтернативного подхода
   const clickHandler = (e) => {
     e.preventDefault();
+
     // Логика добавления в корзину
   };
+  // const clickQuantity = (e) => {
+  //   e.preventDefault();
+  //   console.log('Add to cart clicked');
+  //     const quantiti = e.target.value;
+  //     const price = document.querySelector('.product__price-text').textContent;
+  //     const priceNotdiscount = document.querySelector('.product__price-notdiscount').textContent;
+  //     document.querySelector('.product__price-text').textContent = calculateTotal(price, quantiti);
+  //     document.querySelector('.product__price-notdiscount').textContent = calculateTotal(priceNotdiscount, quantiti);
+
+   
+  //   // Логика добавления в корзину
+  // };
+  
+  // function calculateTotal(priceString, quantity) {
+  //   // Извлекаем числовую часть и валюту
+  //   console.log('priceString', priceString);
+  //   const numberPart = priceString.replace(/\s/g, '').replace(/руб/g, '').replace('.', '').trim();
+  //   console.log('numberPart',numberPart);
+  //   console.log('quantity',quantity);
+  //   // Вычисляем общую сумму
+  //   let total
+  //   if(quantity === 1) {
+  //     total = +numberPart;
+  //     console.log('tota1',total);
+  //   } else {
+  //     total = +numberPart * quantity;
+  //     console.log('total2',total);
+  //   }
+  //   console.log('total', total);
+    
+  //   // Форматируем результат
+  //   const formattedTotal = toLocal(total);
+  //   console.log('formattedTotal', formattedTotal);
+    
+  //   return `${formattedTotal} руб`;
+  // }
+
+  // function toLocal(number) {
+  //   return new Intl.NumberFormat('ru-RU').format(number);
+  // }
 
   const inputHandler = (e) => {
 

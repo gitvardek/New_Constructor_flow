@@ -2,16 +2,9 @@
   <div class="basket-item">
     <div class="basket-item__picture">
       <div class="basket-item__picture-container">
-        <img
-          :src="`${API_URL + item?.product.PREVIEW_PICTURE}`"
-          alt=""
-          class="basket-items__picture_img"
-        />
-        <img
-          src="@/assets/svg/left-menu/question.svg"
-          class="basket-items__picture-question"
-          @click="openPopup(item)"
-        />
+        <img :src="`${API_URL + item?.product.PREVIEW_PICTURE}`" alt="" class="basket-items__picture_img" />
+        <img src="@/assets/svg/left-menu/question.svg" class="basket-items__picture-question"
+          @click="openPopup(item)" />
       </div>
     </div>
 
@@ -25,32 +18,20 @@
       </h3>
 
       <!-- Секция свойств товаров общяя -->
-      <div
-        class="basket-item__props"
-        v-if="item?.product.PROPS && item?.product.TYPE !== 'umscene'"
-      >
+      <div class="basket-item__props" v-if="item?.product.PROPS && item?.product.TYPE !== 'umscene'">
         <div v-for="(propValue, propKey) in item.product.PROPS" :key="propKey">
           <div v-if="getPropDefinition(String(propKey))">
             <!-- {{ propValue }} -->
-            <span
-              class="basket-item__props-lable"
-              v-if="
-                propValue && propValue.length !== 0 && propKey !== 'MECHANISM'
-              "
-              >{{ getPropLabel(String(propKey)) }}:</span
-            >
+            <span class="basket-item__props-lable" v-if="
+              propValue && propValue.length !== 0 && propKey !== 'MECHANISM'
+            ">{{ getPropLabel(String(propKey)) }}:</span>
             <!-- Обработка массивов -->
             <ul v-if="Array.isArray(propValue)" class="basket-item__props-list">
               <li v-for="(propVal, index) in propValue" :key="index">
-                <span
-                  v-if="shouldShowPropValue(propKey, propVal)"
-                  :class="getErrorClass(propVal, item?.error?.props)"
-                >
+                <span v-if="shouldShowPropValue(propKey, propVal)" :class="getErrorClass(propVal, item?.error?.props)">
                   <!-- {{ formatPropValue(propKey, propVal , item) }} -->
 
-                  <span
-                    v-html="formatPropValue(propKey, propVal, item, index)"
-                  ></span>
+                  <span v-html="formatPropValue(propKey, propVal, item, index)"></span>
 
                   <span v-if="hasArticle(propKey, propVal)">
                     - артикул {{ getArticleCode(propKey, propVal) }}
@@ -65,16 +46,12 @@
                   }}
 
                   <!-- Дополнительная информация для PRODUCTS -->
-                  <template
-                    v-if="getPropDefinition(propKey).type === 'PRODUCTS'"
-                  >
-                    <p
-                      v-if="
-                        propVal.FASADE &&
-                        propVal.FASADE.fasade &&
-                        propVal.FASADE.fasade.COLOR
-                      "
-                    >
+                  <template v-if="getPropDefinition(propKey).type === 'PRODUCTS'">
+                    <p v-if="
+                      propVal.FASADE &&
+                      propVal.FASADE.fasade &&
+                      propVal.FASADE.fasade.COLOR
+                    ">
                       Цвет:
                       {{ getFasadeSectionName(propVal.FASADE.fasade.COLOR) }} -
                       {{ getFasadeName(propVal.FASADE.fasade.COLOR) }}
@@ -82,17 +59,14 @@
                         -
                         {{
                           getPaletteName(propVal.FASADE.fasade.PALETTE)
-                        }};</span
-                      >
+                        }};</span>
                     </p>
 
-                    <p
-                      v-if="
-                        propVal.FASADE &&
-                        propVal.FASADE.fasade &&
-                        propVal.FASADE.fasade.MILLING
-                      "
-                    >
+                    <p v-if="
+                      propVal.FASADE &&
+                      propVal.FASADE.fasade &&
+                      propVal.FASADE.fasade.MILLING
+                    ">
                       Фрезеровка:
                       {{ getMillingSectionName(propVal.FASADE.fasade.MILLING) }}
                       -
@@ -113,16 +87,11 @@
                       <p v-for="(val, key) in objItem" :key="key">
                         Дверь {{ key }}:
                         <template v-if="isObject(val)">
-                          <span
-                            v-for="(segment, segmentKey) in val"
-                            :key="segmentKey"
-                          >
+                          <span v-for="(segment, segmentKey) in val" :key="segmentKey">
                             {{ segmentKey }}:
                             {{ getFasadeSectionName(segment) }} -
                             {{ getFasadeName(segment) }}
-                            <span
-                              v-if="hasArticleForSegment(segment, segmentKey)"
-                            >
+                            <span v-if="hasArticleForSegment(segment, segmentKey)">
                               - артикул
                               {{
                                 getArticleCodeForSegment(segment, segmentKey)
@@ -137,10 +106,7 @@
                         </template>
 
                         <template v-else-if="Array.isArray(val)">
-                          <span
-                            v-for="(segment, segmentIndex) in val"
-                            :key="segmentIndex"
-                          >
+                          <span v-for="(segment, segmentIndex) in val" :key="segmentIndex">
                             {{ segmentIndex + 1 }}:
                             {{ getFasadeSectionName(segment) }} -
                             {{ getFasadeName(segment) }}
@@ -188,14 +154,9 @@
                 </ul>
               </template>
 
-              <template
-                v-else-if="getPropDefinition(propKey).val === 'color_obj_list'"
-              >
+              <template v-else-if="getPropDefinition(propKey).val === 'color_obj_list'">
                 <ul>
-                  <div
-                    v-for="(colorItem, colorKey) in propValue"
-                    :key="colorKey"
-                  >
+                  <div v-for="(colorItem, colorKey) in propValue" :key="colorKey">
                     <li v-if="String(colorKey) === 'COLOR'">
                       Цвет: {{ getFasadeSectionName(colorItem) }} -
                       {{ getFasadeName(colorItem) }}
@@ -204,8 +165,7 @@
                         {{ getArticleCodeForSegment(colorItem, propKey) }}
                       </span>
                       <span v-if="propValue.PALETTE">
-                        - {{ getPaletteName(propValue.PALETTE) }}</span
-                      >
+                        - {{ getPaletteName(propValue.PALETTE) }}</span>
                       {{
                         hasError(colorItem, item?.error?.props)
                           ? "(НЕДОСТУПНО!)"
@@ -221,12 +181,10 @@
                 </ul>
               </template>
               <!-- // -->
-              <template
-                v-else-if="
-                  getPropDefinition(propKey).val === 'int' &&
-                  getPropDefinition(propKey).type
-                "
-              >
+              <template v-else-if="
+                getPropDefinition(propKey).val === 'int' &&
+                getPropDefinition(propKey).type
+              ">
                 {{
                   getTypeName(
                     getPropDefinition(propKey).type,
@@ -248,12 +206,10 @@
                 {{ getListValue(propKey, propValue) }}
               </template>
 
-              <template
-                v-else-if="
-                  !getPropDefinition(propKey).type &&
-                  getPropDefinition(propKey).val === 'int'
-                "
-              >
+              <template v-else-if="
+                !getPropDefinition(propKey).type &&
+                getPropDefinition(propKey).val === 'int'
+              ">
                 {{ propValue }}
               </template>
 
@@ -264,11 +220,7 @@
           </div>
           <span v-if="propKey === 'RASPIL'">
             <div v-for="(item, index) in propValue.data" :key="propKey">
-              <span
-                v-if="item.serviseData.length"
-                class="basket-item__props-lable"
-                >Услуга {{ ++index }} :</span
-              >
+              <span v-if="item.serviseData.length" class="basket-item__props-lable">Услуга {{ ++index }} :</span>
               <ul class="basket-item__props-list">
                 <li v-for="(lisItem, index) in item.serviseData" :key="index">
                   <!-- {{ item.serviseData.length }} -->
@@ -309,19 +261,12 @@
 
       <!-- Секция свойств товара тип УМ-->
       <div class="basket-item__props" v-else>
-        <div
-          style="list-style: none"
-          v-for="(propValue, propKey) in renderDescription(item?.product.PROPS)"
-          :key="propKey"
-        >
+        <div style="list-style: none" v-for="(propValue, propKey) in renderDescription(item?.product.PROPS)"
+          :key="propKey">
           <div v-if="Array.isArray(propValue.value)">
             <span class="basket-item__props-lable">{{ propValue.key }}:</span>
-            <div
-              class="basket-item__props-block__lables"
-              style="list-style: none"
-              v-for="(value, i) in propValue.value"
-              :key="i"
-            >
+            <div class="basket-item__props-block__lables" style="list-style: none" v-for="(value, i) in propValue.value"
+              :key="i">
               <!-- <span>{{ i + 1 }}) {{ value.key }}:</span
               ><span>{{ value.value ? ` - поз. ${value.value} мм` : "" }}</span> -->
 
@@ -338,38 +283,23 @@
             </div>
           </div>
           <div v-else>
-            <span class="basket-item__props-lable">{{ propValue.key }}:</span
-            ><span>{{ propValue.value }}</span>
+            <span class="basket-item__props-lable">{{ propValue.key }}:</span><span>{{ propValue.value }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <div class="basket-item__quantity">
-      <button
-        v-if="item?.product.TYPE === 'catalog'"
-        class="basket-item__quantity-btn"
-        @click="decrement(item.product.BASKETID, item?.product.TYPE)"
-        :disabled="item.error"
-      >
+      <button v-if="item?.product.TYPE === 'catalog'" class="basket-item__quantity-btn"
+        @click="decrement(item.product.BASKETID, item?.product.TYPE)" :disabled="item.error">
         -
       </button>
-      <input
-        type="text"
-        :disabled="item?.product.TYPE !== 'catalog'"
-        class="basket-item__quantity-input"
-        v-model="item.product.quantity"
-        placeholder="1"
-        @change="
+      <input type="text" :disabled="item?.product.TYPE !== 'catalog'" class="basket-item__quantity-input"
+        v-model="item.product.quantity" placeholder="1" @change="
           () => updateQuantity(item.product.BASKETID, item?.product.TYPE)
-        "
-      />
-      <button
-        v-if="item?.product.TYPE === 'catalog'"
-        class="basket-item__quantity-btn"
-        @click="increment(item.product.BASKETID, item?.product.TYPE)"
-        :disabled="item.error"
-      >
+        " />
+      <button v-if="item?.product.TYPE === 'catalog'" class="basket-item__quantity-btn"
+        @click="increment(item.product.BASKETID, item?.product.TYPE)" :disabled="item.error">
         +
       </button>
     </div>
@@ -389,18 +319,12 @@
       <span>{{ item.product.allPriceOldFormat ?? 0 }}</span>
     </div>
 
-    <div class="basket-item__price basket-item__action">
-      <DeleteBasketButton
-        @click="
-          deleteProductInBusket(item.product.BASKETID, item?.product.TYPE)
-        "
-      />
+    <div class="basket-item__price basket-item__action" v-if="isNonDelete">
+      <DeleteBasketButton @click="
+        deleteProductInBusket(item.product.BASKETID, item?.product.TYPE)
+        " />
     </div>
-    <InfoPopUp
-      v-if="isShowInfoPopup"
-      @close="closeInfoPopup"
-      v-bind="currentProductInfo"
-    />
+    <InfoPopUp v-if="isShowInfoPopup" @close="closeInfoPopup" v-bind="currentProductInfo" />
   </div>
 </template>
 
@@ -420,6 +344,7 @@ import { BASE_DOMAIN } from "@/utils/originalDomain";
 
 // const API_URL = ref('https://dev.vardek.online');
 const API_URL = ref(`https://${BASE_DOMAIN}`);
+const hideDeleteList = ref<(string | number)[]>(['plinth', 'tabletop'])
 
 interface Props {
   item: any;
@@ -444,7 +369,9 @@ const {
   getArticleByFasadId,
 } = useConfigStore();
 
-
+onBeforeMount(() => {
+  console.log(props.item, "PPPPP");
+});
 // Получаем данные из store
 const appData = computed(() => appDataStore.getAppData);
 
@@ -517,6 +444,41 @@ const shouldShowPropValue = (key: string, propVal: any) => {
   return propDef && propDef.type && propDef.type !== "PRODUCT";
 };
 
+// const formatPropValue = (key: string, propVal: any, item: any) => {
+//   const propDef = getPropDefinition(key);
+//   console.log('propValpropVal', propVal);
+
+//   if (propDef && propDef.type === 'PRODUCTS') {
+//     if (propVal.ID) {
+//       return propVal.VALUE === null
+//         ? getProductInfo(propVal.ID).NAME
+//         : `${getProductInfo(propVal.ID).NAME} - поз. ${propVal.VALUE} мм.`;
+//     } else {
+//       return getProductInfo(propVal).NAME;
+//     }
+//   }
+
+//   if(item?.product.TYPE=== 'scene') {
+//     if (typeof propVal === 'object' && propVal !== null) {
+//       let getListValue = '';
+//       Object.entries(propVal).forEach(([key, value]) => {
+//         if (typeof value === 'object' && value !== null) {
+//           value = JSON.stringify(value);
+//         }
+//         getListValue += `<li><strong>${key}:</strong> ${value}</li>`;
+//       });
+
+//       const ul = document.createElement('ul');
+//       ul.innerHTML = getListValue;
+//       console.log(ul);
+//       return ul; // возвращаем DOM элемент
+//     }
+//     console.log('тип')
+
+//     return getTypeName(propDef?.type, propVal.COLOR);
+//   }
+//   return getTypeName(propDef?.type, propVal);
+// };
 
 const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
   const propDef = getPropDefinition(key);
@@ -526,7 +488,7 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
       return propVal.VALUE === null
         ? getProductInfo(propVal.ID).NAME
         : // : `${getProductInfo(propVal.ID).NAME} - поз. ${propVal.ADDITIVES} мм.`;
-          `${getProductInfo(propVal.ID).NAME}`;
+        `${getProductInfo(propVal.ID).NAME}`;
     } else {
       return getProductInfo(propVal).NAME;
     }
@@ -568,7 +530,7 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
   return getTypeName(propDef?.type, propVal);
 };
 
-const getWidthFasadesToSIZESProp = () => {};
+const getWidthFasadesToSIZESProp = () => { };
 
 const getErrorClass = (propVal: any, propsError: any) => {
   // Здесь должна быть логика определения классов ошибок
@@ -622,6 +584,7 @@ const getArticleCodeForSegment = (_segment: any, _key: string) => {
 
 const hasError = (value: any, propsError: any) => {
 
+  // return propsError && propsError.includes(value);
   if (!propsError || !Array.isArray(propsError)) return false;
 
   // return propsError.some(error => error.id && error.id.includes(value));
@@ -634,7 +597,7 @@ const getTypeName = (
   index: number,
 ) => {
   // Получаем имя из store данных
-
+  // console.log('data', appData.value, type, value, mainType);
 
   if (value && typeof value === "object" && value.NAME) {
     return value.NAME;
@@ -800,13 +763,14 @@ function updateQuantity(id: string, type: string) {
 }
 
 const deleteProductInBusket = (id: string, type: string) => {
-  basketStore.removeFromBasket(id, type);
+
   if (type === "scene" || type === "umscene") {
     useEventBus().emit("A:RemoveModelFromBasket", {
       product: null,
       basketId: id,
     });
   }
+  basketStore.removeFromBasket(id, type);
   basketStore.syncBasketDelay();
 };
 
@@ -901,7 +865,8 @@ const renderDescription = (data) => {
   }
 
   for (const [key, value] of Object.entries(data)) {
-
+    // console.log(getPropDefinition(key)?.NAME);
+    // console.log(value);
     if (
       getPropDefinition(key)?.NAME &&
       !isObject(value) &&
@@ -961,6 +926,7 @@ const renderDescription = (data) => {
             });
           } else {
             value.forEach((el) => {
+
               items.push({
                 key: `
                 cекция: ${el.section} / 
@@ -998,11 +964,21 @@ const renderDescription = (data) => {
 
           // Для каждой двери перебираем её части (обычно только часть "1")
           for (const [partNumber, partData] of Object.entries(doorData)) {
-            // Каждая часть может содержать несколько элементов (0, 1 и т.д.)
+
+            if (partData) continue
+
+            const { CATALOG } = appData.value
+
+            if (CATALOG[getPropDefinition(key)?.type]) continue
+
+            const product = CATALOG[getPropDefinition(key)?.type][partData]
+
+            if (!product) continue
 
             const description =
-              appData.value[getPropDefinition(key)?.type][partData].NAME ||
+              product.NAME ||
               `Неизвестный материал (ID: ${partData})`;
+
             result.push({
               key: getPropDefinition(key)?.NAME,
               value: `дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
@@ -1040,7 +1016,7 @@ const renderDescription = (data) => {
       if (key === "BACKWALL" && !value.COLOR) {
         result.push({ key: getPropDefinition(key)?.NAME, value: "Выключена" });
       }
-    } else if (getPropDefinition(key)?.NAME && Array.isArray(value)) {
+    } else if (getPropDefinition(key)?.NAME && Array.isArray(value) && key !== "OPTION") {
       //У шкафов ЭКО фрезеровки, палитры и т.д. приходят в формате Array, а не Object
       value.forEach((doorData, doorNumber) => {
         if (typeof doorData === "number") {
@@ -1058,18 +1034,26 @@ const renderDescription = (data) => {
 
   return result;
 };
+
+const isNonDelete = computed(() => {
+
+   return !hideDeleteList.value.includes(String(props.item.product.BASKETID))
+
+})
 </script>
 
 <style scoped lang="scss">
 .basket-item {
   display: grid;
-  grid-template-columns: 150px 1fr 120px 120px 120px 120px 42px;
+  grid-template-columns: 150px 1fr 75px 135px 135px 135px 50px;
   align-items: center;
   gap: 10px;
   padding: 15px 0;
+
   &:not(:last-child) {
     border-bottom: 1px solid #eee;
   }
+
   &__product-name--error {
     color: red !important;
   }
@@ -1084,6 +1068,7 @@ const renderDescription = (data) => {
     border-radius: 10px;
     background: #fafafa;
   }
+
   // &__picture-img {
   //   max-width: 130px;
   //   border-radius: 8px;
@@ -1104,9 +1089,11 @@ const renderDescription = (data) => {
     &-container {
       position: relative;
     }
+
     & img:first-child {
       width: 100%;
     }
+
     & img:last-child {
       position: absolute;
       right: 7px;
@@ -1117,16 +1104,17 @@ const renderDescription = (data) => {
 
   &__product h3 {
     color: #111b21;
-    font-size: 15px;
+    font-size: 1.4rem;
     margin-bottom: 4px;
   }
 
   &__props {
     grid-column: 1 / -1;
     color: #111b21;
+
     &-lable {
       font-weight: 600;
-      font-size: 15px;
+      font-size: 1.4rem;
       line-height: 100%;
       letter-spacing: 0%;
       color: #a3a9b5 !important;
@@ -1142,6 +1130,7 @@ const renderDescription = (data) => {
       color: #111b21;
       font-weight: 600;
     }
+
     ul {
       margin: 0;
       padding-left: 20px;
@@ -1151,11 +1140,12 @@ const renderDescription = (data) => {
     li {
       position: relative;
       margin-bottom: 4px;
-      font-size: 0.9rem;
+      font-size: 1.4rem;
       font-weight: 600;
       line-height: 100%;
       letter-spacing: 0%;
       list-style: none;
+
       &::after {
         content: "";
         display: block;
@@ -1180,21 +1170,22 @@ const renderDescription = (data) => {
     display: flex;
     align-items: center;
     gap: 6px;
+    justify-content: center;
 
     &-input {
-      width: 38px;
-      height: 38px;
+      width: 30px;
+      height: 30px;
       text-align: center;
       background-color: #f6f5fa;
       border: 1px solid #ecebf1;
       font-weight: 500;
-      font-style: Medium;
-      font-size: 15px;
+      font-size: 1.4rem;
       line-height: 100%;
       letter-spacing: 0%;
       vertical-align: middle;
       color: #111b21;
     }
+
     &-btn {
       background-color: transparent;
       border: none;
@@ -1202,18 +1193,21 @@ const renderDescription = (data) => {
       font-size: 2rem;
     }
   }
+
   &__price {
     font-weight: 500;
-    font-style: Medium;
-    font-size: 15px;
+    font-size: 1.2rem;
     line-height: 100%;
     letter-spacing: 0%;
     vertical-align: middle;
     color: #111b21;
+    text-align: center;
   }
+
   &__old-total span {
     display: inline-block;
     position: relative;
+
     &::after {
       content: "";
       display: block;

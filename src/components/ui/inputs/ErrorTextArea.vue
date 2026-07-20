@@ -32,7 +32,7 @@ const { value: fieldValue, errorMessage } = useField<string>(props.name);
   width: 100%;
 
   &__label {
-    font-size: 18px;
+    font-size: 1.8rem;
     color: $dark-grey;
     margin-left: 8px;
   }
@@ -49,7 +49,7 @@ const { value: fieldValue, errorMessage } = useField<string>(props.name);
   }
 
   &__error {
-    font-size: 14px;
+    font-size: 1.4rem;
     color: #dc3545;
     margin-bottom: 8px;
     min-height: 20px;

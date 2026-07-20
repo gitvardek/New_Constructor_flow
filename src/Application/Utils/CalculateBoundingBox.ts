@@ -2,47 +2,6 @@
 import * as THREE from 'three';
 import { OBB } from 'three/examples/jsm/math/OBB.js';
 
-export function createOBBFromObject(object: THREE.Object3D): OBB {
-
-    // object.updateMatrixWorld(true);
-    object.matrixWorldNeedsUpdate = true
-
-    // object.traverse(children => {
-    //     if (children instanceof THREE.Mesh) {
-    //         children.geometry.computeBoundingBox();
-    //     }
-    // })
-
-    // // Получаем размеры объекта
-
-    // const size = new THREE.Vector3();
-    // boundingBox.getSize(size);
-
-    // const obb = new OBB().fromBox3(boundingBox)
-
-    // return obb;
-
-    // Получаем bounding box объекта
-    const boundingBox = new THREE.Box3().setFromObject(object);
-    const obb = new OBB().fromBox3(boundingBox)
-
-    // Находим центр объекта
-    // const center = new THREE.Vector3();
-    // boundingBox.getCenter(center);
-
-    // // Рассчитываем размер объекта
-    // const size = new THREE.Vector3();
-    // boundingBox.getSize(size);
-
-    // // Создаем OBB с центром и половиной размеров
-    // const obb = new OBB(center, size.multiplyScalar(0.5));
-
-    // Применяем мировую матрицу объекта для OBB
-    // obb.applyMatrix4(object.matrixWorld);
-
-    return obb;
-}
-
 export function separateArrows(object: THREE.Object3D, box: THREE.Box3) {
     object.traverse((child) => {
         // Пропускаем ArrowHelper и его дочерние элементы

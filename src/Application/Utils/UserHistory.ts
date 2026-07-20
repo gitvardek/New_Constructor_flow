@@ -34,6 +34,7 @@ class UserHistory<T> {
             this.history = this.history.slice(0, this.currentIndex + 1);
         }
         // const trigger = this.triggers.includes(name)
+        // console.log(trigger, 'trigger')
 
 
         // Добавляем новое действие

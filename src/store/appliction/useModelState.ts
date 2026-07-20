@@ -9,6 +9,7 @@ import { MILLINGS, additionalMillingKeys, MILLING_HANDLE_KEYS, INTEGRATE_HANDE_E
 import { number } from "yup";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useExpressions } from "@/utils/useExpressions";
 
 export type TFasadeGroupSize = {
 
@@ -72,8 +73,9 @@ export type TMillingListItem = {
 
 const UM_store = useUMStorage()
 export const useModelState = defineStore('ModelState', () => {
+    const { getException } = useExpressions();
 
-    const appStore = useAppData()
+    const appStore = useAppData();
     const _APP = computed(() => appStore.getAppData || {})
 
     const _COLOR = computed(() => _APP.value.COLOR || [])
@@ -99,9 +101,12 @@ export const useModelState = defineStore('ModelState', () => {
     const _HANDLES = computed(() => _APP.value.HANDLES || [])
     const _HEM = computed(() => _APP.value.HEM || [])
     const _WALL = computed(() => _APP.value.WALL || [])
+    const _FASADE_EXCEPTIONS = computed(() => _APP.value.FASADE_EXCEPTIONS || [])
+
+    // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 
 
-
+    const nestandartIDs = ref<number[]>([1814256, 971222, 1807360,])
 
     const currentModel = ref<THREE.Object3D | null>(null)
     const currentRaspilParent = ref<THREE.Object3D | null>(null)
@@ -127,11 +132,6 @@ export const useModelState = defineStore('ModelState', () => {
     const currentGlassData = ref<number[]>([])
 
     const currentPatinaData = ref<number[]>([])
-
-    const transformControls = ref<boolean>(false)
-    const transformControlsName = ref<string>("Позиционирование")
-    const transformControlSnapAngles = ref<number[]>([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
-    const currentControlSnapAngle = ref<number>(1)
 
     const setCurrentModel = (object: THREE.Object3D | any) => {
 
@@ -178,6 +178,8 @@ export const useModelState = defineStore('ModelState', () => {
             if (!acc[groupId]) acc[groupId] = [];
             acc[groupId].push(facadeId);
 
+            acc[groupId].sort();
+
             return acc;
         }, {} as Record<string, number[]>);
 
@@ -197,25 +199,8 @@ export const useModelState = defineStore('ModelState', () => {
     }
 
     const createFlatModuleData = (value: number[]) => {
-
-        const validIds = value.filter(id => _FASADE.value[id]);
-
-        const sortCache = new Map<number, number>();
-
-        validIds.forEach(facadeId => {
-            const facade = _FASADE.value[facadeId];
-            if (!facade) return;
-
-            const section = _FASADE_SECTION.value[facade.IBLOCK_SECTION_ID];
-            const groupId = section?.UF_GROUP;
-            const group = groupId ? _FASADE_GROUPS.value[groupId] : null;
-
-            sortCache.set(facadeId, group?.SORT ?? 99999);
-        });
-
-        return validIds.sort((a, b) => {
-            return (sortCache.get(a) ?? 99999) - (sortCache.get(b) ?? 99999);
-        });
+        const grouped = createCurrentModuleData(value, true)
+        return grouped?.flatMap(group => group.FASADES) ?? []
     }
 
     const getCurrentModuleData = computed(() => {
@@ -335,6 +320,7 @@ export const useModelState = defineStore('ModelState', () => {
             return percept[key] = _PRODUCTS.value[el]
         }).filter(Boolean)
 
+        // console.log(percept)
 
         // const filtered = Object.values(_PLINTH).map(el => {
         //     return _PRODUCTS.value[el]
@@ -359,19 +345,19 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** ------- Работа с фасадами -------- */
 
-    const createCurrentModelFasadesData = ({ data, def, fasadeNdx, productId }: { data: number[], def?: boolean, fasadeNdx?: number, productId?: number }) => {
-        const defaultFasade = def ?? false
+    const createCurrentModelFasadesData = ({ data, def, fasadeNdx, fasadeCount, productId }: { data: number[], def?: boolean, fasadeNdx?: number, fasadeCount?: number | boolean, productId?: number | boolean }) => {
+        clearCurrentModelFasadesData();
 
+        const defaultFasade = def ?? false
         const groupedFasades: Record<string, number> = {};
-        let exception = !defaultFasade ? 'Без фасада' : ''
+        let nonFasades = !defaultFasade ? 'Без фасада' : ''
+        const exception = _FASADE_EXCEPTIONS.value[productId]
         let haveShowCase = null;
 
-
-        if (fasadeNdx !== undefined && productId !== undefined) {
+        if (fasadeNdx !== undefined && productId) {
 
             let fasadePosData = null;
             const product = _PRODUCTS.value[productId]
-
 
             if (!product.FASADE_POSITION || product.FASADE_POSITION.length == 0) {
                 return []
@@ -395,6 +381,7 @@ export const useModelState = defineStore('ModelState', () => {
 
         data.forEach(facadeId => {
             const facade = _FASADE.value[facadeId];
+            // console.log(facade)
 
             if (!facade) return;
             const hasGlass = _FASADE.value[facadeId].GLASS_ONLY == 1
@@ -421,7 +408,7 @@ export const useModelState = defineStore('ModelState', () => {
             }
 
 
-            if (!haveShowCase && hasGlass) return
+            if (!haveShowCase && hasGlass && !nestandartIDs.value.includes(productId)) return // Для фрифолдов и нестандартных модулей
 
             groupedFasades[groupId]['id'].push(facadeId);
 
@@ -439,7 +426,31 @@ export const useModelState = defineStore('ModelState', () => {
         }
 
 
-        ).filter(group => group.FASADES.length > 0 && group.NAME !== exception).sort((a, b) => a.SORT - b.SORT);
+        ).filter(group => group.FASADES.length > 0 && group.NAME !== nonFasades).sort((a, b) => a.SORT - b.SORT);
+
+        if (exception) {
+            const { fasade, type } = exception;
+            const key = type?.toLowerCase()
+            const fasadeIds = fasade.map(Number);
+            const formula = getException(key)
+
+            if (!formula) {
+                console.warn(`Unknown exception type: "${key}"`);
+            }
+
+            const handlers = {
+                eco: () => {
+                    return formula(fasadeNdx, fasadeCount);
+                }
+            };
+
+            const handler = handlers[key]();
+
+            const isFiltered = handler ? filterByFasadesArray(result, fasadeIds) : result
+
+            currentModelFasadesData.value = isFiltered
+            return isFiltered
+        }
 
         if (defaultFasade) {
             return result
@@ -448,12 +459,22 @@ export const useModelState = defineStore('ModelState', () => {
         currentModelFasadesData.value = result
     }
 
-    const createFlatFasadeData = ({ data, def, fasadeNdx }) => {
-        const list = createCurrentModelFasadesData({ data, def, fasadeNdx })
+    const createFlatFasadeData = ({ data, def, fasadeNdx, fasadeCount = false, productId = false }) => {
+        const list = createCurrentModelFasadesData({ data, def, fasadeNdx, productId, fasadeCount })
         const flated = list?.map(el => el.FASADES).flat()
         return flated
-
     }
+
+    const filterByFasadesArray = (arr: any[], numbers: number[]) => {
+        const numbersSet = new Set(numbers);
+        return arr
+            .map(item => ({
+                ...item,
+                FASADES: item.FASADES.filter((id: number) => !numbersSet.has(id))
+            }))
+            .filter(item => item.FASADES.length > 0);
+    };
+
 
     const clearCurrentModelFasadesData = () => {
         currentModelFasadesData.value = []
@@ -495,7 +516,6 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** Фрезеровки */
     const createCurrentMillingData = ({ fasadeId, productId, fasadeNdx, fasadeSize }): TMillingListItem[] | [] => {
-
 
         let result = []
         if (fasadeId == 7397) {
@@ -540,7 +560,6 @@ export const useModelState = defineStore('ModelState', () => {
 
             if (millingConversations && fasadeSize) {
 
-
                 const checkedMillingConversation = millingConversationFilter(fasadeSize, millingConversations);
 
                 if (checkedMillingConversation) {
@@ -549,14 +568,12 @@ export const useModelState = defineStore('ModelState', () => {
 
                     })
                 }
-
             }
 
             currentMillingData.value = result
 
             return result
         }
-
 
         currentMillingData.value = result
         return result
@@ -583,7 +600,6 @@ export const useModelState = defineStore('ModelState', () => {
     }
 
     const getCurrentMillingMap = (data) => {
-
 
         const millingKey = additionalMillingKeys[data];
         const millingMapData = MILLINGS[millingKey] ?? MILLINGS[data] ?? MILLINGS[566720];
@@ -645,6 +661,7 @@ export const useModelState = defineStore('ModelState', () => {
     const millingConversationFilter = (fasadeSize, conversationId) => {
         try {
             const restrict = _MILLING_SIZE_RESTRICT.value.find((el) => el.ID === conversationId)
+
             const { FASADE_WIDTH, FASADE_HEIGHT } = fasadeSize
             const { HEIGHT, WIDTH, MIN_HEIGHT, MIN_WIDTH, MILLING } = restrict
 
@@ -794,45 +811,6 @@ export const useModelState = defineStore('ModelState', () => {
 
     }
 
-
-    //================== helpers ==================
-
-    const expressionsReplace = (obj: any, expressions: THREETypes.TObject) => {
-
-        if (!expressions || !Object.keys(expressions).length) return obj;
-
-        let objStr: THREETypes.TObject | string | number = obj;
-
-        // Преобразуем объект в строку, если это объект
-        if (typeof obj == "object") {
-            objStr = JSON.stringify(obj);
-        }
-
-        // Заменяем выражения
-        Object.entries(expressions).forEach(([k, v]) => {
-            if (typeof objStr != "number") {
-                objStr = objStr.split(k).join(v);
-            }
-        });
-
-        // Возвращаем объект или строку
-        if (typeof obj == "object") {
-            return JSON.parse(objStr as string);
-        } else {
-            return objStr;
-        }
-    };
-
-    const calculateFromString = (expression) => {
-        try {
-            const func = new Function("return " + expression);
-            return func();
-        } catch (error) {
-
-            return "Недопустимое выражение!";
-        }
-    }
-
     return {
         _APP,
         _FASADE,
@@ -850,6 +828,9 @@ export const useModelState = defineStore('ModelState', () => {
         _PALETTE,
         _PATINA,
         _WALL,
+        _FASADE_EXCEPTIONS,
+        _COLOR,
+
 
         getModels,
 
@@ -903,10 +884,6 @@ export const useModelState = defineStore('ModelState', () => {
 
         getOptions,
 
-
-        /** Helpers */
-        expressionsReplace,
-        calculateFromString
     }
 
 });

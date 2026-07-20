@@ -28,7 +28,11 @@ export class HandlesBuilder {
     private dispose: TDeepDispose
     private scene: THREE.Scene
     private eventBus: ReturnType<typeof useEventBus> = useEventBus();
-    public clearId = 69920
+
+    public readonly CLEAR_HANDLE_ID = 69920
+    private readonly HANDLE_OFFSET_MM = 25
+    private readonly HANDLE_Z_DEPTH_FACTOR = 0.6
+
     private positionMap: TPositionMap = {
         0: { col: -1, row: 1, rotation: Math.PI / 2 },   // лево-верх
         1: { col: 0, row: 1, rotation: 0 },             // центр-верх
@@ -41,6 +45,7 @@ export class HandlesBuilder {
         8: { col: 1, row: -1, rotation: -Math.PI / 2 }  // право-низ
     }
 
+
     constructor(parent: TBuildProduct) {
         this.parent = parent
 
@@ -51,7 +56,9 @@ export class HandlesBuilder {
 
     public async createHandle(params: TCreateHandleParams, fasade: THREE.Object3D, fasadeData: TFasadeProp): Promise<THREE.Object3D | null> {
         const { id, model } = params;
+        fasadeData.HANDLES.id = id
 
+        // console.log(fasadeData.HANDLES)
 
         const startAction = fasadeData.HANDLES.position ?? 4
         const handleData: TModelData = this.parent._MODELS[model]
@@ -59,25 +66,25 @@ export class HandlesBuilder {
 
         let scaleVector = new THREE.Vector3(scale, scale, scale)
 
-        this.deliteHandle(fasade)
+        this.deleteHandle(fasade)
 
-        if (id === this.clearId) return null
+        if (id === this.CLEAR_HANDLE_ID) return null
 
         const modelType = this.getFileType(file)
 
         if (modelType == 'UNKNOWN') return null
 
         const handleModel: THREE.Object3D = await this.resources.startLoading(file, modelType) as THREE.Object3D;
+
+
         const aabb = new THREE.Box3().setFromObject(handleModel);
         handleModel.userData.aabb = aabb
 
         this.normalizeHandlePivot(handleModel, fasade, modelType, handleData, scaleVector)
 
-
         if (!handleModel) return null
 
         await this.getHandlesPosition(startAction, handleModel, fasade)
-
 
         handleModel.name = 'HANDLE'
 
@@ -111,7 +118,7 @@ export class HandlesBuilder {
 
         const W = handlSize.x;
         const H = handlSize.y;
-        const offset = 25; // мм
+        const offset = this.HANDLE_OFFSET_MM; // мм
 
         const cfg = this.positionMap[action];
         if (!cfg) {
@@ -162,15 +169,15 @@ export class HandlesBuilder {
                 halfExtX, halfExtY,
                 halfWidth, halfHeight
             });
-            alert(`Ручка выходит за пределы дверцы (action=${action}). Проверь размеры ручки или увеличь фасад/сдвинь позицию.`);
+            console.warn('Ручка выходит за пределы фасада', { action, posX, posY })
         }
     }
 
-    public async deliteHandle(fasade: THREE.Object3D) {
+    public deleteHandle(fasade: THREE.Object3D): void {
         if (!fasade) return
-        fasade.traverse(children => {
-            if (children.name === 'HANDLE') {
-                this.dispose.clearObject(children, this.scene)
+        fasade.traverse(child => {
+            if (child.name === 'HANDLE') {
+                this.dispose.clearObject(child, this.scene)
             }
         })
     }
@@ -178,9 +185,36 @@ export class HandlesBuilder {
     public restoreDefaultHandleData(fasadeData: TFasadeProp) {
         const handlerPosition = fasadeData.HANDLES.drawer ? 4 : 0
         return {
-            id: this.clearId,
+            id: this.CLEAR_HANDLE_ID,
             position: handlerPosition,
             drawer: fasadeData.HANDLES.drawer
+        }
+    }
+
+    public async changeTotalHandles(elementsList: THREE.Object3D[], handleId) {
+        if (!elementsList) return false
+
+        const params = {
+            id: handleId,
+            model: this.parent._PRODUCTS[handleId].models[0]
+        }
+
+        if (Array.isArray(elementsList) && elementsList[0]) {
+            elementsList.forEach((el) => {
+                const { PROPS: { PRODUCT, FASADE, CONFIG: { FASADE_PROPS } } } = el.userData;
+                const curProd = this.parent._PRODUCTS[PRODUCT]
+
+                if (!curProd) return
+                const { HANDLES } = curProd
+                const isHandled = HANDLES[0] != null ? HANDLES.includes(handleId) : true
+
+                if (!isHandled) return
+
+
+                FASADE.forEach((fasade, fasadeNdx) => {
+                    this.createHandle(params, fasade, FASADE_PROPS[fasadeNdx])
+                })
+            })
         }
     }
 
@@ -230,25 +264,22 @@ export class HandlesBuilder {
         handleMesh.userData.size = handlSize
         handleMesh.userData.center = handleCenter
 
-        handleMesh.position.z = FASADE_DEPTH * 0.5 + handlSize.z * 0.6
+        handleMesh.position.z = FASADE_DEPTH * 0.5 + handlSize.z * this.HANDLE_Z_DEPTH_FACTOR
     }
 
-    private createHandleMaterial(model: TModelData) {
-        const materialMap: Record<string, Function> = {
-            'MeshPhongMaterial': () => new THREE.MeshStandardMaterial({
-                color: "#" + model.color,
-                roughness: model.shininess || 0,
-                // metalness: "#ffffff",
-                emissive: "#000000",
-            })
+    private createHandleMaterial(model: TModelData): THREE.Material | null {
+        switch (model.material) {
+            case 'MeshPhongMaterial':
+                return new THREE.MeshStandardMaterial({
+                    color: `#${model.color}`,
+                    roughness: model.shininess ?? 0,
+                    metalness: 0,
+                    emissive: '#000000',
+                })
+            default:
+                console.warn(`Неизвестный тип материала: ${model.material}`)
+                return null
         }
-        const materialCreator = materialMap[model.material]
-        if (materialCreator) {
-            return materialCreator();
-        }
-        return null
-
-
     }
 
     private getFileType(filePath: string): FileType {

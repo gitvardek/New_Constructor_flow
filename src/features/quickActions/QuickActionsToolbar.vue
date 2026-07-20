@@ -266,7 +266,7 @@ onMounted(() => {
 }
 
 .checkbox_label {
-  font-size: 16px;
+  font-size: 1.6rem;
   padding-left: 7px;
 }
 

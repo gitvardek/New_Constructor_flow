@@ -15,6 +15,7 @@ export class TableTopBuilder {
     // private root: TApplication
     private deepDispose: TDeepDispose
     private scene: THREE.Scene
+    private readonly depthCorrect: number = 30
 
     constructor(parent: TBuildProduct) {
         // this.root = parent.root
@@ -37,13 +38,16 @@ export class TableTopBuilder {
                 if (file instanceof THREE.Texture) {
                     file.colorSpace = THREE.SRGBColorSpace;
                     material.map = file;
-                    material.map.wrapS = material.map.wrapT = THREE.MirroredRepeatWrapping;
+                    material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
                     material.map.repeat.set(
                         1 / texture.width,
                         1 / texture.height
                     );
                     material.map.offset.set(0.5, 0.5);
+                     material.map.rotation = Math.PI * 0.5;
+                    material.visible = true;
                     material.needsUpdate = true
+                    material.visible = true
                 }
             })
 
@@ -53,6 +57,7 @@ export class TableTopBuilder {
             material.transparent = true;
             material.opacity = 0.5;
             material.depthWrite = true;
+            material.visible = false
         }
 
         return material;
@@ -97,10 +102,13 @@ export class TableTopBuilder {
         const defModel: number | string = incomeModel ?? savedTableTopId ?? defTableTopModel;
 
         const tableProduct = this.buildProduct._PRODUCTS[defModel];
+
+        if(!tableProduct) return;
+
         const tableModelId = tableProduct.models[0];
         const tableModel = this.buildProduct._MODELS[tableModelId];
 
-        const sizes = { ...props.CONFIG.SIZE, depth: props.CONFIG.SIZE.depth };
+        const sizes = { ...props.CONFIG.SIZE, depth: props.CONFIG.SIZE.depth + this.depthCorrect };
         const material = this.createMaterial(tableProduct);
 
         const expr = this.buildExpressions(props.CONFIG.EXPRESSIONS, sizes, tableProduct);
@@ -110,19 +118,24 @@ export class TableTopBuilder {
             material
         };
 
-        const tableBody = this.jsonBuilder.createMesh({ data: tableOptions, parent_size: sizes })
+        const tableBody = this.jsonBuilder.createMesh({ data: tableOptions, parent_size: sizes, isTopTable: true })
 
         tableBody.traverse((child) => {
             if (child instanceof THREE.Mesh) {
                 child.userData.name = 'TABLETOP'
-                const pos = new THREE.Vector3(30, 0, 0)
+                const pos = new THREE.Vector3(this.depthCorrect * 0.5, 0, 0)
                 child.geometry.translate(pos)
                 child.geometry.computeBoundingBox()
             }
         });
 
-        const edgeBody = this.edgeBuilder.createEdge(tableBody)
-        tableBody.add(edgeBody)
+        const edge = this.edgeBuilder.createEdge(tableBody)
+        const defEdge = this.edgeBuilder.createVisibleEdge(tableBody)
+
+        if (tableProduct.NAME != "Без столешницы") {
+            tableBody.add(edge, defEdge)
+        }
+
         tableBody.name = 'tableTop';
         props.TABLETOP = tableBody;
 
@@ -131,7 +144,7 @@ export class TableTopBuilder {
 
     updateTableTop(parent: THREE.Object3D, data: IProduct) {
         const { PROPS } = parent.userData
-        const position = PROPS.TABLETOP.userData.positionWithoutTableTopHeight
+        const position = PROPS.TABLETOP.userData.withoutTopHeight
 
         this.deepDispose.clearObject(PROPS.TABLETOP, this.scene);
         PROPS.TABLETOP = null;
@@ -139,7 +152,7 @@ export class TableTopBuilder {
         const tableHeigt = this.buildProduct.calculateHeight(newTableTop)
 
         // Корректируем высоту
-        newTableTop.userData.positionWithoutTableTopHeight = position
+        newTableTop.userData.withoutTopHeight = position
         newTableTop.position.y = position + tableHeigt * 0.5
 
         parent.children[0].add(newTableTop)

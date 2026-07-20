@@ -37,6 +37,7 @@ const handleSelect = () => {
     gap: 10px;
     width: 100%;
     cursor: pointer;
+     font-size:1.4rem;
   }
   &-full,
   &-small {

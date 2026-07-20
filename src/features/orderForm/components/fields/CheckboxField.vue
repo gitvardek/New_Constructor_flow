@@ -64,7 +64,7 @@ const onChange = (event: Event) => {
 }
 
 .order-checkbox-field__text {
-  font-size: 14px;
+  font-size: 1.4rem;
   color: #272727;
   line-height: 1;
 }

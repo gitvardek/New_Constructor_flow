@@ -10,6 +10,7 @@ import { useModelState } from "@/store/appliction/useModelState"
 const useMillingAction = (builder) => {
 
     const modelState = useModelState()
+    // console.log(builder, 'builder')
 
     const catchChangeMilling = async () => {
         // const curModel = modelState.getCurrentModel!
@@ -34,6 +35,7 @@ const useMillingAction = (builder) => {
         // FASADE_PROPS[fasadeNdx].MILLING = data
         // FASADE_PROPS[fasadeNdx].SHOW = fasade.visible
 
+        // console.log(builder, '---builder')
 
     }
 

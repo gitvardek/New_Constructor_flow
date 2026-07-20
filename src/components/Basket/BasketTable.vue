@@ -10,7 +10,7 @@
       <div class="basket-table__head">
         <span>Фото</span>
         <span>Наименование</span>
-        <span>Количество</span>
+        <span>Кол-во</span>
         <span>Цена</span>
         <span>Сумма</span>
         <span v-if="!oldPrice">Сумма без скидки</span>
@@ -56,6 +56,7 @@ const { oldPrice, isFeedbackProject } = useConfigStore();
   border-radius: 12px;
   padding: 20px;
   border: 1px solid #eee;
+  font-size: 1.4rem;
   &--height {
     // min-height: 57vh;
     height: 100%;
@@ -71,13 +72,14 @@ const { oldPrice, isFeedbackProject } = useConfigStore();
 
   &__head {
     display: grid;
-    grid-template-columns: 150px 1fr 120px 120px 120px 120px 42px;
+    grid-template-columns: 150px 1fr 75px 135px 135px 135px 50px;
     gap: 10px;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 1.4rem;
     color: #a3a9b5;
     border-bottom: 1px solid #eee;
     padding-bottom: 6px;
+    text-align: center;
 
     @media (max-width: 768px) {
       display: none; // прячем шапку, оставляем карточки

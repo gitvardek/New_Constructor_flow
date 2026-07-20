@@ -103,16 +103,15 @@ export class TrafficManager {
                 roomContant: this.room._roomContant
             })
 
+            // console.log('OBJ_PROPS', object.userData.PROPS);
+            // console.log('OBJ_CONFIG', object.userData.PROPS.CONFIG);
+            // console.log('object.userData.PROPS.PRODUCT', object.userData.PROPS.PRODUCT)
+            // console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
 
-            // Обновление корзины при простом выборе/перемещении не требуется
+            const isProd = this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS?.PRODUCT]
 
-            if (object.userData.elementType !== 'raspil' && !object.userData.disableRaycast) {
-                const product = this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT];
-                // this.modelState.createCurrentModelFasadesData(product.FACADE);
-                this.modelState.createCurrentModuleData(product.MODULECOLOR)
-            }
-
-            if(object.userData.elementType === 'element_room'){
+            if (isProd) {
+                this.modelState.createCurrentModuleData(isProd.MODULECOLOR)
             }
         }
         else {
@@ -235,6 +234,8 @@ export class TrafficManager {
                     if (byScene) target = byScene;
                 }
             }
+
+            if (!target) return;
 
             this.removeFromRoom({ product: target });
         });

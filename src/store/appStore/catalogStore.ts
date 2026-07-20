@@ -41,6 +41,8 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       // const data = await processSections(response.sections);
       // сategoriesList.value = data;
+      // console.log(response.sections);
+      // console.log(data);
       сategoriesList.value = response.sections;
     } catch (err) {
       error.value = err
@@ -60,6 +62,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     // Собираем все промисы и ждём их выполнения
     const sectionsNew = await Promise.all(
       sections.map(async (section) => {
+
         try {
           const data = await fetchSubCatalogData(section.ID);
           return data; // Предполагается, что fetchSubCatalogData возвращает объект с items и pager

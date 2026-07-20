@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 // @ts-nocheck 31
-import { defineProps, ref, computed, defineEmits, onMounted } from "vue";
+import { defineProps, ref, computed, defineEmits, onMounted, nextTick } from "vue";
 import { _URL } from "@/types/constants";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
@@ -8,9 +8,15 @@ import { useHandlesAction } from "../FigureRightPage/Handles/useHandlesAction";
 import { INTEGRATE_HANDE_EXEPTIONS } from "@/Application/F-millings";
 import { FasadeTextAlignAction } from "@/types/types";
 
+import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
+
 const props = defineProps({
   millingList: Array,
   tabIndex: Number,
+  selectedId: {
+    type: Number,
+    default: null,
+  },
   tempWork: {
     type: Boolean,
     default: false,
@@ -24,6 +30,7 @@ const modelState = useModelState();
 const { getIntegratedHandleControllerData } = useHandlesAction();
 
 const selectMilling = ref<any>(null);
+const listRef = ref<HTMLElement | null>(null);
 
 let filteredMillingList = ref<Array>([]);
 const isSearch = computed(() => {
@@ -77,101 +84,70 @@ const onSearchChange = (e) => {
   filteredMillingList.value = filteredData;
   if (e.target.value === "") filteredMillingList.value = [];
 };
+
+onMounted(() => {
+  nextTick(() => {
+    const activeEl = listRef.value?.querySelector('.active') as HTMLElement | null;
+    if (!activeEl || !listRef.value) return;
+    listRef.value.scrollTop = activeEl.getBoundingClientRect().top
+      - listRef.value.getBoundingClientRect().top
+      + listRef.value.scrollTop;
+  });
+});
 </script>
 
 <template>
-  <div class="relative__wrapper">
-    <input
-      class="search"
-      type="text"
-      placeholder="Поиск"
-      @input="onSearchChange"
-    />
+  <div class="material-config__wrapper">
+    <input class="search" type="text" placeholder="Поиск" @input="onSearchChange" />
 
-    <ul class="list">
-      <!-- Все виды фрезировок -->
-      <li
-        v-if="!isSearch"
-        class="item"
-        v-for="milling in props.millingList"
-        @click="changeMilling(milling)"
-      >
-        <img class="item__img" :src="_URL + milling.PREVIEW_PICTURE" alt="" />
-        <div class="item__name">{{ milling.NAME }}</div>
-      </li>
-      <!-- Отфильтрованные в поиске -->
-      <li
-        v-else
-        class="item"
-        v-for="milling in filteredMillingList"
-        @click="changeMilling(milling)"
-      >
-        <img class="item__img" :src="_URL + milling.PREVIEW_PICTURE" alt="" />
-        <div class="item__name">{{ milling.NAME }}</div>
-      </li>
-    </ul>
+    <div class="material-config_list">
+      <ul class="material-config_list__details_content" ref="listRef">
+        <!-- Все виды фрезировок -->
+        <li v-if="!isSearch" v-for="(milling, index) in props.millingList" :key="index">
+          <Tooltip :key="index" :position="top" :theme="'dark'">
+            <template #trigger>
+              <div class="material-config_item" @click="changeMilling(milling)"
+                :class="{ active: milling.ID === selectedId }">
+                <img class="material-config_item__img" :src="_URL + milling.PREVIEW_PICTURE" alt="" />
+              </div>
+            </template>
+
+            <template #content>
+              <div class="material-config_item__tool">
+                <img class="material-config_item__img tool" :src="_URL + milling.DETAIL_PICTURE" alt="" />
+                <p>{{ milling.NAME }}</p>
+              </div>
+            </template>
+          </Tooltip>
+        </li>
+        <li v-else v-for="milling in filteredMillingList">
+          <Tooltip :key="index" :position="top" :theme="'dark'">
+            <template #trigger>
+              <div class="material-config_item" @click="changeMilling(milling)"
+                :class="{ active: milling.ID === selectedId }">
+                <img class="material-config_item__img" :src="_URL + milling.PREVIEW_PICTURE" alt="" />
+              </div>
+            </template>
+            <template #content>
+              <div class="material-config_item__tool">
+                <img class="material-config_item__img tool" :src="_URL + milling.DETAIL_PICTURE" alt="" />
+                <p>{{ milling.NAME }}</p>
+              </div>
+            </template>
+          </Tooltip>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-.relative__wrapper {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  max-height: 100vh;
-  overflow: hidden;
-  margin-right: 0px;
-  border: 1px solid $dark-grey;
-  border-radius: 15px;
-  padding: 10px 10px 0px 10px;
-}
-.search {
-  width: 95%;
-  border-radius: 15px;
-  padding: 10px 15px;
+.active {
+  background-color: $strong-grey;
 }
 
-.list {
-  height: 100%;
-  max-height: calc(85vh - 110px);
-  margin-top: 10px;
-  padding-right: 10px;
-  box-sizing: border-box;
-  overflow-y: scroll;
-  box-sizing: border-box;
-}
-
-.item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  cursor: pointer;
-  padding: 10px;
-  // height: 60px;
-  border-radius: 15px;
-  background-color: $bg;
-  margin-bottom: 8px;
-  margin-right: 8px;
-  transition-property: background-color;
-  transition-duration: 0.25s;
-  transition-timing-function: ease;
-
-  &__img {
-    height: 60px;
-    width: 60px;
-    padding: 5px;
-    border-radius: 15px;
-    background-color: $white;
-    // margin-left: 10px;
-  }
-
-  &__name {
-    margin-left: 30px;
-  }
-  @media (hover: hover) {
-    &:hover {
-      background-color: $stroke;
-    }
-  }
+.material-config_list__details_content {
+  // max-height: 55vh;
+  overflow-y: auto;
 }
 </style>

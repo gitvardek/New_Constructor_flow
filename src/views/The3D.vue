@@ -43,11 +43,12 @@ import OpenFacadeButton from "@/components/ui/buttons/right-menu/controller/Open
 import CollisionButton from "@/components/ui/buttons/right-menu/controller/CollisionButton.vue";
 import CutButton from "@/components/ui/buttons/right-menu/controller/CutButton.vue";
 import PinButton from "@/components/ui/buttons/right-menu/controller/PinButton.vue";
-//import ModalUM2Dconstructor from "@/components/2DmoduleConstructor/ModalUM2Dconstructor.vue";
+import RotateButton from "@/components/ui/buttons/right-menu/controller/RotateButton.vue";
 import UMconstructor from "@/components/UMconstructor/UMconstructor.vue";
 
 import GenericLoader from "@/components/ui/loader/GenericLoader.vue";
 import TransformController from "@/components/ui/transformController/TransformController.vue";
+import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
 
 import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
 import { useMenuStore } from "@/store/appStore/useMenuStore";
@@ -230,13 +231,14 @@ const setLocalActivateValue = () => {
 };
 
 const controlsActivate = (value) => {
+
   transformControlsValue.value = value;
   try {
     if (product.value?.userData.MOUSE_POSITION) {
       controllerPositionData.value = product.value?.userData.MOUSE_POSITION;
     }
   } catch (e) {
-    console.log("❌ Не удалось найти параметр MOUSE_POSITION", e);
+    console.log("Не удалось найти параметр MOUSE_POSITION", e);
   }
 };
 
@@ -334,6 +336,20 @@ const duplicateProduct = async () => {
   eventBus.emit("A:Duplicate");
 };
 
+const waitForSceneLoad = (maxMs = 8000): Promise<void> =>
+  new Promise<void>((resolve) => {
+    const timeout = setTimeout(() => {
+      eventBus.off("A:ContantLoaded", onLoaded);
+      resolve();
+    }, maxMs);
+    const onLoaded = () => {
+      clearTimeout(timeout);
+      eventBus.off("A:ContantLoaded", onLoaded);
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    };
+    eventBus.on("A:ContantLoaded", onLoaded);
+  });
+
 const screenPrint = async () => {
   if (!VerdekConstructor.value) return;
 
@@ -346,10 +362,13 @@ const screenPrint = async () => {
 
     // Очищаем предыдущие скриншоты перед созданием новых
     screenshotsStore.clearScreenshots();
+    console.log("Предыдущие скриншоты очищены");
 
     // Получаем все комнаты из store - используем правильный источник данных
     // const allRooms = schemeTransitionStore.getSchemeTransitionData;
     const allRooms = roomState.getRooms;
+
+    console.log(`Начинаем создание скриншотов для ${allRooms.length} комнат`);
 
     // Сохраняем текущую комнату, чтобы восстановить её после создания скриншотов
     const currentRoomId = roomContantData.value?.roomId || null;
@@ -359,72 +378,76 @@ const screenPrint = async () => {
 
     for (let i = 0; i < allRooms.length; i++) {
       const room = allRooms[i];
+      console.log(
+        `Обрабатываем комнату ${i + 1}/${allRooms.length}: ${room.label || room.id
+        }`,
+      );
 
       try {
-        // Загружаем комнату в сцену через eventBus
+        // Загружаем комнату в сцену через eventBus; сразу регистрируем ожидание
+        // завершения загрузки (A:ContantLoaded), т.к. emit асинхронен
+        const loadPromise = waitForSceneLoad();
         eventBus.emit("A:Load", room.id);
-
-        // Ждем загрузки комнаты
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await loadPromise;
 
         // Принудительно рендерим сцену перед созданием скриншота
 
         // 1. Создаем скриншот комнаты в обычном режиме
-
-        await new Promise<void>((resolve) => {
-          renderer.domElement.toBlob((blob: Blob | null) => {
-            if (blob) {
-              // Сохраняем скриншот в стор вместо скачивания
-              const cleanRoomName = (room.label || `Комната_${i + 1}`)
-                .replace(/[^a-zA-Z0-9а-яё\s-]/gi, "_")
-                .trim();
-              const screenshot = {
-                id: `${room.id}-normal-${Date.now()}`,
-                roomId: room.id,
-                roomLabel: room.label || `Комната_${i + 1}`,
-                mode: "normal" as const,
-                blob: blob,
-                timestamp: Date.now(),
-                fileName: `3d-screenshot-${cleanRoomName}-normal.png`,
-              };
-
-              screenshotsStore.addScreenshot(screenshot);
-            }
-            resolve();
-          }, "image/png");
-        });
+        console.log(
+          `Создаем скриншот комнаты "${room.label || room.id}" в обычном режиме`,
+        );
+        {
+          const blob = await captureCompositeBlob();
+          if (blob) {
+            const cleanRoomName = (room.label || `Комната_${i + 1}`)
+              .replace(/[^a-zA-Z0-9а-яё\s-]/gi, "_")
+              .trim();
+            screenshotsStore.addScreenshot({
+              id: `${room.id}-normal-${Date.now()}`,
+              roomId: room.id,
+              roomLabel: room.label || `Комната_${i + 1}`,
+              mode: "normal" as const,
+              blob,
+              timestamp: Date.now(),
+              fileName: `3d-screenshot-${cleanRoomName}-normal.png`,
+            });
+            console.log(`Скриншот комнаты "${room.label || room.id}" в обычном режиме сохранен в стор`);
+          }
+        }
 
         // 2. Включаем режим чертежа
-
+        console.log(
+          `Включаем режим чертежа для комнаты "${room.label || room.id}"`,
+        );
         await menuStore.toggleDrowModeValue();
         const drawingModeValue = menuStore.getDrowModeValue;
         eventBus.emit("A:DrawingMode", drawingModeValue);
 
-        // Ждем применения режима чертежа
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Ждём 2 кадра — достаточно для применения материалов режима чертежа
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-        await new Promise<void>((resolve) => {
-          renderer.domElement.toBlob((blob: Blob | null) => {
-            if (blob) {
-              // Сохраняем скриншот в стор вместо скачивания
-              const cleanRoomName = (room.label || `Комната_${i + 1}`)
-                .replace(/[^a-zA-Z0-9а-яё\s-]/gi, "_")
-                .trim();
-              const screenshot = {
-                id: `${room.id}-drawing-${Date.now()}`,
-                roomId: room.id,
-                roomLabel: room.label || `Комната_${i + 1}`,
-                mode: "drawing" as const,
-                blob: blob,
-                timestamp: Date.now(),
-                fileName: `3d-screenshot-${cleanRoomName}-drawing.png`,
-              };
-
-              screenshotsStore.addScreenshot(screenshot);
-            }
-            resolve();
-          }, "image/png");
-        });
+        // 3. Создаем скриншот комнаты в режиме чертежа
+        console.log(
+          `Создаем скриншот комнаты "${room.label || room.id}" в режиме чертежа`,
+        );
+        {
+          const blob = await captureCompositeBlob();
+          if (blob) {
+            const cleanRoomName = (room.label || `Комната_${i + 1}`)
+              .replace(/[^a-zA-Z0-9а-яё\s-]/gi, "_")
+              .trim();
+            screenshotsStore.addScreenshot({
+              id: `${room.id}-drawing-${Date.now()}`,
+              roomId: room.id,
+              roomLabel: room.label || `Комната_${i + 1}`,
+              mode: "drawing" as const,
+              blob,
+              timestamp: Date.now(),
+              fileName: `3d-screenshot-${cleanRoomName}-drawing.png`,
+            });
+            console.log(`Скриншот комнаты "${room.label || room.id}" в режиме чертежа сохранен в стор`);
+          }
+        }
 
         // 4. Возвращаем режим чертежа в исходное состояние
         if (drawingModeValue !== currentDrawingMode) {
@@ -458,6 +481,10 @@ const screenPrint = async () => {
       eventBus.emit("A:DrawingMode", currentDrawingMode);
     }
 
+    console.log(
+      `Все скриншоты комнат созданы и сохранены в стор. Всего скриншотов: ${screenshotsStore.getScreenshots().length
+      }`,
+    );
     eventBus.emit("A:3DScreenshotCreated");
   } catch (error) {
     console.error("Ошибка при создании 3D скриншотов:", error);
@@ -465,27 +492,98 @@ const screenPrint = async () => {
   }
 };
 
-const take3DScreenshot = () => {
-  if (VerdekConstructor.value) {
+// Составной скриншот: WebGL-canvas + CSS2D-лейблы (размерные линейки).
+// CSS2DRenderer рендерит лейблы в отдельный <div>, который не попадает в toBlob().
+// Решение: рисуем WebGL-кадр на offscreen-canvas, затем поверх — текст лейблов.
+const captureCompositeBlob = (): Promise<Blob | null> => {
+  return new Promise((resolve) => {
     try {
       const renderer = VerdekConstructor.value._renderer;
-      if (!renderer) {
-        console.error("Renderer не найден");
-        return;
+      if (!renderer) { resolve(null); return; }
+
+      const webglCanvas = renderer.domElement;
+      const labelContainer = VerdekConstructor.value._renderClass?.labelRenderer?.domElement as HTMLElement | null;
+
+      const composite = document.createElement("canvas");
+      composite.width = webglCanvas.width;
+      composite.height = webglCanvas.height;
+      const ctx = composite.getContext("2d");
+      if (!ctx) { resolve(null); return; }
+
+      // Слой 1: WebGL-кадр
+      ctx.drawImage(webglCanvas, 0, 0);
+
+      // Слой 2: CSS2D-лейблы
+      if (labelContainer) {
+        // scale = отношение физических пикселей canvas к CSS-пикселям
+        const scale = webglCanvas.width / (webglCanvas.offsetWidth || webglCanvas.width);
+        const containerRect = labelContainer.getBoundingClientRect();
+
+        labelContainer.querySelectorAll<HTMLElement>("*").forEach((el) => {
+          const text = el.textContent?.trim();
+          if (!text) return;
+
+          const cs = window.getComputedStyle(el);
+          if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return;
+
+          const rect = el.getBoundingClientRect();
+          // Элемент не отрендерен или скрыт
+          if (rect.width === 0 && rect.height === 0) return;
+
+          // Центр элемента относительно контейнера лейблов в физических пикселях
+          const cx = (rect.left - containerRect.left + rect.width / 2) * scale;
+          const cy = (rect.top - containerRect.top + rect.height / 2) * scale;
+
+          const fontSize = parseFloat(cs.fontSize) * scale;
+          const fontWeight = cs.fontWeight;
+          const fontFamily = cs.fontFamily;
+
+          ctx.save();
+          ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+          ctx.fillStyle = cs.color;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(text, cx, cy);
+          ctx.restore();
+        });
       }
 
-      renderer.domElement.toBlob((blob: Blob | null) => {
-        if (blob) {
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = "3d-screenshot.png";
-          link.click();
-          URL.revokeObjectURL(link.href);
-        }
-      }, "image/png");
+      composite.toBlob(resolve, "image/png");
     } catch (error) {
-      console.error("Ошибка при создании 3D скриншота:", error);
+      console.error("Ошибка при создании составного скриншота:", error);
+      resolve(null);
     }
+  });
+};
+
+const take3DScreenshot = () => {
+  if (!VerdekConstructor.value) return;
+
+  const doScreenshot = async () => {
+    const blob = await captureCompositeBlob();
+    if (blob) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "3d-screenshot.png";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+  };
+
+  // Ждём 2 кадра после готовности сцены — рендерер гарантированно обновит canvas
+  const waitFramesThenShot = () => {
+    requestAnimationFrame(() => requestAnimationFrame(doScreenshot));
+  };
+
+  if (roomState.getLoad) {
+    waitFramesThenShot();
+  } else {
+    // Сцена ещё загружается — откладываем до события завершения загрузки
+    const onLoaded = () => {
+      eventBus.off("A:ContantLoaded", onLoaded);
+      waitFramesThenShot();
+    };
+    eventBus.on("A:ContantLoaded", onLoaded);
   }
 };
 
@@ -626,11 +724,9 @@ const openTableRedactor = () => {
 
   isModalOpen.value = true;
 
-
   const parent = userData.groupId
     ? APP!._scene!.getObjectByProperty("id", userData.groupId)
     : product.value;
-
 
   if (parent) {
     modelState.setCurrentRaspilParent(parent);
@@ -682,6 +778,10 @@ const deliteTable = () => {
   modelState.setCurrentRaspilParent(false);
 };
 
+const changeCameraPos = (value: number) => {
+  eventBus.emit("A:ChangeCameraPos", value);
+};
+
 defineExpose({
   VerdekConstructor,
   closeTableRedactor,
@@ -715,16 +815,11 @@ watch(
 
   <div ref="sceneContainer" class="scene-container"></div>
 
-  <div
-    :class="['model-controller', activeController]"
-    :style="controllerPosition"
-  >
+  <div :class="['model-controller', activeController]" :style="controllerPosition">
     <div class="controller-container">
       <div class="controller-left">
         <img class="left-line" src="@/assets/svg/right-menu/left-line.svg" />
-        <ControllerButton
-          v-if="Object.keys(CutData).length == 0 && !universalModuleData"
-        />
+        <ControllerButton v-if="Object.keys(CutData).length == 0 && !universalModuleData" />
         <!-- <ControllerButton
           v-if="
             Object.keys(CutData).length == 0 &&
@@ -732,75 +827,51 @@ watch(
             !universalModuleData
           "
         /> -->
-        <ContentControllerButton
-          @click="duplicateProduct"
-          v-if="Object.keys(CutData).length == 0 && !universalModuleData"
-        />
-        <DeleteControllerButton
-          v-if="Object.keys(CutData).length == 0"
-          @click="removeModel(null)"
-        />
+        <!--   v-if="Object.keys(CutData).length == 0 && !universalModuleData" /> -->
+        <ContentControllerButton @click="duplicateProduct" v-if="Object.keys(CutData).length == 0" />
+        <DeleteControllerButton v-if="Object.keys(CutData).length == 0" @click="removeModel(null)" />
       </div>
       <div class="controller-right">
         <img class="right-line" src="@/assets/svg/right-menu/right-line.svg" />
 
-        <OpenFacadeButton
-          v-if="
-            Object.keys(CutData).length == 0 &&
-            modelState.getCurrentModel?.name != 'MODEL' &&
-            !menuStore.getDrowModeValue
-          "
-          :class="activeHideFasadeButton"
-          @click="toggleFasade"
-        />
+        <OpenFacadeButton v-if="
+          Object.keys(CutData).length == 0 &&
+          modelState.getCurrentModel?.name != 'MODEL' &&
+          !menuStore.getDrowModeValue
+        " :class="activeHideFasadeButton" @click="toggleFasade" />
 
         <CollisionButton />
+
         <PinButton />
 
-        <Modal
-          v-if="Object.keys(CutData).length > 0"
-          :container="`modal--tableTop`"
-          @open-modal="openTableRedactor"
-          @close-modal="closeTableRedactor"
-        >
+        <RotateButton />
+
+        <Modal v-if="Object.keys(CutData).length > 0" :container="`modal--tableTop`" @open-modal="openTableRedactor"
+          @close-modal="closeTableRedactor">
           <template #modalBody="{ onModalClose }" class="modal--tableTop">
-            <TableTopManager
-              ref="tableTopManager"
-              :grid="CutData.data"
-              :canvas-height="CutData.canvasHeight"
-              :model-height="CutData.modelHeight"
-              v-if="isModalOpen"
-            >
+            <TableTopManager ref="tableTopManager" :grid="CutData.data" :canvas-height="CutData.canvasHeight"
+              :model-height="CutData.modelHeight" v-if="isModalOpen">
               <template #delite>
-                <button
-                  class="actions-btn actions-btn--footer"
-                  @click="
-                    () => {
-                      deliteTable();
-                      onModalClose();
-                    }
-                  "
-                >
+                <button class="actions-btn actions-btn--footer" @click="
+                  () => {
+                    deliteTable();
+                    onModalClose();
+                  }
+                ">
                   Удалить
                 </button>
               </template>
               <template #save>
-                <button
-                  class="actions-btn actions-btn--footer"
-                  @click="saveTableData"
-                >
+                <button class="actions-btn actions-btn--footer" @click="saveTableData">
                   Сохранить
                 </button>
               </template>
               <template #close>
-                <button
-                  @click="
-                    () => {
-                      onModalClose();
-                    }
-                  "
-                  class="actions-btn actions-btn--footer"
-                >
+                <button @click="
+                  () => {
+                    onModalClose();
+                  }
+                " class="actions-btn actions-btn--footer">
                   Закрыть
                 </button>
               </template>
@@ -812,22 +883,19 @@ watch(
         </Modal>
 
         <div v-show="universalModuleData && product">
-          <UMconstructor
-            ref="universalModule2DConstructor"
-            :product="product"
-          />
+          <UMconstructor ref="universalModule2DConstructor" :verdekConstructor="VerdekConstructor" :product="product" />
         </div>
       </div>
     </div>
   </div>
+  <div class="camera-controller">
+    <DirectionControl :type="'centerOnly'" :fontSize="20" @changeDirectionPos="changeCameraPos" />
+  </div>
   <transition name="controller-toggle">
-    <TransformController
-      v-if="
-        modelState.getCurrentModel &&
-        !uniformState.getUniformModeData.uniformMode
-      "
-      @TransformMode="controlsActivate"
-    />
+    <TransformController v-if="
+      modelState.getCurrentModel &&
+      !uniformState.getUniformModeData.uniformMode
+    " @TransformMode="controlsActivate" />
   </transition>
 </template>
 
@@ -919,6 +987,7 @@ watch(
 
   -webkit-user-drag: none;
   transition: all 0.2s ease-in-out;
+
   &--active {
     opacity: 1;
     filter: blur(0);
@@ -928,14 +997,13 @@ watch(
   .controller-left {
     transform: translate(23px, -69px);
 
-    .left-line {
-    }
+    .left-line {}
   }
 
   .controller-right {
     transform: translate(69px, -46 * 5px);
-    .right-line {
-    }
+
+    .right-line {}
   }
 
   &_controls {
@@ -983,7 +1051,7 @@ watch(
   }
 
   &_text {
-    font-size: 12px;
+    font-size: 1.2rem;
   }
 }
 
@@ -1066,7 +1134,7 @@ watch(
 }
 
 .distance-label {
-  font-size: 12px;
+  font-size: 1.2rem;
   font-weight: 400;
   color: black;
 
@@ -1077,7 +1145,7 @@ watch(
 }
 
 .dimension-label {
-  font-size: 12px;
+  font-size: 1.2rem;
   font-weight: 400;
   color: black;
 }
@@ -1130,6 +1198,7 @@ watch(
   &-icon {
     width: 25px;
     height: 25px;
+
     svg {
       g {
         path {
@@ -1140,51 +1209,11 @@ watch(
   }
 }
 
-.switch {
-  &__wrapper {
+.camera {
+  &-controller {
     position: absolute;
-    bottom: 2rem;
-    right: 2rem;
-
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
-  }
-  &__title {
-    position: absolute;
-    bottom: 2rem;
-  }
-}
-
-.accordion {
-  padding: 0.5rem 1rem;
-  color: $alter-gray;
-  // background-color: #ffffff;
-  backdrop-filter: blur(5px);
-  &__header {
-    margin-right: 0.5rem;
-  }
-  &__summary {
-    gap: 10rem;
-  }
-
-  &__contant {
-    padding-top: 0.5rem;
-    border-top: 1px solid #a3a9b5;
-  }
-
-  &__text {
-    cursor: pointer;
-    transition-property: color;
-    transition-duration: 0.25s;
-    transition-timing-function: ease;
-    @media (hover: hover) {
-      /* when hover is supported */
-      &:hover {
-        color: $strong-grey;
-      }
-    }
+    right: 1rem;
+    top: 1rem;
   }
 }
 </style>

@@ -221,7 +221,7 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 14px;
+  font-size: 1.4rem;
   font-weight: 500;
   color: #272727;
   line-height: 1;
@@ -241,7 +241,7 @@ onMounted(async () => {
   border-radius: 8px;
   background: #fff;
   color: #131313;
-  font-size: 14px;
+  font-size: 1.4rem;
   resize: vertical;
   outline: none;
   margin: 0;

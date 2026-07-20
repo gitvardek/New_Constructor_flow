@@ -106,14 +106,18 @@ onMounted(() => {
       };
 
       if (current.profile?.length) {
-        const {profile} = UMconstructor.value.BUILDER.filters.filterUslugi(current.USLUGI, current);
+        const { profile } = UMconstructor.value.BUILDER.filters.filterUslugi(current.USLUGI, current);
         tempProfile.value = profile
         setProfileData(tempProfile.value);
 
         if (selectedTable.value?.PROFILE) {
           const curProfile = tempProfile.value.find((el) => el.ID === selectedTable.value.PROFILE);
-          if(curProfile)
+          if (curProfile)
             convertProfileData(true, curProfile);
+          else
+            checkProfileDisablegroups();
+        } else {
+          checkProfileDisablegroups();
         }
 
         getCurrentTable()
@@ -162,6 +166,8 @@ const clearTable = () => {
 //#region Опции и кромки
 const createProfileServices = () => {
   /** Отладка */
+
+  // console.log(modelState._PROFILE, "---Profile");
 
   /*---------------*/
   if (!tempProfile.value.length > 0)
@@ -344,5 +350,11 @@ onBeforeUnmount(() => {
   @media (min-height: 1000px) {
     gap: 17px;
   }
+}
+// .material-config__wrapper{
+//   max-height: 40vh;
+// }
+.splitter-container--cut{
+  min-height: 225px;
 }
 </style>

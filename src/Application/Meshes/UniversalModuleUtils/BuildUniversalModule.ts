@@ -15,7 +15,7 @@ import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
-import {TFasadeProp} from "@/types/types";
+import { TFasadeProp } from "@/types/types";
 
 export class BuildUniversalModule extends BuildProduct {
 
@@ -23,6 +23,8 @@ export class BuildUniversalModule extends BuildProduct {
     modelState = useModelState();
 
     heightCorrect: number = 0
+    private readonly correctPosZGroups: number[] = [2166309]
+    private readonly fillingOffset: number = 50
 
     constructor(root: THREETypes.TApplication) {
         super(root);
@@ -32,8 +34,7 @@ export class BuildUniversalModule extends BuildProduct {
         width: number,
         height: number,
         depth: number
-    }, moduleParams?: GridModule)
-    {
+    }, moduleParams?: GridModule) {
 
         // Режим чертежа
         const drowMode = this.menuStore.getDrowModeValue
@@ -126,7 +127,7 @@ export class BuildUniversalModule extends BuildProduct {
             : null;
 
         const legs = legsHeight
-            ? this.buildLegs(PROPS, data, total, legsHeight)
+            ? this.leg_builder.buildLegs(PROPS, data, total, legsHeight)
             : null;
 
         const plinth = legsHeight > 0
@@ -146,7 +147,7 @@ export class BuildUniversalModule extends BuildProduct {
 
         /** Добавляем фасад */
         const fasade = Object.keys(CONFIG.FASADE_PROPS).length
-            ? this.fasade_builder.getFasade({
+            ? this.fasade_builder.buildAllFasades({
                 props: PROPS,
                 isUMmodule: !!MODULEGRID,
                 defaultConfig,
@@ -673,17 +674,27 @@ export class BuildUniversalModule extends BuildProduct {
                                 filling.position.z = sizeModule.depth - filling.size.z / 2 - (isSlidingDoors / 2 || 0);
                         }
 
+                        /** Проверка на корректировку положения по глубине */
+                        const isCorrectZPos = this.correctPosZGroups.includes(filling.productGroupID)
+                        //-------------------------------------------------------------------------------------
+
                         start_position.add(filling.position)
                         start_position.y += filling.size.y / 2 + full_horizont_height + baseOffset
+
+                        if (isCorrectZPos) {
+                            start_position.z = sizeModule.depth / 2 - filling.size.z / 2 - this.fillingOffset
+                        }
 
                         productFilling.position.copy(start_position)
 
                         if (!isModel) {
                             PROPS.JSON_FILLINGS.push(productFilling)
                             const edge = this.edge_builder.createEdge(productFilling);
+                            const deffEdge = this.edge_builder.createVisibleEdge(productFilling);
                             const clonePos = productFilling.position.clone()
                             edge.position.set(clonePos.x, clonePos.y, clonePos.z)
-                            group.add(productFilling, edge)
+                            deffEdge.position.set(clonePos.x, clonePos.y, clonePos.z)
+                            group.add(productFilling, edge, deffEdge)
                         }
 
                         group.add(productFilling)
@@ -806,7 +817,6 @@ export class BuildUniversalModule extends BuildProduct {
 
         const create = (dae, secIndex, doorKey, loopCoord) => {
 
-
             let loopGroup = new THREE.Object3D();
 
             let box = new THREE.Box3().setFromObject(dae);
@@ -816,7 +826,6 @@ export class BuildUniversalModule extends BuildProduct {
             loop.width = loop_size.x;
             loop.height = loop_size.y;
             loop.depth = loop_size.z;
-
 
             const loopside = loopCoord.side
             const rightSide = LOOPSIDE[loopside] === 'right' || LOOPSIDE[loopside] === 'right_on_partition'

@@ -9,6 +9,7 @@ import { setCookie, getCookie, deleteCookie, COOKIE_NAMES } from '@/components/a
 import { useToast } from '@/features/toaster/useToast'
 
 const TOKEN_EXPIRATION_HOURS = 24
+const REFRESH_BEFORE_EXPIRY_MS = 12 * 60 * 60 * 1000 // обновлять за 1 час до истечения
 const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYPASS === 'true'
 const DEV_USER: UserData = {
   avatar: null,
@@ -22,6 +23,8 @@ export const useAuthStore = defineStore('auth', () => {
   const router = useRouter()
   const appDataStore = useAppData()
   const isCheckURL = ref(false);
+
+  let refreshTimerId: ReturnType<typeof setTimeout> | null = null
 
   const isAuthenticated = ref(DEV_AUTH_BYPASS ? true : !!getCookie(COOKIE_NAMES.AUTH_TOKEN))
   const isSubmitting = ref(false)
@@ -43,7 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
   const userInitials = computed(() => {
     if (!userData.value.name) return '?'
     const parts = userData.value.name.split(' ')
-    return parts.length > 1 
+    return parts.length > 1
       ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
       : parts[0][0].toUpperCase()
   })
@@ -56,18 +59,20 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
-      
+
+
+
       if (!token) {
         throw new Error('Токен не найден');
       }
 
       const res = await checkUser(token);
-      if(res.DATA.type === 'error') {
+      if (res.DATA.type === 'error') {
         await logout()
         useToast().error('Доступ запрещен!')
-        // return;
+        return;
       }
-      
+
 
       const response = await AuthService.getUserData(token);
 
@@ -75,9 +80,11 @@ export const useAuthStore = defineStore('auth', () => {
       const rawList = (salonOwner as any)?.DATA?.data ?? (Array.isArray((salonOwner as any)?.DATA) ? (salonOwner as any).DATA : []);
       salonOwnerList.value = Array.isArray(rawList) ? rawList : [];
 
+      console.log('BACKEND USERR DATA', response?.DATA?.data ?? response);
 
       // Логируем ответ только в development режиме
       if (process.env.NODE_ENV === 'development') {
+        console.log('Ответ сервера:', response);
       }
 
       // Проверяем структуру ответа
@@ -121,17 +128,17 @@ export const useAuthStore = defineStore('auth', () => {
 
     } catch (error) {
       console.error('Ошибка загрузки данных пользователя:', error);
-      
+
       // Определяем тип ошибки для соответствующей обработки
       const errorMessage = error.message.toLowerCase();
-      const isAuthError = errorMessage.includes('авторизации') || 
-                        errorMessage.includes('токен') ||
-                        errorMessage.includes('неактивен');
+      const isAuthError = errorMessage.includes('авторизации') ||
+        errorMessage.includes('токен') ||
+        errorMessage.includes('неактивен');
 
       if (isAuthError) {
         await logout();
       }
-      
+
       // Пробрасываем ошибку дальше для обработки в вызывающем коде
       throw error;
     }
@@ -143,6 +150,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
+    if (!token) {
+      return { DATA: { type: 'error', message: 'Токен не найден' } }
+    }
     const response = await AuthService.getCheckUser(token);
 
     return response;
@@ -152,10 +162,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       isSubmitting.value = true
       error.value = { isError: false, message: '' }
-      
+
       const response = await AuthService.login(credentials)
       const { type } = response.DATA
-      
+
       if (type === 'success' && response.DATA.token) {
         await handleSuccessfulLogin(response.DATA.token)
       } else if (type === 'error' && response.DATA.MESSAGE) {
@@ -170,45 +180,82 @@ export const useAuthStore = defineStore('auth', () => {
       isSubmitting.value = false
     }
   }
-  
-  const handleSuccessfulLogin = async (token: string) => {
-    // Сохраняем токен в cookie на 24 часа (1 день)
-    setCookie(COOKIE_NAMES.AUTH_TOKEN, token, 1)
-    
-    // Сохраняем время истечения токена
+
+  const saveToken = (token: string) => {
     const expirationTime = Date.now() + (TOKEN_EXPIRATION_HOURS * 60 * 60 * 1000)
+    setCookie(COOKIE_NAMES.AUTH_TOKEN, token, 1)
     setCookie(COOKIE_NAMES.TOKEN_EXPIRATION, expirationTime.toString(), 1)
-    
+    scheduleTokenRefresh()
+  }
+
+  const scheduleTokenRefresh = () => {
+    if (refreshTimerId) {
+      clearTimeout(refreshTimerId)
+      refreshTimerId = null
+    }
+
+    const expiration = getCookie(COOKIE_NAMES.TOKEN_EXPIRATION)
+    if (!expiration) return
+
+    const delay = parseInt(expiration) - Date.now() - REFRESH_BEFORE_EXPIRY_MS
+
+    if (delay <= 0) {
+      refreshTokenSilently()
+      return
+    }
+
+    refreshTimerId = setTimeout(refreshTokenSilently, delay)
+  }
+
+  const refreshTokenSilently = async () => {
+    try {
+      const token = getCookie(COOKIE_NAMES.AUTH_TOKEN)
+      if (!token) return
+
+      const response = await AuthService.refreshToken(token)
+
+      if (response.DATA?.type === 'success' && response.DATA.token) {
+        saveToken(response.DATA.token)
+      } else {
+        await logout()
+      }
+    } catch {
+      await logout()
+    }
+  }
+
+  const handleSuccessfulLogin = async (token: string) => {
+    saveToken(token)
 
     isAuthenticated.value = true
     await appDataStore.initAppData()
 
-    // Загружаем данные пользователя
-    // await fetchUserData().then(res => {
-    // })
-    // await appDataStore.initAppData()
-    
     // await router.push('/2d')
   }
-  
+
   const handleError = (err: unknown) => {
     let message = 'Произошла неизвестная ошибка'
-    
+
     if (err instanceof Error) {
       message = err.message
     }
-    
+
     error.value = {
       isError: true,
       message
     }
-    
+
     setTimeout(() => {
       error.value.isError = false
     }, 3000)
   }
-  
+
   const logout = async () => {
+    if (refreshTimerId) {
+      clearTimeout(refreshTimerId)
+      refreshTimerId = null
+    }
+
     if (DEV_AUTH_BYPASS) {
       isAuthenticated.value = false
       userData.value = {
@@ -223,11 +270,11 @@ export const useAuthStore = defineStore('auth', () => {
       // Удаляем cookies
       deleteCookie(COOKIE_NAMES.AUTH_TOKEN)
       deleteCookie(COOKIE_NAMES.TOKEN_EXPIRATION)
-      
+
       // Очищаем localStorage на всякий случай
       localStorage.removeItem('token')
       localStorage.removeItem('tokenExpiration')
-      
+
       isAuthenticated.value = false
       userData.value = {
         avatar: null,
@@ -235,6 +282,7 @@ export const useAuthStore = defineStore('auth', () => {
         status: 'offline'
       }
       // const currentUrl = window.location.href;
+      // console.log('currentUrl', currentUrl);
       // // http://localhost:5000/dev_modeller/petrovich/2d
 
       // // Разбиваем URL на части
@@ -244,6 +292,7 @@ export const useAuthStore = defineStore('auth', () => {
       // // Собираем URL обратно
       // const authUrl = urlParts.join('/');
 
+      // console.log('authUrl', authUrl);
       // // http://localhost:5000/dev_modeller/petrovich/auth
 
       // // Перенаправляем
@@ -271,7 +320,7 @@ export const useAuthStore = defineStore('auth', () => {
   const checkTokenExpiration = (): boolean => {
     const expiration = getCookie(COOKIE_NAMES.TOKEN_EXPIRATION)
     if (!expiration) return true
-    
+
     const expirationTime = parseInt(expiration)
     return Date.now() > expirationTime
   }
@@ -279,8 +328,20 @@ export const useAuthStore = defineStore('auth', () => {
   // Автоматическая проверка токена при инициализации
   if (isAuthenticated.value && checkTokenExpiration()) {
     logout()
+  } else if (isAuthenticated.value) {
+    scheduleTokenRefresh()
   }
 
+  // Синхронизация выхода между вкладками: если в другой вкладке удалили куку — разлогиниваемся
+  if (typeof window !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isAuthenticated.value) {
+        if (!getCookie(COOKIE_NAMES.AUTH_TOKEN)) {
+          logout()
+        }
+      }
+    })
+  }
 
   const setCheckout = (value: bollean) => {
     isCheckURL.value = value;

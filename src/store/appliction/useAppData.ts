@@ -14,6 +14,11 @@ const DEV_APP_DATA_STUB = {
 }
 
 export const useAppData = defineStore('AppData', () => {
+
+
+  console.log('START APP CHECK')
+
+
   const appData = ref<{ [key: string]: any }>({})
   const indexedDataBase = ref<IDBDatabase | null>(null)
   const isLoading = ref(false)
@@ -22,6 +27,7 @@ export const useAppData = defineStore('AppData', () => {
   const fetchRemoteData = async () => {
     isLoading.value = true;
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
+    console.log('Start fetch from API')
     const url = new URL(`https://${BASE_DOMAIN}/api/modellerjwt/auth/getdata/`)
     let currentURL = window.location.href;
     url.searchParams.append('url', currentURL)
@@ -36,9 +42,11 @@ export const useAppData = defineStore('AppData', () => {
     const contentType = response.headers.get('content-type')
     if (contentType?.includes('application/json')) {
       const data = await response.json()
+
       return data.DATA
     } else {
       const text = await response.text()
+
       return null
     }
   }
@@ -46,14 +54,14 @@ export const useAppData = defineStore('AppData', () => {
   // const initIndexedDB = (): Promise<IDBDatabase> => {
   //   return new Promise((resolve, reject) => {
   //     const openRequest = indexedDB.open('storage', 1)
-      
+
   //     openRequest.onupgradeneeded = (event) => {
   //       const db = (event.target as IDBOpenDBRequest).result
   //       if (!db.objectStoreNames.contains('data')) {
   //         db.createObjectStore('data', { keyPath: 'name' })
   //       }
   //     }
-      
+
   //     openRequest.onsuccess = () => resolve(openRequest.result)
   //     openRequest.onerror = () => reject(openRequest.error)
   //   })
@@ -63,7 +71,7 @@ export const useAppData = defineStore('AppData', () => {
     return new Promise((resolve, reject) => {
       // Всегда открываем с новой версией, чтобы гарантировать создание store
       const openRequest = indexedDB.open('storage', 1)
-      
+
       openRequest.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result
         // Всегда создаем store при обновлении
@@ -71,7 +79,7 @@ export const useAppData = defineStore('AppData', () => {
           db.createObjectStore('data', { keyPath: 'name' })
         }
       }
-      
+
       openRequest.onsuccess = () => {
         const db = openRequest.result
         // Если store все еще не создан (например, при первой загрузке),
@@ -84,7 +92,7 @@ export const useAppData = defineStore('AppData', () => {
           resolve(db)
         }
       }
-      
+
       openRequest.onerror = () => reject(openRequest.error)
     })
   }
@@ -108,7 +116,7 @@ export const useAppData = defineStore('AppData', () => {
       try {
         const transaction = db.transaction('data', 'readwrite')
         const store = transaction.objectStore('data')
-        
+
         // Сначала удаляем существующие данные
         const deleteRequest = store.delete('db')
         deleteRequest.onsuccess = () => {
@@ -127,37 +135,39 @@ export const useAppData = defineStore('AppData', () => {
   const clearIndexedDB = (): Promise<void> => {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('storage', 1)
-      
-      request.onsuccess = function(event) {
+
+      request.onsuccess = function (event) {
         const db = (event.target as IDBOpenDBRequest).result
-        
+
         // Проверяем существование object store перед операцией
         if (!db.objectStoreNames.contains('data')) {
+          console.log('Object store "data" не существует, создаем...')
           const transaction = db.transaction(['data'], 'readwrite')
           resolve()
           return
         }
-        
+
         const transaction = db.transaction('data', 'readwrite')
         const store = transaction.objectStore('data')
         const clearRequest = store.clear()
-        
-        clearRequest.onsuccess = function() {
+
+        clearRequest.onsuccess = function () {
+          console.log('Object store "data" очищен')
           resolve()
         }
-        
-        clearRequest.onerror = function(event) {
+
+        clearRequest.onerror = function (event) {
           console.error('Ошибка очистки:', event)
           reject(new Error('Ошибка очистки IndexedDB'))
         }
       }
-      
-      request.onerror = function(event) {
+
+      request.onerror = function (event) {
         console.error('Ошибка открытия IndexedDB:', event)
         reject(new Error('Не удалось открыть IndexedDB'))
       }
-      
-      request.onupgradeneeded = function(event) {
+
+      request.onupgradeneeded = function (event) {
         const db = (event.target as IDBOpenDBRequest).result
         if (!db.objectStoreNames.contains('data')) {
           db.createObjectStore('data', { keyPath: 'name' })
@@ -206,13 +216,14 @@ export const useAppData = defineStore('AppData', () => {
     try {
       indexedDataBase.value = await initIndexedDB()
       let localData = await getFromIndexedDB(indexedDataBase.value)
-      
+
       if (localData) {
+        console.log('Загружено из IndexedDB', localData)
         setAppData(localData)
         isLoaded.value = true
         return
       }
-      
+
       const remoteData = await fetchRemoteData()
       if (remoteData) {
         setAppData(remoteData)
@@ -235,7 +246,7 @@ export const useAppData = defineStore('AppData', () => {
       // await authStore.checkUser()
       isLoading.value = false
       isLoaded.value = true
-      
+
       const mainLoader = document.querySelector('#main-loader')
       if (mainLoader) {
         mainLoader.style.display = 'none'

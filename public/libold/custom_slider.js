@@ -374,8 +374,6 @@
                 closestHandle = $(this.handles[++index]);
             }
 
-            console.log(closestHandle)
-
             this._start(event, index);
 
             self._handleIndex = index;

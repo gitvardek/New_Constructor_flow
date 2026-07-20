@@ -86,8 +86,8 @@ defineExpose({
 button {
   border: none;
   border-radius: 15px;
-  font-size: 16px;
-  padding: 10px 20px;
+  font-size: 1.6rem;
+  padding: 0.5rem 1rem;
   min-width: 60px;
   font-weight: 600;
   font-size: small;
@@ -96,10 +96,6 @@ button {
   color: $strong-grey;
   transition: background-color 0.2s, transform 0.1s;
 
-  @media (min-height: 1000px) {
-    font-size: medium;
-    padding: 15px 25px;
-  }
 }
 
 button:hover {

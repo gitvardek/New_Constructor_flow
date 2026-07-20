@@ -609,7 +609,7 @@ defineExpose({
   border-radius: 8px;
   background: #fff;
   color: #131313;
-  font-size: 22px;
+  font-size: 2.2rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -625,7 +625,7 @@ defineExpose({
 
 .order-form__loading {
   color: #5d6069;
-  font-size: 14px;
+  font-size: 1.4rem;
 }
 
 .order-form__pay-system {
@@ -636,7 +636,7 @@ defineExpose({
 
 .order-form__pay-system-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 1.4rem;
   font-weight: 500;
   color: #272727;
 }
@@ -646,7 +646,7 @@ defineExpose({
   align-items: center;
   gap: 8px;
   color: #272727;
-  font-size: 14px;
+  font-size: 1.4rem;
 }
 
 .order-form__pay-system-radio {
@@ -663,13 +663,13 @@ defineExpose({
 .order-form__error {
   margin: 0;
   color: #bf353d;
-  font-size: 14px;
+  font-size: 1.4rem;
 }
 
 .order-form__success {
   margin: 10px 0 0;
   color: #1f8f49;
-  font-size: 14px;
+  font-size: 1.4rem;
 }
 
 @media (max-width: 900px) {

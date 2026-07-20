@@ -120,7 +120,6 @@ export class PaletteBuilder {
         const fasadeName = _FASADE[fasadeId].NAME.toLowerCase();
         const fasadeTexture = _FASADE[fasadeId].TEXTURE
 
-
         fasade.visible = true;
 
         const useTexture = palette.TYPE === "KANT"

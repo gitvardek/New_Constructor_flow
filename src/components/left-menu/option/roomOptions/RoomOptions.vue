@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //@ts-nocheck
-import { computed, onBeforeMount, watch } from "vue";
+import { computed, onBeforeMount } from "vue";
 import { _URL } from "@/types/constants";
 import {
   TOptionsMap,
@@ -16,18 +16,20 @@ import { useRoomOptions } from "./useRoomOptons";
 const { _FASADE, _MILLING, _PRODUCTS, _PALETTE } = useModelState();
 const { _WALL, _FLOOR } = useRoomOptions();
 
-enum EGlobalDataMap {
-  moduleTop = _FASADE,
-  moduleBottom = _FASADE,
-  fasadsTop = _FASADE,
-  fasadsBottom = _FASADE,
-  wall = _WALL,
-  floor = _FLOOR,
-  plinth = _PRODUCTS,
-  plinthSurfase = _FASADE,
-  palitte = _PALETTE,
-  milling = _MILLING,
-}
+const EGlobalDataMap = computed(() => ({
+  moduleTop: _FASADE,
+  moduleBottom: _FASADE,
+  fasadsTop: _FASADE,
+  fasadsBottom: _FASADE,
+  wall: _WALL,
+  floor: _FLOOR,
+  plinth: _PRODUCTS,
+  plinthSurfase: _FASADE,
+  tableTop: _PRODUCTS,
+  palitte: _PALETTE,
+  milling: _MILLING,
+  handles: _PRODUCTS,
+}));
 
 interface Props {
   options: TOptionsMap;
@@ -68,7 +70,6 @@ const palitteSelect = (
   key: keyof TOptionsMap,
   palitteData: TPalitte[]
 ) => {
-
   emit("toPalitteSelect", palitteTitle, key, palitteData);
 };
 
@@ -85,7 +86,6 @@ const plinthSelect = (
   key: keyof TOptionsMap,
   plinthData: TFasadeItem[]
 ) => {
-
   emit("toPlinthSelect", plinthTitle, key, plinthData);
 };
 
@@ -93,133 +93,100 @@ const handleToggle = (event: Event, key: keyof TOptionsMap) => {
   emit("toToggle", event, key);
 };
 
-const getContainerType = computed(() => {
-  return (type: string) => {
-    if (type.includes("fasad") || type.includes("plinth")) {
-      return "option-full";
-    }
-    return "option-small";
+const getContainerType = (type: string) => {
+  if (type.includes("fasad") || type.includes("plinth")) {
+    return "option-full";
+  }
+  return "option-small";
+};
+
+function getOptionData(key: keyof TOptionsMap) {
+  const map = EGlobalDataMap.value;
+  const globalData = props.options?.[key];
+
+  const curOptionId = globalData?.id;
+  const palliteId = globalData?.palitte;
+  const millingId = globalData?.milling;
+  const plinthId = globalData?.plinthSurfase;
+
+  return {
+    option: curOptionId ? map[key]?.[curOptionId] ?? null : null,
+    palitte: palliteId ? map.palitte?.[palliteId] ?? null : null,
+    milling: millingId ? map.milling?.[millingId] ?? null : null,
+    plinth: plinthId ? map.plinthSurfase?.[plinthId] ?? null : null,
   };
+}
+
+const optionsList = computed(() => {
+  return Object.entries(props.options ?? {}).map(([key, item]) => ({
+    key: key as keyof TOptionsMap,
+    item,
+    data: getOptionData(key as keyof TOptionsMap),
+    containerType: getContainerType(key),
+  }));
 });
 
-const getOptionData = computed(() => {
-  return (key) => {
-    const globalData = props.options[key];
-    const curOptionId = globalData?.id;
-    const palliteId = globalData.palitte;
-    const millingId = globalData.milling;
-    const plinthId = globalData.plinthSurfase;
-
-    const optData = curOptionId ? EGlobalDataMap[key][curOptionId] : null;
-    const palData = palliteId ? EGlobalDataMap["palitte"][palliteId] : null;
-    const milData = millingId ? EGlobalDataMap["milling"][millingId] : null;
-    const pliData = plinthId ? EGlobalDataMap["plinthSurfase"][plinthId] : null;
-
-    return {
-      option: optData,
-      palitte: palData,
-      milling: milData,
-      plinth: pliData,
-    };
-  };
+onBeforeMount(() => {
+  console.log(props.options);
 });
-
-onBeforeMount(() => {});
 </script>
 
 <template>
   <div class="room-options">
-    <div
-      v-for="(item, key) in props.options"
-      :key="key"
-      :class="getContainerType(key)"
-    >
+    <div v-for="{ key, item, data, containerType } in optionsList" :key="key" :class="containerType">
       <div class="option-container">
-        <div
-          class="option-label"
-          @click="handleSelect(key as keyof TOptionsMap, item.title)"
-        >
-          <img
-            class="label__img"
-            :src="_URL + getOptionData(key).option?.PREVIEW_PICTURE"
-            alt=""
-          />
+        <div class="option-label" @click="handleSelect(key as keyof TOptionsMap, item.title)">
+          <img class="label__img" :src="_URL + (data.option?.PREVIEW_PICTURE ?? '')" alt="" />
           <p class="label__title">{{ item.title }}</p>
-          <p class="label__text">{{ getOptionData(key).option.NAME }}</p>
+          <p class="label__text">{{ data.option?.NAME }}</p>
         </div>
 
-        <div
-          v-if="item?.palitte"
-          class="option-label"
-          @click="
-            palitteSelect(
-              item.palitteTitle!,
-              key as keyof TOptionsMap,
-              item.palitteData!
-            )
-          "
-        >
-          <div
-            class="label__color"
-            :style="{
-              backgroundColor: `#${
-                getOptionData(key).palitte.RAL ||
-                getOptionData(key).palitte.HTML
-              }`,
-            }"
-          ></div>
+        <div v-if="item?.palitte" class="option-label" @click="
+          palitteSelect(
+            item.palitteTitle!,
+            key as keyof TOptionsMap,
+            item.palitteData!
+          )
+          ">
+          <div class="label__color" :style="{
+            backgroundColor: `#${data.palitte?.RAL || data.palitte?.HTML || ''}`,
+          }"></div>
 
           <p class="label__text">
-            {{ getOptionData(key).palitte.UNAME }}
+            {{ data.palitte?.UNAME }}
           </p>
         </div>
 
-        <div
-          v-if="item?.milling && getOptionData(key).option.ID !== 7397"
-          class="option-label"
-          @click="
-            millingSelect(
-              item.millingTitle!,
-              key as keyof TOptionsMap,
-              item.millingData!
-            )
-          "
-        >
-          <img
-            class="label__img"
-            :src="_URL + getOptionData(key).milling.PREVIEW_PICTURE"
-            alt=""
-          />
+        <div v-if="item?.milling && data.option?.ID !== 7397" class="option-label" @click="
+          millingSelect(
+            item.millingTitle!,
+            key as keyof TOptionsMap,
+            item.millingData!
+          )
+          ">
+          <img class="label__img" :src="_URL + (data.milling?.PREVIEW_PICTURE ?? '')" alt="" />
 
           <p class="label__text">
-            {{ getOptionData(key).milling.NAME }}
+            {{ data.milling?.NAME }}
           </p>
         </div>
 
-        <div
-          v-if="item?.plinthSurfase"
-          class="option-label"
-          @click="
-            plinthSelect(
-              item.plinthTitle!,
-              key as keyof TOptionsMap,
-              item.plinthData!
-            )
-          "
-        >
-          <img
-            class="label__img"
-            :src="_URL + getOptionData(key).plinth.PREVIEW_PICTURE"
-            alt=""
-          />
+        <div v-if="item?.plinthSurfase" class="option-label" @click="
+          plinthSelect(
+            item.plinthTitle!,
+            key as keyof TOptionsMap,
+            item.plinthData!
+          )
+          ">
+          <img class="label__img" :src="_URL + (data.plinth?.PREVIEW_PICTURE ?? '')" alt="" />
 
           <p class="label__text">
-            {{ getOptionData(key).plinth.NAME }}
+            {{ data.plinth?.NAME }}
           </p>
         </div>
       </div>
 
-      <div class="option__checkbox">
+      <!-- <div class="option__checkbox">
         <label class="control control-checkbox">
           <input
             type="checkbox"
@@ -229,7 +196,7 @@ onBeforeMount(() => {});
           <span class="control_indicator"></span>
           <span class="control_lable">{{ item.label }}</span>
         </label>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -248,6 +215,7 @@ onBeforeMount(() => {});
     gap: 10px;
     width: 100%;
   }
+
   &-full,
   &-small {
     padding: 10px;
@@ -255,11 +223,13 @@ onBeforeMount(() => {});
     background-color: $bg;
     position: relative;
   }
+
   &-full {
     display: flex;
     flex-wrap: wrap;
     width: 100%;
   }
+
   &-small {
     flex: 46%;
     padding: 10px;
@@ -299,28 +269,29 @@ onBeforeMount(() => {});
 }
 
 .label__img {
-  height: 60px;
-  width: 60px;
+  height: 45px;
+  width: 45px;
   padding: 5px;
   border-radius: 15px;
   background-color: #ffffff;
 }
 
 .label__title {
-  font-size: 16px;
+  font-size: 1.2rem;
   position: absolute;
   bottom: 0.2rem;
   left: 0.5rem;
 }
 
 .label__text {
-  font-size: 14px;
+  font-size: 1.2rem;
   font-weight: 600;
   color: $strong-grey;
 }
+
 .label__color {
-  height: 60px;
-  width: 60px;
+  height: 45px;
+  width: 45px;
   border-radius: 12px;
   cursor: pointer;
 }
@@ -330,13 +301,14 @@ onBeforeMount(() => {});
     padding-left: 0;
     padding-right: 30px;
   }
+
   &_indicator {
     right: 0;
     left: auto;
   }
 
-  &_lable{
-    font-size: 12px;
+  &_lable {
+    font-size: 1rem;
   }
 }
 </style>

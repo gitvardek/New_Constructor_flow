@@ -395,6 +395,7 @@ export function useProjectAPI() {
           error: 'Unexpected DATA format: expected array'
         }
       }
+
       return { success: true, data: json.DATA }
     } catch (error) {
       console.error(ERROR_MESSAGES.LOAD_FORM_DATA, error)

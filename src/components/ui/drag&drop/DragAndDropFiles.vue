@@ -247,7 +247,7 @@ onBeforeUnmount(() => {
 .hint {
   opacity: 0.7;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 1.2rem;
 }
 .list {
   margin-top: 12px;
@@ -281,13 +281,13 @@ onBeforeUnmount(() => {
   max-width: 15vw;
 }
 .file-name {
-  font-size: 14px;
+  font-size: 1.4rem;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .file-size {
-  font-size: 12px;
+  font-size: 1.2rem;
   opacity: 0.7;
   margin-top: 2px;
 }
@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
 .delete-button {
   border: 1px solid #bbb;
   border-radius: 15px;
-  font-size: 13px;
+  font-size: 1.4rem;
   padding: 5px 15px;
   margin-left: 0.5rem;
   font-weight: 600;

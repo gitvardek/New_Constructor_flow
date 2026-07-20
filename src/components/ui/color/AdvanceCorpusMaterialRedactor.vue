@@ -138,10 +138,12 @@ const fasadeHandleList = ref<Array>([]);
 const isFasadeHandleExist = ref<boolean>(false);
 
 const onSelectMaterial = (data) => {
+  console.log(data, "data");
 
   /** ============== Данные размера выбранного Фасада ==============*/
 
   const selected = umStorage.getSelected("fasades");
+  const isDowerSelect = umStorage.getSelected("fillings")
 
   //======================================================================
 
@@ -155,7 +157,7 @@ const onSelectMaterial = (data) => {
   let haveShowcase;
   let dataOfFasadeType;
 
-  if (props.isFasade) {
+  if (props.isFasade && !isDowerSelect) {
     const checkConversation = checkFasadeConversations(
       data.ID,
       props.fasadeSize || FASADE[props.elementIndex].userData.trueSize,
@@ -251,6 +253,7 @@ const onSelectMaterial = (data) => {
   /** @Витрины */
   showcaseList.value = modelState.getCurrentShowcaseData;
 
+  // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
   isShowcaseExist.value =
     !data.material?.includes("Alum") && haveShowcase && data.id !== RESET_COLOR;
@@ -508,6 +511,7 @@ const millingStatus = computed(() => {
 
 /** Выбор панели редактирования фрезеровки или цвета, если такая опция существует */
 const setCurrentEditableOption = (name: String) => {
+  // console.log(name, "NAME");
   currentEditableOption.value = name;
 };
 
@@ -710,7 +714,7 @@ const prepareData = () => {
   }
 
   // Текущие выбранные значения
-  if (COLOR && _FASADE[COLOR]) {
+  if (COLOR && _FASADE[COLOR] || props.elementIndex=='PROFILECOLOR') {
     const { NAME, PREVIEW_PICTURE } = fasadeData;
     currentSurfaceData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
     isSurfaceSelected.value = true;
@@ -978,7 +982,7 @@ onBeforeUnmount(() => {
           </template>
 
           <template #params="{ onToggle }">
-            <ul class="accordion__contant">
+            <ul class="accordion__content">
               <li
                 class="accordion__text"
                 v-for="(size, key) in fasadeSizeList"
@@ -1174,7 +1178,7 @@ onBeforeUnmount(() => {
   -ms-user-select: none; /* IE 10+ и Edge */
   user-select: none; /* Стандарт: Chrome, Firefox, Opera, Edge */
 
-  &__contant {
+  &__content {
     padding-top: 0.5rem;
     border-top: 1px solid #a3a9b5;
   }

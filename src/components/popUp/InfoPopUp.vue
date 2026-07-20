@@ -87,7 +87,7 @@ const closeInfoPopup = () => {
   gap: 30px;
 
   .descriptionText {
-    font-size: 16px;
+    font-size: 1.4rem;
   }
 
   .imageTextBlock {
@@ -122,7 +122,7 @@ const closeInfoPopup = () => {
     margin: 16px 0;
     
     .infoTitle {
-      font-size: 18px;
+      font-size: 1.8rem;
       font-weight: 600;
       margin: 0 0 10px 0;
       color: $black;
@@ -133,7 +133,7 @@ const closeInfoPopup = () => {
       padding-left: 20px;
       list-style-type: disc;
       li {
-        font-size: 16px;
+        font-size: 1.4rem;
         line-height: 1.5;
         margin-bottom: 10px;
         color: $black;
@@ -173,7 +173,7 @@ const closeInfoPopup = () => {
       justify-content: center;
       
       &::after {
-        font-size: 7px;
+        font-size: 0.7rem;
         color: #A3A9B5;
         font-weight: bold;
       }

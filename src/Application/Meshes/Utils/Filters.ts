@@ -5,7 +5,7 @@ import { GlobalsData } from "./Globals"
 import { useAppData } from "@/store/appliction/useAppData"
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from "@/store/appliction/useModelState"
-import { unwatchFile } from "fs"
+import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons"
 
 import { TFasadeProp, IProductFull, FasadeTextAlignAction } from "@/types/types"
 
@@ -16,9 +16,11 @@ export class Filters extends GlobalsData {
 
     private project = useSceneState().getCurrentProjectParams;
     private modelState = useModelState()
+    private roomOptions = useRoomOptions()
+    private readonly emptyHandleID = 69920
 
     constructor(root: THREETypes.TApplication) {
-        super();
+        super(root._appData);
         this.root = root
     }
 
@@ -59,6 +61,8 @@ export class Filters extends GlobalsData {
 
     filterFasadePosition(params: THREETypes.TObject, product: THREETypes.TObject) {
 
+        const roomOptions = this.roomOptions.getGlobalOptions;
+
         const { FASADE_PROPS, ELEMENT_TYPE, FASADE_SIZE, FILLING, MODELID, MODEL } = params
 
         FASADE_PROPS.length = 0;
@@ -79,6 +83,13 @@ export class Filters extends GlobalsData {
         const hasDrower = fasadeSorted.some(el => {
             return this._FASADE_POSITION[el].drawer
         })
+
+        const handleExists = product.HANDLES[0] != null;
+        const handleIncluded = product.HANDLES.includes(roomOptions.handles.id);
+
+        const defaultHandleId = handleExists && !handleIncluded
+            ? this.emptyHandleID
+            : roomOptions.handles.id;
 
         if (Object.keys(FASADE_SIZE).length > 0) {
             Object.values(FASADE_SIZE).forEach((el, key) => {
@@ -148,8 +159,6 @@ export class Filters extends GlobalsData {
             const sizesData = this._FASADESIZE[sizes]
             const ismanualSizes = this._FASADESIZE[sizes]?.NAME.includes("Нестандарт")
 
-
-
             const fasadeProps: TFasadeProp = {
                 /** --- FASADE_PROPS ---*/
                 COLOR: this.project.default_fasade_color!,
@@ -166,7 +175,7 @@ export class Filters extends GlobalsData {
                 PATINA: null,
                 TYPE: null,
                 HANDLES: {
-                    id: handles!,
+                    id: defaultHandleId,
                     position: handlerPosition,
                     drawer: fasadePosition.drawer
                 },
@@ -178,14 +187,6 @@ export class Filters extends GlobalsData {
                             min: sizesData?.SIZE_EDIT_WIDTH_MIN ?? null,
                             max: sizesData?.SIZE_EDIT_WIDTH_MAX ?? null
                         }
-                        // if (ismanualSizes) {
-                        //     return {
-                        //         FASADE_WIDTH: sizesData.WIDTH,
-                        //         min: sizesData.SIZE_EDIT_WIDTH_MIN,
-                        //         max: sizesData.SIZE_EDIT_WIDTH_MAX
-                        //     }
-                        // }
-                        // return {}
                     })()
                 },
                 DRAWER: {
@@ -268,6 +269,7 @@ export class Filters extends GlobalsData {
         //     .filter(fasadeSizeId => fasadeSize[fasadeSizeId])
         //     // Сортируем фасады по их значению сортировки (SORT)
         //     .sort((a, b) => fasadeSize[a].SORT - fasadeSize[b].SORT);
+        //     console.log(result, 'result-2')
 
         // return result;
     }
@@ -303,9 +305,16 @@ export class Filters extends GlobalsData {
         const getFilteredData = (data, profile = false) => {
             const filtered = data.filter(el => this._USLUGI[el])
 
-            return filtered.reduce((acc, el) => {
+            return filtered.reduce((acc, el, index, array) => {
+
+
+
                 const visible = this._USLUGI[el].ID != 98683 // ID Услуги распил
                 let value = profile && el === profileExept
+                if (profile && array.length < 2) {
+                    value = true
+                }
+
                 acc.push({ ...this._USLUGI[el], visible: visible, value: value })
                 return acc
 
@@ -328,7 +337,14 @@ export class Filters extends GlobalsData {
         const result = curOptionsList.map(el => {
 
             const groupName = el.GROUP ?? ''
-            return { id: el.ID, active: false, group: groupName, section: el.IBLOCK_SECTION_ID?.[0], close: el.CLOSE_OTHER_OPTIONS, visible: true }
+            return {
+                id: el.ID,
+                active: false,
+                group: groupName,
+                section: el.IBLOCK_SECTION_ID,
+                close: el.CLOSE_OTHER_OPTIONS,
+                visible: true
+            }
         })
 
         return result

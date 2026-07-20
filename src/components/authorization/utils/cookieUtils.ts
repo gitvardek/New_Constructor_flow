@@ -14,12 +14,12 @@ export const setCookie = (name: string, value: string, days: number = 7): void =
   const date = new Date()
   date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000))
   const expires = `expires=${date.toUTCString()}`
-  
+
   // Проверяем, работает ли сайт по HTTPS
   const isSecure = window.location.protocol === 'https:'
   const secureFlag = isSecure ? ';secure' : ''
-  
-  document.cookie = `${name}=${value};${expires};path=/;samesite=strict${secureFlag}`
+
+  document.cookie = `${name}=${value};${expires};path=/;samesite=lax${secureFlag}`
 }
 
 /**
@@ -43,7 +43,11 @@ export const getCookie = (name: string): string | null => {
  * @param name - название cookie
  */
 export const deleteCookie = (name: string): void => {
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+  const trimmedName = name.trim()
+  const isSecure = window.location.protocol === 'https:'
+  const secureFlag = isSecure ? ';secure' : ''
+  document.cookie = `${trimmedName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;samesite=lax${secureFlag}`
+
 }
 
 /**

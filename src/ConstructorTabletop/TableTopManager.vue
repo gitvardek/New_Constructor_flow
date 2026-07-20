@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // @ts-nocheck
-
+import { _URL } from "@/types/constants";
 import {
   onMounted,
   onBeforeMount,
@@ -28,6 +28,12 @@ import MainInput from "@/components/ui/inputs/MainInput.vue";
 import TableTopInput from "./TableTopInput.vue";
 import MaterialSelector from "@/components/right-menu/customiser-pages/ColorRightPage/MaterialSelector.vue";
 import KromkaCard from "./Kromka/KromkaCard.vue";
+import { string } from "yup";
+
+
+type TTitle =
+  { title: string, image: string }
+
 
 const eventBus = useEventBus();
 const modelState = useModelState();
@@ -54,6 +60,8 @@ const {
 
 const emit = defineEmits(["save-table-data"]);
 
+const tableHeaderData = ref<TTitle>({ title: '', image: '' })
+
 const {
   MAX_AREA_WIDTH,
   TOTAL_LENGTH,
@@ -62,7 +70,7 @@ const {
   MIN_SECTION_WIDTH,
   MIN_SECTION_HEIGHT,
   SECTOR_PADDING,
-  PART_MIN_SIZE
+  PART_MIN_SIZE,
 } = CUTTER_PARAMS;
 
 let shapeAdjuster = null;
@@ -84,13 +92,6 @@ const props = defineProps({
 
 const tempProfile = ref(null);
 const tempUslugi = ref(null);
-const kromkaMap = ref([
-  "kromka_tri_storony",
-  "kromka_perimetr",
-  "kromka_torec",
-  "kromka_torec_right",
-  "kromka_torec_left",
-]);
 
 const isMounted = ref(false);
 const visualizationRef = ref(null);
@@ -200,7 +201,8 @@ const addVerticalCut = (colIndex) => {
   const column = grid.value[colIndex];
   const halfWidth = column[0].width / 2;
 
-  if (halfWidth < PART_MIN_SIZE || !((column[0].width / 2) % step.value == 0)) return;
+  if (halfWidth < PART_MIN_SIZE || !((column[0].width / 2) % step.value == 0))
+    return;
 
   // Обновляем ширину текущей колонки
   column.forEach((row) => {
@@ -220,6 +222,8 @@ const addVerticalCut = (colIndex) => {
   }));
 
   grid.value.splice(colIndex + 1, 0, newColumn);
+
+  checkProfileDisablegroups(false);
 
   // Обновляем рендер
   visualizationRef.value.renderGrid();
@@ -427,6 +431,8 @@ const getHoleOptionsActive = computed(() => {
 const createProfileServices = () => {
   /** Отладка */
 
+  // console.log(modelState._PROFILE, "---Profile");
+
   /*---------------*/
   const parent = modelState.getCurrentRaspilParent;
 
@@ -442,11 +448,14 @@ const createProfileServices = () => {
 
   const { SERVICE } = curProfileData;
 
+  // console.log(SERVICE, "----SERVICE---", USLUGI, "--USLUGI");
 
   const curProfileServise = USLUGI.filter((el) => {
+    // console.log(el.ID);
     return SERVICE.includes(el.ID);
   });
 
+  // console.log(curProfileServise, 'curProfileServise')
 
   if (activeProfile.show_props && activeProfile.show_props?.includes("hem")) {
     getCurretKromkaList();
@@ -455,19 +464,22 @@ const createProfileServices = () => {
   return curProfileServise;
 };
 
-const checkProfileDisablegroups = () => {
+const checkProfileDisablegroups = (keepValues = true) => {
+
   const curProfileServise = createProfileServices();
+
   if (!curProfileServise) return;
-
-  // checkKromkaActive();
-
-  // if (getKromkaActive) {
-  //   getCurretKromkaList();
-  // }
 
   grid.value.forEach((column) =>
     column.forEach((row) => {
       const temp = curProfileServise.map((el) => {
+
+        // const curUsluga = keepValues
+        //   ? row.serviseData.find((usluga) => usluga.ID === el.ID)
+        //   : null;
+
+        // const value = curUsluga ? curUsluga.value : false;
+
         const curUsluga = row.serviseData.find((usluga) => usluga.ID === el.ID);
         if (curUsluga) el.value = curUsluga.value;
         else el.value = false;
@@ -492,11 +504,34 @@ const checkProfileDisablegroups = () => {
     }),
   );
 
-  checkKromkaActive();
+  const check = grid.value.flatMap(service =>
+    service.flatMap(el =>
+      el.serviseData.filter(elem =>
+        Array.isArray(elem.NEW_CONSTRUCTOR_GROUP) &&
+        elem.NEW_CONSTRUCTOR_GROUP.includes('kromka')
+      )
+    )
+  );
+
+  const checked = check.find(el => el?.value);
+
+  checkKromkaActive(checked);
 
   if (getKromkaActive) {
     getCurretKromkaList();
   }
+
+  if (!keepValues) {
+    const newProfileIds = new Set(curProfileServise.map((s) => s.ID));
+    tempUslugi.value.forEach((usluga) => {
+      console.log(usluga, 'usluga')
+
+      if (!newProfileIds.has(usluga.ID) || parseInt(usluga.separated) !== 0) {
+        usluga.value = false;
+      }
+    });
+  }
+
 };
 
 const convertProfileData = (value, item) => {
@@ -525,7 +560,8 @@ const convertProfileData = (value, item) => {
     }
   }
 
-  checkProfileDisablegroups();
+  checkProfileDisablegroups(false);
+
   visualizationRef.value?.renderGrid();
 };
 
@@ -560,11 +596,12 @@ const updateGlobalService = (value, item, USLUGI) => {
   if (globalService) {
     globalService.value = value;
   }
+
 };
 
 /** @Обновляет_локальный_сервис_в_текущей_секции_с_логикой_позиционирования */
 
-const updateLocalService = (value, item, USLUGI) => {
+const updateLocalService = (value, item) => {
   const currentSection = getCurrentSection.value;
   if (!currentSection?.currentRow?.serviseData) return;
 
@@ -585,6 +622,7 @@ const updateLocalService = (value, item, USLUGI) => {
     if (service.ID === targetService.ID) return;
 
     const pos = service.NEW_CONSTRUCTOR_GROUP;
+    // console.log(service, targetPosition, "==== ❌ ====");
 
     if (!pos || !targetPosition) return;
     const isConflict = pos.some((item) => targetPosition.includes(item));
@@ -596,7 +634,8 @@ const updateLocalService = (value, item, USLUGI) => {
   //  Установка значения для текущего сервиса
   targetService.value = value;
 
-  checkKromkaActive();
+  const isKromkaOption = item.NEW_CONSTRUCTOR_GROUP.includes('kromka') ? item : null
+  checkKromkaActive(isKromkaOption);
 
   if (getKromkaActive) {
     getCurretKromkaList();
@@ -722,7 +761,8 @@ const updateRoundCutDiameter = (value, colIndex, rowIndex) => {
 
   const prevValue = row.roundCut.radius;
   let newValue = parseInt(value);
-  newValue = newValue > 600 ? 600 : newValue < PART_MIN_SIZE ? PART_MIN_SIZE : newValue;
+  newValue =
+    newValue > 600 ? 600 : newValue < PART_MIN_SIZE ? PART_MIN_SIZE : newValue;
 
   const shapeData = {
     radius: newValue,
@@ -757,7 +797,8 @@ const updateHole = (event, key, type, holeType) => {
 
   // let newValue = parseInt(event.target.value);
   let newValue = parseInt(event);
-  newValue = newValue > 600 ? 600 : newValue < PART_MIN_SIZE ? PART_MIN_SIZE : newValue;
+  newValue =
+    newValue > 600 ? 600 : newValue < PART_MIN_SIZE ? PART_MIN_SIZE : newValue;
 
   const holeData = JSON.parse(JSON.stringify(currenthole));
   holeData[type] = newValue;
@@ -871,6 +912,8 @@ const deliteVerticalCut = (colIndex) => {
   selectedCell.value.row = 0;
   selectedCell.value.col = 0;
 
+  checkProfileDisablegroups(false)
+
   visualizationRef.value.renderGrid();
 };
 
@@ -972,8 +1015,7 @@ const createServiseData = () => {
   const { PROPS } = parent.userData;
   const { PROFILE, USLUGI } = PROPS.CONFIG;
 
-  const serviseList =
-    tempProfile.value.length > 0 ? createProfileServices() : tempUslugi.value;
+  const serviseList = tempProfile.value.length > 0 ? createProfileServices() : tempUslugi.value;
 
   const convertParams = serviseList.reduce((acc, el) => {
     const checkGlobal = el.separated == 0 ? el.value : false;
@@ -1031,6 +1073,7 @@ const reset = (reset = false) => {
 };
 
 const saveProfile = () => {
+  // console.log(getCurrentKromkaId(), "tempKromka.value;");
 
   const parent = modelState.getCurrentRaspilParent;
   const { PROPS } = parent.userData;
@@ -1080,6 +1123,14 @@ const saveGrid = () => {
   return data;
 };
 
+const isCuterMax = computed(() => ({
+  'disabled': grid.value.length >= 4
+}));
+
+const getName = computed(() => {
+
+})
+
 defineExpose({
   saveGrid,
 });
@@ -1089,6 +1140,7 @@ onBeforeMount(() => {
   const parent = modelState.getCurrentRaspilParent;
   const { PROPS } = parent.userData;
   const { PROFILE, KROMKA, USLUGI } = PROPS.CONFIG;
+  const product = modelState._PRODUCTS[PROPS.PRODUCT]
 
   totalHeight.value = props.canvasHeight;
   // Делаем клон для реактивности
@@ -1098,6 +1150,10 @@ onBeforeMount(() => {
   setGridData(grid.value);
   setProfileData(tempProfile.value);
   setKromkaId(KROMKA);
+  tableHeaderData.value = {
+    title: product.NAME,
+    image: `${_URL + product.PREVIEW_PICTURE}`
+  }
 });
 
 onMounted(() => {
@@ -1111,6 +1167,9 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+
+  tempProfile.value = null;
+  tempUslugi.value = null;
   shapeAdjuster = null;
   grid.value = null;
   clearKromkaData();
@@ -1119,106 +1178,68 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="splitter-wrapper">
-    <div
-      class="splitter-container splitter-container--left"
-      ref="splitterContainer"
-      @click="hideKromkaList"
-    >
+    <div class="splitter-container splitter-container--left" ref="splitterContainer" @click="hideKromkaList">
       <div class="splitter-header">
-        <div class="splitter-header--title"><h1>Настройки распила</h1></div>
+
+        <div class="splitter-header--title">
+          <h1>Настройки распила</h1>
+        </div>
+
+
+        <div class="splitter-header--info-container">
+          <p class="splitter-header--name">{{ tableHeaderData.title }}</p>
+          <img class="splitter-header--image" :src="tableHeaderData.image" alt="">
+        </div>
+
+
+
         <div class="actions-inputs">
           <p class="actions-title">Высота полотна</p>
           <div class="actions-input--container">
-            <MainInput
-              @update:modelValue="updateTotalHeight"
-              :inputClass="'actions-input'"
-              v-model="totalHeight"
-              :min="200"
-              :max="1200"
-              :type="'number'"
-            />
+            <MainInput @update:modelValue="updateTotalHeight" :inputClass="'actions-input'" v-model="totalHeight"
+              :min="200" :max="1200" :type="'number'" />
           </div>
         </div>
+
       </div>
 
       <div class="splitter-content">
-        <Visualization
-          v-if="isMounted"
-          ref="visualizationRef"
-          :step="step"
-          :grid="grid"
-          :correct="correct"
-          :container="splitterContainer"
-          :max-area-height="props.canvasHeight"
-          :tempHole="tempHole"
-          @cell-selected="handleCellSelect"
-        />
+        <Visualization v-if="isMounted" ref="visualizationRef" :step="step" :grid="grid" :correct="correct"
+          :container="splitterContainer" :max-area-height="props.canvasHeight" :tempHole="tempHole"
+          @cell-selected="handleCellSelect" />
       </div>
 
       <section class="actions-wrapper">
         <div class="actions-header">
-          <div
-            :class="[
-              'actions-header--container',
-              { active: colIndex === selectedCell.col },
-            ]"
-            v-for="(column, colIndex) in grid"
-            :key="colIndex"
-          >
-            <button
-              v-if="grid.length > 1"
-              class="actions-btn actions-icon"
-              @click="deliteVerticalCut(colIndex)"
-            >
-              <img
-                class="actions-icon--delite"
-                src="/icons/delite.svg"
-                alt=""
-              />
+          <div :class="[
+            'actions-header--container',
+            { active: colIndex === selectedCell.col },
+          ]" v-for="(column, colIndex) in grid" :key="colIndex">
+            <button v-if="grid.length > 1" class="actions-btn actions-icon" @click="deliteVerticalCut(colIndex)">
+              <img class="actions-icon--delite" src="/icons/delite.svg" alt="" />
             </button>
-            <p
-              class="actions-title actions-title--part"
-              @click="showCurrentCol(colIndex)"
-            >
+            <p class="actions-title actions-title--part" @click="showCurrentCol(colIndex)">
               {{ colIndex + 1 }} группа
             </p>
           </div>
         </div>
 
-        <div
-          class="actions-container"
-          v-for="(column, colIndex) in grid"
-          :key="colIndex"
-        >
-          <div
-            class="actions-items--wrapper"
-            v-if="selectedCell.col === colIndex"
-          >
-            <div
-              v-for="(row, rowIndex) in column"
-              :key="rowIndex"
-              :class="[
-                'actions-items--container',
-                {
-                  active:
-                    rowIndex === selectedCell.row &&
-                    colIndex === selectedCell.col,
-                },
-              ]"
-            >
+        <div class="actions-container" v-for="(column, colIndex) in grid" :key="colIndex">
+          <div class="actions-items--wrapper" v-if="selectedCell.col === colIndex">
+            <div v-for="(row, rowIndex) in column" :key="rowIndex" :class="[
+              'actions-items--container',
+              {
+                active:
+                  rowIndex === selectedCell.row &&
+                  colIndex === selectedCell.col,
+              },
+            ]">
               <article class="actions-items actions-items--left">
                 <div class="actions-items--left-wrapper">
                   <div class="actions-items--title">
-                    <button
-                      v-if="column.length > 1"
-                      class="actions-btn actions-icon"
-                      @click="deliteHorizontalCut(rowIndex, colIndex)"
-                    >
-                      <img
-                        class="actions-icon--delite"
-                        src="/icons/delite.svg"
-                        alt=""
-                      />
+                    <button v-if="column.length > 1" class="actions-btn actions-icon"
+                      @click="deliteHorizontalCut(rowIndex, colIndex)">
+                      <img class="actions-icon--delite" src="/icons/delite.svg" alt="" />
                     </button>
                     <p class="actions-title actions-title--part">
                       {{ colIndex + 1 }}.{{ rowIndex + 1 }} часть
@@ -1228,23 +1249,15 @@ onBeforeUnmount(() => {
                   <div class="actions-items--width" v-if="!row.roundCut.radius">
                     <div class="actions-inputs">
                       <p class="actions-title">Ширина</p>
-                      <div
-                        :class="[
-                          'actions-input--container',
-                          grid.length <= 1 ? 'disable' : '',
-                        ]"
-                      >
-                        <TableTopInput
-                          :value="column[0].width"
-                          :step="step"
-                          :min="PART_MIN_SIZE"
-                          :max="column[0].maxWidth || TOTAL_LENGTH"
-                          :disabled="grid.length < 0"
-                          @input="handleWidthInput($event, colIndex, rowIndex)"
-                          @update:value="
+                      <div :class="[
+                        'actions-input--container',
+                        grid.length <= 1 ? 'disable' : '',
+                      ]">
+                        <TableTopInput :value="column[0].width" :step="step" :min="PART_MIN_SIZE"
+                          :max="column[0].maxWidth || TOTAL_LENGTH" :disabled="grid.length < 0"
+                          @input="handleWidthInput($event, colIndex, rowIndex)" @update:value="
                             updateSectionWidth($event, colIndex, rowIndex)
-                          "
-                        />
+                            " />
                       </div>
                     </div>
                   </div>
@@ -1318,15 +1331,9 @@ onBeforeUnmount(() => {
                   <!----------------------------------------------------------------------------------------->
 
                   <div class="actions-items--title" v-if="!checkDisabled(row)">
-                    <label
-                      class="control control-checkbox control-checkbox--bottom"
-                    >
-                      <input
-                        type="checkbox"
-                        :disabled="checkDisabled(row)"
-                        :checked="row.disabled"
-                        @change="disableVisible($event, colIndex, rowIndex)"
-                      />
+                    <label class="control control-checkbox control-checkbox--bottom">
+                      <input type="checkbox" :disabled="checkDisabled(row)" :checked="row.disabled"
+                        @change="disableVisible($event, colIndex, rowIndex)" />
                       <span class="control_indicator"></span>
                       <span class="actions-title">Скрыть</span>
                     </label>
@@ -1336,12 +1343,10 @@ onBeforeUnmount(() => {
 
               <article class="actions-items actions-items--right">
                 <div class="actions-items--right-items">
-                  <button
-                    class="actions-btn actions-btn--default"
-                    @click="addVerticalCut(colIndex)"
-                  >
+                  <button :class="['actions-btn actions-btn--default', isCuterMax]" @click="addVerticalCut(colIndex)">
                     Верт.распил
                   </button>
+
 
                   <!-------------------------- @НА ДАННЫЙ МОМЕНТ НЕТ ЦЕНООБРАЗОВАНИЯ ------------------------>
 
@@ -1373,14 +1378,11 @@ onBeforeUnmount(() => {
 
                   <!---------------------------------------------------------------------------------------------------->
 
-                  <button
-                    :class="[
-                      'actions-btn actions-btn--default',
-                      getCutServiseActive(colIndex, rowIndex),
-                    ]"
-                    v-if="!getRoundSectionValidation(colIndex, rowIndex)"
-                    @click="showCutServises(colIndex, rowIndex)"
-                  >
+                  <button :class="[
+                    'actions-btn actions-btn--default',
+                    getCutServiseActive(colIndex, rowIndex),
+                  ]" v-if="!getRoundSectionValidation(colIndex, rowIndex)"
+                    @click="showCutServises(colIndex, rowIndex)">
                     Услуги
                   </button>
                 </div>
@@ -1392,9 +1394,9 @@ onBeforeUnmount(() => {
 
       <section class="actions-footer" ref="refFooter">
         <div class="actions-footer--delite">
-          <button class="actions-btn actions-btn--footer" @click="reset(true)">
+          <!-- <button class="actions-btn actions-btn--footer" @click="reset(true)">
             Сбросить
-          </button>
+          </button> -->
           <slot name="delite"></slot>
         </div>
         <div class="actions-footer--save">
@@ -1407,49 +1409,26 @@ onBeforeUnmount(() => {
       </section>
     </div>
 
-    <div
-      class="splitter-container splitter-container--right"
-      v-if="
-        (holeOptions.show && !checkRounded && !cutServise.show) ||
-        (cutServise.show && !checkRounded && !holeOptions.show)
-      "
-    >
+    <div class="splitter-container splitter-container--right" v-if="
+      (holeOptions.show && !checkRounded && !cutServise.show) ||
+      (cutServise.show && !checkRounded && !holeOptions.show)
+    ">
       <transition name="slide--right">
-        <div
-          class="kromka__container"
-          v-if="getKromkaActive && getKromkaCardSelect"
-        >
+        <div class="kromka__container" v-if="getKromkaActive && getKromkaCardSelect">
           <MaterialSelector :materials="getKromkaList" @select="kromkaSelect" />
         </div>
       </transition>
 
-      <CutOptions
-        v-if="holeOptions.show"
-        :holes="getHole"
-        :step="step"
-        @cut-addHole="addHole"
-        @cut-deleteHole="deliteHole"
-        @cut-updateHole="updateHole"
-        @cut-toggleHoleOptions="toggleHoleOptions"
-        @cut-changePositionX="changeHolePositionX"
-        @cut-changePositionY="changeHolePositionY"
-      />
+      <CutOptions v-if="holeOptions.show" :holes="getHole" :step="step" @cut-addHole="addHole"
+        @cut-deleteHole="deliteHole" @cut-updateHole="updateHole" @cut-toggleHoleOptions="toggleHoleOptions"
+        @cut-changePositionX="changeHolePositionX" @cut-changePositionY="changeHolePositionY" />
 
-      <CutServise
-        v-if="cutServise.show"
-        :profile-data="tempProfile"
-        :servise-data="getCurrentSectionServiseData"
-        :current-section="getCurrentSection"
-        @cut-toggleCutServise="toggleCutServise"
-        @cut-servisData="convertServisData"
-        @cut-updateServise="updateServiseWidth"
-        @cut-profileData="convertProfileData"
-      >
+      <CutServise v-if="cutServise.show" :profile-data="tempProfile" :servise-data="getCurrentSectionServiseData"
+        :current-section="getCurrentSection" @cut-toggleCutServise="toggleCutServise"
+        @cut-servisData="convertServisData" @cut-updateServise="updateServiseWidth"
+        @cut-profileData="convertProfileData">
         <template #kromkaSelect>
-          <KromkaCard
-            :data="getKromkaCardData"
-            @kromka-kard-select="kromkaCardSelect"
-          />
+          <KromkaCard :data="getKromkaCardData" @kromka-kard-select="kromkaCardSelect" />
         </template>
       </CutServise>
     </div>
@@ -1507,11 +1486,37 @@ onBeforeUnmount(() => {
 
   &-header {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
     gap: 2rem;
+
     &--title {
       display: flex;
       align-items: end;
+    }
+
+    &--name {
+      font-size: 1.4rem;
+    }
+
+    &--info {
+      display: flex;
+      gap: 1rem;
+      // flex-direction: column;
+
+      &-container {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+    }
+
+    &--image {
+      padding: 0.7rem;
+      border-radius: 5px;
+      width: 60px;
+      height: 60px;
+      background-color: $dark-stroke;
     }
 
     .actions-inputs {
@@ -1532,6 +1537,7 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: space-between;
     margin-top: auto;
+
     &--save,
     &--delite {
       display: flex;
@@ -1708,7 +1714,7 @@ onBeforeUnmount(() => {
   }
 
   &-title {
-    font-size: 1rem;
+    font-size: 1.2rem;
     color: #a3a9b5;
 
     // &--part {
@@ -1732,7 +1738,7 @@ onBeforeUnmount(() => {
     border-radius: 15px;
     background-color: #ecebf1;
     color: #6d6e73;
-    font-size: 1rem;
+    font-size: 1.4rem;
     font-weight: 600;
 
     &:focus {
@@ -1751,7 +1757,7 @@ onBeforeUnmount(() => {
         transform: translate(0, -50%);
         pointer-events: none;
         z-index: 0;
-        font-size: 0.75rem;
+        font-size: 1.2rem;
         font-weight: 600;
         color: #6d6e73;
       }
@@ -1764,7 +1770,7 @@ onBeforeUnmount(() => {
     border-radius: 15px;
     background-color: #ffffff;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 1.2rem;
     font-weight: bold;
     color: #5d6069;
     outline: none;
@@ -1774,7 +1780,9 @@ onBeforeUnmount(() => {
       transition-property: background-color, color, border;
       transition-timing-function: ease;
       transition-duration: 0.25s;
+
       @media (hover: hover) {
+
         /* when hover is supported */
         &:hover {
           color: white;
@@ -1783,6 +1791,7 @@ onBeforeUnmount(() => {
         }
       }
     }
+
     &--footer {
       background-color: #ecebf1;
     }
@@ -1790,6 +1799,7 @@ onBeforeUnmount(() => {
     &:focus {
       outline: none;
     }
+
     &.active {
       border-color: #da444c;
       color: #181818;
@@ -1798,12 +1808,18 @@ onBeforeUnmount(() => {
       transition-duration: 0.25s;
 
       @media (hover: hover) {
+
         /* when hover is supported */
         &:hover {
           color: white;
           background-color: #da444c;
         }
       }
+    }
+
+    &.disabled {
+      pointer-events: none;
+      background-color: $light-stroke;
     }
   }
 
@@ -1869,8 +1885,10 @@ onBeforeUnmount(() => {
     max-width: 25vw;
     z-index: 1;
     right: 5rem;
+    font-size: 1.4rem;
   }
 }
+
 .control-checkbox {
   &--bottom {
     margin-bottom: 0;

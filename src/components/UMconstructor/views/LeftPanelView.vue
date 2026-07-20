@@ -4,6 +4,7 @@
 import "@/components/UMconstructor/styles/UM.scss";
 
 import RailsRightPage from "@/components/right-menu/customiser-pages/RailsRightPage/RailsRightPage.vue";
+import Options from "@/components/right-menu/customiser-pages/RailsRightPage/Options.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { toRefs, ref, onBeforeMount } from "vue";
 import { TTotalProps } from "@/types/types.ts";
@@ -30,6 +31,7 @@ const { module, mode, UMconstructor } = toRefs(props);
 const productData = ref<TTotalProps>(<TTotalProps>{});
 
 const railsKey = ref(0);
+
 const handleEccentricAction = () => {
   railsKey.value++; // инкремент key вызовет полный ререндер компонента
 };
@@ -66,8 +68,7 @@ onBeforeMount(() => {
     <div class="UM no-select actions-sections-header">
       <h1>Опции</h1>
     </div>
-
-    <RailsRightPage
+    <Options
       :key="railsKey"
       class="UM no-select"
       style="margin-top: 5px"

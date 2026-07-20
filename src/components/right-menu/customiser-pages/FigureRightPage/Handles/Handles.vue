@@ -3,7 +3,7 @@
 import { ref, onBeforeMount, computed, nextTick } from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { Tab } from "@/components/ui/tabs/defaultTab.vue";
-import { THandlesItem } from "../useFigureRightPage";
+import { THandlesItem } from "@/utils/useFigureRightPage";
 import { TFasadeProp, FasadeTextAlignAction } from "@/types/types";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useHandlesAction } from "./useHandlesAction";
@@ -133,7 +133,7 @@ const onHandleSelect = (data) => {
     figureFasad.value.props.HANDLES.drawer === null && data.ID !== clearId;
   // handlePos.value.length > 1;
 
-  if(props.is2Dconstructor) {
+  if (props.is2Dconstructor) {
     callback(data.ID, "handle")
   }
   else {
@@ -164,7 +164,7 @@ const onDeleteHandle = () => {
   if (props.is2Dconstructor) {
     callback(false, "handle");
   } else {
-    eventBus.emit("A:DeliteHandle", {
+    eventBus.emit("A:DeleteHandle", {
       data: curHandleData,
       fasadeNdx: figureFasad.value.ndx,
     });
@@ -181,31 +181,14 @@ const checkControllerVisible = computed(() => {
 </script>
 <template>
   <div class="handles__wraper">
-    <defaultTab
-      v-if="!props.is2Dconstructor"
-      :tabs="props.data"
-      :initialTab="figureFasad.name"
-      @tab-change="handleTabChange"
-    />
+    <defaultTab v-if="!props.is2Dconstructor" :tabs="props.data" :initialTab="figureFasad.name"
+      @tab-change="handleTabChange" />
     <div class="handles__container">
       <div class="handles__header">
-        <ConfigurationOption
-          @delete-choise="onDeleteHandle"
-          :type="'Handles'"
-          :data="figureFasad.data"
-        />
-        <DirectionControl
-          v-if="controllerVisible && !props.disablePositionChanger"
-          :handle-pos="handlePos"
-          :active-pos="props.activePos"
-          @changeDirectionPos="onChangeHandlePos"
-          :container="'card'"
-          :scale="1"
-          :gap="2"
-          :max-width="120"
-          :size="20"
-          :fontSize="10"
-        />
+        <ConfigurationOption @delete-choise="onDeleteHandle" :type="'Handles'" :data="figureFasad.data" />
+        <DirectionControl v-if="controllerVisible && !props.disablePositionChanger" :handle-pos="handlePos"
+          :active-pos="props.activePos" @changeDirectionPos="onChangeHandlePos" :container="'card'" :scale="1" :gap="2"
+          :max-width="120" :size="20" :fontSize="10" />
       </div>
       <MaterialSelector @select="onHandleSelect" :materials="handleList" />
     </div>
@@ -218,30 +201,48 @@ const checkControllerVisible = computed(() => {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    max-height: 74vh;
-    padding-bottom: 25px;
+    max-height: 100vh;
+    padding-bottom: 1rem;
+    overflow: hidden;
   }
+
   &__container {
+    gap: 1rem;
+
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    border: 1px solid #ecebf1;
-    border-radius: 10px;
-    padding: 15px;
+    position: relative;
     max-height: 100vh;
     overflow: hidden;
-    box-sizing: border-box;
+    margin-bottom: 0.5rem;
+    border: 1px solid #ecebf1;
+    border-radius: 10px;
+    padding: 5px;
+    font-size: 1.4rem;
 
     .redactor {
-      &__list {
+      &__list { 
         max-height: calc(50vh - 110px);
       }
     }
   }
+
   &__header {
     display: flex;
     align-items: center;
     gap: 15px;
   }
+}
+
+.material-config {
+  // &_list {
+  //   height: 100vh;
+  //   display: flex;
+  //   flex-direction: column;
+  //   flex: 1;
+  //   flex-wrap: wrap;
+  //   margin-top: 1rem;
+  //   overflow-y: auto;
+  // }
 }
 </style>

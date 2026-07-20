@@ -27,11 +27,12 @@
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+  font-size: 1.4rem;
 
   &-header {
     .study__title {
       margin-bottom: 20px;
-      font-size: 32px;
+      font-size: 3.2rem;
       font-weight: 600;
       text-align: center;
     }

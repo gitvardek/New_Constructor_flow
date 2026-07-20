@@ -33,6 +33,7 @@ export const useNewsStore = defineStore('news', () => {
       error.value = { isError: false, message: '' }
       
       const data = await NewsService.getNewsList()
+
       newsList.value = data.DATA
     } catch (err) {
       handleError(err)

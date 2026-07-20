@@ -37,7 +37,7 @@ watch(() => props.ambientLight, (v) => (localAmbient.value = v));
 watch(localAmbient, (v) => emit("update:ambientLight", v));
 
 watch(() => props.pointLight, (v) => (localPoint.value = v));
-watch(localPoint, (v) => emit("update:pointLight" as any, v)); 
+watch(localPoint, (v) => emit("update:pointLight" as any, v));
 
 // const emitPoint = (v: number | string) => emit("update:pointLight", v);
 // watch(localPoint, (v) => emitPoint(v));
@@ -47,7 +47,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   <div class="visual">
     <h3 class="visual__title">Свет и тени</h3>
 
-    <div class="visual__contant">
+    <div class="visual__content">
       <div class="visual__top">
         <div class="visual__top--left">
           <Accordion>
@@ -59,13 +59,9 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
             </template>
 
             <template #params="{ onToggle }">
-              <ul class="accordion__contant">
-                <li
-                  class="label__text"
-                  v-for="(param, key) in quality"
-                  :key="key"
-                  @click="() => { emit('change-quality', param); onToggle(); }"
-                >
+              <ul class="quality-list">
+                <li class="label__text" v-for="(param, key) in quality" :key="key"
+                  @click="() => { emit('change-quality', param); onToggle(); }">
                   {{ param.lable }}
                 </li>
               </ul>
@@ -112,9 +108,10 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   padding: 1rem;
   border: 1px solid $dark-grey;
   border-radius: 15px;
-  background-color:$white ;
+  background-color: $white ;
+  font-size: 1.4rem;
 
-  &__contant {
+  &__content {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -143,6 +140,7 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
   }
 
   &__bottom {
+
     &--left,
     &--right {
       display: flex;
@@ -158,13 +156,17 @@ watch(localPoint, (v) => emit("update:pointLight" as any, v));
 }
 
 .label__text {
-  font-size: 15px;
+  font-size: 1.2rem;
   font-weight: 600;
   color: $strong-grey;
 }
 
-.accordion__contant {
+.quality-list {
   padding-top: 0.5rem;
   border-top: 1px solid $dark-grey;
+}
+
+.accordion {
+  padding: 0.5rem 1rem;
 }
 </style>

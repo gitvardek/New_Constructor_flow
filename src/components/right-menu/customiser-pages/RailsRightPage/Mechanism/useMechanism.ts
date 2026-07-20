@@ -44,7 +44,6 @@ export const useMechanism = () => {
     const weightCalculation = (element): TWheightData[] | null[] | [] => {
         try {
 
-
             const { fasade_weight, milling_weight, CATALOG } = appData.getAppData
             const { PRODUCTS } = CATALOG
             // const { PROPS } = element ?? modelState.getCurrentModel!.userData
@@ -82,9 +81,50 @@ export const useMechanism = () => {
                 })
             }
 
+            // weightData = FASADE_PROPS.map((fasade: TFasadeProp, ndx: number) => {
+            //     if (fasade.COLOR == 7397) return null
+
+            //     const { PRODUCT } = PROPS
+            //     const { FASADE_WIDTH, FASADE_HEIGHT } = FASADE[ndx].userData.trueSize
+            //     const product = PRODUCTS[PRODUCT]
+
+            //     const prodMill = product.type_showcase[0] !== null && product.MILLING[0] !== null
+
+            //     const curWeight = fasade_weight[fasade.COLOR]
+            //     const curMilling = fasade.MILLING ? milling_weight[fasade.MILLING!] : prodMill ? milling_weight[defMilling] : null
+
+            //     if (curWeight) {
+            //         const square = FASADE_WIDTH * FASADE_HEIGHT
+            //         const weight = parseFloat(curWeight) * (square / 1000000);
+
+            //         return {
+            //             width: FASADE_WIDTH,
+            //             height: FASADE_HEIGHT,
+            //             square: parseFloat(square.toFixed(2)),
+            //             weight: parseFloat(weight.toFixed(2))
+            //         }
+            //     }
+            //     else if (curMilling) {
+
+            //         const square = FASADE_WIDTH * FASADE_HEIGHT
+            //         const weight = parseFloat(curMilling) * (square / 1000000);
+
+            //         return {
+            //             width: FASADE_WIDTH,
+            //             height: FASADE_HEIGHT,
+            //             square: parseFloat(square.toFixed(2)),
+            //             weight: parseFloat(weight.toFixed(2))
+            //         }
+            //     }
+            //     return null
+
+            // })
+
+
             return weightData
 
         } catch (e) {
+            console.log('Ошибка в методе weightCalculation объекта useMechanism', e)
             return []
         }
     }
@@ -100,13 +140,11 @@ export const useMechanism = () => {
         }: TWeightData) => {
         if (fasade.COLOR == 7397) return null
 
-
         const { PRODUCT } = props
         let FASADE_WIDTH = params ? params.FASADE_WIDTH : fasade.UMSIZES?.width
         let FASADE_HEIGHT = params ? params.FASADE_HEIGHT : fasade.UMSIZES?.height
 
         const product = coreProducts[PRODUCT];
-
 
         const prodMill = product.type_showcase[0] !== null && product.MILLING[0] !== null
 
@@ -164,6 +202,7 @@ export const useMechanism = () => {
 
             if (weightsData.includes(null)) {
 
+                console.log('❌ Результат метода weightCalculation объекта useMechanism содержит null');
                 CONFIG.MECHANISM = null
                 CONFIG.MECHANISM_TEMP = []
                 return [];
@@ -190,6 +229,7 @@ export const useMechanism = () => {
 
                 const mech = MECHANISM[mechID]?.[PRODUCT];
 
+                // console.log(mechID, mech,PRODUCT, '✅ === МЕХАНИЗМ === ✅')
 
 
                 if (!mech) continue;
@@ -197,7 +237,9 @@ export const useMechanism = () => {
 
                 const { PROPERTY_MECHANISM_LINK_VALUE, SECTION, GROUP, PROPERTY_TYPE_MECHANISM_VALUE, NAME } = mech;
 
+                // console.log(mechanism[GROUP], '✅ === GROUP === ✅')
 
+                // console.log(PROPERTY_MECHANISM_LINK_VALUE, '✅ === LINK_VALUE === ✅')
 
                 for (const linkID of PROPERTY_MECHANISM_LINK_VALUE) {
                     const cond = condition_mechanism[linkID];
@@ -255,6 +297,7 @@ export const useMechanism = () => {
             return result;
 
         } catch (e) {
+            console.log('❌ Ошибка в методе createMeckhanizmList объекта useMechanism', e);
             return [];
         }
     };
@@ -270,7 +313,6 @@ export const useMechanism = () => {
         const curModel = element ?? modelState.getCurrentModel;
         const { PROPS } = curModel!.userData;
         const { CONFIG } = PROPS;
-
 
         CONFIG.MECHANISM_TEMP = result
 

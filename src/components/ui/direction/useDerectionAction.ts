@@ -12,6 +12,7 @@ interface ActionButton {
 
 type TDirectionMap = {
     rotateMap: number[],
+    centerOnly: number[],
 };
 
 type integrateHandleAction = {
@@ -20,7 +21,7 @@ type integrateHandleAction = {
     active: boolean
 }
 
-type TDirectionType = 'rotateMap' | 'integratedHandle' | null
+type TDirectionType = 'rotateMap' | 'integratedHandle' | 'centerOnly'|null
 type THandlesPositionType = string[] | integrateHandleAction[] | []
 
 const useDerectionAction = () => {
@@ -120,6 +121,7 @@ const useDerectionAction = () => {
 
     const diretionMap: TDirectionMap = {
         rotateMap: [3, 1, 4, 5, 7],
+        centerOnly: [4]
     };
 
     const getControlsData = (): ActionButton[] => {
@@ -143,6 +145,10 @@ const useDerectionAction = () => {
             });
 
             return refactor
+        }
+
+        if(type === 'centerOnly'){
+            return [actions[4]]
         }
 
         if (handlePosition.length > 0) {

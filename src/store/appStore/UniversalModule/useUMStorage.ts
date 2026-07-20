@@ -1,16 +1,16 @@
-import {computed, ref} from 'vue'
-import {defineStore} from "pinia";
-import {TConfig, TTotalProps} from "@/types/types.ts";
-import {canvasConfig, constructorMode, GridModule, TSelectedCell} from "@/components/UMconstructor/types/UMtypes.ts";
+import { computed, ref } from 'vue'
+import { defineStore } from "pinia";
+import { TConfig, TTotalProps } from "@/types/types.ts";
+import { canvasConfig, constructorMode, GridModule, TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
 
 const defaultCanvas = <canvasConfig>{
     canvasHeight: 720,
     canvasWidth: 600,
 }
 
-const defaultSelectedCell = <TSelectedCell>{sec: 0, cell: null, row: null, extra: null}
-const defaultSelectedFilling = <TSelectedCell>{sec: 0, cell: null, row: null, extra: null, item: null}
-const defaultSelectedFasade = <TSelectedCell>{sec: 0, cell: null, row: null}
+const defaultSelectedCell = <TSelectedCell>{ sec: 0, cell: null, row: null, extra: null }
+const defaultSelectedFilling = <TSelectedCell>{ sec: 0, cell: null, row: null, extra: null, item: null }
+const defaultSelectedFasade = <TSelectedCell>{ sec: 0, cell: null, row: null }
 
 export const useUMStorage = defineStore('um-data', () => {
     const UM_GRID = ref<GridModule>(<GridModule>{})
@@ -89,7 +89,7 @@ export const useUMStorage = defineStore('um-data', () => {
     }
 
     const setSelected = (type: constructorMode, newSelected: TSelectedCell) => {
-        const {sec, cell, row, extra, item} = newSelected || {};
+        const { sec, cell, row, extra, item } = newSelected || {};
 
         const validateValue = (value: any) => {
             if (value !== undefined)
@@ -101,7 +101,7 @@ export const useUMStorage = defineStore('um-data', () => {
         switch (type) {
             case "fasades":
                 selectedFasade.value = newSelected ?
-                    <TSelectedCell>{sec: validateValue(sec), cell: validateValue(cell), row: validateValue(row)} :
+                    <TSelectedCell>{ sec: validateValue(sec), cell: validateValue(cell), row: validateValue(row) } :
                     defaultSelectedFasade
                 break;
             case "module":
