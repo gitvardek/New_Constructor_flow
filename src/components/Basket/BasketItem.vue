@@ -348,7 +348,7 @@ import { BASE_DOMAIN } from "@/utils/originalDomain";
 // const API_URL = ref('https://dev.vardek.online');
 const API_URL = ref(`https://${BASE_DOMAIN}`);
 
-const hideDeleteList = ref<number[]>([10001, 10002])
+const hideDeleteList = ref<(string | number)[]>(['plinth', 'tabletop'])
 
 interface Props {
   item: any;
@@ -1058,7 +1058,7 @@ const renderDescription = computed(() => {
 
 const isNonDelete = computed(() => {
 
-  return !hideDeleteList.value.includes(parseFloat(props.item.product.BASKETID))
+  return !hideDeleteList.value.includes(String(props.item.product.BASKETID))
 
 })
 

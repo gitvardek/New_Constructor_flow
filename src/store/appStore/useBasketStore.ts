@@ -99,7 +99,12 @@ export const useBasketStore = defineStore('basket', () => {
   const addFromScene = () => {
 
     const roomContantData = useRoomContantData().getRoomContantDataForBasket
-    const roomDataCopy = JSON.parse(roomContantData)
+    let roomDataCopy: any
+    try {
+      roomDataCopy = typeof roomContantData === 'string' ? JSON.parse(roomContantData) : roomContantData
+    } catch {
+      roomDataCopy = []
+    }
 
     const filtered = getFilteredData()
 
@@ -118,7 +123,12 @@ export const useBasketStore = defineStore('basket', () => {
 
   const getFilteredData = () => {
     const roomContantData = useRoomContantData().getRoomContantDataForBasket
-    const roomDataCopy = JSON.parse(roomContantData)
+    let roomDataCopy: any
+    try {
+      roomDataCopy = typeof roomContantData === 'string' ? JSON.parse(roomContantData) : roomContantData
+    } catch {
+      roomDataCopy = []
+    }
 
     return Object.values(roomDataCopy)
       .filter((obj: any) => obj.data.PRODUCT)
@@ -131,7 +141,7 @@ export const useBasketStore = defineStore('basket', () => {
 
   const removeItem = (type: string, basketId: string) => {
 
-    const list = type === 'scene' ? mainConstructor : mainCatalog
+    const list = (type === 'scene' || type === 'umscene') ? mainConstructor : mainCatalog
 
     const index = list.value.findIndex(item => String(item.BASKETID) === String(basketId))
 

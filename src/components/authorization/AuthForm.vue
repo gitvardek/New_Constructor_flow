@@ -147,14 +147,12 @@
 
   const handleSubmit = async () => {
     try {
-      console.log(authForm.value.login, authForm.value.password)
-
       await authStore.login({
         login: authForm.value.login,
         password: authForm.value.password
       })
-    } catch (error) {
-      throw new Error('Неизвестный тип ответа от сервера')
+    } catch {
+      // ошибка уже обработана и отображена в authStore.error
     }
   }
   

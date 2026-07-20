@@ -37,6 +37,9 @@ export const useConversationActions = () => {
                 width <= MAX_WIDTH &&
                 width >= MIN_WIDTH;
 
+            console.log(`Полоно HEIGHT:${MAX_HEIGHT} - ${MIN_HEIGHT}, WIDTH: ${MAX_WIDTH} - ${MIN_WIDTH}`);
+            console.log(`Размер фасада: HEIGHT:${height}, WIDTH:${width}`)
+
             if (!check) {
                 eventBus.emit("A:Delite-Fasad", key);
                 toaster.error(`Фасад №${key + 1} удалён`)
@@ -98,11 +101,20 @@ export const useConversationActions = () => {
         const { FASADE_WIDTH, FASADE_HEIGHT } = size
         const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel)
 
+        console.log(`Полоно HEIGHT: min:${MIN_HEIGHT} - max:${MAX_HEIGHT}, WIDTH: min:${MIN_WIDTH} - max:${MAX_WIDTH}`);
+        console.log(`Размер фасада: HEIGHT:${FASADE_HEIGHT}, WIDTH:${FASADE_WIDTH}`)
+
         const check =
             FASADE_HEIGHT <= MAX_HEIGHT &&
             FASADE_HEIGHT >= MIN_HEIGHT &&
             FASADE_WIDTH <= MAX_WIDTH &&
             FASADE_WIDTH >= MIN_WIDTH;
+
+            console.log(`
+                1:${FASADE_HEIGHT <= MAX_HEIGHT}, 
+                2:${FASADE_HEIGHT >= MIN_HEIGHT},  
+                3:${FASADE_WIDTH <= MAX_WIDTH},  
+                4:${FASADE_WIDTH >= MIN_WIDTH}`)
 
         if (!check) {
             toaster.error(`Размер Фасада №${fasadeId + 1} не соответствует доступному размеру полотна`)

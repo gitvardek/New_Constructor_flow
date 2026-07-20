@@ -239,6 +239,10 @@ export class TrafficManager {
                 }
             }
 
+            // Не используем _currentObject как запасной вариант — иначе при ненайденном объекте
+            // удалится неверный элемент сцены и сломается расчёт цоколя
+            if (!target) return;
+
             this.removeFromRoom({ product: target });
         });
 

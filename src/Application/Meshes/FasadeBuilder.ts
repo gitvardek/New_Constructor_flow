@@ -772,7 +772,7 @@ export class FasadeBuilder {
         const geometryConfig = {
             x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH),
             y: this.parent.calculateFromString(fasade_position.FASADE_HEIGHT),
-            z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH),
+            z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH ?? 16),
         };
         const geometry = this.parent.createExtrudeBoxGeometry(geometryConfig);
         const material = new THREE.MeshStandardMaterial();
@@ -857,6 +857,8 @@ export class FasadeBuilder {
         modelType: string,
         income?: boolean
     }): THREE.Object3D {
+        console.log(fasadePositionData, 'fasadePositionData')
+
         // Создание фасада
         let { fasade, fasadeEdge, defaultEdge } = this.createFasade({
             fasade_position: fasadePositionData,
@@ -871,7 +873,7 @@ export class FasadeBuilder {
         // // Истинные размеры фасада и запись в CONFIG.FASADE_POSITIONS[key]
         const box = new THREE.Box3().setFromObject(fasade);
         const size = box.getSize(new THREE.Vector3());
-        const fasadeDepth = size.z > 1 ? size.z : fasadePositionData.FASADE_DEPTH;
+        const fasadeDepth = size.z > 1 ? size.z : fasadePositionData.FASADE_DEPTH ?? 16;
         const sizeRec = {
             FASADE_WIDTH: size.x,
             FASADE_HEIGHT: size.y,

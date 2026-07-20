@@ -1,5 +1,7 @@
 RewriteEngine On
 
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 RewriteBase /dev_modeller/
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]

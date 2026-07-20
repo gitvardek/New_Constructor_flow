@@ -403,6 +403,7 @@ export const useModelState = defineStore('ModelState', () => {
 
                 const restrict = _FASADE_SIZE_RESTRICT.value[section.ID]
 
+
                 groupedFasades[groupId] = {
 
                     id: [], size: {
@@ -672,7 +673,6 @@ export const useModelState = defineStore('ModelState', () => {
     const millingConversationFilter = (fasadeSize, conversationId) => {
         try {
             const restrict = _MILLING_SIZE_RESTRICT.value.find((el) => el.ID === conversationId)
-            console.log(restrict, 'restrict')
             const { FASADE_WIDTH, FASADE_HEIGHT } = fasadeSize
             const { HEIGHT, WIDTH, MIN_HEIGHT, MIN_WIDTH, MILLING } = restrict
 

@@ -50,6 +50,8 @@ export class ShelfBuilder {
 
         props.SHELF = [];
 
+        console.log(shelfs, 'shelfs')
+
         // Вспомогательная функция для создания полок по оси
         const createShelves = (
             axis: "X" | "Y",
@@ -57,6 +59,7 @@ export class ShelfBuilder {
             posKey: "x" | "y",
             namePrefix: string
         ) => {
+            const { height } = props.CONFIG.SIZE;
             let accumulatedWidth = initWidth;
 
             shelfs[axis].forEach((shelfExpression, index) => {
@@ -64,7 +67,11 @@ export class ShelfBuilder {
                     accumulatedWidth += correction;
                 }
 
-                const geometry = new BoxGeometry(accumulatedWidth - 32, 16, correctDepth);
+                // Вертикальный разделитель: тонкая стенка во всю высоту
+                // Горизонтальная полка: плоская доска во всю ширину
+                const geometry = posKey === "x"
+                    ? new BoxGeometry(16, height - 32, correctDepth)
+                    : new BoxGeometry(accumulatedWidth - 32, 16, correctDepth);
                 const mesh: Mesh = new Mesh(geometry, shelfMaterial);
 
                 mesh.receiveShadow = true;

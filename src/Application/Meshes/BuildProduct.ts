@@ -353,6 +353,8 @@ export class BuildProduct extends BuildersHelper {
             type_showcase, USLUGI, leg_length, OPTION, SHELFQUANT
         } = product_data;
 
+        console.log(tabletop, 'tabletop')
+
         // Определяем тип элемента
         const elType: THREETypes.TElementType =
             (element_type === null && Number.isInteger(leg_length)) ? "element_down" : element_type;
@@ -534,6 +536,8 @@ export class BuildProduct extends BuildersHelper {
         /** Добавляем столешницу если есть */
         const tableTop = CONFIG.HAVETABLETOP ? this.tabletop_builder.createTableTop({ props: PROPS }) : null;
 
+        console.log(tableTop, 'HAVETABLETOP')
+
         const arrows = this.addArrowSize({ object: body, props: PROPS, group: total });
 
         // Позиционирование по Y
@@ -566,7 +570,7 @@ export class BuildProduct extends BuildersHelper {
 
         // Формируем итоговую группу в зависимости от исключений
         const totalParts = curBodyExceptions
-            ? [body, shelf, fasade, arrows, plinth]
+            ? [body, shelf, fasade, tableTop, arrows, plinth]
             : [plinth, legs, body, shelf, fasade, drower, tableTop, arrows];
 
 
@@ -662,8 +666,6 @@ export class BuildProduct extends BuildersHelper {
 
         // Применяем кастомные перекрытия элементов через вспомогательный метод
         this.applyBodyOverrides(data, CONFIG, moduleColorObject);
-
-        console.log(data, 'BODEY DATA')
 
         const body = this.json_builder.createMesh({
             data: { ...data, ...modelSize },

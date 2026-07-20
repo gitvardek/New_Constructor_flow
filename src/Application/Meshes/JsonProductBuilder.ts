@@ -62,6 +62,8 @@ export class JsonBuilder {
         const group = new THREE.Object3D()
         const obj: Record<string, THREE.Mesh> = {}
 
+        console.log(json, 'json')
+
         this.material = this.createMaterial(json.material, textureUrl, group, isRoomElement) as THREE.Material
 
         this.leftMaterial = this.resolveSideMaterial(left, json.material)

@@ -143,6 +143,8 @@ const onSelectMaterial = (data) => {
   /** ============== Данные размера выбранного Фасада ==============*/
 
   const selected = umStorage.getSelected("fasades");
+  const isDowerSelect = umStorage.getSelected("fillings")
+
 
   //======================================================================
 
@@ -156,7 +158,7 @@ const onSelectMaterial = (data) => {
   let haveShowcase;
   let dataOfFasadeType;
 
-  if (props.isFasade) {
+  if (props.isFasade && !isDowerSelect) {
     const checkConversation = checkFasadeConversations(
       data.ID,
       props.fasadeSize || FASADE[props.elementIndex].userData.trueSize,
@@ -717,7 +719,7 @@ const prepareData = () => {
   }
 
   // Текущие выбранные значения
-  if (COLOR && _FASADE[COLOR] || props.elementIndex=='PROFILECOLOR'   ) {
+  if (COLOR && _FASADE[COLOR] || props.elementIndex == 'PROFILECOLOR') {
     const { NAME, PREVIEW_PICTURE } = fasadeData;
     currentSurfaceData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
     isSurfaceSelected.value = true;

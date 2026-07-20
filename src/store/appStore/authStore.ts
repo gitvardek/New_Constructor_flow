@@ -68,7 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (res.DATA.type === 'error') {
         await logout()
         useToast().error('Доступ запрещен!')
-        // return;
+        return;
       }
 
 
@@ -148,8 +148,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const token = getCookie(COOKIE_NAMES.AUTH_TOKEN);
-    const response = await AuthService.getCheckUser(token);
+    if (!token) {
+      return { DATA: { type: 'error', message: 'Токен не найден' } }
+    }
 
+    const response = await AuthService.getCheckUser(token);
     return response;
   }
 
@@ -325,6 +328,17 @@ export const useAuthStore = defineStore('auth', () => {
     logout()
   } else if (isAuthenticated.value) {
     scheduleTokenRefresh()
+  }
+
+  // Синхронизация выхода между вкладками: если в другой вкладке удалили куку — разлогиниваемся
+  if (typeof window !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isAuthenticated.value) {
+        if (!getCookie(COOKIE_NAMES.AUTH_TOKEN)) {
+          logout()
+        }
+      }
+    })
   }
 
 

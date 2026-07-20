@@ -106,12 +106,16 @@ export class TableTopBuilder {
         const sizes = { ...props.CONFIG.SIZE, depth: props.CONFIG.SIZE.depth + this.depthCorrect };
         const material = this.createMaterial(tableProduct);
 
+        console.log(sizes, 'sizes')
+
         const expr = this.buildExpressions(props.CONFIG.EXPRESSIONS, sizes, tableProduct);
 
         const tableOptions = {
             ...this.buildProduct.expressionsReplace(tableModel.json, expr),
             material
         };
+
+           console.log(tableOptions, 'tableOptions')
 
         const tableBody = this.jsonBuilder.createMesh({ data: tableOptions, parent_size: sizes, isTopTable: true })
 

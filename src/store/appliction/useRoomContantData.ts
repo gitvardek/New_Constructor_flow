@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 export const useRoomContantData = defineStore('RoomContantData', () => {
 
     const roomContantData = ref<any>({})
-    const roomContantDataForBasket = ref<any>({})
+    const roomContantDataForBasket = ref<string>('[]')
 
     const setRoomContantData = (value: any) => {
         roomContantData.value = value
@@ -16,7 +16,7 @@ export const useRoomContantData = defineStore('RoomContantData', () => {
     })
 
     const setRoomContantDataForBasket = (value: any) => {
-        roomContantDataForBasket.value = value
+        roomContantDataForBasket.value = typeof value === 'string' ? value : JSON.stringify(value)
     }
 
     const getRoomContantDataForBasket = computed(() => {
