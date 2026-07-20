@@ -112,8 +112,13 @@ onMounted(() => {
 
         if (selectedTable.value?.PROFILE) {
           const curProfile = tempProfile.value.find((el) => el.ID === selectedTable.value.PROFILE);
-          if(curProfile)
+          if (curProfile)
             convertProfileData(true, curProfile);
+          else
+            checkProfileDisablegroups();
+        } else {
+          // Профиль не сохранён — инициализируем кромку с активным дефолтным профилем
+          checkProfileDisablegroups();
         }
 
         getCurrentTable()
@@ -143,6 +148,11 @@ const changeTable = (data: any) => {
 
   callback(data, props.type)
   getCurrentTable()
+
+  // После сохранения TABLE инициализируем дефолтную кромку
+  if (tempProfile.value?.length) {
+    checkProfileDisablegroups()
+  }
 };
 
 const getCurrentTable = () => {
@@ -304,6 +314,7 @@ onBeforeUnmount(() => {
     >
       <template #kromkaSelect>
         <KromkaCard
+            v-if="getKromkaCardData"
             :data="getKromkaCardData"
             @kromka-kard-select="kromkaCardSelect"
         />

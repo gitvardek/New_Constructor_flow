@@ -7,7 +7,6 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { TKromkaMaterialItem, TToptableUMProp } from "@/types/types";
 import { _URL } from "@/types/constants";
 
-
 const modelState = useModelState()
 
 const useKromkaActions = defineStore('KromkaActions', () => {
@@ -108,11 +107,6 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
     const checkKromkaActiveUM = (toptableData: TToptableUMProp) => {
 
-        // const parent = modelState.getCurrentRaspilParent
-        const parent = modelState.getCurrentModel
-        const { PROPS: { PRODUCT, CONFIG } } = parent!.userData;
-        const { HEM, REC_HEM } = PRODUCTS[PRODUCT]
-
         let hasActiveKromka = false
 
         if (!toptableData) {
@@ -124,10 +118,17 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
         const activeProfile = toptableData?.PROFILE ? tempProfileData.value.find((el) => el.ID === toptableData.PROFILE) : tempProfileData.value.find((prof) => prof.value);
 
+        const parent = modelState.getCurrentRaspilParent ?? modelState.getCurrentModel
+
+        const { HEM, REC_HEM } = PRODUCTS[productId]
+
+
         if (tempProfileData.value.length > 0) {
 
             const hasProfileKromka = activeProfile.show_props && activeProfile.show_props?.includes("hem")
             hasActiveKromka = !!toptableData.KROMKA && hasProfileKromka
+
+            console.log(HEM, 'HEM', PRODUCT)
 
             if (hasProfileKromka && tempKromkaId.value == null) {
                 const hemList = HEM.map((el: number) => {
@@ -201,7 +202,7 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
         if (!kromkaActive.value) return
 
-        const parent = modelState.getCurrentRaspilParent
+        const parent = modelState.getCurrentRaspilParent ?? modelState.getCurrentModel
         const { PROPS } = parent!.userData;
         const { PRODUCT } = PROPS
         const { HEM } = PRODUCTS[PRODUCT]
@@ -218,13 +219,30 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         if (!kromkaActive.value || !productId)
             return
 
-        const { HEM } = PRODUCTS[productId]
+        const { HEM, REC_HEM } = PRODUCTS[productId]
         const hemList = HEM.map((el: number) => {
             return HEMLIST[el]
         }).filter(Boolean)
 
         tempKromkaList.value = hemList
-        createKromkaCardData()
+
+        // Устанавливаем данные карточки напрямую — createKromkaCardData() использует
+        // getCurrentRaspilParent, который равен null в контексте UM
+        const currentId = tempKromkaId.value
+        const defaultHem = HEMLIST[REC_HEM?.[0]]
+        const target = hemList.find(el => el.ID === currentId)
+            ?? hemList.find(el => el.ID === defaultHem?.ID)
+            ?? hemList[0]
+
+        if (target) {
+            cardData.value = {
+                NAME: target.NAME,
+                PREVIEW_PICTURE: _URL + target.PREVIEW_PICTURE,
+            }
+            if (currentId == null) {
+                tempKromkaId.value = target.ID
+            }
+        }
     }
 
 
