@@ -19,6 +19,7 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { useCustomiserStore } from "@/store/appStore/useCustomiserStore";
 import { useTransformController } from "../ui/transformController/useTransformController";
 import { useSceneState } from "@/store/appliction/useSceneState";
+import { useProjectStore } from "@/features/quickActions/project/store/useProjectStore.ts";
 
 import PopUpOptionsMenu from "@/components/left-menu/option/PopUpOptionsMenu.vue";
 import RoomOptionsMenu from "@/components/left-menu/option/RoomOptionsMenu.vue";
@@ -38,6 +39,7 @@ const sceneState = useSceneState();
 const menuStore = useMenuStore();
 const customiserStore = useCustomiserStore();
 const popupStore = usePopupStore();
+const projectStore = useProjectStore()
 
 const {
   getTransformControlsValue,
@@ -188,7 +190,7 @@ onUnmounted(() => {
                 }}"</p>
             </div>
             <div class="options-header__item">
-              <h3>ID:</h3> <p class="goods-item__title">{{ sceneState.getCurrentProjectParams.projectId }}</p>
+              <h3>ID:</h3> <p class="goods-item__title">{{ projectStore.getProjectId() }}</p>
             </div>
           </div>
         </div>

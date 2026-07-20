@@ -549,7 +549,7 @@ export class BuildProduct extends BuildersHelper {
 
         // Формируем итоговую группу в зависимости от исключений
         const totalParts = curBodyExceptions
-            ? [body, shelf, fasade, arrows, plinth]
+            ? [body, shelf, fasade, tableTop, arrows, plinth]
             : [plinth, legs, body, shelf, fasade, drower, tableTop, arrows];
 
 
