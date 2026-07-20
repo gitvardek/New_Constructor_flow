@@ -156,6 +156,27 @@ export interface ProfileData {
     COLOR: number;
 }
 
+export interface HiTechProfileData {
+    isVerticalItem: boolean;
+    product: number;
+    id: number;
+    name: string;
+    image: string;
+    type: string;
+    position: Position;
+    size: Size;
+    width: number;
+    height: number;
+    color: number;
+    sec: number;
+    cell: null | any; // или конкретный тип, если известен
+    row: null | any;  // или конкретный тип, если известен
+    extra: null | any; // или конкретный тип, если известен
+    productGroupID: number;
+    isProfile: ProfileData;
+    moduleThickness: number;
+}
+
 export interface GridModule {
     width: number;
     height: number;
@@ -189,6 +210,17 @@ export interface TSelectedCell {
     row?: number | null,
     extra?: number | null,
     item?: number | null
+}
+
+
+interface Position {
+    x: number;
+    y: number;
+}
+interface Size {
+    x: number;
+    y: number;
+    z: number;
 }
 
 export type constructorMode = 'module' | 'fasades' | 'fillings';

@@ -48,7 +48,6 @@ export const AuthService = {
           timeout: REQUEST_TIMEOUT
         }
       )
-      console.log(data, "TTTTT")
       return data
     } catch (error) {
       if (axios.isAxiosError(error)) {

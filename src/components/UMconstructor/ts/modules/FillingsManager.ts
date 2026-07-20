@@ -217,7 +217,6 @@ export default class FillingsManager {
         isVerticalItem = false,
         isDrawer = false
     ) {
-
         if (!product || !currentSpace) return false
 
         let width = product.width
@@ -252,8 +251,6 @@ export default class FillingsManager {
         productGroupID: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-
-        console.log(productGroupID, 'productGroupID')
 
         const product = Object.assign({}, _product);
         product.productGroupID = productGroupID;
@@ -298,9 +295,9 @@ export default class FillingsManager {
 
             const outerDrawer = (selectedOnCanvas?.item !== null && selectedOnCanvas?.item !== undefined)
                 ? outerContainer?.fillings?.find(
-                    f => f.id === selectedOnCanvas.item &&
-                        this.OUTER_DRAWER_IDS.includes(f.productGroupID)
-                ) ?? null
+                      f => f.id === selectedOnCanvas.item &&
+                           this.OUTER_DRAWER_IDS.includes(f.productGroupID)
+                  ) ?? null
                 : null
 
             if (!outerDrawer) {
@@ -324,7 +321,7 @@ export default class FillingsManager {
             // Суммируем высоту уже добавленных внутренних ящиков для этого внешнего
             const usedHeight = outerContainer.fillings
                 ?.filter(f => this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                    f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
+                              f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
                 ?.reduce((sum, f) => sum + f.height, 0) ?? 0
 
             const freeHeight = availableHeight - usedHeight
@@ -527,8 +524,6 @@ export default class FillingsManager {
             currentFillingsArray.push(fillingObject);
 
         if (product.MIN_FASADE_SIZE) {
-
-            console.log(product.MIN_FASADE_SIZE, 'MIN_FASADE_SIZE')
 
             if (!currentSection.fasadesDrawers)
                 currentSection.fasadesDrawers = []
@@ -781,7 +776,7 @@ export default class FillingsManager {
                 const prevLen = curRow.fillings.length
                 curRow.fillings = curRow.fillings.filter(f =>
                     !(this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                        f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
+                      f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
                 )
                 if (curRow.fillings.length !== prevLen) {
                     curRow.fillings.forEach((f, idx) => { f.id = idx + 1 })

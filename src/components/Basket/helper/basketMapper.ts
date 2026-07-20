@@ -285,7 +285,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
   const item = arr.map(el => {
 
-    const base = {
+    let base = {
       ID: el.product,
       PATH: false,
       MATERIAL_ID: el.material, // Материал полки
@@ -297,6 +297,15 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
       },
       ADDITIVES: el.ADDITIVES || {},
       basketRenderPosition: el.basketRenderPosition || false,
+    }
+
+    if (el.tsarga) {
+      const tsargaData = {
+        "PRODUCT_ID": el.tsarga.PRODUCT_ID,
+        "MATERIAL_ID": el.tsarga.MATERIAL_ID,
+        "WIDTH": el.tsarga.WIDTH,
+      }
+      base = { ...base, tsarga: tsargaData }
     }
 
     if (el.type === 'section_partition') {
@@ -627,8 +636,6 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
   const tableTopLengthDefault = 3000
   const { getGlobalOptions } = useRoomOptions()
   const tableTopId = getGlobalOptions?.tableTop?.id
-
-  console.log(tableTopId, emptyTableTopId)
 
   if (tableTopId === emptyTableTopId) return false
 

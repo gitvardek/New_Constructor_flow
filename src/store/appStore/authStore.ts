@@ -80,11 +80,11 @@ export const useAuthStore = defineStore('auth', () => {
       const rawList = (salonOwner as any)?.DATA?.data ?? (Array.isArray((salonOwner as any)?.DATA) ? (salonOwner as any).DATA : []);
       salonOwnerList.value = Array.isArray(rawList) ? rawList : [];
 
-      console.log('BACKEND USERR DATA', response?.DATA?.data ?? response);
+      // console.log('BACKEND USERR DATA', response?.DATA?.data ?? response);
 
       // Логируем ответ только в development режиме
       if (process.env.NODE_ENV === 'development') {
-        console.log('Ответ сервера:', response);
+        // console.log('Ответ сервера:', response);
       }
 
       // Проверяем структуру ответа

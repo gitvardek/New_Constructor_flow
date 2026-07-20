@@ -65,6 +65,7 @@ const selectedFasade = ref<TSelectedCell>(<TSelectedCell>{});
 const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 const { module, UMconstructor } = toRefs(props);
 const currentModule = ref(null);
+
 let appReady = false;
 
 let app: Application,
@@ -102,6 +103,8 @@ const {
   MIN_FASADE_WIDTH,
   MIN_SLIDE_DOOR_WIDTH,
   MAX_SECTION_WIDTH,
+  MIN_TSARGA_WIDTH,
+  MAX_TSARGA_WIDTH,
 } = UM_PARAMS;
 
 const dragState = reactive({
@@ -164,8 +167,6 @@ const calcDrawersFasades = (secIndex, fillingData = false) => {
 };
 
 const checkLoopsCollision = (secIndex) => {
-  console.log('checkLoopsCollision')
-
   UMconstructor?.value?.LOOPS.checkLoopsCollision(
     secIndex,
     currentModule.value,
@@ -203,8 +204,8 @@ const updateTotalSize = (value, dimension) => {
   }
 
   calcMaxAreaSize();
-  if (!app) return;
 
+  if (!app) return;
   app.canvas.style.width = `${areaWidth.value}px`;
   app.canvas.style.height = `${areaHeight.value}px`;
   app.renderer.resize(areaWidth.value, areaHeight.value);
@@ -275,6 +276,7 @@ const init = async () => {
   UMconstructor.value.setShapeAdjuster(shapeAdjuster);
   shapeAdjuster.setStep(props.step);
   addTicker();
+
   appReady = true;
   renderGrid();
 };
@@ -415,7 +417,9 @@ const renderGrid = (_moduleGrid) => {
                 cellRow.extras
                   .slice()
                   .sort((a, b) => b.position.y - a.position.y)
-                  .forEach((extra, extraIndex, _extras) => {
+                  .forEach((extra, _sortedIndex, _extras) => {
+                    // Оригинальный индекс нужен чтобы PIXI click handler и Vue v-for использовали один и тот же индекс
+                    const extraIndex = cellRow.extras.indexOf(extra);
                     const RowpxHeight = getPixelHeight(extra.height);
 
                     extra.xOffset = rowxOffset;
@@ -448,6 +452,9 @@ const renderGrid = (_moduleGrid) => {
                 const colBond = shapeAdjuster.createColumnBounds(
                   cellRow.extras,
                 );
+
+                // Sector row-а = первая extra, чтобы toggleSectionColor мог подсветить ряд при выборе без extra
+                cellRow.sector = cellRow.extras[0]?.sector;
 
                 // Создаём ограничения для секторов по ширине
                 cellRow.shapesBond = colBond;
@@ -1046,6 +1053,10 @@ const createSector = ({
   sector.addChild(cell.cellGraphics);
   sector.addChild(cell.highlightGraphics);
 
+  if (cellData.tsarga && gridType !== "fasades") {
+    createTsarga({ width, sector });
+  }
+
   if (gridType === "fasades") {
     fasades.push(sector);
   } else if (!_sector) sections.push(sector);
@@ -1310,6 +1321,14 @@ const createFilling = (data, sector) => {
   sector.shapes.push(filling);
 };
 
+//Создаём Царгу
+const createTsarga = ({ width, sector }) => {
+  const tsarga = new Graphics();
+  tsarga.rect(0, 0, width, getPixelHeight(18));
+  tsarga.fill({ color: 0x5EC455, alpha: 0.85 });
+  sector.addChild(tsarga);
+};
+
 // Отрисовываем номер ячейки
 const createSectioNum = ({
   x,
@@ -1389,6 +1408,8 @@ const createVerticalCut = ({
   rowIndex = null,
   extraIndex = null,
 }) => {
+
+
   let _cellIndex = cellIndex;
   let _rowIndex = rowIndex;
   let _extraIndex = extraIndex;
@@ -1662,6 +1683,7 @@ const checkPositionFillingToCreate = (data) => {
 
 // Выбор сектора, передача в родительский компонент
 const selectCell = (type: string, newSelectedCell: TSelectedCell) => {
+
   switch (type) {
     case "fillings": {
       UMconstructor?.value?.UM_STORE.setSelected(type, newSelectedCell);
@@ -1676,6 +1698,7 @@ const selectCell = (type: string, newSelectedCell: TSelectedCell) => {
           newSelectedCell.extra === d.extra &&
           newSelectedCell.item === d.id;
       });
+
       break;
     }
     case "fasades": {
@@ -1689,10 +1712,12 @@ const selectCell = (type: string, newSelectedCell: TSelectedCell) => {
       break;
     }
     default: {
+
       UMconstructor?.value?.UM_STORE.setSelected(type, newSelectedCell);
       UMconstructor?.value?.UM_STORE.setSelected("fillings", newSelectedCell);
       const { sec, cell, row, extra } =
         UMconstructor?.value?.UM_STORE.getSelected("module");
+
       toggleSectionColor(sec, cell, row, extra);
       break;
     }
@@ -1916,8 +1941,6 @@ function onVerticalDragStart(event) {
 // Обработчик для горизонтального перетаскивания (между строками)
 function onHorizontalDragStart(event) {
   // event.stopPropagation();
-  console.log('onHorizontalDragStart')
-
   const module = props.module;
   // event.stopPropagation();
   cursorCheck = true;
@@ -2022,17 +2045,32 @@ function onHorizontalDragStart(event) {
 
 function onDragMove(event) {
   if (!event) return;
-
-  console.log('onDragMove')
-
   lastDragEvent.value = event;
+}
+
+function updateRowTsarga(row, isCellRoof = false) {
+
+  if (row.extras?.length > 0) {
+    delete row.tsarga;
+    row.extras.forEach((extra, key) => {
+      if (isCellRoof && key == 0) {
+        delete extra.tsarga;
+      }
+      else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+        extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0 };
+      } else {
+        delete extra.tsarga;
+      }
+    });
+  } else if (!isCellRoof && row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+    row.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0 };
+  } else {
+    delete row.tsarga;
+  }
 }
 
 function dragMove(event) {
   if (!dragState.isDragging || !lastDragEvent.value) return;
-
-  console.log('dragMove')
-
   const {
     type,
     secIndex,
@@ -2053,14 +2091,9 @@ function dragMove(event) {
   } = dragState;
 
   if (type === "vertical") {
-    let curMin =
-      minXleft < MIN_SECTION_WIDTH
-        ? MIN_SECTION_WIDTH
-        : minXleft || MIN_SECTION_WIDTH;
-    let nextMin =
-      minXRight < MIN_SECTION_WIDTH
-        ? MIN_SECTION_WIDTH
-        : minXRight || MIN_SECTION_WIDTH;
+    // Infinity не спасается через ||, поэтому проверяем isFinite явно
+    let curMin = !Number.isFinite(minXleft) || minXleft < MIN_SECTION_WIDTH ? MIN_SECTION_WIDTH : minXleft;
+    let nextMin = !Number.isFinite(minXRight) || minXRight < MIN_SECTION_WIDTH ? MIN_SECTION_WIDTH : minXRight;
 
     const deltaPixels = event.data.global.x - startX;
 
@@ -2094,6 +2127,7 @@ function dragMove(event) {
 
     if (row) {
       row.width = newLeftWidth;
+      updateRowTsarga(row, cellIndex === 0);
 
       row.extras?.forEach((item) => {
         item.width = row.width;
@@ -2110,6 +2144,7 @@ function dragMove(event) {
       let delta2 = nextRow.width - newRightWidth;
       nextRow.position.x += delta2 / 2;
       nextRow.width = newRightWidth;
+      updateRowTsarga(nextRow, cellIndex === 0);
 
       nextRow.extras?.forEach((item) => {
         item.width = nextRow.width;
@@ -2159,9 +2194,15 @@ function dragMove(event) {
       section.width = newLeftWidth;
       section.position.x += deltaPos1;
 
-      section.cells.forEach((cell) => {
+      section.cells.forEach((cell, cellIdx) => {
         cell.width = section.width;
         cell.position.x = section.position.x;
+        // cells[0] и ячейки с cellsRows — царга не нужна; остальные — по ширине
+        if (cellIdx === 0 || cell.cellsRows?.length) {
+          delete cell.tsarga;
+        } else {
+          updateRowTsarga(cell);
+        }
 
         if (cell.cellsRows?.length) {
           let divideDelta = Math.floor(-delta1 / cell.cellsRows.length);
@@ -2172,6 +2213,7 @@ function dragMove(event) {
           cell.cellsRows.forEach((item) => {
             if (item.width + divideDelta >= MIN_SECTION_WIDTH) {
               item.width += divideDelta;
+              updateRowTsarga(item, cellIdx === 0);
               item.position.x += divideDeltaPos1;
 
               item.extras?.forEach((extra) => {
@@ -2185,7 +2227,7 @@ function dragMove(event) {
                     } else {
                       filling.width = extra.width;
                       filling.size.x = filling.width;
-                      filling.position.x += item.position.x - item.width / 2;
+                      filling.position.x = item.position.x - item.width / 2;
                     }
                   });
                 }
@@ -2204,6 +2246,7 @@ function dragMove(event) {
               }
             } else {
               item.width = MIN_SECTION_WIDTH;
+              updateRowTsarga(item, cellIdx === 0);
             }
 
             extraSize += item.width;
@@ -2214,6 +2257,7 @@ function dragMove(event) {
             : cell.cellsRows[0];
           if (lastRow.width + (newLeftWidth - extraSize) >= MIN_SECTION_WIDTH) {
             lastRow.width += newLeftWidth - extraSize;
+            updateRowTsarga(lastRow, cellIdx === 0);
             lastRow.position.x += (newLeftWidth - extraSize) / 2;
 
             lastRow.fillings?.forEach((filling) => {
@@ -2249,6 +2293,7 @@ function dragMove(event) {
 
             if (lastRow) {
               lastRow.width += newLeftWidth - extraSize;
+              updateRowTsarga(lastRow, cellIdx === 0);
               lastRow.position.x += (newLeftWidth - extraSize) / 2;
 
               lastRow.fillings?.forEach((filling) => {
@@ -2308,9 +2353,15 @@ function dragMove(event) {
       nextSection.width = newRightWidth;
       nextSection.position.x += deltaPos1;
 
-      nextSection.cells.forEach((cell) => {
+      nextSection.cells.forEach((cell, cellIdx) => {
         cell.width = nextSection.width;
         cell.position.x = nextSection.position.x;
+        // cells[0] и ячейки с cellsRows — царга не нужна; остальные — по ширине
+        if (cellIdx === 0 || cell.cellsRows?.length) {
+          delete cell.tsarga;
+        } else {
+          updateRowTsarga(cell);
+        }
 
         if (cell.cellsRows?.length) {
           let divideDelta = Math.floor(-delta2 / cell.cellsRows.length);
@@ -2321,6 +2372,7 @@ function dragMove(event) {
           cell.cellsRows.forEach((item) => {
             if (item.width + divideDelta >= MIN_SECTION_WIDTH) {
               item.width += divideDelta;
+              updateRowTsarga(item, cellIdx === 0);
               item.position.x += divideDeltaPos;
 
               item.extras?.forEach((extra) => {
@@ -2334,7 +2386,7 @@ function dragMove(event) {
                     } else {
                       filling.width = extra.width;
                       filling.size.x = filling.width;
-                      filling.position.x += deltaPos1;
+                      filling.position.x = extra.position.x - extra.width / 2;
                     }
                   });
                 }
@@ -2347,12 +2399,13 @@ function dragMove(event) {
                   } else {
                     filling.width = item.width;
                     filling.size.x = filling.width;
-                    filling.position.x = deltaPos1;
+                    filling.position.x = item.position.x - item.width / 2;
                   }
                 });
               }
             } else {
               item.width = MIN_SECTION_WIDTH;
+              updateRowTsarga(item, cellIdx === 0);
             }
 
             extraSize += item.width;
@@ -2367,6 +2420,7 @@ function dragMove(event) {
             MIN_SECTION_WIDTH
           ) {
             lastRow.width += newRightWidth - extraSize;
+            updateRowTsarga(lastRow, cellIdx === 0);
             lastRow.position.x += (newRightWidth - extraSize) / 2;
 
             lastRow.fillings?.forEach((filling) => {
@@ -2402,6 +2456,7 @@ function dragMove(event) {
 
             if (lastRow) {
               lastRow.width += newRightWidth - extraSize;
+              updateRowTsarga(lastRow, cellIdx === 0);
               lastRow.position.x += (newRightWidth - extraSize) / 2;
 
               lastRow.fillings?.forEach((filling) => {
@@ -2458,14 +2513,9 @@ function dragMove(event) {
       }
     }
   } else if (type === "horizontal") {
-    let curMin =
-      minTop < MIN_SECTION_HEIGHT
-        ? MIN_SECTION_HEIGHT
-        : minTop || MIN_SECTION_HEIGHT;
-    let nextMin =
-      minBottom < MIN_SECTION_HEIGHT
-        ? MIN_SECTION_HEIGHT
-        : minBottom || MIN_SECTION_HEIGHT;
+    // Infinity не спасается через ||, поэтому проверяем isFinite явно
+    let curMin = !Number.isFinite(minTop) || minTop < MIN_SECTION_HEIGHT ? MIN_SECTION_HEIGHT : minTop;
+    let nextMin = !Number.isFinite(minBottom) || minBottom < MIN_SECTION_HEIGHT ? MIN_SECTION_HEIGHT : minBottom;
 
     const deltaPixels = event.data.global.y - startY;
 
@@ -2496,6 +2546,7 @@ function dragMove(event) {
     }
 
     if (extra) {
+
       let delta1 = newTopHeight - extra.height;
       extra.height = newTopHeight;
       extra.position.y += -delta1;
@@ -2503,6 +2554,7 @@ function dragMove(event) {
       let nextExtra = row.extras[extraIndex + 1];
       nextExtra.height = newBottomHeight;
     } else {
+
       let delta1 = cell.height - newTopHeight;
       cell.height = newTopHeight;
       cell.position.y += delta1;
@@ -2739,8 +2791,6 @@ function dragMove(event) {
 }
 
 const onDragEnd = (event) => {
-
-  console.log('onDragEnd')
 
   if (dragState.element) {
     delete dragState.element.onDrag;
@@ -3228,6 +3278,10 @@ const updateSizes = (
   minCurrent,
   minAdjacent,
 ) => {
+  // Защита от Infinity/NaN в минимальных значениях (возникает при section.minX = Infinity)
+  if (!Number.isFinite(minCurrent) || minCurrent < 0) minCurrent = 0;
+  if (!Number.isFinite(minAdjacent) || minAdjacent < 0) minAdjacent = 0;
+
   if (newValue < minCurrent) newValue = minCurrent;
 
   const newAdjacentSize = total - newValue;
@@ -3295,8 +3349,6 @@ const adjustSizeFromExternal = ({
 };
 
 const clearRender = () => {
-  console.log('CLEAR RENDER')
-
   sections.forEach((elem) => {
     if (elem.destroyed) return;
     elem.removeChildren();
@@ -3329,7 +3381,6 @@ const clearRender = () => {
   if (dementionContainer && !dementionContainer.destroyed) dementionContainer.removeChildren();
   if (fasadesContainer && !fasadesContainer.destroyed) fasadesContainer.removeChildren();
 };
-
 
 // Обходит иерархию sections → cells → cellsRows → extras → fillings
 // и возвращает селектор первого наполнения с его координатами.
@@ -3429,6 +3480,7 @@ watch(
   () => UMconstructor?.value?.UM_STORE.getSelected("module"),
   () => {
     selectedCell.value = UMconstructor?.value?.UM_STORE.getSelected("module");
+
   },
 );
 watch(
@@ -3437,7 +3489,6 @@ watch(
     selectedFasade.value =
       UMconstructor?.value?.UM_STORE.getSelected("fasades");
 
-    console.log(currentModule.value, 'fasades')
   },
 );
 watch(
@@ -3445,7 +3496,6 @@ watch(
   () => {
     selectedFilling.value =
       UMconstructor?.value?.UM_STORE.getSelected("fillings");
-    console.log(currentModule.value, 'fillings')
   },
 );
 

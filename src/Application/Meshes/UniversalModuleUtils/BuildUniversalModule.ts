@@ -23,6 +23,7 @@ export class BuildUniversalModule extends BuildProduct {
     modelState = useModelState();
 
     heightCorrect: number = 0
+
     private readonly correctPosZGroups: number[] = [2166309]
     private readonly fillingOffset: number = 50
 
@@ -174,9 +175,7 @@ export class BuildUniversalModule extends BuildProduct {
         }
         if (shelf) shelf.position.y = baseY;
         if (fasade) fasade.position.y = baseY;
-        // if (tableTop) {
-        //     tableTop.position.y = baseY + bodyHeight * 0.5 + tableTopHeight * 0.5;
-        // }
+
         arrows.position.copy(body?.position);
         arrows.position.y = baseY;
 
@@ -223,6 +222,7 @@ export class BuildUniversalModule extends BuildProduct {
     };
 
     createProductObject(product_data: THREETypes.TObject, props) {
+
         const CONFIG = super.createProductObject(product_data, props)
 
         let firstSectionSize = new THREE.Vector3(CONFIG.SIZE.width - CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] * 2,
@@ -253,7 +253,7 @@ export class BuildUniversalModule extends BuildProduct {
 
         CONFIG.TOPFASADECOLOR = <TFasadeProp>{ COLOR: 7397, SHOW: false }
 
-        if (product_data.moduleType.CODE !== "wardrobe") {
+        if (product_data.moduleType?.CODE !== "wardrobe") {
             CONFIG.LOOPS = {}
         }
         else {
@@ -263,7 +263,7 @@ export class BuildUniversalModule extends BuildProduct {
         if (this._APP.CATALOG.SECTIONS[product_data.OPTIONSECTION_ID].TYPE.toLowerCase().includes("hitech"))
             CONFIG.isHiTech = true
 
-        if (product_data.moduleType.CODE === "restricted")
+        if (product_data.moduleType?.CODE === "restricted")
             CONFIG.isRestrictedModule = true
 
         let option = CONFIG.OPTIONS.find(item => +item.id === 8390271)
@@ -326,6 +326,27 @@ export class BuildUniversalModule extends BuildProduct {
                 })
 
             let cells = [...section.cells].reverse()
+
+            // Возвращает объект царги верхней границы ячейки, в т.ч. когда царга на уровне rows/extras
+            const getCellTopTsarga = (cell) => {
+                if (!cell) return undefined;
+                if (cell.tsarga) return cell.tsarga;
+                if (cell.cellsRows?.length) {
+                    let foundTsarga;
+                    cell.cellsRows.some(row => {
+                        if (row.extras?.length) {
+                            const sorted = [...row.extras].sort((a, b) => a.position.y - b.position.y);
+                            foundTsarga = sorted[sorted.length - 1]?.tsarga;
+                        } else {
+                            foundTsarga = row.tsarga;
+                        }
+                        return !!foundTsarga;
+                    });
+                    return foundTsarga || undefined;
+                }
+                return undefined;
+            }
+
             cells?.forEach((cell, cellIndex) => {
 
                 if (cellIndex > 0)
@@ -337,10 +358,10 @@ export class BuildUniversalModule extends BuildProduct {
                         id: curSection.fillings.length + 1,
                         material: PROPS.CONFIG.MODULE_COLOR,
                         type: 'shelf',
+                        tsarga: getCellTopTsarga(cells[cellIndex - 1])
                     })
 
                 cell.cellsRows?.forEach((row, rowIndex) => {
-
                     if (rowIndex > 0)
                         curSection.fillings.push({  //Добавляем верт. полку, как товар наполнения
                             position: new THREE.Vector3(row.position.x - row.width / 2 - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] / 2,
@@ -353,7 +374,8 @@ export class BuildUniversalModule extends BuildProduct {
                             type: 'vertical_shelf',
                         })
 
-                    row.extras?.slice().sort((a, b) => a.position.y - b.position.y).forEach((extra, extraIndex) => {
+                    row.extras?.slice().sort((a, b) => a.position.y - b.position.y).forEach((extra, extraIndex, sortedExtras) => {
+  
                         if (extraIndex > 0)
                             curSection.fillings.push({  //Добавляем полку, как товар наполнения
                                 position: new THREE.Vector3(extra.position.x, extra.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
@@ -363,6 +385,7 @@ export class BuildUniversalModule extends BuildProduct {
                                 id: curSection.fillings.length + 1,
                                 material: PROPS.CONFIG.MODULE_COLOR,
                                 type: 'shelf',
+                                tsarga: sortedExtras[extraIndex - 1]?.tsarga
                             })
 
                         extra.fillings?.forEach((filling) => {
@@ -633,7 +656,8 @@ export class BuildUniversalModule extends BuildProduct {
     buildModulegrid(PROPS: THREETypes.TObject, group: THREE.Object3D, moduleBody: THREE.Object3D, baseOffset: Number = 0) {
 
         PROPS.JSON_FILLINGS = []
-        const full_horizont_height = PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] + PROPS.CONFIG.EXPRESSIONS['#HORIZONT#']
+        const moduleThickness = PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18
+        const full_horizont_height = moduleThickness + PROPS.CONFIG.EXPRESSIONS['#HORIZONT#']
         const subGeometries = []
         const isSlidingDoors = PROPS.CONFIG.MODULEGRID?.fasades ? 100 : 0
 
@@ -682,8 +706,10 @@ export class BuildUniversalModule extends BuildProduct {
                         start_position.y += filling.size.y / 2 + full_horizont_height + baseOffset
 
                         if (isCorrectZPos) {
+                            // start_position.z = sizeModule.depth / 2 - filling.size.z / 2 - (sizeModule.depth - filling.size.z)
                             start_position.z = sizeModule.depth / 2 - filling.size.z / 2 - this.fillingOffset
                         }
+
 
                         productFilling.position.copy(start_position)
 
@@ -695,6 +721,19 @@ export class BuildUniversalModule extends BuildProduct {
                             edge.position.set(clonePos.x, clonePos.y, clonePos.z)
                             deffEdge.position.set(clonePos.x, clonePos.y, clonePos.z)
                             group.add(productFilling, edge, deffEdge)
+
+                            if (filling.tsarga) {
+                                this.tsarga_builder.createFillingTsarga({
+                                    shelfPosition: start_position.clone(),
+                                    sizeModule,
+                                    tsargaData: filling.tsarga,
+                                    PROPS,
+                                    group,
+                                    moduleThickness,
+                                    isSlidingDoors,
+                                    fillingSize: filling.size
+                                })
+                            }
                         }
 
                         group.add(productFilling)
@@ -784,10 +823,15 @@ export class BuildUniversalModule extends BuildProduct {
     }
 
     createSubProductObject(filling: Object, data: THREETypes.TObject, props: THREETypes.TObject) {
-        let textureUrl = filling.isProfile ? this._COLOR[props.CONFIG['PROFILECOLOR']].TEXTURE : this._FASADE[filling.color || filling.material || props.CONFIG['MODULE_COLOR']].TEXTURE
+
+        let textureUrl = filling.isProfile ? this._COLOR[props.CONFIG['PROFILECOLOR']].TEXTURE :
+            this._FASADE[filling.color ||
+                filling.material ||
+                props.CONFIG['MODULE_COLOR']].TEXTURE
         let body = this.json_builder.createMesh({ data, textureUrl })
 
         body.position.set(eval(data.corr_x), eval(data.corr_y), eval(data.corr_z));
+
         body.matrixWorldNeedsUpdate = true
         body.name = "BODY"
         body.userData.MATERIAL = data.json?.material.type || null
@@ -826,6 +870,7 @@ export class BuildUniversalModule extends BuildProduct {
             loop.width = loop_size.x;
             loop.height = loop_size.y;
             loop.depth = loop_size.z;
+
 
             const loopside = loopCoord.side
             const rightSide = LOOPSIDE[loopside] === 'right' || LOOPSIDE[loopside] === 'right_on_partition'
@@ -923,6 +968,8 @@ export class BuildUniversalModule extends BuildProduct {
     };
 
     calcSubElementsAdditives(PROPS) {
+        const fillingsZeroPosition = ['drawer', 'profile']
+
         const fasadeThickness = this._FASADE[PROPS.CONFIG.MODULE_COLOR]?.DEPTH || 18
 
         Object.entries(PROPS.CONFIG.SECTIONS).forEach(([sectionNumber, sectionConf]) => {
@@ -980,7 +1027,8 @@ export class BuildUniversalModule extends BuildProduct {
                                     }
                                 })
 
-                            let relative_posY = positionY + (element.type !== 'drawer' ? element.size.y / 2 : 0) - (element.fasade?.manufacturerOffset || 0)
+                            //element.type !== 'drawer'    
+                            let relative_posY = Math.floor(positionY + (!fillingsZeroPosition.includes(element.type) ? element.size.y / 2 : 0) - (element.fasade?.manufacturerOffset || 0))
                             element.basketRenderPosition = positionY
 
                             if (leftObj) {

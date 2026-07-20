@@ -370,7 +370,7 @@ const {
 } = useConfigStore();
 
 onBeforeMount(() => {
-  console.log(props.item, "PPPPP");
+  // console.log(props.item, "Элементы проекта");
 });
 // Получаем данные из store
 const appData = computed(() => appDataStore.getAppData);

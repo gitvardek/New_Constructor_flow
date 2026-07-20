@@ -87,17 +87,20 @@ export class Renderer {
             this.instance.setSize(this.sizes.width, this.sizes.height);
             this.instance.setPixelRatio(this.sizes.pixelRatio);
             this.instance.setClearColor('#ffffff')
+
+            this.instance.shadowMap.enabled = true;
             // this.instance.logarithmicDepthBuffer = true
             // this.instance.shadowMap.autoUpdate = true;
-            this.canvas.appendChild(this.instance.domElement)
+
 
             // this.instance.physicallyCorrectLights = true;
             // this.instance.shadowMap.enabled = true;
-            this.instance.shadowMap.type = THREE.BasicShadowMap;
-            // this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
+            // this.instance.shadowMap.type = THREE.BasicShadowMap;
+            this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
             this.instance.toneMapping = THREE.ReinhardToneMapping;
             this.instance.toneMappingExposure = 1.8;
             // this.instance.receiveShadow = true;
+            this.canvas.appendChild(this.instance.domElement)
         } catch (error) {
             console.error('Ошибка при создании нового WebGL рендерера:', error);
         }
@@ -195,7 +198,7 @@ export class Renderer {
                 this.instance.physicallyCorrectLights = false;
                 this.instance.shadowMap.enabled = true;
 
-                this.instance.shadowMap.type = THREE.BasicShadowMap;
+                this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
                 // this.instance.toneMapping = THREE.ReinhardToneMapping;
                 // this.instance.toneMappingExposure = 1.8;
                 this.instance.receiveShadow = true;
@@ -208,7 +211,7 @@ export class Renderer {
 
                 // this.instance.physicallyCorrectLights = false;
                 this.instance.shadowMap.enabled = true;
-                this.instance.shadowMap.type = THREE.BasicShadowMap;
+                this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
                 // this.instance.toneMapping = THREE.ReinhardToneMapping;
                 // this.instance.toneMappingExposure = 1.8;
                 this.instance.receiveShadow = true;
@@ -222,7 +225,7 @@ export class Renderer {
                 // this.instance.physicallyCorrectLights = true;
                 this.instance.shadowMap.enabled = true;
                 // this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
-                this.instance.shadowMap.type = THREE.BasicShadowMap;
+                this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
                 // this.instance.toneMapping = THREE.ReinhardToneMapping;
                 // this.instance.toneMappingExposure = 1.8;
                 this.instance.receiveShadow = true;

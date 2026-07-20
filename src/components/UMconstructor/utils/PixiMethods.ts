@@ -514,9 +514,9 @@ class Shape extends Helpers {
                             && !self.isExcludedFromCollision(otherShape.data, self.data)
                             && self.checkOverlap(otherShape)) {
 
-                            if ((self.data.fasade && otherShape.data.fasade) &&
-                                (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
-                                continue;
+                            if ((self.data.fasade && otherShape.data.fasade) && 
+                            (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
+                            continue;
 
                             hasCollisionY = true;
 
@@ -1108,6 +1108,7 @@ class Section extends Helpers {
         // Создаем пути для графики
         const cellPath = this.createPath();
         const highlightPath = this.createPath();
+
 
         if (cellPath.error) {
             defCellColor = '#f5caca';

@@ -126,9 +126,7 @@ const optionsList = computed(() => {
   }));
 });
 
-onBeforeMount(() => {
-  console.log(props.options);
-});
+
 </script>
 
 <template>

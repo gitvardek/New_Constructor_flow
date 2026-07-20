@@ -37,6 +37,7 @@ import { LegBuilder } from './LegBuilder/LegBuilder.ts';
 import { DrowerBuilder } from './Drowers/DrowerBuilder.ts';
 import { ShelfBuilder } from './Shelf/ShelfBuilder.ts';
 import { MirrorBuilder } from './MirrorBuilder/MirrorBuilder.ts';
+import { TsargaBuilder } from './TsargaBuilder/TsargaBuilder.ts';
 import { UM_SAMPLE } from '../F-umModulesData.ts';
 
 export class BuildProduct extends BuildersHelper {
@@ -68,6 +69,7 @@ export class BuildProduct extends BuildersHelper {
     shelf_builder: ShelfBuilder
     mirror_builder: MirrorBuilder
     uniform_texture_builder: UniformTextureBuilder
+    tsarga_builder: TsargaBuilder
     useEdgeBuilder: THREETypes.TUseEdgeBuilder
     private readonly _UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966];
     private readonly copy: boolean = false
@@ -99,6 +101,7 @@ export class BuildProduct extends BuildersHelper {
         this.leg_builder = new LegBuilder(this)
         this.shelf_builder = new ShelfBuilder(this)
         this.mirror_builder = new MirrorBuilder(this)
+        this.tsarga_builder = new TsargaBuilder(this)
     }
 
     get _currentProduct() {
@@ -752,53 +755,7 @@ export class BuildProduct extends BuildersHelper {
         }
 
         if (TSARGA) {
-            const isMetalTsarga = TSARGA.TYPE === 'metal';
-            const backItem = isMetalTsarga
-                ? {
-                    id: "horizontallineback",
-                    type: "object",
-                    geometry: {
-                        type: "BoxGeometry",
-                        opt: { x: CONFIG.SIZE.width - moduleThickness * 2, y: 15, z: 15 },
-                    },
-                    rotation: { x: 0, y: 0, z: 0 },
-                    position: {
-                        x: 0,
-                        y: startPos.y + CONFIG.SIZE.height - 15 / 2,
-                        z: startPos.z + 15 / 2,
-                    },
-                }
-                : {
-                    id: "horizontallineback",
-                    type: "object",
-                    geometry: {
-                        type: "BoxGeometry",
-                        opt: { x: CONFIG.SIZE.width - moduleThickness * 2, y: 30, z: moduleThickness },
-                    },
-                    rotation: { x: 0, y: 0, z: 0 },
-                    position: {
-                        x: 0,
-                        y: startPos.y + CONFIG.SIZE.height - 15,
-                        z: startPos.z + moduleThickness / 2,
-                    },
-                };
-
-            const frontItem = {
-                id: "horizontallinefront",
-                type: "link",
-                link: "horizontallineback",
-                rotation: { x: 0, y: 0, z: 0 },
-                position: {
-                    x: 0,
-                    y: isMetalTsarga
-                        ? startPos.y + CONFIG.SIZE.height - 15 / 2
-                        : startPos.y + CONFIG.SIZE.height - 15,
-                    z: startPos.z + CONFIG.SIZE.depth - (isMetalTsarga ? 15 / 2 : moduleThickness / 2),
-                },
-            };
-
-            data.json.items.push(backItem, frontItem);
-            data.json.items = data.json.items.filter(item => item.id !== 'top');
+            this.tsarga_builder.applyModuleTsarga(data, TSARGA, moduleThickness, startPos, CONFIG.SIZE);
         }
 
         if (BACKWALL && !BACKWALL.SHOW) {
