@@ -327,19 +327,22 @@ export class BuildUniversalModule extends BuildProduct {
 
             let cells = [...section.cells].reverse()
 
-            // Возвращает tsarga верхней границы ячейки, в т.ч. когда царга на уровне rows/extras
+            // Возвращает объект царги верхней границы ячейки, в т.ч. когда царга на уровне rows/extras
             const getCellTopTsarga = (cell) => {
                 if (!cell) return undefined;
                 if (cell.tsarga) return cell.tsarga;
                 if (cell.cellsRows?.length) {
-                    const hasTsarga = cell.cellsRows.some(row => {
+                    let foundTsarga;
+                    cell.cellsRows.some(row => {
                         if (row.extras?.length) {
                             const sorted = [...row.extras].sort((a, b) => a.position.y - b.position.y);
-                            return sorted[sorted.length - 1]?.tsarga;
+                            foundTsarga = sorted[sorted.length - 1]?.tsarga;
+                        } else {
+                            foundTsarga = row.tsarga;
                         }
-                        return row.tsarga;
+                        return !!foundTsarga;
                     });
-                    return hasTsarga ? true : undefined;
+                    return foundTsarga || undefined;
                 }
                 return undefined;
             }
@@ -653,7 +656,8 @@ export class BuildUniversalModule extends BuildProduct {
     buildModulegrid(PROPS: THREETypes.TObject, group: THREE.Object3D, moduleBody: THREE.Object3D, baseOffset: Number = 0) {
 
         PROPS.JSON_FILLINGS = []
-        const full_horizont_height = PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] + PROPS.CONFIG.EXPRESSIONS['#HORIZONT#']
+        const moduleThickness = PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18
+        const full_horizont_height = moduleThickness + PROPS.CONFIG.EXPRESSIONS['#HORIZONT#']
         const subGeometries = []
         const isSlidingDoors = PROPS.CONFIG.MODULEGRID?.fasades ? 100 : 0
 
@@ -717,6 +721,22 @@ export class BuildUniversalModule extends BuildProduct {
                             edge.position.set(clonePos.x, clonePos.y, clonePos.z)
                             deffEdge.position.set(clonePos.x, clonePos.y, clonePos.z)
                             group.add(productFilling, edge, deffEdge)
+
+
+                            console.log(filling,  'fillingfilling')
+
+                            if (filling.tsarga) {
+                                this.tsarga_builder.createFillingTsarga({
+                                    shelfPosition: start_position.clone(),
+                                    sizeModule,
+                                    tsargaData: filling.tsarga,
+                                    PROPS,
+                                    group,
+                                    moduleThickness,
+                                    isSlidingDoors,
+                                    fillingSize: filling.size
+                                })
+                            }
                         }
 
                         group.add(productFilling)

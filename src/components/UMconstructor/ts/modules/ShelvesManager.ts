@@ -94,7 +94,7 @@ export default class ShelvesManager {
 
             // Новые ячейки получают царгу по ширине
             if (newCell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && newCell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
-                newCell.tsarga = true;
+                newCell.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: newCell.width, POSITION: newCell.position.x };
             }
 
             section.cells.splice(cellIndex || 0, 0, newCell);
@@ -102,7 +102,7 @@ export default class ShelvesManager {
 
         // Восстанавливаем tsarga базовой ячейки (она сместилась вглубь массива)
         if (cell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && cell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
-            cell.tsarga = true;
+            cell.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x };
         } else {
             delete cell.tsarga;
         }
@@ -876,19 +876,19 @@ export default class ShelvesManager {
                             if (isCellRoof && extraIdx === 0) {
                                 delete extra.tsarga;
                             } else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-                                extra.tsarga = true;
+                                extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position.x };
                             } else {
                                 delete extra.tsarga;
                             }
                         });
                     } else if (!isCellRoof && row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-                        row.tsarga = true;
+                        row.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position.x };
                     } else {
                         delete row.tsarga;
                     }
                 });
             } else if (!isCellRoof && cell.width >= MIN_TSARGA_WIDTH && cell.width <= MAX_TSARGA_WIDTH) {
-                cell.tsarga = true;
+                cell.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x };
             } else {
                 delete cell.tsarga;
             }

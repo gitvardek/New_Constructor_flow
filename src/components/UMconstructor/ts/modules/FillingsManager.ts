@@ -273,6 +273,17 @@ export default class FillingsManager {
 
         if (!currentSection) return
 
+        console.log(sec, 'sec')
+
+        if (this.OUTER_DRAWER_IDS.includes(productGroupID) && cell !== null) {
+            const currentCell = currentSection.cells?.[cell]
+            const isNarrowCell = !currentCell || currentCell.width !== currentSection.width
+            if (isNarrowCell || row !== null || extra !== null) {
+                this.scope.callAlert("error", "Внешние ящики можно устанавливать только в секцию или ячейку полной ширины")
+                return
+            }
+        }
+
         if (this.INNER_DRAWER_IDS.includes(productGroupID)) {
             // Целевой внешний ящик — тот, который кликнут на канвасе (selectCell("fillings"))
             const selectedOnCanvas = this.scope.UM_STORE.getSelected("fillings")

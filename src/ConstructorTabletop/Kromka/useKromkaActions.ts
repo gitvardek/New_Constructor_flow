@@ -128,8 +128,6 @@ const useKromkaActions = defineStore('KromkaActions', () => {
             const hasProfileKromka = activeProfile.show_props && activeProfile.show_props?.includes("hem")
             hasActiveKromka = !!toptableData.KROMKA && hasProfileKromka
 
-            console.log(HEM, 'HEM', PRODUCT)
-
             if (hasProfileKromka && tempKromkaId.value == null) {
                 const hemList = HEM.map((el: number) => {
                     return HEMLIST[el]

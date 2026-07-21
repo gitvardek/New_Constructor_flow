@@ -131,7 +131,7 @@ export class Renderer {
         }
         label.element.textContent = text;
         label.position.copy(position);
-        // label.visible = true;
+        label.visible = true;
         return label;
     }
 

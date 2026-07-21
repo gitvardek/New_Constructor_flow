@@ -239,9 +239,7 @@ onMounted(() => {
                                   button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button"
                                   type="number" @update:model-value="(count: number | string) => {
                                     UMconstructor.SHELVES.addRowCell({ grid: module, secIndex, cellIndex, rowIndex, count: parseInt(count) })
-                                  }" 
-                                  v-if="!row.extras?.length" 
-                                  />
+                                  }" v-if="!row.extras?.length" />
                               </div>
 
                               <div v-if="!row.extras?.length" class="actions-items--right-items-input-block">
@@ -390,7 +388,8 @@ onMounted(() => {
                       }" />
                   </div>
 
-                  <div v-if="!section.cells.length" class="actions-items--right-items-input-block">
+                  <div v-if="!section.cells.length && !module.isRestrictedModule"
+                    class="actions-items--right-items-input-block">
                     <CounterInput button-text="Верт. разделитель" model-value="1" max="10" min="1"
                       input-class="actions-items--right-items-input-block-counter"
                       button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button"

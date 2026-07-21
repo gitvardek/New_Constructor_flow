@@ -2060,6 +2060,7 @@ function onDragMove(event) {
 
 function updateRowTsarga(row, isCellRoof = false) {
 
+  console.log(row)
   if (row.extras?.length > 0) {
     delete row.tsarga;
     row.extras.forEach((extra, key) => {
@@ -2067,13 +2068,13 @@ function updateRowTsarga(row, isCellRoof = false) {
         delete extra.tsarga;
       }
       else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-        extra.tsarga = true;
+        extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0 };
       } else {
         delete extra.tsarga;
       }
     });
   } else if (!isCellRoof && row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-    row.tsarga = true;
+    row.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0 };
   } else {
     delete row.tsarga;
   }
@@ -2136,11 +2137,14 @@ function dragMove(event) {
     }
 
     if (row) {
+      const deltaLeft = row.width - newLeftWidth;
+      row.position.x -= deltaLeft / 2;
       row.width = newLeftWidth;
       updateRowTsarga(row, cellIndex === 0);
 
       row.extras?.forEach((item) => {
         item.width = row.width;
+        item.position.x = row.position.x;
 
         if (item.fillings?.length) {
           item.fillings.forEach((filling) => {
