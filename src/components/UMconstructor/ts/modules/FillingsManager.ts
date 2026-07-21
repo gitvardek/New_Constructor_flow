@@ -269,7 +269,16 @@ export default class FillingsManager {
 
         const currentSection = grid.sections[sec];
 
-        if (!currentSection) return
+        if (!currentSection) return;
+
+        if (this.OUTER_DRAWER_IDS.includes(productGroupID) && cell !== null) {
+            const currentCell = currentSection.cells?.[cell]
+            const isNarrowCell = !currentCell || currentCell.width !== currentSection.width
+            if (isNarrowCell || row !== null || extra !== null) {
+                this.scope.callAlert("error", "Внешние ящики можно устанавливать только в секцию или ячейку полной ширины")
+                return
+            }
+        }
 
         if (this.INNER_DRAWER_IDS.includes(productGroupID)) {
             // Целевой внешний ящик — тот, который кликнут на канвасе (selectCell("fillings"))
@@ -295,9 +304,9 @@ export default class FillingsManager {
 
             const outerDrawer = (selectedOnCanvas?.item !== null && selectedOnCanvas?.item !== undefined)
                 ? outerContainer?.fillings?.find(
-                      f => f.id === selectedOnCanvas.item &&
-                           this.OUTER_DRAWER_IDS.includes(f.productGroupID)
-                  ) ?? null
+                    f => f.id === selectedOnCanvas.item &&
+                        this.OUTER_DRAWER_IDS.includes(f.productGroupID)
+                ) ?? null
                 : null
 
             if (!outerDrawer) {
@@ -321,7 +330,7 @@ export default class FillingsManager {
             // Суммируем высоту уже добавленных внутренних ящиков для этого внешнего
             const usedHeight = outerContainer.fillings
                 ?.filter(f => this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                              f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
+                    f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
                 ?.reduce((sum, f) => sum + f.height, 0) ?? 0
 
             const freeHeight = availableHeight - usedHeight
@@ -776,7 +785,7 @@ export default class FillingsManager {
                 const prevLen = curRow.fillings.length
                 curRow.fillings = curRow.fillings.filter(f =>
                     !(this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                      f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
+                        f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
                 )
                 if (curRow.fillings.length !== prevLen) {
                     curRow.fillings.forEach((f, idx) => { f.id = idx + 1 })

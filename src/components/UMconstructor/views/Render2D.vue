@@ -2126,11 +2126,14 @@ function dragMove(event) {
     }
 
     if (row) {
+      const deltaLeft = row.width - newLeftWidth;
+      row.position.x -= deltaLeft / 2;
       row.width = newLeftWidth;
       updateRowTsarga(row, cellIndex === 0);
 
       row.extras?.forEach((item) => {
         item.width = row.width;
+        item.position.x = row.position.x;
 
         if (item.fillings?.length) {
           item.fillings.forEach((filling) => {
