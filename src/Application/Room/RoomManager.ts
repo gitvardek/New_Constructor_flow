@@ -454,6 +454,8 @@ export class RoomManager extends Room {
                 size,
             );
 
+            if (!object) return 1;
+
             /** @Создаём_объект_в_сцене */
 
             await this.setObject!.create({

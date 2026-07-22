@@ -903,6 +903,7 @@ watch(
       !uniformState.getUniformModeData.uniformMode
     " @TransformMode="controlsActivate" />
   </transition>
+
 </template>
 
 <style lang="scss" scoped>
@@ -1223,4 +1224,5 @@ watch(
     top: 1rem;
   }
 }
+
 </style>

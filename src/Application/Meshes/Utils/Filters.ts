@@ -18,6 +18,13 @@ export class Filters extends GlobalsData {
     private modelState = useModelState()
     private roomOptions = useRoomOptions()
     private readonly emptyHandleID = 69920
+    private readonly handlesGroupExceptions = {
+        freeFoldGroupIds: [2671102, 2671103, 2311134, 2311136],
+        overlayGroupIds: [63042],
+
+    }
+    private readonly handlesProductsExceptions = [2106690, 4133662, 5766303, 5766313, 10252945, 10252974, 11451643, 11451772]
+
 
     constructor(root: THREETypes.TApplication) {
         super(root._appData);
@@ -53,6 +60,7 @@ export class Filters extends GlobalsData {
             FASADES: groupedFasades[groupId] || [],
         })).filter(group => group.FASADES.length > 0 && group.NAME !== 'Без фасада');
 
+        return result;
     }
 
     filteFasadeColor(items: THREETypes.TObject) {
@@ -60,12 +68,9 @@ export class Filters extends GlobalsData {
     }
 
     filterFasadePosition(params: THREETypes.TObject, product: THREETypes.TObject) {
-
         const roomOptions = this.roomOptions.getGlobalOptions;
 
         const { FASADE_PROPS, ELEMENT_TYPE, FASADE_SIZE, FILLING, MODELID, MODEL } = params
-
-        console.log(FASADE_SIZE, 'FASADE_SIZE')
 
         FASADE_PROPS.length = 0;
 
@@ -83,18 +88,25 @@ export class Filters extends GlobalsData {
 
         params.FASADE_TYPE = fasadeTypeSorted
 
-        // product.HANDLES[0] != null && product.HANDLES.includes(roomOptions.handles.id) ? roomOptions.handles.id : this.emptyHandleID
-
         const handleExists = product.HANDLES[0] != null;
         const handleIncluded = product.HANDLES.includes(roomOptions.handles.id);
 
-        const defaultHandleId = handleExists && !handleIncluded
-            ? this.emptyHandleID
-            : roomOptions.handles.id;
+        // Используем выбранную ручку только если она есть в списке допустимых
+        const defaultHandleId = handleExists && handleIncluded
+            ? roomOptions.handles.id
+            : this.emptyHandleID;
 
         const hasDrower = fasadeSorted.some(el => {
             return this._FASADE_POSITION[el].drawer
         })
+
+        // Исключения по OPTIONSECTION_ID: определяем правила запрета ручек
+        const sectionIds: number[] = [product.OPTIONSECTION_ID].flat().filter(Boolean)
+        const isOverlay = sectionIds.some(id => this.handlesGroupExceptions.overlayGroupIds.includes(id))
+        // const isFreeFold    = sectionIds.some(id => this.handlesGroupExceptions.freeFoldGroupIds.includes(id))
+        const isFreeFold = product.NAME.toLowerCase().includes('фрифолд')
+        // const isProductExcept = this.handlesProductsExceptions.includes(product.ID)
+        const isProductExcept = product.NAME.toLowerCase().includes('туг') || product.NAME.toLowerCase().includes('шуг')
 
         if (Object.keys(FASADE_SIZE).length > 0) {
             Object.values(FASADE_SIZE).forEach((el, key) => {
@@ -105,7 +117,6 @@ export class Filters extends GlobalsData {
             sortFasadePositionList = fasadeSorted
         }
 
-        console.log(sortFasadePositionList, 'sortFasadePositionList')
 
         //Фильтрация фасадов на принадлежность текущей компоновке
         if (FILLING) {
@@ -147,17 +158,15 @@ export class Filters extends GlobalsData {
                     return FasadeTextAlignAction[fasTypeData.CODE]
                 }
 
-                if (hasDrower && key % 2 !== 0 && ELEMENT_TYPE.includes('up')) return 8
-                if (hasDrower && key % 2 === 0 && ELEMENT_TYPE.includes('up')) return 6
+                // Ручка ставится у внутреннего угла между фасадами:
+                // isLeft зависит от наличия ящика (инвертирует чётность)
+                const isLeft = hasDrower !== (key % 2 === 0)
 
-                if (!hasDrower && key % 2 === 0 && ELEMENT_TYPE.includes('up')) return 8
-                if (!hasDrower && key % 2 !== 0 && ELEMENT_TYPE.includes('up')) return 6
+                if (ELEMENT_TYPE.includes('up'))
+                    return isLeft ? FasadeTextAlignAction.left_down : FasadeTextAlignAction.right_down
 
-                if (hasDrower && key % 2 !== 0 && ELEMENT_TYPE.includes('down')) return 2
-                if (hasDrower && key % 2 === 0 && ELEMENT_TYPE.includes('down')) return 0
-
-                if (!hasDrower && key % 2 === 0 && ELEMENT_TYPE.includes('down')) return 2
-                if (!hasDrower && key % 2 !== 0 && ELEMENT_TYPE.includes('down')) return 0
+                if (ELEMENT_TYPE.includes('down'))
+                    return isLeft ? FasadeTextAlignAction.left_top : FasadeTextAlignAction.right_top
 
             }
 
@@ -191,17 +200,16 @@ export class Filters extends GlobalsData {
                 HANDLES: {
                     id: defaultHandleId,
                     position: handlerPosition,
-                    drawer: fasadePosition.drawer
+                    drawer: fasadePosition.drawer,
+                    noHandles: isOverlay || (isFreeFold && key === 0) || (isProductExcept && key === 1),
                 },
                 SIZES: {
                     id: sizes,
-                    params: (() => {
-                        return {
-                            FASADE_WIDTH: sizesData?.WIDTH ?? null,
-                            min: sizesData?.SIZE_EDIT_WIDTH_MIN ?? null,
-                            max: sizesData?.SIZE_EDIT_WIDTH_MAX ?? null
-                        }
-                    })()
+                    params: {
+                        FASADE_WIDTH: sizesData?.WIDTH ?? null,
+                        min: sizesData?.SIZE_EDIT_WIDTH_MIN ?? null,
+                        max: sizesData?.SIZE_EDIT_WIDTH_MAX ?? null,
+                    },
                 },
                 DRAWER: {
                     drawer: fasadePosition.drawer,
@@ -375,10 +383,8 @@ export class Filters extends GlobalsData {
 
         }).filter(Boolean)
 
-        console.log(maped, '')
-
         const result = maped.reduce((object, value, index) => {
-            
+
             return { ...object, [value.FASADE_SIZE]: value };
         }, {});
 
