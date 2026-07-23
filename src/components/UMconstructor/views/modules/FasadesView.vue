@@ -290,8 +290,9 @@ const getLoopsideList = (
   );
 
   if (module.noLoops) {
-    return [list?.find((item) => item.ID === LOOPSIDE["none"])];
-  } else return list;
+    const noneItem = list?.find((item) => item.ID === LOOPSIDE["none"]);
+    return noneItem ? [noneItem] : [];
+  } else return list?.filter(Boolean) ?? [];
 };
 
 const changeLoopside = (secIndex, segment, event, doorIndex, module) => {
