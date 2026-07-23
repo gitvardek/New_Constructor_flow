@@ -22,3 +22,9 @@ export const UM_PARAMS = {
     MIN_TSARGA_WIDTH: 900, // Минимальная ширина царги
     MAX_TSARGA_WIDTH:1200   // Максимальная ширина царги
 }
+
+export const UM_DRAWERS_IDS = {
+    INNER: [15222587, 2166308],
+    OUTER: [5726092, 6560591],
+    UNIVERSAL: [15309443]
+}

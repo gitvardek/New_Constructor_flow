@@ -13,7 +13,7 @@ import {
 } from "vue";
 import { Application, Container, Graphics, Text } from "pixi.js";
 import { Shape, ShapeAdjuster, Section } from "./../utils/PixiMethods.ts";
-import { UM_PARAMS } from "./../utils/Const.ts";
+import { UM_PARAMS, UM_DRAWERS_IDS } from "./../utils/Const.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import * as THREE from "three";
 import { LOOPSIDE, TSelectedCell } from "./../types/UMtypes.ts";
@@ -1252,7 +1252,7 @@ const createFilling = (data, sector) => {
       height: getPixelHeight(c.height),
     }
     // Ищем контейнер для исключения коллизии с ним
-    containerShape = sector.shapes.find(s => OUTER_DRAWER_IDS.includes(s.data?.productGroupID))
+    containerShape = sector.shapes.find(s => UM_DRAWERS_IDS.OUTER.includes(s.data?.productGroupID))
   }
 
   const filling = new Shape({

@@ -212,6 +212,7 @@ export class HandlesBuilder {
 
 
                 FASADE.forEach((fasade, fasadeNdx) => {
+                    if (FASADE_PROPS[fasadeNdx]?.HANDLES?.noHandles) return;
                     this.createHandle(params, fasade, FASADE_PROPS[fasadeNdx])
                 })
             })
