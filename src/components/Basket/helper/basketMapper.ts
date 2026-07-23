@@ -643,11 +643,11 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
   const { getGlobalOptions } = useRoomOptions()
   const tableTopId = getGlobalOptions?.tableTop?.id
 
-  console.log(tableTopId, emptyTableTopId)
-
   if (tableTopId === emptyTableTopId) return false
 
   const tableTop = filteredData.map((obj: TTotalProps, key: string) => {
+    if (obj.type !== 'element_down') return;
+
     const data = obj.data
     if (!data) return
     const { CONFIG: { SIZE } } = data
