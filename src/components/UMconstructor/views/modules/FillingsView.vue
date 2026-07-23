@@ -3,6 +3,7 @@
 import "@/components/UMconstructor/styles/UM.scss";
 
 import { _URL } from "@/types/constants.ts";
+import { UM_DRAWERS_IDS } from "../../utils/Const";
 import AdvanceCorpusMaterialRedactor from "@/components/ui/color/AdvanceCorpusMaterialRedactor.vue";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import ConfigurationOption from "@/components/right-menu/customiser-pages/ColorRightPage/ConfigurationOption.vue";
@@ -10,6 +11,7 @@ import Handles from "@/components/right-menu/customiser-pages/FigureRightPage/Ha
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { onBeforeUnmount, onMounted, ref, toRefs, watch } from "vue";
 import FillingsInsertPanel from "@/components/UMconstructor/views/modules/FillingsInsertPanel.vue";
+import Accordion from "@/components/ui/accordion/Accordion.vue";
 import { useFigureRightPage } from "@/utils/useFigureRightPage";
 import {
   FillingObject,
@@ -65,9 +67,6 @@ const panelRef = ref<HTMLElement | null>(null);
 const step = ref<number>(1);
 
 const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
-
-// ID группы внутренних ящиков для различения в UI
-const INNER_DRAWER_IDS = [15222587, 2166308];
 
 const { module, UMconstructor } = toRefs(props);
 const { createSurfaceList } = useFigureRightPage();
@@ -315,6 +314,19 @@ const getLocalPosition = (
   return resultPos;
 };
 
+const getUniversalDepthOptions = (filling: FillingObject): number[] => {
+  const product = UMconstructor.value?.APP?.CATALOG?.PRODUCTS?.[filling.product];
+  if (!product?.SIZE_EDIT_DEPTH?.length) return [];
+  const maxAllowed = (module.value?.depth ?? 0) - 7;
+  return product.SIZE_EDIT_DEPTH.filter((d: number) => d <= maxAllowed);
+};
+
+const getUniversalHeightOptions = (filling: FillingObject): number[] => {
+  const product = UMconstructor.value?.APP?.CATALOG?.PRODUCTS?.[filling.product];
+  if (!product?.DROWER_FASADE_HEIGHT) return [];
+  return Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
+};
+
 onMounted(() => {
   selectedFilling.value =
     UMconstructor?.value?.UM_STORE.getSelected("fillings");
@@ -462,7 +474,7 @@ watch(
                       :class="[
                         'actions-title',
                         'actions-title--part',
-                        { 'actions-title--inner-drawer': INNER_DRAWER_IDS.includes(filling.productGroupID) },
+                        { 'actions-title--inner-drawer': UM_DRAWERS_IDS.INNER.includes(filling.productGroupID) },
                       ]"
                       @click="showCurrentCol(secIndex, null, null, null, filling.id)"
                     >
@@ -490,7 +502,7 @@ watch(
 
               <!-- Внутренний ящик: только метка о принадлежности, позиция меняется перетаскиванием -->
               <article
-                v-if="INNER_DRAWER_IDS.includes(filling.productGroupID)"
+                v-if="UM_DRAWERS_IDS.INNER.includes(filling.productGroupID)"
                 class="actions-items actions-items--right"
               >
                 <div class="actions-items--right-items">
@@ -623,6 +635,46 @@ watch(
                         </div>
                       </div>
                     </div>
+
+                    <template v-if="UM_DRAWERS_IDS.UNIVERSAL.includes(filling.productGroupID)">
+                      <div class="actions-items--height universal-select-wrap">
+                        <p class="actions-title">Глубина ящика</p>
+                        <Accordion :open="false" class="universal-accordion">
+                          <template #title>
+                            <span>{{ filling.depth }} мм</span>
+                          </template>
+                          <template #params="{ onToggle }">
+                            <ul class="universal-options">
+                              <li
+                                v-for="d in getUniversalDepthOptions(filling)"
+                                :key="d"
+                                :class="['universal-option', { 'universal-option--active': d === filling.depth }]"
+                                @click="() => { UMconstructor.FILLINGS.changeUniversalDepth(d, fillingIndex, secIndex); onToggle(); }"
+                              >{{ d }} мм</li>
+                            </ul>
+                          </template>
+                        </Accordion>
+                      </div>
+                      <div class="actions-items--height universal-select-wrap">
+                        <p class="actions-title">Высота ящика</p>
+                        <Accordion :open="false" class="universal-accordion">
+                          <template #title>
+                            <span>{{ filling.height }} мм</span>
+                          </template>
+                          <template #params="{ onToggle }">
+                            <ul class="universal-options">
+                              <li
+                                v-for="h in getUniversalHeightOptions(filling)"
+                                :key="h"
+                                :class="['universal-option', { 'universal-option--active': h === filling.height }]"
+                                @click="() => { UMconstructor.FILLINGS.changeUniversalHeight(h, fillingIndex, secIndex); onToggle(); }"
+                              >{{ h }} мм</li>
+                            </ul>
+                          </template>
+                        </Accordion>
+                      </div>
+                    </template>
+
                   </div>
 
                   <div class="actions-items--cards">
@@ -883,6 +935,45 @@ watch(
                             </div>
                           </div>
                         </div>
+
+                        <template v-if="UM_DRAWERS_IDS.UNIVERSAL.includes(filling.productGroupID)">
+                          <div class="actions-items--height universal-select-wrap">
+                            <p class="actions-title">Глубина ящика</p>
+                            <Accordion :open="false" class="universal-accordion">
+                              <template #title>
+                                <span>{{ filling.depth }} мм</span>
+                              </template>
+                              <template #params="{ onToggle }">
+                                <ul class="universal-options">
+                                  <li
+                                    v-for="d in getUniversalDepthOptions(filling)"
+                                    :key="d"
+                                    :class="['universal-option', { 'universal-option--active': d === filling.depth }]"
+                                    @click="() => { UMconstructor.FILLINGS.changeUniversalDepth(d, fillingIndex, secIndex, cellIndex); onToggle(); }"
+                                  >{{ d }} мм</li>
+                                </ul>
+                              </template>
+                            </Accordion>
+                          </div>
+                          <div class="actions-items--height universal-select-wrap">
+                            <p class="actions-title">Высота ящика</p>
+                            <Accordion :open="false" class="universal-accordion">
+                              <template #title>
+                                <span>{{ filling.height }} мм</span>
+                              </template>
+                              <template #params="{ onToggle }">
+                                <ul class="universal-options">
+                                  <li
+                                    v-for="h in getUniversalHeightOptions(filling)"
+                                    :key="h"
+                                    :class="['universal-option', { 'universal-option--active': h === filling.height }]"
+                                    @click="() => { UMconstructor.FILLINGS.changeUniversalHeight(h, fillingIndex, secIndex, cellIndex); onToggle(); }"
+                                  >{{ h }} мм</li>
+                                </ul>
+                              </template>
+                            </Accordion>
+                          </div>
+                        </template>
 
                         <ConfigurationOption
                           v-if="filling.fasade"
@@ -1156,6 +1247,45 @@ watch(
                                 </div>
                               </div>
                             </div>
+
+                            <template v-if="UM_DRAWERS_IDS.UNIVERSAL.includes(filling.productGroupID)">
+                              <div class="actions-items--height universal-select-wrap">
+                                <p class="actions-title">Глубина ящика</p>
+                                <Accordion :open="false" class="universal-accordion">
+                                  <template #title>
+                                    <span>{{ filling.depth }} мм</span>
+                                  </template>
+                                  <template #params="{ onToggle }">
+                                    <ul class="universal-options">
+                                      <li
+                                        v-for="d in getUniversalDepthOptions(filling)"
+                                        :key="d"
+                                        :class="['universal-option', { 'universal-option--active': d === filling.depth }]"
+                                        @click="() => { UMconstructor.FILLINGS.changeUniversalDepth(d, fillingIndex, secIndex, cellIndex, rowIndex); onToggle(); }"
+                                      >{{ d }} мм</li>
+                                    </ul>
+                                  </template>
+                                </Accordion>
+                              </div>
+                              <div class="actions-items--height universal-select-wrap">
+                                <p class="actions-title">Высота ящика</p>
+                                <Accordion :open="false" class="universal-accordion">
+                                  <template #title>
+                                    <span>{{ filling.height }} мм</span>
+                                  </template>
+                                  <template #params="{ onToggle }">
+                                    <ul class="universal-options">
+                                      <li
+                                        v-for="h in getUniversalHeightOptions(filling)"
+                                        :key="h"
+                                        :class="['universal-option', { 'universal-option--active': h === filling.height }]"
+                                        @click="() => { UMconstructor.FILLINGS.changeUniversalHeight(h, fillingIndex, secIndex, cellIndex, rowIndex); onToggle(); }"
+                                      >{{ h }} мм</li>
+                                    </ul>
+                                  </template>
+                                </Accordion>
+                              </div>
+                            </template>
 
                             <ConfigurationOption
                               v-if="filling.fasade"
@@ -1517,6 +1647,10 @@ watch(
       border-bottom: 1px solid #ecebf1;
     }
 
+      &--numbers{
+        flex-wrap: wrap;
+      }
+
     &--height,
     &--width {
       width: 100%;
@@ -1538,5 +1672,39 @@ watch(
   color: #999;
   font-size: 0.85em;
   padding: 0.5rem 0;
+}
+
+.universal-select-wrap {
+  max-width: 140px;
+}
+
+.universal-accordion {
+  :deep(.accordion__summary) {
+    padding: 4px 8px;
+    font-size: 1.2rem;
+    font-weight: normal;
+  }
+}
+
+.universal-options {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.universal-option {
+  padding: 5px 10px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 6px;
+
+  &:hover {
+    background: #f0f2f5;
+  }
+
+  &--active {
+    font-weight: 600;
+    color: #5d6069;
+  }
 }
 </style>

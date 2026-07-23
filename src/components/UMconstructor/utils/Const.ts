@@ -20,5 +20,11 @@ export const UM_PARAMS = {
     SECTOR_PADDING: 0,
     RASPASHNOY_ID: 1942652, // ID распашного шкафа
     MIN_TSARGA_WIDTH: 700, // Минимальная ширина царги
-    MAX_TSARGA_WIDTH:1200   // Максимальная ширина царги
+    MAX_TSARGA_WIDTH: 1200   // Максимальная ширина царги
+}
+
+export const UM_DRAWERS_IDS = {
+    INNER: [15222587, 2166308],
+    OUTER: [5726092, 6560591],
+    UNIVERSAL: [15309443]
 }

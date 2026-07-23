@@ -400,7 +400,6 @@ export default class ShelvesManager {
 
         const next = currentSection.cells[cellIndex + 1];
         const prev = currentSection.cells[cellIndex - 1];
-        let needUpdateFasade = false;
 
         const combinedHeight = next
             ? currentCell.height + next.height
@@ -408,12 +407,12 @@ export default class ShelvesManager {
 
         next ? (next.height = combinedHeight) : (prev.height = combinedHeight);
 
+        // Очищаем филлинги соседней ячейки независимо от наличия филлингов у удаляемой
+        const mergedCell = next || prev
+        if (mergedCell?.fillings?.length) {
+            this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex: next ? cellIndex + 1 : cellIndex - 1 });
+        }
         if (currentCell.fillings?.length) {
-            let newFillings = next || prev
-            if (newFillings?.fillings?.length) {
-                this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex: next ? cellIndex + 1 : cellIndex - 1 });
-            }
-
             this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex });
         }
 
@@ -429,9 +428,6 @@ export default class ShelvesManager {
 
         grid = clone;
         this.scope.SECTIONS.selectCell(secIndex, 0)
-
-        if (needUpdateFasade)
-            this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
 
         this.scope.reset(grid)
     };

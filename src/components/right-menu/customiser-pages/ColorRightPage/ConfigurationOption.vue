@@ -88,9 +88,6 @@ const deleteChoise = (event) => {
         <p class="config__title">{{ title }}</p>
       </div>
       <p class="config__name">{{ name }}</p>
-      <!--
-        
-        -->
     </div>
   </div>
 </template>

@@ -978,8 +978,6 @@ onBeforeUnmount(() => {
         :size="20" :fontSize="10" />
     </div>
 
-    {{ currentEditableOption }}
-
     <SurfaceRedactor v-if="currentEditableOption === 'surface' && materialList[0]?.FASADES" :materialList="materialList"
       :elementIndex="props.elementIndex" :temp-work="true" @select_material="onSelectMaterial" />
     <MaterialSelector v-if="currentEditableOption === 'surface' && !materialList[0]?.FASADES" :materials="materialList"
