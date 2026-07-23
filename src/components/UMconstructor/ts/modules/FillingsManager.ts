@@ -319,9 +319,9 @@ export default class FillingsManager {
 
             const outerDrawer = (selectedOnCanvas?.item !== null && selectedOnCanvas?.item !== undefined)
                 ? outerContainer?.fillings?.find(
-                      f => f.id === selectedOnCanvas.item &&
-                           this.OUTER_DRAWER_IDS.includes(f.productGroupID)
-                  ) ?? null
+                    f => f.id === selectedOnCanvas.item &&
+                        this.OUTER_DRAWER_IDS.includes(f.productGroupID)
+                ) ?? null
                 : null
 
             if (!outerDrawer) {
@@ -345,7 +345,7 @@ export default class FillingsManager {
             // Суммируем высоту уже добавленных внутренних ящиков для этого внешнего
             const usedHeight = outerContainer.fillings
                 ?.filter(f => this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                              f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
+                    f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
                 ?.reduce((sum, f) => sum + f.height, 0) ?? 0
 
             const freeHeight = availableHeight - usedHeight
@@ -829,7 +829,7 @@ export default class FillingsManager {
                 const prevLen = curRow.fillings.length
                 curRow.fillings = curRow.fillings.filter(f =>
                     !(this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                      f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
+                        f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
                 )
                 if (curRow.fillings.length !== prevLen) {
                     curRow.fillings.forEach((f, idx) => { f.id = idx + 1 })
@@ -1237,22 +1237,79 @@ export default class FillingsManager {
         const oldHeight = filling.height;
         const heightDelta = numValue - oldHeight;
 
-        filling.height = numValue;
-        if (filling.size) filling.size.y = numValue;
-
-        // Ящик закреплён снизу: при изменении высоты верх сдвигается вверх
-        filling.position.y = (filling.position.y ?? 0) - heightDelta;
-        if (filling.distances) {
-            filling.distances.top = Math.max(0, (filling.distances.top ?? 0) - heightDelta);
-        }
-
-        // Обновляем диапазон высоты фасада на основе DROWER_FASADE_HEIGHT продукта
+        // Вычисляем новую высоту фасада для нового размера ящика
         const productData = this.scope.APP?.CATALOG?.PRODUCTS?.[filling.product];
         const fasadeRange = productData?.DROWER_FASADE_HEIGHT?.[String(numValue)];
+        const newFasadeHeight = fasadeRange
+            ? Math.max(fasadeRange.min, Math.min(fasadeRange.max, filling.fasade?.height ?? fasadeRange.min))
+            : (filling.fasade?.height ?? 0);
+
+        // Минимальный зазор сверху: выступ фасада над телом ящика + 2 мм
+        const manufacturerOffset = filling.fasade?.manufacturerOffset ?? 16;
+        const minTopGap = filling.fasade
+            ? Math.max(0, newFasadeHeight - manufacturerOffset - numValue + 2)
+            : 0;
+
+        // Вычисляем новые координаты без применения к filling
+        const currentTop = filling.distances?.top ?? 0;
+        const maxUpShift = Math.max(0, currentTop - minTopGap);
+        const upShift = Math.min(heightDelta, maxUpShift);
+        const downShift = heightDelta - upShift;
+
+        let newPositionY = (filling.position.y ?? 0) - upShift;
+        let newTop = currentTop - upShift;
+        let newBottom = Math.max(0, (filling.distances?.bottom ?? 0) - downShift);
+
+        // Если после сдвига зазор сверху всё ещё меньше минимального — сдвигаем ящик вниз
+        // const topDeficit = minTopGap - newTop;
+        // if (filling.distances && topDeficit > 0) {
+        //     newPositionY = newPositionY + topDeficit;
+        //     newTop = newTop + topDeficit;
+        //     newBottom = Math.max(0, newBottom - topDeficit);
+        // }
+
+        // Проверяем коллизии с другими наполнениями той же ячейки
+        // Для ящиков с фасадами проверяем пересечение фасадов (они больше тела),
+        // для остальных — пересечение тел по distances.top
+        const newFasadePosY = filling.fasade
+            ? grid.height - (newPositionY + numValue + manufacturerOffset)
+            : null;
+        const newFasadeTopY = newFasadePosY !== null ? newFasadePosY + newFasadeHeight : null;
+
+        const newTopEdge = newTop;
+        const newBottomEdge = newTop + numValue;
+        const hasCollision = curRow.fillings.some((f, idx) => {
+            if (idx === itemIndex) return false;
+            // Фасад-фасад: проверяем в координатах module-from-bottom
+            if (f.fasade && newFasadePosY !== null) {
+                const otherFasadePosY = f.fasade.position.y;
+                const otherFasadeTopY = otherFasadePosY + (f.fasade.height ?? 0);
+                return newFasadePosY < otherFasadeTopY && newFasadeTopY > otherFasadePosY;
+            }
+            // Тело-тело: проверяем по distances.top
+            if (!f.distances) return false;
+            const otherTop = f.distances.top ?? 0;
+            const otherBottom = otherTop + (f.height ?? 0);
+            return newBottomEdge > otherTop && newTopEdge < otherBottom;
+        });
+        if (hasCollision) {
+            this.scope.callAlert('error', 'Невозможно изменить высоту: пересечение с другим наполнением');
+            return;
+        }
+
+        // Применяем все изменения
+        filling.height = numValue;
+        if (filling.size) filling.size.y = numValue;
+        filling.position.y = newPositionY;
+        if (filling.distances) {
+            filling.distances.top = newTop;
+            filling.distances.bottom = newBottom;
+        }
+
         if (fasadeRange && filling.fasade) {
             filling.fasade.minY = fasadeRange.min;
             filling.fasade.maxY = fasadeRange.max;
-            filling.fasade.height = Math.max(fasadeRange.min, Math.min(fasadeRange.max, filling.fasade.height));
+            filling.fasade.height = newFasadeHeight;
         }
 
         if (filling.fasade) {
@@ -1260,6 +1317,7 @@ export default class FillingsManager {
         }
         this.scope.reset(grid);
     }
+
 
     private reconcileInnerDrawers(
         secIndex: number,
