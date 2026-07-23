@@ -8,7 +8,9 @@ import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { HiTechProfileData } from '@/components/UMconstructor/types/UMtypes'
 
-const appDataStore = useAppData()
+const appDataStore = useAppData();
+const emptyTableTopId = 69919
+const tableTopLengthDefault = 3000
 
 function createFacadeProps(objProps: any): IBasketFacade[] {
 
@@ -638,15 +640,17 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
 
   if (!filteredData) return;
 
-  const emptyTableTopId = 69919
-  const tableTopLengthDefault = 3000
   const { getGlobalOptions } = useRoomOptions()
   const tableTopId = getGlobalOptions?.tableTop?.id
+  const _PRODUCTS = appDataStore.getAppData.CATALOG.PRODUCTS
 
   if (tableTopId === emptyTableTopId) return false
 
   const tableTop = filteredData.map((obj: TTotalProps, key: string) => {
-    if (obj.type !== 'element_down') return;
+
+    const haveTable = obj.id && _PRODUCTS[obj.id]?.tabletop
+    console.log(haveTable, 'haveTable')
+    if (!haveTable || (obj.type !== 'element_down' && haveTable !== 'Y')) return
 
     const data = obj.data
     if (!data) return
