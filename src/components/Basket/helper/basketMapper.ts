@@ -636,7 +636,8 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
 
   const { getGlobalOptions } = useRoomOptions()
   const tableTopId = getGlobalOptions?.tableTop?.id
-
+  const _PRODUCTS = appDataStore.getAppData.CATALOG.PRODUCTS
+  
   if (tableTopId === emptyTableTopId) return false
 
   const tableTop = filteredData.map((obj: TTotalProps, key: string) => {
