@@ -1,7 +1,7 @@
 //@ts-nocheck
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import {  ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
+import { ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
 import * as THREE from "three";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
@@ -116,6 +116,22 @@ export default class LoopsManager {
                 })
             })
             return;
+        }
+
+        // Восстанавливаем loopsSide если ранее была активна опция "без петель"
+
+        FASADES.forEach((door, doorKey) => {
+            door.forEach((fasade) => {
+                if (fasade.loopsSide === LOOPSIDE.none) {
+                    fasade.loopsSide = doorKey === 0 ? LOOPSIDE.left : LOOPSIDE.right
+                }
+            })
+        })
+        if (!curSection.loopsSides) {
+            curSection.loopsSides = {}
+            FASADES.forEach((door, doorKey) => {
+                curSection.loopsSides[doorKey] = door[0]?.loopsSide ?? LOOPSIDE.left
+            })
         }
 
         // Условие отрисовки петель если 1 секция одна дверь
@@ -323,7 +339,7 @@ export default class LoopsManager {
         }
 
         let loopsSectors = {}
-        
+
         Object.entries(loops).forEach(([doorKey, doorLoops]) => {
             loopsSectors[doorKey] = {}
             doorLoops.forEach((_loops, fasadeKey) => {
@@ -506,7 +522,7 @@ export default class LoopsManager {
         return loops;
     }
 
-    getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) { 
+    getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) {
 
 
         const { row } = this.scope.UM_STORE.getSelected("fasades")
