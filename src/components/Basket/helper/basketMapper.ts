@@ -6,7 +6,9 @@ import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoo
 import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 
-const appDataStore = useAppData()
+const appDataStore = useAppData();
+const emptyTableTopId = 69919
+const tableTopLengthDefault = 3000
 
 function createFacadeProps(objProps: any): IBasketFacade[] {
 
@@ -623,16 +625,16 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
 
   if (!filteredData) return;
 
-  const emptyTableTopId = 69919
-  const tableTopLengthDefault = 3000
   const { getGlobalOptions } = useRoomOptions()
   const tableTopId = getGlobalOptions?.tableTop?.id
-
-  console.log(tableTopId, emptyTableTopId)
 
   if (tableTopId === emptyTableTopId) return false
 
   const tableTop = filteredData.map((obj: TTotalProps, key: string) => {
+
+    const haveTable = obj.id && _PRODUCTS[obj.id]?.tabletop
+    if (!haveTable || (obj.type !== 'element_down' && haveTable !== 'Y')) return;
+
     const data = obj.data
     if (!data) return
     const { CONFIG: { SIZE } } = data
