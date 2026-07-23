@@ -119,6 +119,21 @@ export default class LoopsManager {
             return;
         }
 
+        // Восстанавливаем loopsSide если ранее была активна опция "без петель"
+        FASADES.forEach((door, doorKey) => {
+            door.forEach((fasade) => {
+                if (fasade.loopsSide === LOOPSIDE.none) {
+                    fasade.loopsSide = doorKey === 0 ? LOOPSIDE.left : LOOPSIDE.right
+                }
+            })
+        })
+        if (!curSection.loopsSides) {
+            curSection.loopsSides = {}
+            FASADES.forEach((door, doorKey) => {
+                curSection.loopsSides[doorKey] = door[0]?.loopsSide ?? LOOPSIDE.left
+            })
+        }
+
         // Условие отрисовки петель если 1 секция одна дверь
 
         if (grid.sections.length === 1 && FASADES.length === 1 && grid.productID === UM_PARAMS.RASPASHNOY_ID) {
