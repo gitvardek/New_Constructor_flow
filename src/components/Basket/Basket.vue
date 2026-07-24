@@ -121,8 +121,10 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { useRoomOptions } from '../left-menu/option/roomOptions/useRoomOptons';
 
 import orderForm from '@/features/orderForm/components/orderForm.vue';
+import { useProjectAPI } from '@/features/quickActions/project/composables/useProjectAPI';
 
 const { basketData, basketDelay, allBasketDelay, syncBasket, syncBasketDelay, syncBasketMulti, syncInvoce } = useBasketStore();
+const { saveDumpProject } = useProjectAPI();
 import { useConfigStore } from "@/store/appStore/useConfigStore";
 
 const { oldPrice, isFeedbackProject } = useConfigStore();
@@ -237,14 +239,18 @@ const onOrderFormServiceCalcChange = (value: Array<{
 };
 
 
-const setInvoice = () => {
-
+const setInvoice = async () => {
   console.log('basketData', basketData);
   if (isFeedbackProject) {
     closePopup();
     openPopupFormBasket();
   } else {
-    syncInvoce();
+    let dumpProjectId: string | number | undefined
+    const dumpResult = await saveDumpProject()
+    if (dumpResult.success && dumpResult.id != null) {
+      dumpProjectId = dumpResult.id
+    }
+    syncInvoce(false, dumpProjectId);
   }
 };
 
