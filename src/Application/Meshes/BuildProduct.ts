@@ -113,50 +113,52 @@ export class BuildProduct extends BuildersHelper {
 
     getModel(
         product_data: THREETypes.TObject,
-        loaded_props?: THREETypes.TObject,
+        loaded_props?: THREETypes.TTotalProps,
         loaded_size?: THREETypes.TObject
     ): Promise<THREE.Object3D> {
-        return new Promise(async (resolve) => {
-            const type = this._MODELS[product_data.models[0]];
+        return new Promise(async (resolve, reject) => {
+            try {
+                const type = this._MODELS[product_data.models[0]];
 
-            if (type.DAE) {
-                const props = this.createStartProps(product_data, loaded_props);
-                let useContentSizeForDae = false;
-                // Размер из схемы (2D → content.size); иначе ModelsBuilder для DAE не применяет loaded_size
-                if (
-                    loaded_size
-                    && typeof loaded_size === 'object'
-                    && (Number(loaded_size.width) > 0
-                        || Number(loaded_size.height) > 0
-                        || Number(loaded_size.depth) > 0)
-                ) {
-                    props.CONFIG.SIZE = {
-                        width: Number(loaded_size.width),
-                        height: Number(loaded_size.height),
-                        depth: Number(loaded_size.depth),
-                    };
-                    // useContentSizeForDae = true;
+                if (type.DAE) {
+                    const props = this.createStartProps(product_data, loaded_props);
+                    let useContentSizeForDae = false;
+                    // Размер из схемы (2D → content.size); иначе ModelsBuilder для DAE не применяет loaded_size
+                    if (
+                        loaded_size
+                        && typeof loaded_size === 'object'
+                        && (Number(loaded_size.width) > 0
+                            || Number(loaded_size.height) > 0
+                            || Number(loaded_size.depth) > 0)
+                    ) {
+                        props.CONFIG.SIZE = {
+                            width: Number(loaded_size.width),
+                            height: Number(loaded_size.height),
+                            depth: Number(loaded_size.depth),
+                        };
+                    }
+                    return this.models_builder.create({
+                        props,
+                        forceContentSizeScale: useContentSizeForDae,
+                    })
+                        .then(model => this.finalizeModel(model, resolve, type))
+                        .catch(err => reject(err));
                 }
-                return this.models_builder.create({
-                    props,
-                    forceContentSizeScale: useContentSizeForDae,
-                })
-                    .then(model => this.finalizeModel(model, resolve, type))
-                    .catch(err => console.error('Ошибка загрузки DAE:', err));
+
+                const um_params = await this.um_sample.example(product_data.ID)
+                    .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
+                    .catch(() => null);
+
+                this.checkOptionsOldDataFormat(loaded_props)
+
+                const income_props = loaded_props ?? um_params
+
+                const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
+
+                return this.finalizeModel(parentGroup, resolve);
+            } catch (error) {
+                reject(error);
             }
-
-            // const um_params = this.um_sample.UM_LIST[product_data.ID] ? JSON.parse(JSON.stringify(this.um_sample.UM_LIST[product_data.ID])) : null
-            const um_params = await this.um_sample.example(product_data.ID)
-                .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
-                .catch(() => null);
-
-            this.checkOptionsOldDataFormat(loaded_props)
-
-            const income_props = loaded_props ?? um_params;
-
-            const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
-
-            return this.finalizeModel(parentGroup, resolve);
         });
     }
 

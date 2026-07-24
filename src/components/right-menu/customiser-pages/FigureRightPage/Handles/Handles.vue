@@ -178,19 +178,26 @@ const checkControllerVisible = computed(() => {
     // handlePos.value.length > 1
   );
 });
+
+const handlesDisabled = computed(() => {
+  return !!figureFasad.value.props.HANDLES?.noHandles;
+});
 </script>
 <template>
   <div class="handles__wraper">
     <defaultTab v-if="!props.is2Dconstructor" :tabs="props.data" :initialTab="figureFasad.name"
       @tab-change="handleTabChange" />
     <div class="handles__container">
-      <div class="handles__header">
-        <ConfigurationOption @delete-choise="onDeleteHandle" :type="'Handles'" :data="figureFasad.data" />
-        <DirectionControl v-if="controllerVisible && !props.disablePositionChanger" :handle-pos="handlePos"
-          :active-pos="props.activePos" @changeDirectionPos="onChangeHandlePos" :container="'card'" :scale="1" :gap="2"
-          :max-width="120" :size="20" :fontSize="10" />
-      </div>
-      <MaterialSelector @select="onHandleSelect" :materials="handleList" />
+      <template v-if="!handlesDisabled">
+        <div class="handles__header">
+          <ConfigurationOption @delete-choise="onDeleteHandle" :type="'Handles'" :data="figureFasad.data" />
+          <DirectionControl v-if="controllerVisible && !props.disablePositionChanger" :handle-pos="handlePos"
+            :active-pos="props.activePos" @changeDirectionPos="onChangeHandlePos" :container="'card'" :scale="1" :gap="2"
+            :max-width="120" :size="20" :fontSize="10" />
+        </div>
+        <MaterialSelector @select="onHandleSelect" :materials="handleList" />
+      </template>
+      <div v-else class="handles__disabled">Ручки недоступны для данного фасада</div>
     </div>
   </div>
 </template>
@@ -232,17 +239,13 @@ const checkControllerVisible = computed(() => {
     align-items: center;
     gap: 15px;
   }
+
+  &__disabled {
+    padding: 10px;
+    color: #999;
+    font-size: 1.2rem;
+    text-align: center;
+  }
 }
 
-.material-config {
-  // &_list {
-  //   height: 100vh;
-  //   display: flex;
-  //   flex-direction: column;
-  //   flex: 1;
-  //   flex-wrap: wrap;
-  //   margin-top: 1rem;
-  //   overflow-y: auto;
-  // }
-}
 </style>
