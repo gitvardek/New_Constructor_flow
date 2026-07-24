@@ -284,6 +284,51 @@ export function useProjectAPI() {
     }
   }
 
+  const saveDumpProject = async (): Promise<{ success: boolean; id?: string | number; error?: string }> => {
+    try {
+      eventBus.emit('A:Save')
+
+      const projectData = saveSceneParams() ?? sceneState.getCurrentProjectParams
+
+      if (!validateProjectData(projectData)) {
+        return { success: false, error: ERROR_MESSAGES.INVALID_PROJECT_DATA }
+      }
+
+      const now = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const projectName = `AutoDump ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+
+      const tempProjectId = Date.now().toString()
+      projectData.projectId = tempProjectId
+
+      const response = await (client as any).POST('/api/modeller/projectq/SaveDumpProject', {
+        body: {
+          data: {
+            file: 'data:image/jpeg;base64,',
+            provider: REQUEST_CONSTANTS.PROVIDER,
+            name: projectName,
+            user_hash: REQUEST_CONSTANTS.USER_HASH,
+            city: REQUEST_CONSTANTS.CITY,
+            project: projectData,
+            style: REQUEST_CONSTANTS.STYLE,
+            projectId: tempProjectId,
+            user_id: REQUEST_CONSTANTS.USER_ID,
+          }
+        }
+      })
+
+      const normalized = normalizeApiResponse<any>(response)
+      if (normalized.success) {
+        const id = normalized.data?.id ?? normalized.data?.ID ?? normalized.data?.data?.id ?? normalized.data?.data?.ID
+        return { success: true, id }
+      }
+      return { success: false, error: normalized.error }
+    } catch (error) {
+      console.error('SaveDumpProject error:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  }
+
   const saveProject = async (incomeProjectId: string | null = null, projectName?: string, kpFlag: boolean = false, _manualNewProject?: boolean): Promise<SaveProjectResult> => {
     try {
       // Сначала сохраняем сцену в браузер
@@ -498,6 +543,7 @@ export function useProjectAPI() {
     loadProjects,
     loadProject,
     saveProject,
+    saveDumpProject,
     deleteProject,
     getProjectScreenshot,
     getOrderFormData,

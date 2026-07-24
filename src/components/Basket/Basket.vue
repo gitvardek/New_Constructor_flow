@@ -1,14 +1,11 @@
 <template>
   <div class="basket">
     <div class="basket-tabs">
-      <button
-        class="basket-tabs__tab"
-        :class="{ 'basket-tabs__tab--active': activeTab === 'basket' }"
-        @click="activeTab = 'basket'"
-      >
+      <button class="basket-tabs__tab" :class="{ 'basket-tabs__tab--active': activeTab === 'basket' }"
+        @click="activeTab = 'basket'">
         Корзина
       </button>
-    <!-- ================    /** ДЛЯ МАСТЕРА  */ ================ 
+      <!-- ================    /** ДЛЯ МАСТЕРА  */ ================ 
       <button
         class="basket-tabs__tab"
         :class="{ 'basket-tabs__tab--active': activeTab === 'order' }"
@@ -17,10 +14,7 @@
         Форма заказа
       </button> 
     ========================================================== -->
-      <ClosePopUpButton
-        class="basket-tabs__close-btn"
-        @click="closePopup"
-      />
+      <ClosePopUpButton class="basket-tabs__close-btn" @click="closePopup" />
     </div>
 
     <template v-if="activeTab === 'basket'">
@@ -30,46 +24,30 @@
 
       <!-- Кнопки переключения между комнатами -->
       <div class="room-tabs" v-if="rooms.length > 1">
-        <button
-          class="room-tab"
-          :class="{ 'room-tab--active': selectedRoomId === 'all' }"
-          @click="selectRoom('all')"
-        >
+        <button class="room-tab" :class="{ 'room-tab--active': selectedRoomId === 'all' }" @click="selectRoom('all')">
           Все комнаты
         </button>
-        <button
-          v-for="room in rooms"
-          :key="room.id"
-          class="room-tab"
-          :class="{ 'room-tab--active': selectedRoomId === room.id }"
-          @click="selectRoom(room.id)"
-        >
+        <button v-for="room in rooms" :key="room.id" class="room-tab"
+          :class="{ 'room-tab--active': selectedRoomId === room.id }" @click="selectRoom(room.id)">
           {{ room.label || `Комната ${room.id}` }}
         </button>
       </div>
 
       <div class="basket-container">
 
-        <div class="basket-container__main-table" v-if="mainItems.length || !additionalItems.length ">
-          <BasketTable
-            :key="basketUpdateKey"
-            :items="mainItems"
-            type="main"
-          />
+        <div class="basket-container__main-table" v-if="mainItems.length || !additionalItems.length">
+          <BasketTable :key="basketUpdateKey" :items="mainItems" type="main" />
         </div>
         <div class="basket__additional-table">
-          <BasketTable
-            :key="basketUpdateKey + 'additional'"
-            title="Дополнительные товары"
-            :items="additionalItems"
-            type="additional"
-          />
+          <BasketTable :key="basketUpdateKey + 'additional'" title="Дополнительные товары" :items="additionalItems"
+            type="additional" />
         </div>
       </div>
 
       <div class="basket-footer">
 
-        <div v-if="productDelayData && productDelayData.length > 0 && productDelayData[0].type !== 'error'" class="basket-footer__notification">
+        <div v-if="productDelayData && productDelayData.length > 0 && productDelayData[0].type !== 'error'"
+          class="basket-footer__notification">
           <div v-for="productItem in productDelayData">
             <h3 class="">{{ productItem?.data?.title }}</h3>
             <!-- <div>{{ productItem.data.max_delay_date }}</div> -->
@@ -93,12 +71,14 @@
             </div>
             <button class="basket__close" @click="closePopup">Закрыть</button>
             <button class="basket__save">Печать</button>
-            <button class="basket__order" @click="setInvoice" :disabled="errorBasket || technologistStorage.getTechnologistProject()">Оформить заказ</button>
+            <button class="basket__order" @click="setInvoice"
+              :disabled="errorBasket || technologistStorage.getTechnologistProject()">Оформить заказ</button>
           </div>
           <div class="basket__technologist__wrapper" v-if="technologistStorage.getTechnologistProject()">
             <div class="basket__technologist__wrapper__container">
               <p class="error__title">Это проект технолога!</p>
-              <p class="error__title"> Чтобы его оформить перейдите к нужной карточке сделки в окне "Технолог" и нажмите "Оформить заказ".</p>
+              <p class="error__title"> Чтобы его оформить перейдите к нужной карточке сделки в окне "Технолог" и нажмите
+                "Оформить заказ".</p>
             </div>
           </div>
         </div>
@@ -107,10 +87,7 @@
 
     <template v-else>
       <div class="basket-container">
-        <orderForm
-          ref="orderFormRef"
-          @service-calc-change="onOrderFormServiceCalcChange"
-        />
+        <orderForm ref="orderFormRef" @service-calc-change="onOrderFormServiceCalcChange" />
       </div>
 
       <div class="order-footer">
@@ -148,12 +125,14 @@ import { useRoomOptions } from '../left-menu/option/roomOptions/useRoomOptons';
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage';
 
 import orderForm from '@/features/orderForm/components/orderForm.vue';
+import { useProjectAPI } from '@/features/quickActions/project/composables/useProjectAPI';
 
-const { basketData, basketDelay, allBasketDelay, syncBasket, syncBasketDelay, syncBasketMulti, syncInvoce} = useBasketStore();
+const { basketData, basketDelay, allBasketDelay, syncBasket, syncBasketDelay, syncBasketMulti, syncInvoce } = useBasketStore();
+const { saveDumpProject } = useProjectAPI();
 import { useConfigStore } from "@/store/appStore/useConfigStore";
 
 const { oldPrice, isFeedbackProject } = useConfigStore();
-import {useTechnologistStorage} from "@/store/appStore/technologist/useTechnologistStorage.ts";
+import { useTechnologistStorage } from "@/store/appStore/technologist/useTechnologistStorage.ts";
 
 const popupStore = usePopupStore();
 const items = ref<IBasketResponse[] | null>(null);
@@ -203,7 +182,7 @@ const openPopupFormBasket = () => {
 
 // Вычисляемые свойства для данных корзины
 const mainItems = computed(() => {
-  return items.value?.products?.filter((item: IProduct) => item.product?.TYPE === "scene" || item.product?.TYPE === "umscene" ) || [];
+  return items.value?.products?.filter((item: IProduct) => item.product?.TYPE === "scene" || item.product?.TYPE === "umscene") || [];
 });
 
 const additionalItems = computed(() => {
@@ -264,13 +243,18 @@ const onOrderFormServiceCalcChange = (value: Array<{
 };
 
 
-const setInvoice = () => {
+const setInvoice = async () => {
 
-  if(isFeedbackProject) {
+  if (isFeedbackProject) {
     closePopup();
     openPopupFormBasket();
   } else {
-    syncInvoce();
+    let dumpProjectId: string | number | undefined
+    const dumpResult = await saveDumpProject()
+    if (dumpResult.success && dumpResult.id != null) {
+      dumpProjectId = dumpResult.id
+    }
+    syncInvoce(false, dumpProjectId);
   }
 };
 
@@ -303,7 +287,7 @@ const updateBasketData = async () => {
 
 const selectRoom = async (id) => {
   selectedRoomId.value = id;
-  if(id !== "all") {
+  if (id !== "all") {
     loadRoom(id)
   } else {
     getBasket()
@@ -313,13 +297,13 @@ const selectRoom = async (id) => {
 const getBasket = () => {
   roomsBasketData.value = rooms.value.flatMap(el => {
     const roomBasket = JSON.parse(el.basket);
-    
+
     return [
       ...(roomBasket.scene || []),
       ...(roomBasket.catalog || [])
     ];
   });
-  
+
   // allBasket(roomsBasketData.value);
   syncBasketMulti(roomsBasketData.value)
 }
@@ -359,7 +343,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
   items.value = newValue;
   basketUpdateKey.value++;
   loading.value = false;
-  if(newValue.products) {
+  if (newValue.products) {
     errorCount.value = newValue.products.filter((item: IProduct) => item.error).length;
     errorBasket.value = newValue.type === 'error';
   }
@@ -663,7 +647,7 @@ watch(() => useBasketStore().basketData, (newValue) => {
   align-items: center;
 
   &__tab {
-    padding:0.5rem 1rem;
+    padding: 0.5rem 1rem;
     font-size: 1.4rem;
     font-weight: 500;
     border: none;
@@ -717,4 +701,3 @@ watch(() => useBasketStore().basketData, (newValue) => {
   color: #272727;
 }
 </style>
-
