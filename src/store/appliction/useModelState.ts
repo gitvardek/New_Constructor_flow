@@ -106,7 +106,7 @@ export const useModelState = defineStore('ModelState', () => {
     // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 
 
-    const nestandartIDs = ref<number[]>([1814256, 971222, 1807360,])
+    const nestandartIDs = ref<number[]>([1814256, 971222, 1807360, 3954672])
 
     const currentModel = ref<THREE.Object3D | null>(null)
     const currentRaspilParent = ref<THREE.Object3D | null>(null)
