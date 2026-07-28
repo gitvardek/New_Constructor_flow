@@ -132,7 +132,40 @@ export class ModelsBuilder {
         })
     }
 
+    private bakeNodeTransforms = (root: THREE.Object3D): void => {
+        root.updateMatrixWorld(true)
+
+        const meshData: Array<{ geometry: THREE.BufferGeometry; worldMatrix: THREE.Matrix4 }> = []
+
+        root.traverse((child: THREE.Object3D) => {
+            const mesh = child as THREE.Mesh
+            if (mesh.isMesh && mesh.geometry) {
+                meshData.push({
+                    geometry: mesh.geometry,
+                    worldMatrix: child.matrixWorld.clone()
+                })
+            }
+        })
+
+        for (const { geometry, worldMatrix } of meshData) {
+            geometry.applyMatrix4(worldMatrix)
+        }
+
+        root.traverse((child: THREE.Object3D) => {
+            child.position.set(0, 0, 0)
+            child.quaternion.identity()
+            child.scale.set(1, 1, 1)
+            child.updateMatrix()
+        })
+
+        root.updateMatrixWorld(true)
+    }
+
     private normalizeUploadedModel = function (model, params, size) {
+        // Запекаем трансформации нод GLTF-иерархии в геометрию до нормализации.
+      
+        this.bakeNodeTransforms(model)
+        
         const center = new THREE.Vector3()
         const box = this.calculateUnionBoundingBox(model);
         box.getCenter(center)
