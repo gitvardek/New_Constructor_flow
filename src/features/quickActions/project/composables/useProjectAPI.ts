@@ -301,7 +301,7 @@ export function useProjectAPI() {
       const tempProjectId = Date.now().toString()
       projectData.projectId = tempProjectId
 
-      const response = await (client as any).POST('/api/modeller/projectq/SaveDumpProject', {
+      const response = await (client as any).POST('/api/modeller/projectq/SaveDumpProject/', {
         body: {
           data: {
             file: 'data:image/jpeg;base64,',
