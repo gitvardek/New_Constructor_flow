@@ -5,7 +5,7 @@ export const UM_PARAMS = {
     CONST_MAX_AREA_HEIGHT: 500, // Максимальная высота области в пикселях
     MIN_SECTION_WIDTH: 114, // Минимальная ширина секции
     MIN_SECTION_HEIGHT: 100, // Минимальная высота секции
-    MAX_SECTION_WIDTH: 1200, // Максимальная ширина секции 900
+    MAX_SECTION_WIDTH: 900, // Максимальная ширина секции 1200
     MIN_FASADE_HEIGHT: 360,
     MIN_FASADE_WIDTH: 126,
     MAX_FASADE_WIDTH: 600,
@@ -19,7 +19,7 @@ export const UM_PARAMS = {
     HOLE_OFFSET: 10,// Отступ от краёв
     SECTOR_PADDING: 0,
     RASPASHNOY_ID: 1942652, // ID распашного шкафа
-    MIN_TSARGA_WIDTH: 900, // Минимальная ширина царги
+    MIN_TSARGA_WIDTH: 1200, // Минимальная ширина царги 900
     MAX_TSARGA_WIDTH:1200   // Максимальная ширина царги
 }
 

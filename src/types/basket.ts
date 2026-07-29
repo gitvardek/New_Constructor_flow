@@ -24,7 +24,7 @@ export interface IBasket {
   };
   QUANTITY: number;
   TYPE: "scene" | "catalog" | 'umscene';
-  HANDLES?: {ID: number}[]
+  HANDLES?: { ID: number }[]
 }
 
 export interface IBasketFacade {
@@ -98,6 +98,7 @@ export interface BasketItemType {
 export interface BasketRequest {
   BASKET: IBasket[]
   TYPE_PRICE: number
-  technologistBasket?: boolean|Object
+  technologistBasket?: boolean | Object
+  dumpProjectId?: string | number
 }
 

@@ -138,12 +138,11 @@ const fasadeHandleList = ref<Array>([]);
 const isFasadeHandleExist = ref<boolean>(false);
 
 const onSelectMaterial = (data) => {
-  console.log(data, "data");
-
   /** ============== Данные размера выбранного Фасада ==============*/
 
   const selected = umStorage.getSelected("fasades");
   const isDowerSelect = umStorage.getSelected("fillings")
+
 
   //======================================================================
 
@@ -157,7 +156,7 @@ const onSelectMaterial = (data) => {
   let haveShowcase;
   let dataOfFasadeType;
 
-  const isShowcase = FASADE_POSITIONS[props.elementIndex].SHOWCASE === 1;
+  const isShowcase = FASADE_POSITIONS[props.elementIndex]?.SHOWCASE === 1;
 
   if (props.isFasade && !isDowerSelect) {
     const checkConversation = checkFasadeConversations(
@@ -258,7 +257,7 @@ const onSelectMaterial = (data) => {
   // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
   isShowcaseExist.value = !data.MATERIAL?.includes("Alum") &&
-    isShowcase && data.id !== RESET_COLOR &&
+    haveShowcase && data.id !== RESET_COLOR &&
     showcaseList.value.length > 0;
 
   /** @Стёкла */
@@ -433,6 +432,7 @@ const onChangeIntegratedHandlePos = (action, id) => {
 };
 
 /** Удаление опций конфигурации */
+
 const deleteSelectedOptions = (type: String) => {
   const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
 
@@ -711,7 +711,7 @@ const prepareData = () => {
   }
 
   /** @Стёкла */
-  if (haveShowcase && glassData.length > 0) {
+  if (haveShowcase && glassData.length > 0 || glassData.length > 0 && ALUM !== null) {
     glassList.value = glassData;
     isGlassExist.value = glassData.length > 0;
   }
@@ -916,7 +916,7 @@ onBeforeUnmount(() => {
     <div class="container__header" v-if="props.isFasade && props.elementIndex !== null">
       <h3>Конфигурация фасада {{ props.elementIndex + 1 }}</h3>
     </div>
-    <div class="container__header" v-else-if="props.elementIndex !== null && partsNames[props.elementIndex]">
+    <div class="container__header" v-if="props.elementIndex !== null && partsNames[props.elementIndex]">
       <h3>{{ partsNames[props.elementIndex] }}</h3>
     </div>
 
