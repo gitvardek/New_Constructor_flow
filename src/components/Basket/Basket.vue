@@ -250,7 +250,14 @@ const setInvoice = async () => {
     if (dumpResult.success && dumpResult.id != null) {
       dumpProjectId = dumpResult.id
     }
-    syncInvoce(false, dumpProjectId);
+
+    // Если выбраны все комнаты — передаём объединённую корзину явно,
+    // иначе syncInvoce возьмёт только данные текущей комнаты из storage
+    if (selectedRoomId.value === 'all' && roomsBasketData.value.length > 0) {
+      syncInvoce(false, dumpProjectId, roomsBasketData.value);
+    } else {
+      syncInvoce(false, dumpProjectId);
+    }
   }
 };
 
