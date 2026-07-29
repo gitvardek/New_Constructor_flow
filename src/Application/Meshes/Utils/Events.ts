@@ -328,7 +328,7 @@ export class MeshEvents extends BuildersHelper {
     //------------------
 
     async catchFasadeChange({ data, fasadeNdx, mesh }: TDataWithNdx) {
-
+        console.log(data, 'IN FCH')
         const meshData = mesh ?? this._currentMesh
 
         // const product = this._currentMesh;

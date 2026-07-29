@@ -103,7 +103,7 @@ export const useModelState = defineStore('ModelState', () => {
     const _WALL = computed(() => _APP.value.WALL || [])
     const _FASADE_EXCEPTIONS = computed(() => _APP.value.FASADE_EXCEPTIONS || [])
 
-    const nestandartIDs = [1814256]
+    const nestandartIDs = [1814256, 3954672]
 
     // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 

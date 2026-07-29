@@ -156,6 +156,8 @@ export class BuildUniversalModule extends BuildProduct {
             })
             : null;
 
+        console.log(fasade,  'FFFFF')    
+
         /** Добавляем стреки размеров */
         const arrows = this.addArrowSize({ object: body, props: PROPS })
 
@@ -926,7 +928,7 @@ export class BuildUniversalModule extends BuildProduct {
                     );
                 }
 
-                position.z -= loop_size.z / 2 - 10
+                position.z -= loop_size.z / 2
 
                 loopMesh.rotation.set(rotation.x, rotation.y, rotation.z);
 

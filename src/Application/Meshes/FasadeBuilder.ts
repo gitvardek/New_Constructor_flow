@@ -118,6 +118,8 @@ export class FasadeBuilder {
         FASADE_PROPS: any[],
         mode: 'update' | 'build'
     ): void {
+        console.log('FASADE BUILD', fasadeData)
+
         // Палитра
         if (fasadeData.PALETTE != null) {
             this.parent.palette_bulider.createPaletteColor({
@@ -233,7 +235,7 @@ export class FasadeBuilder {
         isLoad?: boolean
     }): THREE.Object3D {
 
-        console.log('All')
+        console.log('All', props)
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
         const { deffShowcase } = defaultConfig;

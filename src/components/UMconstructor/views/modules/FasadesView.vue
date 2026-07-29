@@ -8,7 +8,7 @@ import AdvanceCorpusMaterialRedactor from "@/components/ui/color/AdvanceCorpusMa
 import Handles from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/Handles.vue";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import Options from "@/components/right-menu/customiser-pages/RailsRightPage/Options.vue";50
+import Options from "@/components/right-menu/customiser-pages/RailsRightPage/Options.vue"; 50
 import { ref, toRefs, onBeforeUnmount, onMounted, watch, computed } from "vue";
 import {
   TSelectedCell,
@@ -235,11 +235,16 @@ const selectHandle = (data: any, type: string) => {
   UMconstructor?.value?.RENDER_REF.renderGrid(module.value);
 };
 
-const selectOption = (value: Object, type: string, palette: Object = false) => {
+const selectOption = (value: Object, type: string, palette: Object = false, alum: number | null = null) => {
+  console.log(type, value, alum, 'selectOption')
+
   currentFasadeMaterial.value.data[type] = value ? value.ID || value : null;
   if (palette) currentFasadeMaterial.value.data["PALETTE"] = palette;
 
+
   if (type === "COLOR") {
+    currentFasadeMaterial.value.data["ALUM"] = alum;
+    
     if (
       currentFasadeMaterial.value.data[type] ===
       UMconstructor?.value?.CONST.NO_FASADE_ID
@@ -690,8 +695,7 @@ watch(
                               <div>
                                 <select style id="loopsSide"
                                   :key="`loopside_${secNdx}_${doorIndex}_${segmentIndex}_${segment.loopsSide}`"
-                                  name="loopsSide"
-                                  class="actions-input"
+                                  name="loopsSide" class="actions-input"
                                   :title="UMconstructor.APP.LOOPSIDE[segment.loopsSide]?.NAME ?? ''"
                                   @change="changeLoopside(secNdx, segment, $event, doorIndex, module)"
                                   :disabled="getLoopsideList(secNdx, doorIndex, module, segment.id).length < 2">
@@ -859,7 +863,7 @@ watch(
 
 .actions {
   &__list {
-    padding: 1rem 0; 
+    padding: 1rem 0;
     border-top: 1px solid $dark-grey;
     display: flex;
     flex-direction: column;

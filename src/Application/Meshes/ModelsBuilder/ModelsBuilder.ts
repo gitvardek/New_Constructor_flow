@@ -99,6 +99,8 @@ export class ModelsBuilder {
                 aabb.getCenter(center);
                 let size = aabb.getSize(center)
 
+                console.log(aabb, onLoad,'aabb')
+
                 normolized.userData.PROPS = props
 
                 let obb = new OBB();
@@ -120,6 +122,7 @@ export class ModelsBuilder {
 
                 const edge = this.parent.edge_builder.createEdge(normolized)
                 const deffEdge = this.parent.edge_builder.createVisibleEdge(normolized)
+
                 normolized.add(edge)
 
                 if (onLoad) {
@@ -134,7 +137,40 @@ export class ModelsBuilder {
         })
     }
 
+    private bakeNodeTransforms = (root: THREE.Object3D): void => {
+        root.updateMatrixWorld(true)
+
+        const meshData: Array<{ geometry: THREE.BufferGeometry; worldMatrix: THREE.Matrix4 }> = []
+
+        root.traverse((child: THREE.Object3D) => {
+            const mesh = child as THREE.Mesh
+            if (mesh.isMesh && mesh.geometry) {
+                meshData.push({
+                    geometry: mesh.geometry,
+                    worldMatrix: child.matrixWorld.clone()
+                })
+            }
+        })
+
+        for (const { geometry, worldMatrix } of meshData) {
+            geometry.applyMatrix4(worldMatrix)
+        }
+
+        root.traverse((child: THREE.Object3D) => {
+            child.position.set(0, 0, 0)
+            child.quaternion.identity()
+            child.scale.set(1, 1, 1)
+            child.updateMatrix()
+        })
+
+        root.updateMatrixWorld(true)
+    }
+
     private normalizeUploadedModel = function (model, params, size) {
+        // Запекаем трансформации нод GLTF-иерархии в геометрию до нормализации.
+        // Без этого model.scale = N умножает позиции дочерних нод на N и создаёт огромный Box3.
+        this.bakeNodeTransforms(model)
+
         const center = new THREE.Vector3()
         const box = this.calculateUnionBoundingBox(model);
         box.getCenter(center)

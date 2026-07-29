@@ -79,7 +79,8 @@ export class EdgeBuilder {
             }
         })
 
-        object.matrix.decompose(edgeBody.position, edgeBody.quaternion, edgeBody.scale)
+        // object.matrix.decompose(edgeBody.position, edgeBody.quaternion, edgeBody.scale)
+        object.matrix.decompose(edgeBody.position, edgeBody.quaternion, new THREE.Vector3(1, 1, 1))
 
         edgeBody.userData.edge = true
         edgeBody.visible = false
@@ -103,9 +104,7 @@ export class EdgeBuilder {
                 }
             }
         })
-
-        object.matrix.decompose(edgeBody.position, edgeBody.quaternion, edgeBody.scale)
-
+        object.matrix.decompose(edgeBody.position, edgeBody.quaternion, new THREE.Vector3(1, 1, 1))
         return edgeBody
     }
 

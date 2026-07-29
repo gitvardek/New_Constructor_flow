@@ -78,8 +78,8 @@ enum partsNames {
 
 const emit = defineEmits(["parent-callback"]);
 
-const callback = (material: Object, type: String, palette: Number) => {
-  emit("parent-callback", material, type, palette);
+const callback = (material: Object, type: String, palette: Number, alum:number) => {
+  emit("parent-callback", material, type, palette, alum);
 };
 
 const _APP = useAppData().getAppData;
@@ -138,8 +138,6 @@ const fasadeHandleList = ref<Array>([]);
 const isFasadeHandleExist = ref<boolean>(false);
 
 const onSelectMaterial = (data) => {
-  console.log(data, "data");
-
   /** ============== Данные размера выбранного Фасада ==============*/
 
   const selected = umStorage.getSelected("fasades");
@@ -157,6 +155,8 @@ const onSelectMaterial = (data) => {
 
   let haveShowcase;
   let dataOfFasadeType;
+
+  const isShowcase = FASADE_POSITIONS[props.elementIndex].SHOWCASE === 1;
 
   if (props.isFasade && !isDowerSelect) {
     const checkConversation = checkFasadeConversations(
@@ -256,12 +256,15 @@ const onSelectMaterial = (data) => {
 
   // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
-  isShowcaseExist.value =
-    !data.material?.includes("Alum") && haveShowcase && data.id !== RESET_COLOR;
+  isShowcaseExist.value = !data.MATERIAL?.includes("Alum") &&
+    isShowcase && data.id !== RESET_COLOR &&
+    showcaseList.value.length > 0;
 
   /** @Стёкла */
   glassList.value = modelState.getCurrentGlassData;
-  isGlassExist.value = glassList.value.length > 0 && haveShowcase;
+  isGlassExist.value = glassList.value.length > 0 && haveShowcase || glassList.value.length > 0 && data.MATERIAL?.includes("Alum");
+  console.log(glassList.value.length > 0 && data.MATERIAL?.includes("Alum") )
+  console.log(glassList.value)
 
   /** @Тип_фасада */
   isFasadeTypesExist.value = modelState.getCurrentFasadeTypesData.length > 0;
@@ -297,7 +300,7 @@ const onSelectMaterial = (data) => {
     callback(patinaList.value[0], "PATINA");
   } else callback(false, "PATINA");
 
-  let palette;
+  let palette, alum;
   if (isPalleteExist.value) {
     let { NAME, HTML, ID } =
       paletteList.value[Object.keys(paletteList.value)[0]];
@@ -310,10 +313,10 @@ const onSelectMaterial = (data) => {
   if (isGlassExist.value) {
     const { NAME, PREVIEW_PICTURE, ID } = glassList.value[0];
     currentGlassData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
-    callback(glassList.value[0], "GLASS");
+    callback(glassList.value[0], "GLASS", null, data.MODEL);
   } else {
     currentGlassData.value = {};
-    callback(false, "GLASS");
+    callback(false, "GLASS", null, data.MODEL);
   }
 
   if (isShowcaseExist.value) {
@@ -339,7 +342,13 @@ const onSelectMaterial = (data) => {
     callback(false, "TYPE");
   }
 
-  callback(data, "COLOR", palette);
+  if(data.MATERIAL?.includes("Alum")){
+
+    console.log(data.MODEL, 'DDDDDAAAAAAAA')
+    alum = data.MODEL
+  }
+
+  callback(data, "COLOR", palette, data.MODEL);
 };
 
 const onSelectMilling = (data) => {
@@ -411,6 +420,7 @@ const onSelectPatina = (data) => {
 };
 
 const onSelectGlass = (data) => {
+  console.log()
   currentGlassData.value = data;
   callback(data, "GLASS");
 };
@@ -713,7 +723,7 @@ const prepareData = () => {
   }
 
   /** @Стёкла */
-  if (haveShowcase && glassData.length > 0) {
+  if (haveShowcase && glassData.length > 0 || glassData.length > 0 && ALUM !== null) {
     glassList.value = glassData;
     isGlassExist.value = glassData.length > 0;
   }

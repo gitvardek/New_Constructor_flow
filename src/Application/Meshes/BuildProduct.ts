@@ -176,6 +176,7 @@ export class BuildProduct extends BuildersHelper {
         resolve: (obj: THREE.Object3D) => void,
         type?: any
     ) {
+        console.log(model, 'model')
         if (type) {
             resolve(model);
             return;
@@ -834,6 +835,8 @@ export class BuildProduct extends BuildersHelper {
             HEIGHT: size.y * 0.5,
             WIDTH: size.x * 0.5,
         };
+
+        console.log(aabb, 'ON BUILD')
 
         target.userData.aabb = aabb;
         target.userData.obb = obb;
