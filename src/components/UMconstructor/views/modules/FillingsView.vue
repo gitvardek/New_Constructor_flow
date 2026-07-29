@@ -75,21 +75,36 @@ const createFacadeData = (fasadeIndex?: number) => {
   UMconstructor?.value?.FASADES.createFacadeData(fasadeIndex);
 };
 
+const reset = (grid) => {
+  UMconstructor?.value?.reset();
+};
+
+
+const getSegment = (sec, cell, row, extra) => {
+  const curSection = module.value.sections[sec];
+  const curCell = curSection?.cells?.[cell];
+  const curRow = curCell?.cellsRows?.[row];
+  const curExtra = curRow?.extras?.[extra];
+  return curExtra || curRow || curCell || curSection;
+};
 
 const openFasadeSelector = (
   sec: number,
   cell: number | null,
   row: number | null,
   extra: number | null,
-  item: number | null,
+  fillingIndex: number | null,
 ) => {
+  // fillingIndex — индекс в массиве; filling.id — уникальный ID, который ждёт UM_STORE
+  const fillingId = getSegment(sec, cell, row, extra)?.fillings?.[fillingIndex]?.id ?? fillingIndex;
+
   if (
     currentFasadeMaterial.value &&
     sec === currentFasadeMaterial.value.sec &&
     cell === currentFasadeMaterial.value.cell &&
     row === currentFasadeMaterial.value.row &&
     extra === currentFasadeMaterial.value.extra &&
-    item === currentFasadeMaterial.value.item
+    fillingId === currentFasadeMaterial.value.item
   ) {
     closeMenu();
     return;
@@ -100,28 +115,23 @@ const openFasadeSelector = (
   closeMenu();
 
   setTimeout(() => {
-    const curSection = module.value.sections[sec];
-    const curCell = curSection?.cells?.[cell];
-    const curRow = curCell?.cellsRows?.[row];
-    const curExtra = curRow?.extras?.[extra];
-
-    const curModuleSegment = curExtra || curRow || curCell || curSection;
-
-    let data = curModuleSegment.fillings[item].fasade.material;
+    const curModuleSegment = getSegment(sec, cell, row, extra);
+    const fillObj = curModuleSegment.fillings[fillingIndex];
+    let data = fillObj.fasade.material;
     currentFasadeMaterial.value = {
       sec,
       cell,
       row,
-      item,
+      item: fillingId,
       extra,
       data,
       fasadeSize: {
-        FASADE_WIDTH: curModuleSegment.fillings[item].fasade.width,
-        FASADE_HEIGHT: curModuleSegment.fillings[item].fasade.height,
+        FASADE_WIDTH: fillObj.fasade.width,
+        FASADE_HEIGHT: fillObj.fasade.height,
         isDrawer: true,
       },
     };
-    UMconstructor?.value?.FILLINGS.selectCell(sec, cell, row, extra, item);
+    UMconstructor?.value?.FILLINGS.selectCell(sec, cell, row, extra, fillingId);
     isOpenMaterialSelector.value = true;
   }, 10);
 };
@@ -131,15 +141,17 @@ const openHandleSelector = (
   cell: number | null,
   row: number | null,
   extra: number | null,
-  item: number | null,
+  fillingIndex: number | null,
 ) => {
+  const fillingId = getSegment(sec, cell, row, extra)?.fillings?.[fillingIndex]?.id ?? fillingIndex;
+
   if (
     currentHandle.value &&
     sec === currentHandle.value.sec &&
     cell === currentHandle.value.cell &&
     row === currentHandle.value.row &&
     extra === currentHandle.value.extra &&
-    item === currentHandle.value.item
+    fillingId === currentHandle.value.item
   ) {
     closeMenu();
     return;
@@ -148,23 +160,21 @@ const openHandleSelector = (
   closeMenu();
 
   setTimeout(() => {
-    const curSection = module.value.sections[sec];
-    const curCell = curSection?.cells?.[cell];
-    const curRow = curCell?.cellsRows?.[row];
-    const curExtra = curRow?.extras?.[extra];
+    const curModuleSegment = getSegment(sec, cell, row, extra);
+    const fillObj = curModuleSegment.fillings[fillingIndex];
+    let data = fillObj.fasade.material;
 
-    const curModuleSegment = curExtra || curRow || curCell || curSection;
-    let data = curModuleSegment.fillings[item].fasade.material;
+    if (!data.HANDLES) data.HANDLES = { id: null, position: 'right' };
 
     currentHandle.value = {
       sec,
       cell,
       row,
-      item,
+      item: fillingId,
       extra,
       data,
     };
-    UMconstructor?.value?.FILLINGS.selectCell(sec, cell, row, extra, item);
+    UMconstructor?.value?.FILLINGS.selectCell(sec, cell, row, extra, fillingId);
     isOpenHandleSelector.value = true;
   }, 10);
 };
@@ -178,6 +188,16 @@ const selectHandle = (data: any, type: string) => {
       currentHandle.value.data.HANDLES.position = data;
       break;
   }
+
+  // Object.assign провоцирует Vue задетектировать изменение HANDLES через переназначение свойства
+  const { sec, cell, row, extra, item } = currentHandle.value;
+  const curModuleSegment = getSegment(sec, cell, row, extra);
+  const fillObj = curModuleSegment?.fillings?.find(f => f.id === item);
+  if (fillObj?.fasade) {
+    fillObj.fasade.material = Object.assign(fillObj.fasade.material, currentHandle.value.data);
+  }
+
+  reset()
 };
 
 const selectOption = (value: Object, type: string, palette: Object = false) => {
@@ -193,16 +213,13 @@ const selectOption = (value: Object, type: string, palette: Object = false) => {
     else delete currentFasadeMaterial.value.data["MANUAL_NO_FASADE"];
   }
 
-  let { sec, cell, row, item } = currentFasadeMaterial.value;
-  const curSection = module.value.sections[sec];
-  const curCell = curSection?.cells?.[cell];
-  const curRow = curCell?.cellsRows?.[row];
-
-  const curModuleSegment = curRow || curCell || curSection;
-  curModuleSegment.fillings[item].fasade.material = Object.assign(
-    curModuleSegment.fillings[item].fasade.material,
-    currentFasadeMaterial.value.data,
-  );
+  let { sec, cell, row, extra, item } = currentFasadeMaterial.value;
+  const curModuleSegment = getSegment(sec, cell, row, extra);
+  // item = filling.id (не индекс массива) — ищем по ID
+  const fillObj = curModuleSegment?.fillings?.find(f => f.id === item);
+  if (fillObj?.fasade) {
+    fillObj.fasade.material = Object.assign(fillObj.fasade.material, currentFasadeMaterial.value.data);
+  }
 };
 
 const closeMenu = () => {
@@ -687,7 +704,7 @@ watch(
                             currentFasadeMaterial.sec === secIndex &&
                             currentFasadeMaterial.cell === null &&
                             currentFasadeMaterial.row === null &&
-                            currentFasadeMaterial.item === fillingIndex,
+                            currentFasadeMaterial.item === filling.id,
                         },
                       ]"
                       :type="
@@ -727,7 +744,7 @@ watch(
                             currentHandle.sec === secIndex &&
                             currentHandle.cell === null &&
                             currentHandle.row === null &&
-                            currentHandle.item === fillingIndex,
+                            currentHandle.item === filling.id,
                         },
                       ]"
                       :type="'Handles'"
@@ -756,13 +773,15 @@ watch(
             </div>
 
             <div class="accordion" v-if="section.cells.length">
+              ХУЕТА
+
               <div v-for="(cell, cellIndex) in section.cells" :key="cellIndex">
-                <details class="item-group" v-if="cell.fillings?.length">
-                  <summary>
+                <Accordion v-if="cell.fillings?.length" :open="false" class="item-group">
+                  <template #title>
                     <h3 class="item-group__title">
                       {{ secIndex + 1 }}.{{ cellIndex + 1 }}
                     </h3>
-                  </summary>
+                  </template>
 
                   <div
                     v-for="(filling, fillingIndex) in cell.fillings"
@@ -984,7 +1003,7 @@ watch(
                                 currentFasadeMaterial.sec === secIndex &&
                                 currentFasadeMaterial.cell === cellIndex &&
                                 currentFasadeMaterial.row === null &&
-                                currentFasadeMaterial.item === fillingIndex,
+                                currentFasadeMaterial.item === filling.id,
                             },
                           ]"
                           :type="
@@ -1026,7 +1045,7 @@ watch(
                                 currentHandle.sec === secIndex &&
                                 currentHandle.cell === cellIndex &&
                                 currentHandle.row === null &&
-                                currentHandle.item === fillingIndex,
+                                currentHandle.item === filling.id,
                             },
                           ]"
                           :type="'Handles'"
@@ -1052,7 +1071,7 @@ watch(
                       </div>
                     </article>
                   </div>
-                </details>
+                </Accordion>
 
                 <div class="accordion" v-if="cell.cellsRows?.length">
                   <div
@@ -1060,14 +1079,14 @@ watch(
                     :key="rowIndex"
                     :class="'actions-items--container'"
                   >
-                    <details class="item-group" v-if="row.fillings?.length">
-                      <summary>
+                    <Accordion v-if="row.fillings?.length" :open="false" class="item-group">
+                      <template #title>
                         <h3 class="item-group__title">
                           {{ secIndex + 1 }}.{{ cellIndex + 1 }}.{{
                             rowIndex + 1
                           }}
                         </h3>
-                      </summary>
+                      </template>
 
                       <div
                         v-for="(filling, fillingIndex) in row.fillings"
@@ -1296,7 +1315,7 @@ watch(
                                     currentFasadeMaterial.sec === secIndex &&
                                     currentFasadeMaterial.cell === cellIndex &&
                                     currentFasadeMaterial.row === rowIndex &&
-                                    currentFasadeMaterial.item === fillingIndex,
+                                    currentFasadeMaterial.item === filling.id,
                                 },
                               ]"
                               :type="
@@ -1338,7 +1357,7 @@ watch(
                                     currentHandle.sec === secIndex &&
                                     currentHandle.cell === cellIndex &&
                                     currentHandle.row === rowIndex &&
-                                    currentHandle.item === fillingIndex,
+                                    currentHandle.item === filling.id,
                                 },
                               ]"
                               :type="'Handles'"
@@ -1364,7 +1383,7 @@ watch(
                           </div>
                         </article>
                       </div>
-                    </details>
+                    </Accordion>
 
                     <div class="accordion" v-if="row.extras?.length">
                       <div
@@ -1372,17 +1391,18 @@ watch(
                         :key="extraIndex"
                         :class="'actions-items--container'"
                       >
-                        <details
-                          class="item-group"
+                        <Accordion
                           v-if="extra.fillings?.length"
+                          :open="false"
+                          class="item-group"
                         >
-                          <summary>
+                          <template #title>
                             <h3 class="item-group__title">
                               {{ secIndex + 1 }}.{{ cellIndex + 1 }}.{{
                                 rowIndex + 1
                               }}.{{ extraIndex + 1 }}
                             </h3>
-                          </summary>
+                          </template>
 
                           <div
                             v-for="(filling, fillingIndex) in extra.fillings"
@@ -1544,7 +1564,7 @@ watch(
                               </div>
                             </article>
                           </div>
-                        </details>
+                        </Accordion>
                       </div>
                     </div>
                   </div>

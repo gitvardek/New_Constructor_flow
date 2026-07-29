@@ -156,8 +156,6 @@ const onSelectMaterial = (data) => {
   let haveShowcase;
   let dataOfFasadeType;
 
-  const isShowcase = FASADE_POSITIONS[props.elementIndex].SHOWCASE === 1;
-
   if (props.isFasade && !isDowerSelect) {
     const checkConversation = checkFasadeConversations(
       data.ID,
@@ -257,7 +255,7 @@ const onSelectMaterial = (data) => {
   // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
 
   isShowcaseExist.value = !data.MATERIAL?.includes("Alum") &&
-    isShowcase && data.id !== RESET_COLOR &&
+    haveShowcase && data.id !== RESET_COLOR &&
     showcaseList.value.length > 0;
 
   /** @Стёкла */
