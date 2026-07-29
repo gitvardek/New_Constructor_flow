@@ -254,7 +254,12 @@ const setInvoice = async () => {
     if (dumpResult.success && dumpResult.id != null) {
       dumpProjectId = dumpResult.id
     }
-    syncInvoce(false, dumpProjectId);
+
+    if (selectedRoomId.value === 'all' && roomsBasketData.value.length > 0) {
+      syncInvoce(false, dumpProjectId, roomsBasketData.value);
+    } else {
+      syncInvoce(false, dumpProjectId);
+    }
   }
 };
 
