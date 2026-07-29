@@ -7,6 +7,7 @@ import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManag
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
 import SidecolorsManager from "@/components/UMconstructor/ts/modules/SidecolorsManager.ts";
 import SectionsManager from "@/components/UMconstructor/ts/modules/SectionsManager.ts";
+import ShelvesManager from "@/components/UMconstructor/ts/modules/ShelvesManager.ts";
 import LoopsManager from "@/components/UMconstructor/ts/modules/LoopsManager.ts";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
@@ -48,6 +49,7 @@ export default class UMconstructorClass {
     LOOPS: LoopsManager
     PROFILES: ProfilesManager
     SECTIONS: SectionsManager
+    SHELVES: ShelvesManager
     SIDECOLORS: SidecolorsManager
     SHAPE_ADJUSTER: ShapeAdjuster
     OPTIONS: OptionsManager
@@ -65,6 +67,7 @@ export default class UMconstructorClass {
         this.FILLINGS.initCollisionRules()
         this.PROFILES = new ProfilesManager(this)
         this.SECTIONS = new SectionsManager(this)
+        this.SHELVES = new ShelvesManager(this)
         this.SIDECOLORS = new SidecolorsManager(this)
         this.SHAPE_ADJUSTER = new ShapeAdjuster({ scope: this })
         this.OPTIONS = new OptionsManager(this)

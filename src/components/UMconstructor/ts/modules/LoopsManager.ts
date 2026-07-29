@@ -105,7 +105,6 @@ export default class LoopsManager {
             return
 
         const curSection = grid.sections[secIndex]
-        // console.log(curSection, 'curSection')
         const FASADES = curSection.fasades || []
 
         if (grid.noLoops) {
@@ -120,7 +119,7 @@ export default class LoopsManager {
         }
 
         // Восстанавливаем loopsSide если ранее была активна опция "без петель"
-        
+
         FASADES.forEach((door, doorKey) => {
             door.forEach((fasade) => {
                 if (fasade.loopsSide === LOOPSIDE.none) {
@@ -321,8 +320,6 @@ export default class LoopsManager {
 
     checkLoopsCollision(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
 
-        console.log('return')
-
         const CONFIG = this.scope.UM_STORE.getUMData()?.CONFIG;
 
         if (!CONFIG.LOOPS)
@@ -375,8 +372,6 @@ export default class LoopsManager {
                     cell.fillings.forEach((filling) => {
                         if (this.isFillingExcludedFromCollision(filling)) {
 
-                            console.log('NON')
-
                             return
                         }
 
@@ -401,6 +396,27 @@ export default class LoopsManager {
             return result;
         }
 
+        // Проверка пересечения петли с царгой (верхние 18мм отсека)
+        const checkTsarga = (_loops, entity) => {
+            if (!entity.tsarga) return []
+            const result = []
+            const tsargaTop = entity.position.y + entity.height
+            const tsargaBottom = tsargaTop - moduleThickness
+            _loops.forEach(loop => {
+                if (
+                    loop.minY < tsargaTop && loop.maxY > tsargaBottom
+                    &&
+                    (
+                        (loop.minX <= (entity.position.x - entity.width / 2) && loop.maxX >= (entity.position.x - entity.width / 2)) ||
+                        (loop.minX <= (entity.position.x + entity.width / 2) && loop.maxX >= (entity.position.x + entity.width / 2))
+                    )
+                ) {
+                    result.push(loop.id)
+                }
+            })
+            return result
+        }
+
         if (currentSection.cells?.length) {
             Object.entries(loopsSectors).forEach(([doorKey, fasades]) => {
                 Object.entries(fasades).forEach(([fasadeKey, _loops]) => {
@@ -416,6 +432,14 @@ export default class LoopsManager {
 
                         cell.cellsRows?.forEach((cellRow) => {
 
+                            // Проверка царги строки (когда нет extras)
+                            if (!cellRow.extras?.length) {
+                                checkTsarga(_loops, cellRow).forEach((id) => {
+                                    if (!loops[doorKey]?.[fasadeKey]?.errors.includes(id))
+                                        loops[doorKey][fasadeKey].errors.push(id)
+                                })
+                            }
+
                             if (cellRow.extras?.length) {
                                 cellRow.extras.forEach((extraRow) => {
                                     let check = checkLoop(_loops, extraRow)
@@ -423,10 +447,24 @@ export default class LoopsManager {
                                         if (!loops[doorKey]?.[fasadeKey]?.errors.includes(id))
                                             loops[doorKey][fasadeKey].errors.push(id)
                                     })
+
+                                    // Проверка царги экстра
+                                    checkTsarga(_loops, extraRow).forEach((id) => {
+                                        if (!loops[doorKey]?.[fasadeKey]?.errors.includes(id))
+                                            loops[doorKey][fasadeKey].errors.push(id)
+                                    })
                                 })
                             }
 
                         })
+
+                        // Проверка царги ячейки (когда нет cellsRows)
+                        if (!cell.cellsRows?.length) {
+                            checkTsarga(_loops, cell).forEach((id) => {
+                                if (!loops[doorKey]?.[fasadeKey]?.errors.includes(id))
+                                    loops[doorKey][fasadeKey].errors.push(id)
+                            })
+                        }
 
                     })
 

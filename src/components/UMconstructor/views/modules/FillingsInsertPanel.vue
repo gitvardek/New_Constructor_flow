@@ -111,7 +111,7 @@ const onSearchChange = (e: Event, totalMaterialList: Array<any>) => {
     align-items: center;
     gap: 1rem;
     width: 100%;
-    max-width: 85px;
+    max-width: 100px;
   }
 
   &__bg-item {

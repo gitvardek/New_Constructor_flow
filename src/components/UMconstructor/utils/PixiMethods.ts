@@ -1,4 +1,5 @@
 // @ts-nocheck 31
+import { UM_PARAMS, UM_DRAWERS_IDS } from "./Const.ts";
 import { UM_PARAMS } from "./Const.ts";
 import { Container, Graphics, GraphicsPath, Text, TextStyle } from "pixi.js";
 import * as THREE from "three";
@@ -451,10 +452,8 @@ class Shape extends Helpers {
 
                 // Внешний ящик: внутренние ящики не участвуют в проверке коллизии
                 // (checkOverlap расширяет границы фасада и всегда видит overlap с внутренним ящиком)
-                const OUTER_DRAWER_IDS_PC = [5726092, 6560591]
-                if (cachedShapes && OUTER_DRAWER_IDS_PC.includes(self.data.productGroupID)) {
-                    const INNER_IDS_PC = [15222587, 2166308]
-                    cachedShapes = cachedShapes.filter(s => !INNER_IDS_PC.includes(s.data?.productGroupID))
+                if (cachedShapes && UM_DRAWERS_IDS.OUTER.includes(self.data.productGroupID)) {
+                    cachedShapes = cachedShapes.filter(s => !UM_DRAWERS_IDS.INNER.includes(s.data?.productGroupID))
                 }
             }
         }
@@ -569,13 +568,12 @@ class Shape extends Helpers {
                     }
 
                     // Внешний ящик: двигаем только вложенные ящики этого конкретного внешнего
-                    const OUTER_DRAWER_IDS = [5726092, 6560591]
-                    if (OUTER_DRAWER_IDS.includes(self.data.productGroupID)) {
+                    if (UM_DRAWERS_IDS.OUTER.includes(self.data.productGroupID)) {
                         const deltaY = self.graphic.position.y - currentY
                         if (deltaY !== 0) {
-                            const INNER_DRAWER_IDS = [15222587, 2166308]
+
                             for (const shape of self.sector.shapes) {
-                                if (INNER_DRAWER_IDS.includes(shape.data?.productGroupID) &&
+                                if (UM_DRAWERS_IDS.INNER.includes(shape.data?.productGroupID) &&
                                     shape.data?.innerDrawerConstraint?.outerDrawerGroupId === self.data.innerDrawerGroupId) {
                                     shape.graphic.position.y += deltaY
                                     shape.highlightGraphics.position.y += deltaY
@@ -611,12 +609,11 @@ class Shape extends Helpers {
                 }
 
                 // Внешний ящик: сохраняем позиции только вложенных ящиков этого конкретного внешнего
-                const OUTER_DRAWER_IDS_ED = [5726092, 6560591]
-                if (OUTER_DRAWER_IDS_ED.includes(this.data.productGroupID)) {
+                if (UM_DRAWERS_IDS.OUTER.includes(this.data.productGroupID)) {
                     const newOuterBodyYMm = this.getMmHeight(self.graphic.position.y)
-                    const INNER_DRAWER_IDS_ED = [15222587, 2166308]
+
                     for (const shape of this.sector.shapes) {
-                        if (INNER_DRAWER_IDS_ED.includes(shape.data?.productGroupID) &&
+                        if (UM_DRAWERS_IDS.INNER.includes(shape.data?.productGroupID) &&
                             shape.data?.innerDrawerConstraint?.outerDrawerGroupId === this.data.innerDrawerGroupId) {
                             if (shape.data.position) {
                                 shape.data.position.x = Math.round(this.getMmWidth(shape.graphic.position.x))
@@ -1108,6 +1105,7 @@ class Section extends Helpers {
         // Создаем пути для графики
         const cellPath = this.createPath();
         const highlightPath = this.createPath();
+
 
         if (cellPath.error) {
             defCellColor = '#f5caca';

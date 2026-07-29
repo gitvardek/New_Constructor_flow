@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //@ts-nocheck
-import {defineExpose, onBeforeMount, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import {defineExpose, onBeforeMount, onBeforeUnmount, onMounted, ref, watch, nextTick} from "vue";
 import "@/components/UMconstructor/styles/UM.scss"
 
 import RightPanelView from "@/components/UMconstructor/views/RightPanelView.vue";
@@ -107,7 +107,31 @@ onBeforeMount(() => {
   }
 })
 
-onMounted(() => {
+const autoSelectDeepest = () => {
+  const grid = UMstore.getUMGrid();
+  if (!grid?.sections?.length) return;
+
+  const sec = 0;
+  const section = grid.sections[sec];
+
+  let cell: number | null = null;
+  let row: number | null = null;
+  let extra: number | null = null;
+
+  if (section.cells?.length) {
+    cell = 0;
+    if (section.cells[0].cellsRows?.length) {
+      row = 0;
+      if (section.cells[0].cellsRows[0].extras?.length) {
+        extra = 0;
+      }
+    }
+  }
+
+  UMconstructor.value?.selectCell("fillings", { sec, cell, row, extra, item: null });
+};
+
+onMounted(async () => {
   if (module.value) {
     UMstore.setUMGrid(module.value);
 
@@ -122,6 +146,9 @@ onMounted(() => {
     UMconstructor.value?.setRenderRef(visualizationRef)
     UMconstructor.value?.setAlertRef(refFooter)
     UMconstructor.value?.reset(UMstore.getUMGrid())
+
+    await nextTick();
+    autoSelectDeepest();
   }
   else {
     toaster.error('Ошибка создания модуля!', refFooter)

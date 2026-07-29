@@ -38,8 +38,6 @@ const getFillings = computed(() => {
   fillingsGroups.map(groupID => {
     let fillingsGroup = UMconstructor?.value?.APP.CATALOG.SECTIONS[groupID]
 
-    console.log(fillingsGroup, 'fillingsGroup')
-
     if (!fillingsGroup.PRODUCTS) return
 
     objectsMatrix.push({
@@ -53,8 +51,6 @@ const getFillings = computed(() => {
       }).filter(Boolean)
     })
   })
-
-  console.log(objectsMatrix, 'objectsMatrix')
 
   return objectsMatrix;
 });

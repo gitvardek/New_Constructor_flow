@@ -10,6 +10,7 @@ import {
     MANUFACTURER, GridSection, GridCell, GridCellsRow, GridRowExtra, FasadeObject, LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import { TFasadeProp } from "@/types/types.ts";
+import { UM_DRAWERS_IDS } from "../../utils/Const";
 
 type TCollisionExclusionRule = {
     prop: string
@@ -30,8 +31,8 @@ export default class FillingsManager {
             collisionWith: 'loop'
         }
     ]
-    private readonly OUTER_DRAWER_IDS: number[] = [5726092, 6560591]
-    private readonly INNER_DRAWER_IDS: number[] = [15222587, 2166308]
+    private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
+    private readonly INNER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.INNER
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope
@@ -217,7 +218,6 @@ export default class FillingsManager {
         isVerticalItem = false,
         isDrawer = false
     ) {
-
         if (!product || !currentSpace) return false
 
         let width = product.width
@@ -255,6 +255,16 @@ export default class FillingsManager {
 
         console.log(productGroupID, 'productGroupID')
 
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
+            const minDepth = _product.SIZE_EDIT_DEPTH?.length
+                ? Math.min(..._product.SIZE_EDIT_DEPTH) + 7
+                : 0;
+            if (grid.depth < minDepth) {
+                this.scope.callAlert("error", `Невозможно установить универсальный ящик, минимальная глубина для установки: ${minDepth} мм`)
+                return;
+            }
+        }
+
         const product = Object.assign({}, _product);
         product.productGroupID = productGroupID;
         const { sec, cell, row, extra } = this.scope.UM_STORE.getSelected("module")
@@ -273,6 +283,17 @@ export default class FillingsManager {
         const currentSection = grid.sections[sec];
 
         if (!currentSection) return
+
+        console.log(sec, 'sec')
+
+        if (this.OUTER_DRAWER_IDS.includes(productGroupID) && cell !== null) {
+            const currentCell = currentSection.cells?.[cell]
+            const isNarrowCell = !currentCell || currentCell.width !== currentSection.width
+            if (isNarrowCell || row !== null || extra !== null) {
+                this.scope.callAlert("error", "Внешние ящики можно устанавливать только в секцию или ячейку полной ширины")
+                return
+            }
+        }
 
         if (this.INNER_DRAWER_IDS.includes(productGroupID)) {
             // Целевой внешний ящик — тот, который кликнут на канвасе (selectCell("fillings"))
@@ -514,6 +535,22 @@ export default class FillingsManager {
         };
 
 
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID) && product.DROWER_FASADE_HEIGHT) {
+            const heightOptions = Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
+            const firstHeight = heightOptions[0];
+            if (firstHeight !== undefined) {
+                fillingObject.height = firstHeight;
+                fillingObject.size.y = firstHeight;
+            }
+            const maxAllowedDepth = grid.depth - 7;
+            const availableDepths = (product.SIZE_EDIT_DEPTH ?? []).filter((d: number) => d <= maxAllowedDepth);
+            const firstDepth = availableDepths[0];
+            if (firstDepth !== undefined) {
+                fillingObject.depth = firstDepth;
+                fillingObject.size.z = firstDepth;
+            }
+        }
+
         if (isHiTechProfile) {
 
             fillingObject.isProfile = profileData
@@ -604,6 +641,17 @@ export default class FillingsManager {
                 row,
             }
 
+
+            if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID) && product.DROWER_FASADE_HEIGHT) {
+                const heightOptions = Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
+                const firstHeight = heightOptions[0];
+                const fasadeRange = product.DROWER_FASADE_HEIGHT[String(firstHeight)];
+                if (fasadeRange) {
+                    fillingObject.fasade.minY = fasadeRange.min;
+                    fillingObject.fasade.maxY = fasadeRange.max;
+                    fillingObject.fasade.height = fasadeRange.min;
+                }
+            }
 
             currentSection.fasadesDrawers.push(fillingObject.fasade);
             this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(sec, false, grid)
@@ -1146,6 +1194,130 @@ export default class FillingsManager {
             this.scope.reset(grid)
         }, 1000)
     };
+
+    changeUniversalDepth(
+        value: number,
+        itemIndex: number,
+        secIndex: number,
+        cellIndex: number | null = null,
+        rowIndex: number | null = null,
+        extraIndex: number | null = null,
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
+    ) {
+        const sec = grid.sections[secIndex];
+        const cell = sec.cells?.[cellIndex];
+        const row = cell?.cellsRows?.[rowIndex];
+        const extra = row?.extras?.[extraIndex];
+        const curRow = extra || row || cell || sec;
+        const filling = curRow.fillings[itemIndex];
+        if (!filling) return;
+        filling.depth = Number(value);
+        if (filling.size) filling.size.z = Number(value);
+        this.scope.reset(grid);
+    }
+
+    changeUniversalHeight(
+        value: number,
+        itemIndex: number,
+        secIndex: number,
+        cellIndex: number | null = null,
+        rowIndex: number | null = null,
+        extraIndex: number | null = null,
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
+    ) {
+        const numValue = Number(value);
+        const sec = grid.sections[secIndex];
+        const cell = sec.cells?.[cellIndex];
+        const row = cell?.cellsRows?.[rowIndex];
+        const extra = row?.extras?.[extraIndex];
+        const curRow = extra || row || cell || sec;
+        const filling = curRow.fillings[itemIndex];
+        if (!filling) return;
+
+        const oldHeight = filling.height;
+        const heightDelta = numValue - oldHeight;
+
+        // Вычисляем новую высоту фасада для нового размера ящика
+        const productData = this.scope.APP?.CATALOG?.PRODUCTS?.[filling.product];
+        const fasadeRange = productData?.DROWER_FASADE_HEIGHT?.[String(numValue)];
+        const newFasadeHeight = fasadeRange
+            ? Math.max(fasadeRange.min, Math.min(fasadeRange.max, filling.fasade?.height ?? fasadeRange.min))
+            : (filling.fasade?.height ?? 0);
+
+        // Минимальный зазор сверху: выступ фасада над телом ящика + 2 мм
+        const manufacturerOffset = filling.fasade?.manufacturerOffset ?? 16;
+        const minTopGap = filling.fasade
+            ? Math.max(0, newFasadeHeight - manufacturerOffset - numValue + 2)
+            : 0;
+
+        // Вычисляем новые координаты без применения к filling
+        const currentTop = filling.distances?.top ?? 0;
+        const maxUpShift = Math.max(0, currentTop - minTopGap);
+        const upShift = Math.min(heightDelta, maxUpShift);
+        const downShift = heightDelta - upShift;
+
+        let newPositionY = (filling.position.y ?? 0) - upShift;
+        let newTop = currentTop - upShift;
+        let newBottom = Math.max(0, (filling.distances?.bottom ?? 0) - downShift);
+
+        // Если после сдвига зазор сверху всё ещё меньше минимального — сдвигаем ящик вниз
+        // const topDeficit = minTopGap - newTop;
+        // if (filling.distances && topDeficit > 0) {
+        //     newPositionY = newPositionY + topDeficit;
+        //     newTop = newTop + topDeficit;
+        //     newBottom = Math.max(0, newBottom - topDeficit);
+        // }
+
+        // Проверяем коллизии с другими наполнениями той же ячейки
+        // Для ящиков с фасадами проверяем пересечение фасадов (они больше тела),
+        // для остальных — пересечение тел по distances.top
+        const newFasadePosY = filling.fasade
+            ? grid.height - (newPositionY + numValue + manufacturerOffset)
+            : null;
+        const newFasadeTopY = newFasadePosY !== null ? newFasadePosY + newFasadeHeight : null;
+
+        const newTopEdge = newTop;
+        const newBottomEdge = newTop + numValue;
+        const hasCollision = curRow.fillings.some((f, idx) => {
+            if (idx === itemIndex) return false;
+            // Фасад-фасад: проверяем в координатах module-from-bottom
+            if (f.fasade && newFasadePosY !== null) {
+                const otherFasadePosY = f.fasade.position.y;
+                const otherFasadeTopY = otherFasadePosY + (f.fasade.height ?? 0);
+                return newFasadePosY < otherFasadeTopY && newFasadeTopY > otherFasadePosY;
+            }
+            // Тело-тело: проверяем по distances.top
+            if (!f.distances) return false;
+            const otherTop = f.distances.top ?? 0;
+            const otherBottom = otherTop + (f.height ?? 0);
+            return newBottomEdge > otherTop && newTopEdge < otherBottom;
+        });
+        if (hasCollision) {
+            this.scope.callAlert('error', 'Невозможно изменить высоту: пересечение с другим наполнением');
+            return;
+        }
+
+        // Применяем все изменения
+        filling.height = numValue;
+        if (filling.size) filling.size.y = numValue;
+        filling.position.y = newPositionY;
+        if (filling.distances) {
+            filling.distances.top = newTop;
+            filling.distances.bottom = newBottom;
+        }
+
+        if (fasadeRange && filling.fasade) {
+            filling.fasade.minY = fasadeRange.min;
+            filling.fasade.maxY = fasadeRange.max;
+            filling.fasade.height = newFasadeHeight;
+        }
+
+        if (filling.fasade) {
+            this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, filling, grid);
+        }
+        this.scope.reset(grid);
+    }
+
 
     private reconcileInnerDrawers(
         secIndex: number,
