@@ -120,7 +120,7 @@ export default class SectionsManager {
 
             const newValue = value;
             let adjustedValue;
-            const { MIN_SECTION_WIDTH } = this.scope.CONST
+            const { MIN_SECTION_WIDTH, MAX_SECTION_WIDTH } = this.scope.CONST
 
             // Обновляем выбранную секцию для визуального отображения
             this.selectCell(secIndex, null);
@@ -136,12 +136,27 @@ export default class SectionsManager {
             let section = grid.sections[secIndex]
 
             if (adjustedValue) {
+                if (adjustedValue > MAX_SECTION_WIDTH) {
+                    this.scope.callAlert("warning", `Ширина секции превышает допустимый предел! Уменьшите ширину секции!`)
+                    return;
+                }
+
                 let next = grid.sections[secIndex + 1]
                 let prev = grid.sections[secIndex - 1]
 
                 let nextSection = next || prev
 
                 let delta1 = section.width - adjustedValue
+                let newNeighbourWidth = nextSection.width + delta1
+                if (newNeighbourWidth < MIN_SECTION_WIDTH) {
+                    this.scope.callAlert("warning", `Ширина соседней секции станет меньше допустимого минимума! Уменьшите ширину секции!`)
+                    return;
+                }
+                if (newNeighbourWidth > MAX_SECTION_WIDTH) {
+                    this.scope.callAlert("warning", `Ширина соседней секции превысит допустимый предел! Увеличьте ширину секции!`)
+                    return;
+                }
+
                 let deltaPos1 = next ? -delta1 / 2 : delta1 / 2
                 section.width = adjustedValue;
                 section.position.x += deltaPos1
@@ -436,11 +451,13 @@ export default class SectionsManager {
                         }
                     })
                 }
-            }
 
-            this.scope.SHELVES.recalcSectionTsarga(section);
-            if (nextSection) this.scope.SHELVES.recalcSectionTsarga(nextSection);
-            this.scope.reset(grid)
+                this.scope.SHELVES.recalcSectionTsarga(section);
+                if (nextSection) {
+                    this.scope.SHELVES.recalcSectionTsarga(nextSection);
+                }
+                this.scope.reset(grid)
+            }
         }, 1000)
 
     };
