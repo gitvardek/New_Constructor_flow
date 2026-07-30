@@ -9,6 +9,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { OBB } from 'three/examples/jsm/math/OBB.js';
 import { useToast } from "@/features/toaster/useToast";
 import { SUBTRACTION, Brush, Evaluator } from 'three-bvh-csg';
+import { useConversationActions } from "@/components/right-menu/actions/useConversationActions";
 
 
 type TFasadePartPosition = {
@@ -31,6 +32,7 @@ interface IncomeOptionData {
 export class FasadeBuilder {
 
     modelState: ReturnType<typeof useModelState> = useModelState()
+    conversationActions: ReturnType<typeof useConversationActions> = useConversationActions();
     parent: THREETypes.TBuildProduct
     uniformeTextureStartData: TFasadePartPosition[] = []
     _APP: THREETypes.TObject
@@ -274,6 +276,36 @@ export class FasadeBuilder {
 
             // Пост-создание: проверка и коррекция данных на основе trueSize
             const { trueSize } = result.userData;
+
+            const check = this.conversationActions.validateAndPurgeFasadeOnBuild(fasadeData.COLOR, key, trueSize, result)
+
+            if (!check) {
+                result.geometry = FASADE_DEFAULT[key].geometry.clone();
+
+                fasadeData.COLOR = 7397;
+                fasadeData.PALETTE = null;
+                fasadeData.SHOW = false;
+                fasadeData.GLASS = null;
+                fasadeData.PATINA = null;
+                fasadeData.SHOWCASE = null;
+                fasadeData.ALUM = null;
+                fasadeData.HANDLES = this.handlesBuilder.restoreDefaultHandleData(fasadeData);
+                fasadeData.MILLING_TYPE = null;
+                fasadeData.TYPE = null;
+                fasadeData.MILLING = null;
+
+                const canKeepException = result.userData.curBodyExceptions && result instanceof THREE.Mesh;
+                if (canKeepException) {
+                    result.material = result.userData.curBodyExceptionsMaterial.clone();
+                    result.material.needsUpdate = true;
+                    result.visible = true;
+                } else {
+                    result.visible = false;
+                }
+
+                this.uniformeTextureStartData = [];
+                continue;
+            }
 
             const millingList = this.parent.modelState.createCurrentMillingData({
                 fasadeId: fasadeData.COLOR,
@@ -655,7 +687,7 @@ export class FasadeBuilder {
                     parent_size: {
                         x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH ?? props.CONFIG.SIZE.width),
                         y: eval(fasade_position.FASADE_HEIGHT),
-                        z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH ?? 16 ),
+                        z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH ?? 16),
                         mX: props.CONFIG.SIZE.width,
                         mY: props.CONFIG.SIZE.height,
                         mZ: props.CONFIG.SIZE.depth
