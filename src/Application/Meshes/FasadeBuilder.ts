@@ -9,6 +9,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { OBB } from 'three/examples/jsm/math/OBB.js';
 import { useToast } from "@/features/toaster/useToast";
 import { SUBTRACTION, Brush, Evaluator } from 'three-bvh-csg';
+import { useConversationActions } from "@/components/right-menu/actions/useConversationActions";
 
 
 type TFasadePartPosition = {
@@ -27,6 +28,8 @@ interface IncomeOptionData {
     defaultMesh: THREE.Mesh[],
     disabledOptions: THREETypes.TOption[] | []
 }
+
+const conversationActions = useConversationActions()
 
 export class FasadeBuilder {
 
@@ -251,6 +254,9 @@ export class FasadeBuilder {
             const fasadeData = FASADE_PROPS[key];
             const haveShowcase = FASADE_POSITIONS[key].SHOWCASE === 1;
             const fasadePositionData = this.getFasadePosition(CONFIG, key, isUMmodule);
+            let result
+
+
             const { color, pallite, milling } = this.resolveColorId(
                 fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad, nstShalfs
             );
@@ -265,7 +271,7 @@ export class FasadeBuilder {
                 ? fasadeData.SHOWCASE ?? SHOWCASE[0] ?? deffShowcase
                 : null;
 
-            const { result } = this.processFasadeCreation({
+            result = this.processFasadeCreation({
                 fasadePositionData,
                 startPosition,
                 props,
@@ -279,10 +285,40 @@ export class FasadeBuilder {
                 curBodyExceptions,
                 parent,
                 modelType
-            });
+            }).result;
 
             // Пост-создание: проверка и коррекция данных на основе trueSize
             const { trueSize } = result.userData;
+
+            const check = conversationActions.validateAndPurgeFasadeOnBuild(fasadeData.COLOR, key, trueSize, result)
+
+            if (!check) {
+                result.geometry = FASADE_DEFAULT[key].geometry.clone();
+
+                fasadeData.COLOR = 7397;
+                fasadeData.PALETTE = null;
+                fasadeData.SHOW = false;
+                fasadeData.GLASS = null;
+                fasadeData.PATINA = null;
+                fasadeData.SHOWCASE = null;
+                fasadeData.ALUM = null;
+                fasadeData.HANDLES = this.handlesBuilder.restoreDefaultHandleData(fasadeData);
+                fasadeData.MILLING_TYPE = null;
+                fasadeData.TYPE = null;
+                fasadeData.MILLING = null;
+
+                const canKeepException = result.userData.curBodyExceptions && result instanceof THREE.Mesh;
+                if (canKeepException) {
+                    result.material = result.userData.curBodyExceptionsMaterial.clone();
+                    result.material.needsUpdate = true;
+                    result.visible = true;
+                } else {
+                    result.visible = false;
+                }
+
+                this.uniformeTextureStartData = [];
+                continue;
+            }
 
             const millingList = this.parent.modelState.createCurrentMillingData({
                 fasadeId: fasadeData.COLOR,
@@ -331,6 +367,7 @@ export class FasadeBuilder {
 
         this.uniformeTextureStartData = [];
         this.checkFasadeOptions(OPTIONS, FASADE, FASADE_DEFAULT)
+
         return parent;
     }
 

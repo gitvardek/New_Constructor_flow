@@ -94,6 +94,32 @@ export const useConversationActions = () => {
 
     }
 
+    const validateAndPurgeFasadeOnBuild = (
+        fasadeId: number,
+        fasadeIndex: number,
+        trueSize: TFasadeTrueSizes,
+        curmodel: Object3D
+    ): boolean => {
+        const curModel = curmodel;
+        if (!curModel) return false;
+
+        const { FASADE_WIDTH, FASADE_HEIGHT } = trueSize;
+        const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel);
+
+        const check =
+            FASADE_HEIGHT <= MAX_HEIGHT &&
+            FASADE_HEIGHT >= MIN_HEIGHT &&
+            FASADE_WIDTH <= MAX_WIDTH &&
+            FASADE_WIDTH >= MIN_WIDTH;
+
+        if (!check) {
+            toaster.error(`Фасад №${fasadeIndex + 1} удалён`);
+            toaster.error(`Размер Фасада №${fasadeIndex + 1} не соответствует доступному размеру полотна`);
+        }
+
+        return check;
+    }
+
     const checkFasadeConversations = (fasadeId: number, size: TFasadeTrueSizes) => {
         console.log('СТРАУС')
 
@@ -110,7 +136,7 @@ export const useConversationActions = () => {
             FASADE_WIDTH <= MAX_WIDTH &&
             FASADE_WIDTH >= MIN_WIDTH;
 
-            console.log(`
+        console.log(`
                 1:${FASADE_HEIGHT <= MAX_HEIGHT}, 
                 2:${FASADE_HEIGHT >= MIN_HEIGHT},  
                 3:${FASADE_WIDTH <= MAX_WIDTH},  
@@ -213,6 +239,7 @@ export const useConversationActions = () => {
     return {
         onRsizeConversations,
         createFasadeConversations,
+        validateAndPurgeFasadeOnBuild,
         checkFasadeConversations,
         filterFasadeConversations,
         filterMaterialsConversations,

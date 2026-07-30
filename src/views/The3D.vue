@@ -805,6 +805,7 @@ watch(
   () => {
     checkLoadContent();
   },
+  { immediate: true }
 );
 
 // watch(

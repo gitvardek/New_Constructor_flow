@@ -116,6 +116,8 @@ export default class SectionsManager {
             secIndex: number,
             value: number,
         }) {
+
+        console.log(secIndex)
         this.scope.debounce("updateSectionWidth", () => {
 
             const newValue = value;
@@ -439,7 +441,10 @@ export default class SectionsManager {
             }
 
             this.scope.SHELVES.recalcSectionTsarga(section);
-            if (nextSection) this.scope.SHELVES.recalcSectionTsarga(nextSection);
+            if (nextSection) {
+                console.log(nextSection, 'nextSection')
+                this.scope.SHELVES.recalcSectionTsarga(nextSection);
+            }
             this.scope.reset(grid)
         }, 1000)
 
