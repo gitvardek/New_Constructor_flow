@@ -30,7 +30,6 @@ export default class ShelvesManager {
                 cellIndex: number | null,
                 count: number
             }) {
-        this.scope.SECTIONS.selectCell(secIndex, cellIndex);
 
         const { MIN_SECTION_HEIGHT } = this.scope.CONST
         let section = grid.sections[secIndex];
@@ -109,6 +108,7 @@ export default class ShelvesManager {
 
         this.recalcSectionTsarga(section);
         this.scope.reset(grid)
+        autoSelectDeepest(grid)
     };
 
     updateCellHeight(
@@ -126,8 +126,7 @@ export default class ShelvesManager {
             }) {
         this.scope.debounce("updateCellHeight", () => {
             const newValue = value;
-            // Обновляем выбранную секцию для визуального отображения
-            this.scope.SECTIONS.selectCell(secIndex, cellIndex);
+
             const { MIN_SECTION_HEIGHT } = this.scope.CONST;
 
             let adjustedValue;
@@ -428,9 +427,9 @@ export default class ShelvesManager {
             this.recalcSectionTsarga(currentSection);
 
         grid = clone;
-        this.scope.SECTIONS.selectCell(secIndex, 0)
 
         this.scope.reset(grid)
+        autoSelectDeepest(grid)
     };
 
     addRowCell({
@@ -466,8 +465,6 @@ export default class ShelvesManager {
             section.cells.push(baseCell);
             cellIndex = 0;
         }
-
-        this.scope.SECTIONS.selectCell(secIndex, cellIndex, rowIndex);
 
         const cell = section.cells[cellIndex];
 
@@ -534,6 +531,7 @@ export default class ShelvesManager {
 
         this.recalcSectionTsarga(section);
         this.scope.reset(grid)
+        autoSelectDeepest(grid)
     };
 
     updateCellRowWidth(
@@ -555,9 +553,6 @@ export default class ShelvesManager {
         this.scope.debounce("updateCellRowWidth", () => {
             const newValue = value;
             let adjustedValue;
-
-            // Обновляем выбранную секцию для визуального отображения
-            this.scope.SECTIONS.selectCell(secIndex, cellIndex, rowIndex);
 
             if (!isNaN(newValue) && this.scope.RENDER_REF) {
                 adjustedValue = this.scope.RENDER_REF.adjustSizeFromExternal({
@@ -645,8 +640,8 @@ export default class ShelvesManager {
 
         this.recalcSectionTsarga(currentSection);
         grid = clone;
-        this.scope.SECTIONS.selectCell(secIndex, cellIndex)
         this.scope.reset(grid)
+        autoSelectDeepest(grid)
     }
 
     addRowExtra({
@@ -665,7 +660,6 @@ export default class ShelvesManager {
             extraIndex: number,
             count: number
         }) {
-        this.scope.SECTIONS.selectCell(secIndex, cellIndex, rowIndex);
         const { MIN_SECTION_HEIGHT } = this.scope.CONST
 
         let section = grid.sections[secIndex];
@@ -731,6 +725,7 @@ export default class ShelvesManager {
 
         this.recalcSectionTsarga(grid.sections[secIndex]);
         this.scope.reset(grid)
+        autoSelectDeepest(grid)
     };
 
     updateExtraHeight(
@@ -753,8 +748,6 @@ export default class ShelvesManager {
         this.scope.debounce("updateExtraHeight", () => {
             const newValue = value;
             let adjustedValue;
-            // Обновляем выбранную секцию для визуального отображения
-            this.scope.SECTIONS.selectCell(secIndex, cellIndex, rowIndex, extraIndex);
 
             if (!isNaN(newValue) && this.scope.RENDER_REF) {
                 adjustedValue = this.scope.RENDER_REF.adjustSizeFromExternal({
@@ -854,8 +847,8 @@ export default class ShelvesManager {
 
         this.recalcSectionTsarga(currentSection);
         grid = clone;
-        this.scope.SECTIONS.selectCell(secIndex, cellIndex, rowIndex)
         this.scope.reset(grid)
+        autoSelectDeepest(grid)
     };
 
     recalcSectionTsarga(section) {
@@ -891,6 +884,29 @@ export default class ShelvesManager {
             }
         });
     }
+
+    autoSelectDeepest = (grid: GridModule = this.scope.UM_STORE.getUMGrid()) => {
+
+        const sec = 0;
+        const section = grid.sections[sec];
+
+        let cell: number | null = null;
+        let row: number | null = null;
+        let extra: number | null = null;
+
+        if (section.cells?.length) {
+            cell = 0;
+            if (section.cells[0].cellsRows?.length) {
+                row = 0;
+                if (section.cells[0].cellsRows[0].extras?.length) {
+                    extra = 0;
+                }
+            }
+        }
+
+        this.scope.SECTIONS.selectCell(sec, cell, row, extra, null)
+
+    };
 }
 
 
