@@ -354,7 +354,7 @@ export class BuildUniversalModule extends BuildProduct {
                         position: new THREE.Vector3(cell.position.x, cell.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
                             curSection.position.z - (isSlidingDoors / 2 || 0)),
                         size: new THREE.Vector3(cell.width, PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"], product_data.depth - isSlidingDoors), // curSection.size.z
-                        product: 4263392,
+                        product: 5975548,
                         id: curSection.fillings.length + 1,
                         material: PROPS.CONFIG.MODULE_COLOR,
                         type: 'shelf',
@@ -381,7 +381,7 @@ export class BuildUniversalModule extends BuildProduct {
                                 position: new THREE.Vector3(extra.position.x, extra.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
                                     curSection.position.z - (isSlidingDoors / 2 || 0)),
                                 size: new THREE.Vector3(row.width, PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"], product_data.depth - isSlidingDoors), // curSection.size.z
-                                product: 4263392,
+                                product: 5975548,
                                 id: curSection.fillings.length + 1,
                                 material: PROPS.CONFIG.MODULE_COLOR,
                                 type: 'shelf',

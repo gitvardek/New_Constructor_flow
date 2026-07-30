@@ -146,7 +146,7 @@ const onSelectMaterial = (data) => {
   const dataOfFasadeType = _FASADE[data.id];
 
   productData.value.restrictData[props.tabIndex] = createFasadeConversations(
-    data.id,
+    data.id, FASADE[props.tabIndex]
   );
 
   isSurfaceSelected.value = true;

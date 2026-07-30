@@ -182,14 +182,6 @@ onUnmounted(() => {
   // box-sizing: border-box;
   overflow: hidden;
 
-  user-select: none;
-  /* Стандартное */
-  -webkit-user-select: none;
-  /* Safari, Chrome */
-  -moz-user-select: none;
-  /* Firefox */
-  -ms-user-select: none;
-  /* Internet Explorer/Edge */
 
   &-header {
     width: 100%;
