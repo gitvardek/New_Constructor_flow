@@ -29,10 +29,10 @@ interface IncomeOptionData {
     disabledOptions: THREETypes.TOption[] | []
 }
 
-const conversationActions = useConversationActions();
 export class FasadeBuilder {
 
     modelState: ReturnType<typeof useModelState> = useModelState()
+    conversationActions: ReturnType<typeof useConversationActions> = useConversationActions();
     parent: THREETypes.TBuildProduct
     uniformeTextureStartData: TFasadePartPosition[] = []
     _APP: THREETypes.TObject
@@ -278,7 +278,7 @@ export class FasadeBuilder {
             // Пост-создание: проверка и коррекция данных на основе trueSize
             const { trueSize } = result.userData;
 
-            const check = conversationActions.validateAndPurgeFasadeOnBuild(fasadeData.COLOR, key, trueSize, result)
+            const check = this.conversationActions.validateAndPurgeFasadeOnBuild(fasadeData.COLOR, key, trueSize, result)
 
             if (!check) {
                 result.geometry = FASADE_DEFAULT[key].geometry.clone();
