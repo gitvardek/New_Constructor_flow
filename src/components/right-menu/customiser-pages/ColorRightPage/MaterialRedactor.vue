@@ -146,7 +146,7 @@ const onSelectMaterial = (data) => {
   const dataOfFasadeType = _FASADE[data.id];
 
   productData.value.restrictData[props.tabIndex] = createFasadeConversations(
-    data.id,
+    data.id, FASADE[props.tabIndex]
   );
 
   isSurfaceSelected.value = true;
@@ -804,7 +804,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="container" ref="mainContainer" >
+  <div class="container" ref="mainContainer">
     <div class="container__header">
       <h3>Конфигурация фасада {{ props.tabIndex + 1 }}</h3>
       <div class="container__header--params">
