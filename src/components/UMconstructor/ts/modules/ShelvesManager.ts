@@ -108,7 +108,7 @@ export default class ShelvesManager {
 
         this.recalcSectionTsarga(section);
         this.scope.reset(grid)
-        autoSelectDeepest(grid)
+        this.autoSelectDeepest(grid)
     };
 
     updateCellHeight(
@@ -429,7 +429,7 @@ export default class ShelvesManager {
         grid = clone;
 
         this.scope.reset(grid)
-        autoSelectDeepest(grid)
+        this.autoSelectDeepest(grid)
     };
 
     addRowCell({
@@ -531,7 +531,7 @@ export default class ShelvesManager {
 
         this.recalcSectionTsarga(section);
         this.scope.reset(grid)
-        autoSelectDeepest(grid)
+        this.autoSelectDeepest(grid)
     };
 
     updateCellRowWidth(
@@ -641,7 +641,7 @@ export default class ShelvesManager {
         this.recalcSectionTsarga(currentSection);
         grid = clone;
         this.scope.reset(grid)
-        autoSelectDeepest(grid)
+        this.autoSelectDeepest(grid)
     }
 
     addRowExtra({
@@ -725,7 +725,7 @@ export default class ShelvesManager {
 
         this.recalcSectionTsarga(grid.sections[secIndex]);
         this.scope.reset(grid)
-        autoSelectDeepest(grid)
+        this.autoSelectDeepest(grid)
     };
 
     updateExtraHeight(
@@ -848,7 +848,7 @@ export default class ShelvesManager {
         this.recalcSectionTsarga(currentSection);
         grid = clone;
         this.scope.reset(grid)
-        autoSelectDeepest(grid)
+        this.autoSelectDeepest(grid)
     };
 
     recalcSectionTsarga(section) {
