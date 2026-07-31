@@ -74,12 +74,38 @@ export default class UMconstructorClass {
         this.DEBOUNCES = {}
     }
 
+
     selectCell(type: constructorMode, newSelected: TSelectedCell) {
         this.UM_STORE.setSelected(type, newSelected);
         // RENDER_REF может быть как Vue Ref (при вызове через сырой экземпляр), так и
         // уже развёрнутым через Proxy экземпляром Render2D — обрабатываем оба случая
         const render = this.RENDER_REF?.value ?? this.RENDER_REF;
         render?.selectCell(type, newSelected);
+    };
+
+    checkSelection(
+        level: 'sec' | 'cell' | 'row' | 'extra' = 'sec',
+        values?: { sec?: number | null; cell?: number | null; row?: number | null; extra?: number | null }
+    ): boolean {
+        const source = values ?? this.UM_STORE.getSelected("module");
+
+
+        const checks = [
+            { key: 'sec' as const, message: 'Необходимо выбрать секцию' },
+            { key: 'cell' as const, message: 'Необходимо выбрать ячейку' },
+            { key: 'row' as const, message: 'Необходимо выбрать ряд' },
+            { key: 'extra' as const, message: 'Необходимо выбрать уровень' },
+        ];
+        const maxIndex = checks.findIndex(c => c.key === level);
+
+        for (let i = 0; i <= maxIndex; i++) {
+            const { key, message } = checks[i];
+            if (source?.[key] === null || source?.[key] === undefined) {
+                this.callAlert("warning", message);
+                return false;
+            }
+        }
+        return true;
     };
 
     debounce(timerKey: string, callback: Function, wait: number) {
@@ -679,7 +705,7 @@ export default class UMconstructorClass {
 
             //moduleGrid.sections.length > 1
 
-            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID ) {
+            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID) {
                 const equalWidth = Math.floor(sectionsTotalWidth / moduleGrid.sections.length);
                 const remainder = sectionsTotalWidth - equalWidth * moduleGrid.sections.length;
                 moduleGrid.sections.forEach((section, i) => {

@@ -141,6 +141,9 @@ export default class FasadesManager {
                                     segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + ((segment.width + 4) * doorIndex);
                                 } else if (doorIndex > 0) {
                                     segment.position.x += deltaWidth;
+                                } else {
+                                    // secIndex=0, doorIndex=0: позиция привязана к левой стенке
+                                    segment.position.x = section.position.x - section.width / 2 - leftWidth + 2;
                                 }
 
                                 const checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(

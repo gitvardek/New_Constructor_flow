@@ -31,6 +31,8 @@ export default class ShelvesManager {
                 count: number
             }) {
 
+        if (!this.scope.checkSelection('sec', { sec: secIndex })) return;
+
         const { MIN_SECTION_HEIGHT } = this.scope.CONST
         let section = grid.sections[secIndex];
 
@@ -447,6 +449,8 @@ export default class ShelvesManager {
             count: number
         }) {
 
+        if (!this.scope.checkSelection('sec', { sec: secIndex })) return;
+
         const { MIN_SECTION_WIDTH } = this.scope.CONST
         const section = grid.sections[secIndex];
 
@@ -660,11 +664,19 @@ export default class ShelvesManager {
             extraIndex: number,
             count: number
         }) {
+
+        if (!this.scope.checkSelection('row', { sec: secIndex, cell: cellIndex, row: rowIndex })) return;
+
         const { MIN_SECTION_HEIGHT } = this.scope.CONST
 
         let section = grid.sections[secIndex];
         let cell = section.cells[cellIndex];
         let row = cell.cellsRows[rowIndex]
+
+        if (!row) {
+            this.scope.callAlert("warning", "Необходимо выбрать ряд");
+            return;
+        }
 
         let extra;
         if (row.extras?.length > 0) {

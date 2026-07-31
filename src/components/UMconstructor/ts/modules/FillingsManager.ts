@@ -10,7 +10,7 @@ import {
     MANUFACTURER, GridSection, GridCell, GridCellsRow, GridRowExtra, FasadeObject, LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import { TFasadeProp } from "@/types/types.ts";
-import { UM_DRAWERS_IDS } from "../../utils/Const";
+import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
 
 type TCollisionExclusionRule = {
     prop: string
@@ -282,7 +282,10 @@ export default class FillingsManager {
 
         const currentSection = grid.sections[sec];
 
-        if (!currentSection) return
+        if (!currentSection) {
+            this.scope.callAlert("warning", "Необходимо выбрать секцию");
+            return;
+        }
 
         console.log(sec, 'sec')
 
@@ -295,7 +298,7 @@ export default class FillingsManager {
             }
         }
 
-        if (this.INNER_DRAWER_IDS.includes(productGroupID)) {
+        if (this.INNER_DRAWER_IDS.includes(productGroupID) && grid.productID !== UM_PARAMS.RASPASHNOY_ID) {
             // Целевой внешний ящик — тот, который кликнут на канвасе (selectCell("fillings"))
             const selectedOnCanvas = this.scope.UM_STORE.getSelected("fillings")
             const outerSec = selectedOnCanvas?.sec ?? sec
@@ -713,13 +716,17 @@ export default class FillingsManager {
         }
     ) {
         const curSection = grid.sections[sec];
+        if (!curSection) {
+            this.scope.callAlert("warning", "Необходимо выбрать секцию");
+            return null;
+        }
         const curCell = curSection.cells?.[cell];
         const curRow = curCell?.cellsRows?.[row];
         const curExtra = curRow?.extras?.[extra];
 
         const currentSpace = curExtra || curRow || curCell || curSection;
 
-        return currentSpace.fillings[item];
+        return currentSpace?.fillings?.[item] ?? null;
     }
 
     deleteFilling(
@@ -1407,5 +1414,29 @@ export default class FillingsManager {
         if (removed) {
             this.scope.callAlert('warning', 'Встроенный ящик удалён: не помещается в новые параметры фасада')
         }
+    }
+
+    updateSecAfterDelete(grid: GridModule, deletedSecIndex: number) {
+        const patchSec = (obj: any) => {
+            if (obj && obj.sec > deletedSecIndex) obj.sec--
+        }
+        const patchFillings = (fillings: FillingObject[] | undefined) => {
+            fillings?.forEach(f => {
+                patchSec(f)
+                patchSec(f.fasade)
+            })
+        }
+
+        grid.sections.forEach(section => {
+            patchFillings(section.fillings)
+            section.fasadesDrawers?.forEach(patchSec)
+            section.cells?.forEach(cell => {
+                patchFillings(cell.fillings)
+                cell.cellsRows?.forEach(row => {
+                    patchFillings(row.fillings)
+                    row.extras?.forEach(extra => patchFillings(extra.fillings))
+                })
+            })
+        })
     }
 }

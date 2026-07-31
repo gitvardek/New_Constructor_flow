@@ -102,8 +102,10 @@ export default class SectionsManager {
             this.scope.SHELVES.recalcSectionTsarga(grid.sections[secIndex + i]);
         }
 
-        if (reset)
-            this.scope.reset(grid)
+        if (reset) { this.scope.reset(grid) }
+
+        this.selectCell(0, null)
+        this.scope.debounce("postResetSelect", () => this.selectCell(0, null), 150)
     };
 
     updateSectionWidth({
@@ -501,6 +503,7 @@ export default class SectionsManager {
 
         if (grid.sections.length > 1) {
             grid.sections.splice(secIndex, 1);
+            this.scope.FILLINGS.updateSecAfterDelete(grid, secIndex);
         }
 
         this.selectCell(0, 0)
@@ -508,7 +511,32 @@ export default class SectionsManager {
         // Пересчёт царги для объединённой секции
         this.scope.SHELVES.recalcSectionTsarga(next || prev);
 
-        if (reset)
+        if (reset) {
             this.scope.reset(grid)
+        }
+        this.selectCell(0, null)
+        this.scope.debounce("postResetSelect", () => this.selectCell(0, null), 150)
+    };
+    
+    autoSelectDeepest = (grid: GridModule = this.scope.UM_STORE.getUMGrid()) => {
+
+        const sec = 0;
+        const section = grid.sections[sec];
+
+        let cell: number | null = null;
+        let row: number | null = null;
+        let extra: number | null = null;
+
+        if (section.cells?.length) {
+            cell = 0;
+            if (section.cells[0].cellsRows?.length) {
+                row = 0;
+                if (section.cells[0].cellsRows[0].extras?.length) {
+                    extra = 0;
+                }
+            }
+        }
+
+        this.selectCell(sec, cell, row, extra, null)
     };
 }
