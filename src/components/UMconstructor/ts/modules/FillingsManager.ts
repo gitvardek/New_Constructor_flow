@@ -394,8 +394,8 @@ export default class FillingsManager {
 
             outerContainer.fillings.push(fillingObject)
             this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
-            this.selectCell(outerSec, outerCell, outerRow, outerExtra, outerContainer.fillings.length - 1)
             this.scope.reset(grid)
+            this.selectCell(outerSec, outerCell, outerRow, outerExtra, null)
             return
         }
 
@@ -660,8 +660,8 @@ export default class FillingsManager {
 
         this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
 
-        this.selectCell(sec, cell, row, extra, currentFillingsArray.length - 1);
         this.scope.reset(grid)
+        this.selectCell(sec, cell, row, extra, null);
     };
 
     clearFillings(
@@ -848,8 +848,10 @@ export default class FillingsManager {
             this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
         }
 
-        if (reset)
+        if (reset) {
             this.scope.reset(grid)
+            this.selectCell(secIndex, cellIndex, rowIndex, extraIndex, null);
+        }
     };
 
     changeFillingPositionX(

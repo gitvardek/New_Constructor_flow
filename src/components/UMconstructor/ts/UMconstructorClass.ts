@@ -76,7 +76,10 @@ export default class UMconstructorClass {
 
     selectCell(type: constructorMode, newSelected: TSelectedCell) {
         this.UM_STORE.setSelected(type, newSelected);
-        this.RENDER_REF.selectCell(type, newSelected);
+        // RENDER_REF может быть как Vue Ref (при вызове через сырой экземпляр), так и
+        // уже развёрнутым через Proxy экземпляром Render2D — обрабатываем оба случая
+        const render = this.RENDER_REF?.value ?? this.RENDER_REF;
+        render?.selectCell(type, newSelected);
     };
 
     debounce(timerKey: string, callback: Function, wait: number) {

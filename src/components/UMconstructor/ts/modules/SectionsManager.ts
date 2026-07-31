@@ -117,7 +117,6 @@ export default class SectionsManager {
             value: number,
         }) {
 
-        console.log(secIndex)
         this.scope.debounce("updateSectionWidth", () => {
 
             const newValue = value;
