@@ -82,6 +82,31 @@ export default class UMconstructorClass {
         render?.selectCell(type, newSelected);
     };
 
+    checkSelection(
+        level: 'sec' | 'cell' | 'row' | 'extra' = 'sec',
+        values?: { sec?: number | null; cell?: number | null; row?: number | null; extra?: number | null }
+    ): boolean {
+        const source = values ?? this.UM_STORE.getSelected("module");
+
+
+        const checks = [
+            { key: 'sec'   as const, message: 'Необходимо выбрать секцию' },
+            { key: 'cell'  as const, message: 'Необходимо выбрать ячейку' },
+            { key: 'row'   as const, message: 'Необходимо выбрать ряд' },
+            { key: 'extra' as const, message: 'Необходимо выбрать уровень' },
+        ];
+        const maxIndex = checks.findIndex(c => c.key === level);
+        
+        for (let i = 0; i <= maxIndex; i++) {
+            const { key, message } = checks[i];
+            if (source?.[key] === null || source?.[key] === undefined) {
+                this.callAlert("warning", message);
+                return false;
+            }
+        }
+        return true;
+    };
+
     debounce(timerKey: string, callback: Function, wait: number) {
         if (this.DEBOUNCES[timerKey]) {
             clearTimeout(this.DEBOUNCES[timerKey])

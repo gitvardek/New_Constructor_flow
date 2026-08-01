@@ -239,7 +239,7 @@ export class FasadeBuilder {
         console.log('All', props)
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
-        const { deffShowcase } = defaultConfig;
+        const { deffShowcase, defPatina } = defaultConfig;
         const currentProduct = this.modelState._PRODUCTS[PRODUCT];
 
         const startPosition = this.parent.getStartPosition(SIZE);
@@ -354,6 +354,13 @@ export class FasadeBuilder {
                     const fType = FASADE_POSITIONS[key].FASADE_TYPE;
                     fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(milling, fType)[0] ?? null;
                 }
+
+                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1) {
+                    fasadeData.PATINA = null;
+                }
+                else {
+                    fasadeData.PATINA = defPatina ?? 475428
+                }
             }
 
             if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
@@ -394,7 +401,7 @@ export class FasadeBuilder {
     }): void {
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
-        const { deffShowcase } = defaultConfig;
+        const { deffShowcase, defPatina } = defaultConfig;
         const currentProduct = this.modelState._PRODUCTS[PRODUCT];
         const startPosition = this.parent.getStartPosition(SIZE);
         const modelType = this._APP.MODELS[CONFIG.MODELID]?.type ?? "left";
@@ -500,6 +507,15 @@ export class FasadeBuilder {
                 const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
                 fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(fasadeData.MILLING, fType)[0] ?? null;
             }
+            if (this._MILLING[fasadeData.MILLING].PATINAOFF == 1) {
+                fasadeData.PATINA = null;
+            }
+            else {
+                fasadeData.PATINA = defPatina ?? 475428
+            }
+            console.log(defPatina, defaultConfig, 'defPatina')
+            console.log(this._FASADE[fasadeData.COLOR], 'COLOR')
+            console.log(this._MILLING[fasadeData.MILLING], 'MILLING')
         } else {
             fasadeData.MILLING = null;
             fasadeData.PATINA = null;

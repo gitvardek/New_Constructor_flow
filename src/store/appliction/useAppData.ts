@@ -176,14 +176,14 @@ export const useAppData = defineStore('AppData', () => {
     appData.value = { ...appData.value, ...newData }
   }
 
-  const initAppData = async () => {
+  const initAppData = async (skipCheck = false) => {
     const mainLoader = document.querySelector('#main-loader')
     if (mainLoader) {
       mainLoader.style.display = 'block'
     }
 
     const authStore = useAuthStore()
-    await authStore.fetchUserData()
+    await authStore.fetchUserData(skipCheck)
 
     if (DEV_AUTH_BYPASS) {
       setAppData(DEV_APP_DATA_STUB)

@@ -3,13 +3,13 @@
 import "@/components/UMconstructor/styles/UM.scss";
 
 import { _URL } from "@/types/constants.ts";
-import { UM_DRAWERS_IDS } from "../../utils/Const";
+import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
 import AdvanceCorpusMaterialRedactor from "@/components/ui/color/AdvanceCorpusMaterialRedactor.vue";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import ConfigurationOption from "@/components/right-menu/customiser-pages/ColorRightPage/ConfigurationOption.vue";
 import Handles from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/Handles.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { onBeforeUnmount, onMounted, ref, toRefs, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, toRefs, watch } from "vue";
 import FillingsInsertPanel from "@/components/UMconstructor/views/modules/FillingsInsertPanel.vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import { useFigureRightPage } from "@/utils/useFigureRightPage";
@@ -344,6 +344,12 @@ const getUniversalHeightOptions = (filling: FillingObject): number[] => {
   return Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
 };
 
+const curUMId= computed(()=>{
+  const product = UMconstructor.value?.UM_STORE.getUMData().PRODUCT
+  console.log(product, 'product')
+  return product
+})
+
 onMounted(() => {
   selectedFilling.value =
     UMconstructor?.value?.UM_STORE.getSelected("fillings");
@@ -491,7 +497,7 @@ watch(
                       :class="[
                         'actions-title',
                         'actions-title--part',
-                        { 'actions-title--inner-drawer': UM_DRAWERS_IDS.INNER.includes(filling.productGroupID) },
+                        { 'actions-title--inner-drawer': UM_DRAWERS_IDS.INNER.includes(filling.productGroupID) && curUMId !== UM_PARAMS.RASPASHNOY_ID },
                       ]"
                       @click="showCurrentCol(secIndex, null, null, null, filling.id)"
                     >
@@ -519,7 +525,7 @@ watch(
 
               <!-- Внутренний ящик: только метка о принадлежности, позиция меняется перетаскиванием -->
               <article
-                v-if="UM_DRAWERS_IDS.INNER.includes(filling.productGroupID)"
+                v-if="UM_DRAWERS_IDS.INNER.includes(filling.productGroupID) && curUMId!== UM_PARAMS.RASPASHNOY_ID"
                 class="actions-items actions-items--right"
               >
                 <div class="actions-items--right-items">

@@ -51,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
       : parts[0][0].toUpperCase()
   })
 
-  const fetchUserData = async () => {
+  const fetchUserData = async (skipCheck = false) => {
     if (DEV_AUTH_BYPASS) {
       userData.value = { ...DEV_USER }
       return userData.value
@@ -64,11 +64,13 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('Токен не найден');
       }
 
-      const res = await checkUser(token);
-      if (res.DATA.type === 'error') {
-        await logout()
-        useToast().error('Доступ запрещен!')
-        return;
+      if (!skipCheck) {
+        const res = await checkUser();
+        if (res.DATA.type === 'error') {
+          await logout()
+          useToast().error('Доступ запрещен!')
+          return;
+        }
       }
 
 
@@ -162,6 +164,7 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = { isError: false, message: '' }
 
       const response = await AuthService.login(credentials)
+      console.log(response, 'response')
       const { type } = response.DATA
 
       if (type === 'success' && response.DATA.token) {
@@ -226,7 +229,7 @@ export const useAuthStore = defineStore('auth', () => {
     saveToken(token)
 
     isAuthenticated.value = true
-    await appDataStore.initAppData()
+    await appDataStore.initAppData(true)
 
     // await router.push('/2d')
   }
