@@ -21,10 +21,12 @@ type T2DLoopParams = {
 // если filling[prop] входит в values — объект пропускается.
 // collisionWith — тип(ы) объекта, с которым исключается коллизия (например 'loop').
 // Если не задан — исключается коллизия со всеми типами.
+// condition — дополнительное условие на уровне grid; если задано и возвращает false — правило не применяется.
 type TCollisionExclusionRule = {
     prop: string
     values: Set<any>
     collisionWith?: string | string[]
+    condition?: (grid: GridModule) => boolean
 }
 
 export default class LoopsManager {
@@ -48,19 +50,19 @@ export default class LoopsManager {
     }
 
     /**
-     * Зарегистрировать правила исключения объектов из проверки коллизий петель.
-     * Если filling[prop] входит в values — объект пропускается.
-     *
-     * Формы вызова:
-     *   addCollisionExclusionRule('productGroupID', 2166308, 5726092)
-     *   addCollisionExclusionRule([{ prop: 'productGroupID', values: [2166308, 5726092] }])
-     */
+      * Зарегистрировать правила исключения объектов из проверки коллизий петель.
+      * Если filling[prop] входит в values — объект пропускается.
+      *
+      * Формы вызова:
+      *   addCollisionExclusionRule('productGroupID', 2166308, 5726092)
+      *   addCollisionExclusionRule([{ prop: 'productGroupID', values: [2166308, 5726092] }])
+      */
     public addCollisionExclusionRule(
-        propOrRules: string | Array<{ prop: string; values: any[]; collisionWith?: string | string[] }>,
+        propOrRules: string | Array<{ prop: string; values: any[]; collisionWith?: string | string[]; condition?: (grid: GridModule) => boolean }>,
         ...values: any[]
     ) {
         if (Array.isArray(propOrRules)) {
-            propOrRules.forEach(rule => this._mergeExclusionRule(rule.prop, rule.values, rule.collisionWith))
+            propOrRules.forEach(rule => this._mergeExclusionRule(rule.prop, rule.values, rule.collisionWith, rule.condition))
         } else {
             this._mergeExclusionRule(propOrRules, values)
         }
@@ -74,22 +76,24 @@ export default class LoopsManager {
         }))
     }
 
-    private _mergeExclusionRule(prop: string, values: any[], collisionWith?: string | string[]) {
-        // Правила с одинаковым prop, но разным collisionWith — отдельные записи
+    private _mergeExclusionRule(prop: string, values: any[], collisionWith?: string | string[], condition?: (grid: GridModule) => boolean) {
+        // Правила с одинаковым prop/collisionWith/condition — объединяются; иначе — отдельные записи
         const existing = this.collisionExclusionRules.find(r =>
             r.prop === prop &&
-            JSON.stringify(r.collisionWith) === JSON.stringify(collisionWith)
+            JSON.stringify(r.collisionWith) === JSON.stringify(collisionWith) &&
+            r.condition === condition
         )
         if (existing) {
             values.forEach(v => existing.values.add(v))
         } else {
-            this.collisionExclusionRules.push({ prop, values: new Set(values), collisionWith })
+            this.collisionExclusionRules.push({ prop, values: new Set(values), collisionWith, condition })
         }
     }
 
-    private isFillingExcludedFromCollision(filling: any, targetType: string = 'loop'): boolean {
+    private isFillingExcludedFromCollision(filling: any, targetType: string = 'loop', grid?: GridModule): boolean {
         return this.collisionExclusionRules.some(rule => {
             if (filling[rule.prop] === undefined || !rule.values.has(filling[rule.prop])) return false
+            if (rule.condition && grid && !rule.condition(grid)) return false
             if (rule.collisionWith === undefined) return true
             const types = Array.isArray(rule.collisionWith) ? rule.collisionWith : [rule.collisionWith]
             return types.includes(targetType)
@@ -370,18 +374,14 @@ export default class LoopsManager {
                 }
                 else if (cell.fillings?.length) {
                     cell.fillings.forEach((filling) => {
-                        if (this.isFillingExcludedFromCollision(filling)) {
+                        if (this.isFillingExcludedFromCollision(filling, 'loop', grid)) {
 
                             return
                         }
 
                         let filling_pos = new THREE.Vector2(filling.position.x, grid.height - filling.position.y - filling.height)
                         if (
-                            (
-                                (loop.minY < (filling_pos.y + filling.height) && loop.maxY > (filling_pos.y + filling.height)) ||
-                                (loop.minY < filling_pos.y && loop.maxY > filling_pos.y) ||
-                                (loop.minY > filling_pos.y && loop.maxY < (filling_pos.y + filling.height))
-                            )
+                            (loop.minY <= (filling_pos.y + filling.height) && loop.maxY >= filling_pos.y)
                             &&
                             ((loop.minX <= (filling_pos.x + filling.width) && loop.maxX >= (filling_pos.x + filling.width)) ||
                                 (loop.minX <= (filling_pos.x) && loop.maxX >= (filling_pos.x)))

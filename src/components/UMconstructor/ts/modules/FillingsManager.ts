@@ -15,7 +15,8 @@ import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
 type TCollisionExclusionRule = {
     prop: string
     values: any[],
-    collisionWith: string
+    collisionWith: string,
+    condition?: (grid: GridModule) => boolean
 }
 
 type TloopCollisionExclusion = TCollisionExclusionRule[]
@@ -27,8 +28,16 @@ export default class FillingsManager {
     private loopCollisionExclusion: TloopCollisionExclusion = [
         {
             prop: 'productGroupID',
-            values: [2166309, 6174300, 2166308, 15222587, 6513322],
+            values: [2166309, 6174300, 15222587, 6513322],
             collisionWith: 'loop'
+        },
+        {
+            // 2166308 исключается из коллизий петель только для НЕ-распашного шкафа.
+            // Для распашного (RASPASHNOY_ID) — участвует в коллизии.
+            prop: 'productGroupID',
+            values: [2166308],
+            collisionWith: 'loop',
+            condition: (grid) => grid.productID !== UM_PARAMS.RASPASHNOY_ID
         }
     ]
     private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER

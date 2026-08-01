@@ -231,7 +231,7 @@ export class FasadeBuilder {
     }): THREE.Object3D {
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
-        const { deffShowcase } = defaultConfig;
+        const { deffShowcase, defPatina } = defaultConfig;
         const currentProduct = this.modelState._PRODUCTS[PRODUCT];
 
         const startPosition = this.parent.getStartPosition(SIZE);
@@ -343,6 +343,14 @@ export class FasadeBuilder {
                     const fType = FASADE_POSITIONS[key].FASADE_TYPE;
                     fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(milling, fType)[0] ?? null;
                 }
+                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1 ||
+                    this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)
+                ) {
+                    fasadeData.PATINA = null;
+                }
+                else {
+                    fasadeData.PATINA = defPatina ?? 475428
+                }
             }
 
             if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
@@ -382,7 +390,7 @@ export class FasadeBuilder {
     }): void {
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
-        const { deffShowcase } = defaultConfig;
+        const { deffShowcase, defPatina } = defaultConfig;
         const currentProduct = this.modelState._PRODUCTS[PRODUCT];
         const startPosition = this.parent.getStartPosition(SIZE);
         const modelType = this._APP.MODELS[CONFIG.MODELID]?.type ?? "left";
@@ -488,6 +496,14 @@ export class FasadeBuilder {
             if (!fasadeData.MILLING_TYPE) {
                 const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
                 fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(fasadeData.MILLING, fType)[0] ?? null;
+            }
+            if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1 ||
+                this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)
+            ) {
+                fasadeData.PATINA = null;
+            }
+            else {
+                fasadeData.PATINA = defPatina ?? 475428
             }
         } else {
             fasadeData.MILLING = null;

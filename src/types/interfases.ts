@@ -42,10 +42,11 @@ export interface IProjectParams {
     default_module_color_bottom?: number | null,
     default_module_color_top?: number | null,
     default_module_color?: number | null,
-    default_milling_down?: number | null,
-    default_milling_up?: number | null,
-    default_palit_down?: number | null,
-    default_palit_up?: number | null,
+    default_milling_bottom?: number | null,
+    default_milling_top?: number | null,
+    default_palit_bottom?: number | null,
+    default_palit_top?: number | null,
+    default_patina?: number | null,
     default_overlay_id?: number[],
     default_table_model?: number,
     default_handles?: number,
@@ -55,7 +56,6 @@ export interface IProjectParams {
     default_showcase?: number | null,
     default_milling?: number | null,
     mirror_type?: number | null,
-
 }
 
 export interface IContentItem {

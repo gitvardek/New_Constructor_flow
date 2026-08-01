@@ -358,11 +358,19 @@ const onSelectMilling = (data) => {
     !disablePatina;
 
   /** @Если у выбранной фрезы нет патина */
-
   try {
     if (!isPatinaExist.value && patinaList.value.length > 0) {
-      fasadeProps.PATINA = Object.values(modelState._PATINA)[0].ID;
-      const { NAME, PREVIEW_PICTURE } = Object.values(modelState._PATINA)[0];
+      fasadeProps.PATINA = null;
+    } else {
+      fasadeProps.PATINA = rootDataPatina[0];
+
+      const { NAME, PREVIEW_PICTURE } = _APP?.PATINA[rootDataPatina[0]];
+
+      if (!NAME || !PREVIEW_PICTURE) {
+        console.warn('Missing PATINA data');
+        return;
+      }
+
       currentPatinaData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
     }
   } catch (e) {

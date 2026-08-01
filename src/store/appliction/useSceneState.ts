@@ -27,7 +27,8 @@ export const useSceneState = defineStore('SceneState', () => {
 
     const startHeightClamp = ref<number>(startParamsClone.height_clamp)
 
-    const currentProjectParams = ref<IProjectParams>(startParamsClone)
+    // Отдельный клон чтобы мутации currentProjectParams не попадали в startRoomData/Camera/Lights
+    const currentProjectParams = ref<IProjectParams>(JSON.parse(JSON.stringify(startParamsClone)))
 
     const keys: Partial<Record<keyof TOptionsMap, keyof IProjectParams>> = {
         moduleTop: 'default_module_color_top',
@@ -82,21 +83,15 @@ export const useSceneState = defineStore('SceneState', () => {
         const curOption = keys[type];
         const curPalitte = externalPalitteKeys[type];
 
-        // console.log(value, 'curOption')
         if (curOption) {
-            // console.log(startProjectParams.value, 'startProjectParams_1')
+            // null при сбросе, undefined не допускаем
+            startProjectParams.value[curOption] = value?.id ?? null;
+            currentProjectParams.value[curOption] = value?.id ?? null;
 
-            startProjectParams.value[curOption] = value?.id;
-            currentProjectParams.value[curOption] = value?.id;
-
-            if (value?.palitte) {
-
-                if (curPalitte) {
-
-                    startProjectParams.value[curPalitte] = value?.palitte;
-                    currentProjectParams.value[curPalitte] = value?.palitte;
-                }
-
+            if (curPalitte) {
+                // Сбрасываем palette всегда, а не только при truthy palitte
+                startProjectParams.value[curPalitte] = value?.palitte ?? null;
+                currentProjectParams.value[curPalitte] = value?.palitte ?? null;
             }
         }
     };
@@ -118,17 +113,23 @@ export const useSceneState = defineStore('SceneState', () => {
 
     }
 
-   const loadProjectFromData = async (newProject: IProjectParams) => {
+    const loadProjectFromData = async (newProject: IProjectParams) => {
 
         console.log(newProject, 'newProject')
 
-        startProjectParams.value = newProject
-        currentProjectParams.value = newProject
+        // Клонируем входящие данные чтобы startProjectParams и currentProjectParams
+        // не делили ссылки с внешним объектом и друг с другом
+        const data = JSON.parse(JSON.stringify(newProject))
 
-        startRoomData.value = newProject.rooms[0].params
-        startCameraData.value = newProject.camera
-        startLightsDat.value = newProject.lights
-        startHeightClamp.value = newProject.height_clamp
+        startProjectParams.value = data
+        currentProjectParams.value = JSON.parse(JSON.stringify(data))
+
+        if (data.rooms?.length) {
+            startRoomData.value = data.rooms[0].params
+        }
+        if (data.camera) startCameraData.value = data.camera
+        if (data.lights) startLightsDat.value = data.lights
+        if (data.height_clamp != null) startHeightClamp.value = data.height_clamp
 
     }
 
