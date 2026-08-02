@@ -81,7 +81,7 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
             const hasProfileKromka = activeProfile.show_props && activeProfile.show_props?.includes("hem")
 
-            if ((hasProfileKromka && tempKromkaId.value == null) || option != null) {
+            if (hasProfileKromka && tempKromkaId.value == null) {
 
                 const hemList = HEM.map((el: number) => {
                     return HEMLIST[el]
