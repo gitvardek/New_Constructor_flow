@@ -59,7 +59,6 @@ export function useProjectFromQuery() {
       roomState.clearCurrentRoomId();
       
       await sceneState.loadProjectFromData(projectData);
-      sceneState.updateProjectParams({});
       schemeTransition.setAppData(projectData.rooms);
       
       roomState.routConvertData('/3d')

@@ -77,12 +77,12 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                     serv.show_props.includes('hem') &&
                     serv.value === true
                 );
-
+            console.log(hasActiveKromka, 'hasActiveKromka')
             console.log(HEMLIST[REC_HEM[0]], 'HEMLIST[REC_HEM[0]]')
 
             const hasProfileKromka = activeProfile.show_props && activeProfile.show_props?.includes("hem")
 
-            if ((hasProfileKromka && tempKromkaId.value == null) || option != null) {
+            if (hasProfileKromka && tempKromkaId.value == null) {
 
                 const hemList = HEM.map((el: number) => {
                     return HEMLIST[el]
@@ -92,7 +92,7 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                 tempKromkaId.value = defaultHem?.ID ?? hemList[0].ID;
             }
 
-            // console.log(hasActiveKromka, '==== ❌ hasActiveKromka ❌ ====')
+            console.log(hasActiveKromka, '==== ❌ hasActiveKromka ❌ ====')
             // console.log(hasProfileKromka, '==== ❌ hasProfileKromka ❌ ====')
 
             kromkaActive.value = hasActiveKromka ? hasActiveKromka : hasProfileKromka
@@ -242,7 +242,6 @@ const useKromkaActions = defineStore('KromkaActions', () => {
             }
         }
     }
-
 
     const clearKromkaData = () => {
         tempKromkaList.value = []

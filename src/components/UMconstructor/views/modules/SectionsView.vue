@@ -29,6 +29,13 @@ const { module, mode, UMconstructor } = toRefs(props)
 const selectedCell = ref<TSelectedCell>(<TSelectedCell>{})
 const step = ref<number>(1)
 
+const getCellMaxHeight = (section: any, cellIndex: number): number => {
+    const cell = section.cells[cellIndex]
+    const neighbor = section.cells[cellIndex + 1] || section.cells[cellIndex - 1]
+    const MIN = UMconstructor.value.CONST.MIN_SECTION_HEIGHT
+    return neighbor ? cell.height + neighbor.height - MIN : section.height - MIN
+}
+
 const showCurrentCol = (secIndex: number | null = 0, cellIndex: number | null = null, rowIndex: number | null = null, extraIndex: number | null = null) => {
   UMconstructor?.value?.SECTIONS.selectCell(secIndex, cellIndex, rowIndex, extraIndex);
 };
@@ -150,7 +157,7 @@ onMounted(() => {
                                 value: value ?? UMconstructor.CONST.MIN_SECTION_HEIGHT
                               })" :type="'number'" :inputClass="'actions-input'" :modelValue="cell.height"
                                 :min="UMconstructor.CONST.MIN_SECTION_HEIGHT"
-                                :max="section.height - UMconstructor.CONST.MIN_SECTION_HEIGHT" :step="step"
+                                :max="getCellMaxHeight(section, cellIndex)" :step="step"
                                 :isUM="true" />
 
                             </div>

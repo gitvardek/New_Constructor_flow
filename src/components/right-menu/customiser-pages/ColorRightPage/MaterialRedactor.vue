@@ -255,13 +255,28 @@ const onSelectMaterial = (data) => {
 
 const onSelectMilling = (data) => {
   currentMillingData.value = data;
+  console.log(data);
+
+  // Проверка на существование свойств productData.value.PROPS.CONFIG
+  if (!productData.value?.PROPS?.CONFIG) return;
 
   const { FASADE_PROPS, FASADE_POSITIONS } = productData.value.PROPS.CONFIG;
   const fasadeProps = FASADE_PROPS[props.tabIndex];
-  const isShowcase = FASADE_POSITIONS[props.tabIndex].SHOWCASE === 1;
-  const rootDataPatina = modelState._FASADE[fasadeProps.COLOR].PATINA;
 
-  // if (isShowcase) return;
+  // Проверка на существование fasadeProps
+  if (!fasadeProps) {
+    console.warn('FASADE_PROPS is undefined or null');
+    return;
+  }
+
+  const isShowcase = FASADE_POSITIONS?.[props.tabIndex]?.SHOWCASE === 1;
+  const rootDataPatina = _FASADE[fasadeProps.COLOR]?.PATINA;
+
+  // Проверка на существование rootDataPatina и его свойств
+  if (!rootDataPatina) {
+    console.warn('rootDataPatina is undefined or null');
+    return;
+  }
 
   if (!isShowcase) {
     isPatinaExist.value =
@@ -271,11 +286,19 @@ const onSelectMilling = (data) => {
       rootDataPatina[0] != 0;
 
     /** @Если у выбранной фрезы нет патина */
-
     try {
       if (!isPatinaExist.value && patinaList.value.length > 0) {
-        fasadeProps.PATINA = Object.values(modelState._PATINA)[0].ID;
-        const { NAME, PREVIEW_PICTURE } = Object.values(modelState._PATINA)[0];
+        fasadeProps.PATINA = null;
+      } else {
+        fasadeProps.PATINA = rootDataPatina[0];
+
+        const { NAME, PREVIEW_PICTURE } = _APP?.PATINA[rootDataPatina[0]];
+
+        if (!NAME || !PREVIEW_PICTURE) {
+          console.warn('Missing PATINA data');
+          return;
+        }
+
         currentPatinaData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
       }
     } catch (e) {
@@ -284,13 +307,18 @@ const onSelectMilling = (data) => {
   }
 
   /** @Отображение_положения_петель */
-
   if (data.fasade_type && data.fasade_type[0] !== null) {
     const typeList = getIntegratedHandleControllerData(
       data,
       props.tabIndex,
       "milling",
     );
+
+    // Проверка на существование typeList
+    if (!typeList) {
+      console.warn('typeList is undefined or null');
+      return;
+    }
 
     if (typeList.length > 0) {
       isFasadeHandleExist.value = true;
@@ -993,5 +1021,4 @@ onBeforeUnmount(() => {
     }
   }
 }
-
 </style>

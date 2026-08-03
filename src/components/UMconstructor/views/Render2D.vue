@@ -2202,7 +2202,6 @@ function dragMove(event) {
         newLeftWidth = startLeftWidth + deltaMm;
       }
 
-      fillings
       let delta1 = section.width - newLeftWidth;
       let deltaPos1 = next ? -delta1 / 2 : delta1 / 2;
       section.width = newLeftWidth;
@@ -3088,6 +3087,9 @@ const adjustSectionSize = (
             MIN_SECTION_HEIGHT * count + module.moduleThickness * (count - 1),
           );
         }
+
+        if (!Number.isFinite(curMin) || curMin < MIN_SECTION_HEIGHT) curMin = MIN_SECTION_HEIGHT;
+        if (!Number.isFinite(nextMin) || nextMin < MIN_SECTION_HEIGHT) nextMin = MIN_SECTION_HEIGHT;
 
         const totalHeight = currentRow.height + nextRow.height;
         calcValue = updateSizes(

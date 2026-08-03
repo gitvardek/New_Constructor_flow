@@ -355,7 +355,9 @@ export class FasadeBuilder {
                     fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(milling, fType)[0] ?? null;
                 }
 
-                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1) {
+                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1 ||
+                    this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)
+                ) {
                     fasadeData.PATINA = null;
                 }
                 else {
