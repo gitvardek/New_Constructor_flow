@@ -262,7 +262,6 @@ export default class FillingsManager {
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
 
-        console.log(productGroupID, 'productGroupID')
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
             const minDepth = _product.SIZE_EDIT_DEPTH?.length
@@ -355,12 +354,18 @@ export default class FillingsManager {
             }
 
             // Суммируем высоту уже добавленных внутренних ящиков для этого внешнего
-            const usedHeight = outerContainer.fillings
+            const existingInnerDrawers = outerContainer.fillings
                 ?.filter(f => this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                    f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
-                ?.reduce((sum, f) => sum + f.height, 0) ?? 0
+                    f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId) ?? []
 
-            const freeHeight = availableHeight - usedHeight
+            const existingCount = existingInnerDrawers.length
+            const usedHeight = existingInnerDrawers.reduce((sum, f) => sum + f.height, 0)
+
+            // Занято отступами: INNER_DRAWER_GAP от тела + по INNER_DRAWER_GAP на каждый уже добавленный ящик + INNER_DRAWER_FACADE_GAP до фасада
+            const { INNER_DRAWER_GAP, INNER_DRAWER_FACADE_GAP } = UM_PARAMS
+            const gapsTotal = INNER_DRAWER_GAP * (existingCount + 1) + INNER_DRAWER_FACADE_GAP
+
+            const freeHeight = availableHeight - gapsTotal - usedHeight
 
             if (product.width > outerDrawer.width) {
                 this.scope.callAlert("error", `Ширина ящика (${product.width} мм) больше ширины внешнего ящика (${outerDrawer.width} мм)`)
@@ -374,9 +379,42 @@ export default class FillingsManager {
             if (!outerContainer.fillings)
                 outerContainer.fillings = []
 
-            // Стек ящиков: новый размещается после уже добавленных
             const startY = outerDrawer.position.y - availableHeight
-            const newDrawerY = startY + usedHeight
+
+            // Ищем первый свободный слот по фактическим позициям ящиков (они могут быть перемещены)
+            let newDrawerY: number
+            if (existingInnerDrawers.length === 0) {
+                newDrawerY = outerDrawer.position.y - INNER_DRAWER_GAP - product.height
+            } else {
+                const sorted = [...existingInnerDrawers].sort((a, b) => a.position.y - b.position.y)
+                let slot: number | null = null
+
+                // 1. Выше крайнего верхнего (ближе к фасаду)
+                const aboveTop = sorted[0].position.y - INNER_DRAWER_GAP - product.height
+                if (aboveTop >= startY + INNER_DRAWER_FACADE_GAP) slot = aboveTop
+
+                // 2. В зазоре между соседними ящиками
+                if (slot === null) {
+                    for (let i = 0; i < sorted.length - 1; i++) {
+                        const slotTop = sorted[i].position.y + sorted[i].height + INNER_DRAWER_GAP
+                        const slotBottom = sorted[i + 1].position.y - INNER_DRAWER_GAP
+                        if (slotTop + product.height <= slotBottom) { slot = slotTop; break }
+                    }
+                }
+
+                // 3. Ниже крайнего нижнего (ближе к телу)
+                if (slot === null) {
+                    const last = sorted[sorted.length - 1]
+                    const belowLast = last.position.y + last.height + INNER_DRAWER_GAP
+                    if (belowLast + product.height <= outerDrawer.position.y - INNER_DRAWER_GAP) slot = belowLast
+                }
+
+                if (slot === null) {
+                    this.scope.callAlert("error", "Нет подходящего места для внутреннего ящика")
+                    return
+                }
+                newDrawerY = slot
+            }
 
             const fillingObject = <FillingObject>{
                 isVerticalItem: false,

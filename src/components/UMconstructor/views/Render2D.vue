@@ -3076,6 +3076,10 @@ const adjustSectionSize = (
           );
         }
 
+        // Минимальная высота ячейки
+        if (!Number.isFinite(curMin) || curMin < MIN_SECTION_HEIGHT) curMin = MIN_SECTION_HEIGHT;
+        if (!Number.isFinite(nextMin) || nextMin < MIN_SECTION_HEIGHT) nextMin = MIN_SECTION_HEIGHT;
+
         const totalHeight = currentRow.height + nextRow.height;
         calcValue = updateSizes(
           newValue,

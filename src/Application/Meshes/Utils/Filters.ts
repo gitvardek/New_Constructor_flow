@@ -389,20 +389,24 @@ export class Filters extends GlobalsData {
 
     filterProductInfo(id) {
         let info = this._PRODUCTS[id]
+        console.log(info, 'info')
+        if (!info) return false
 
-        if (!info) {
-            info = this.disabledProducts[id]
+        // if (!info) {
+        //     info = this.disabledProducts[id]
 
-            if (info?.ALTERNATIVE_PRODUCT?.[0]) {
-                for (let i = 0; i < info.ALTERNATIVE_PRODUCT.length; i++) {
-                    if (this._PRODUCTS[info.ALTERNATIVE_PRODUCT[i]]) {
-                        info = this._PRODUCTS[info.ALTERNATIVE_PRODUCT[i]]
-                        break;
-                    }
-                }
-            }
+        //     console.log(info, 'info')
 
-        }
+        //     if (info?.ALTERNATIVE_PRODUCT?.[0]) {
+        //         for (let i = 0; i < info.ALTERNATIVE_PRODUCT.length; i++) {
+        //             if (this._PRODUCTS[info.ALTERNATIVE_PRODUCT[i]]) {
+        //                 info = this._PRODUCTS[info.ALTERNATIVE_PRODUCT[i]]
+        //                 break;
+        //             }
+        //         }
+        //     }
+
+        // }
 
         if (info)
             info = Object.assign({}, info)

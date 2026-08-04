@@ -418,17 +418,19 @@ class Shape extends Helpers {
 
             if (self.data.innerDrawerConstraint) {
                 // Внутренний ящик: движение ограничено пространством фасада внешнего ящика
+                // с отступами INNER_DRAWER_GAP от тела и INNER_DRAWER_FACADE_GAP от фасада
                 const c = self.data.innerDrawerConstraint
+                const facadeGapPx = self.getPixelHeight(UM_PARAMS.INNER_DRAWER_FACADE_GAP)
+                const innerGapPx = self.getPixelHeight(UM_PARAMS.INNER_DRAWER_GAP)
                 self.sectorBounds = {
                     x: self.getPixelWidth(c.x),
-                    y: self.getPixelHeight(c.startY),
+                    y: self.getPixelHeight(c.startY) + facadeGapPx,
                     width: self.getPixelWidth(c.width),
-                    height: self.getPixelHeight(c.height),
+                    height: self.getPixelHeight(c.height) - facadeGapPx - innerGapPx,
                 }
                 // Коллизия только с другими внутренними ящиками в том же пространстве
-                const INNER_DRAWER_IDS = [15222587, 2166308]
                 cachedShapes = self.sector.shapes.filter(
-                    s => s !== self && INNER_DRAWER_IDS.includes(s.data?.productGroupID)
+                    s => s !== self && UM_DRAWERS_IDS.INNER.includes(s.data?.productGroupID)
                 )
             } else {
                 self.sectorBounds = self.getSectorBounds(self.sector);
@@ -501,17 +503,48 @@ class Shape extends Helpers {
                         self.highlightGraphics.position.x = currentX;
                     }
                 } else {
+                    if (self.data.innerDrawerConstraint && cachedShapes?.length) {
+                        const gapPx = self.getPixelHeight(UM_PARAMS.INNER_DRAWER_GAP)
+                        const selfCenter = currentY + self.height / 2
+                        let innerMinY = this.sectorBounds.y + this.paddingTop
+                        let innerMaxY = this.sectorBounds.y + this.sectorBounds.height - self.height - this.paddingBottom
+
+                        for (const other of cachedShapes) {
+                            const otherTop = other.graphic.position.y
+                            const otherBottom = otherTop + other.height
+                            if (otherTop + other.height / 2 < selfCenter) {
+                                innerMinY = Math.max(innerMinY, otherBottom + gapPx)
+                            } else {
+                                innerMaxY = Math.min(innerMaxY, otherTop - gapPx - self.height)
+                            }
+                        }
+
+                        adjustedY = Math.max(innerMinY, Math.min(adjustedY, innerMaxY))
+                    }
+
                     // Пробуем движение по Y
                     self.graphic.position.y = adjustedY;
                     self.highlightGraphics.position.y = adjustedY;
                     let hasCollisionY = false;
 
                     for (const otherShape of cachedShapes) {
+                        // Для внутренних ящиков — gap-aware коллизия с учётом отступа INNER_DRAWER_GAP
+                        const hasOverlap = (self.data.innerDrawerConstraint && otherShape.data?.innerDrawerConstraint)
+                            ? (() => {
+                                const gapPx = self.getPixelHeight(UM_PARAMS.INNER_DRAWER_GAP)
+                                const myTop = self.graphic.position.y
+                                const myBottom = myTop + self.height
+                                const otherTop = otherShape.graphic.position.y
+                                const otherBottom = otherTop + otherShape.height
+                                return myBottom + gapPx > otherTop && myTop < otherBottom + gapPx
+                            })()
+                            : self.checkOverlap(otherShape)
+
                         if ((self !== otherShape && self.data !== otherShape.data)
                             && self.containerShape !== otherShape
                             && !self.isExcludedFromCollision(self.data, otherShape.data)
                             && !self.isExcludedFromCollision(otherShape.data, self.data)
-                            && self.checkOverlap(otherShape)) {
+                            && hasOverlap) {
 
                             if ((self.data.fasade && otherShape.data.fasade) &&
                                 (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))

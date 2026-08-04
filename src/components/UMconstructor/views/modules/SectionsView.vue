@@ -29,6 +29,13 @@ const { module, mode, UMconstructor } = toRefs(props)
 const selectedCell = ref<TSelectedCell>(<TSelectedCell>{})
 const step = ref<number>(1)
 
+const getCellMaxHeight = (section: any, cellIndex: number): number => {
+  const cell = section.cells[cellIndex]
+  const neighbor = section.cells[cellIndex + 1] || section.cells[cellIndex - 1]
+  const MIN = UMconstructor.value.CONST.MIN_SECTION_HEIGHT
+  return neighbor ? cell.height + neighbor.height - MIN : section.height - MIN
+}
+
 const showCurrentCol = (secIndex: number | null = 0, cellIndex: number | null = null, rowIndex: number | null = null, extraIndex: number | null = null) => {
   UMconstructor?.value?.SECTIONS.selectCell(secIndex, cellIndex, rowIndex, extraIndex);
 };
@@ -150,8 +157,7 @@ onMounted(() => {
                                 value: value ?? UMconstructor.CONST.MIN_SECTION_HEIGHT
                               })" :type="'number'" :inputClass="'actions-input'" :modelValue="cell.height"
                                 :min="UMconstructor.CONST.MIN_SECTION_HEIGHT"
-                                :max="section.height - UMconstructor.CONST.MIN_SECTION_HEIGHT" :step="step"
-                                :isUM="true" />
+                                :max="getCellMaxHeight(section, cellIndex)" :step="step" :isUM="true" />
 
                             </div>
                           </div>
@@ -239,9 +245,7 @@ onMounted(() => {
                                   button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button"
                                   type="number" @update:model-value="(count: number | string) => {
                                     UMconstructor.SHELVES.addRowCell({ grid: module, secIndex, cellIndex, rowIndex, count: parseInt(count) })
-                                  }" 
-                                  v-if="!row.extras?.length" 
-                                  />
+                                  }" v-if="!row.extras?.length" />
                               </div>
 
                               <div v-if="!row.extras?.length" class="actions-items--right-items-input-block">
@@ -390,7 +394,8 @@ onMounted(() => {
                       }" />
                   </div>
 
-                  <div v-if="!section.cells.length && !module.isRestrictedModule" class="actions-items--right-items-input-block">
+                  <div v-if="!section.cells.length && !module.isRestrictedModule"
+                    class="actions-items--right-items-input-block">
                     <CounterInput button-text="Верт. разделитель" model-value="1" max="10" min="1"
                       input-class="actions-items--right-items-input-block-counter"
                       button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button"
