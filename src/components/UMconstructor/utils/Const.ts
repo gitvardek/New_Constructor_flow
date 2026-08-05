@@ -20,7 +20,9 @@ export const UM_PARAMS = {
     SECTOR_PADDING: 0,
     RASPASHNOY_ID: 1942652, // ID распашного шкафа
     MIN_TSARGA_WIDTH: 700, // Минимальная ширина царги
-    MAX_TSARGA_WIDTH: 1200   // Максимальная ширина царги
+    MAX_TSARGA_WIDTH: 1200,  // Максимальная ширина царги
+    INNER_DRAWER_GAP: 30,        // Отступ от тела внешнего ящика и между внутренними ящиками (мм)
+    INNER_DRAWER_FACADE_GAP: 45  // Отступ от крайнего внутреннего ящика до фасада внешнего ящика (мм)
 }
 
 export const UM_DRAWERS_IDS = {
