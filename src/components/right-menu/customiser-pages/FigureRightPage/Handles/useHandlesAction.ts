@@ -63,7 +63,7 @@ const useHandlesAction = () => {
 
             if (!curType && !curMillinType && ndx == 0) id = el.ID
 
-            return { action: el.CODE, id: el.ID, active: el.ID === id }
+            return { action: el.CODE, id: el.ID, active: el.ID === id, name: el.NAME }
         });
 
         return textList

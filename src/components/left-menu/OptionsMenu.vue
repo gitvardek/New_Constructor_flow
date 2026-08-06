@@ -25,7 +25,6 @@ import PopUpOptionsMenu from "@/components/left-menu/option/PopUpOptionsMenu.vue
 import RoomOptionsMenu from "@/components/left-menu/option/RoomOptionsMenu.vue";
 import S2DAppartSVG from "@/components/ui/svg/left-menu/S2DAppartSVG.vue";
 import MainButton from "../ui/buttons/MainButton.vue";
-import DirectionControl from "../ui/direction/DirectionControl.vue";
 
 import MainSelect from "@/components/ui/selects/MainSelect.vue";
 import CatalogSVG from "../ui/svg/CatalogSVG.vue";

@@ -39,7 +39,7 @@ import GlassRedactor from "./GlassRedactor.vue";
 import ShowcaseRedactor from "./ShowcaseRedactor.vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
-import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
+import LoopPositionSelect from "@/components/ui/direction/LoopPositionSelect.vue";
 
 import { useOptions } from "../RailsRightPage/useOptions";
 import { useHandlesAction } from "../FigureRightPage/Handles/useHandlesAction";
@@ -896,13 +896,11 @@ onBeforeUnmount(() => {
       <MainInput v-if="incomeSize.min && incomeSize.max" :inputClass="'input__search right-menu'" :type="'number'"
         :min="incomeSize.min" :max="incomeSize.max" @update:modelValue="updateFasadeSize" v-model="incomeSize.width" />
 
-      <DirectionControl v-if="isFasadeTypesExist" :handle-pos="fasadeTypesList"
-        @changeDirectionPos="onChangeIntegratedHandlePos" :container="'card'" :scale="1" :gap="2" :max-width="120"
-        :size="20" :fontSize="10" />
+      <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList"
+        @change="onChangeIntegratedHandlePos" />
 
-      <DirectionControl v-if="isFasadeHandleExist" :handle-pos="fasadeHandleList"
-        @changeDirectionPos="onChangeMillingHandlePos" :container="'card'" :scale="1" :gap="2" :max-width="120"
-        :size="20" :fontSize="10" />
+      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList"
+        @change="onChangeMillingHandlePos" />
     </div>
 
     <SurfaceRedactor v-if="currentEditableOption === 'surface'" :materialList="materialList" :tabIndex="props.tabIndex"
