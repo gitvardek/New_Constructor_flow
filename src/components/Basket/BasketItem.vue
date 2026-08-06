@@ -322,7 +322,7 @@
     <div class="basket-item__price basket-item__action" v-if="isNonDelete">
 
       <button v-if="item?.product.TYPE === 'scene' || item?.product.TYPE === 'umscene'" class="basket-item__goto-btn"
-        @click="goToObject">перейти</button>
+        @click="goToObject">Показать</button>
       <DeleteBasketButton @click="
         deleteProductInBusket(item.product.BASKETID, item?.product.TYPE)
         " />
