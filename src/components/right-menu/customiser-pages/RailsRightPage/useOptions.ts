@@ -503,7 +503,9 @@ export const useOptions = () => {
 
         const convert = expressionsReplace(isConditions, {
             "#X#": BODY_WIDTH,
-            "#Y#": BODY_HEIGHT
+            "#Y#": BODY_HEIGHT,
+            "#FASADE_HEIGHT_MAX#": 0,
+            "#FASADE_HEIGHT_MIN#": 100000
         })
 
         const converted = calculateFromString(convert)

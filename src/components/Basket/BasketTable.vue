@@ -72,7 +72,7 @@ const { oldPrice, isFeedbackProject } = useConfigStore();
 
   &__head {
     display: grid;
-    grid-template-columns: 150px 1fr 75px 135px 135px 135px 50px;
+    grid-template-columns: 150px 1fr 75px 135px 135px 135px 135px;
     gap: 10px;
     font-weight: 500;
     font-size: 1.4rem;

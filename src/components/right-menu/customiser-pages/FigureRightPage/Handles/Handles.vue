@@ -10,7 +10,7 @@ import { useHandlesAction } from "./useHandlesAction";
 
 import MaterialSelector from "@/components/right-menu/customiser-pages/ColorRightPage/MaterialSelector.vue";
 import ConfigurationOption from "../../ColorRightPage/ConfigurationOption.vue";
-import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
+import HandlePositionSelect from "@/components/ui/direction/HandlePositionSelect.vue";
 import defaultTab from "@/components/ui/tabs/defaultTab.vue";
 
 interface ITabChangeParams {
@@ -191,9 +191,9 @@ const handlesDisabled = computed(() => {
       <template v-if="!handlesDisabled">
         <div class="handles__header">
           <ConfigurationOption @delete-choise="onDeleteHandle" :type="'Handles'" :data="figureFasad.data" />
-          <DirectionControl v-if="controllerVisible && !props.disablePositionChanger" :handle-pos="handlePos"
-            :active-pos="props.activePos" @changeDirectionPos="onChangeHandlePos" :container="'card'" :scale="1" :gap="2"
-            :max-width="120" :size="20" :fontSize="10" />
+          <HandlePositionSelect v-if="controllerVisible && !props.disablePositionChanger"
+            :model-value="figureFasad.props.HANDLES.position"
+            @update:model-value="onChangeHandlePos" />
         </div>
         <MaterialSelector @select="onHandleSelect" :materials="handleList" />
       </template>
@@ -248,4 +248,15 @@ const handlesDisabled = computed(() => {
   }
 }
 
+.material-config {
+  // &_list {
+  //   height: 100vh;
+  //   display: flex;
+  //   flex-direction: column;
+  //   flex: 1;
+  //   flex-wrap: wrap;
+  //   margin-top: 1rem;
+  //   overflow-y: auto;
+  // }
+}
 </style>

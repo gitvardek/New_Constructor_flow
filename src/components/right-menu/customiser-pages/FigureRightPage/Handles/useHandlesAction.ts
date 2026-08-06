@@ -4,7 +4,7 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
 import { MILLING_HANDLE_KEYS, additionalMillingKeys } from "@/Application/F-millings";
 import { TMillingListItem } from "@/store/appliction/useModelState";
-import { TConfig } from "@/types/types";
+import { TConfig, FasadeTextAlignAction } from "@/types/types";
 
 export type THandleType = "milling" | "integrate"
 
@@ -12,7 +12,7 @@ const useHandlesAction = () => {
     const modelState = useModelState()
     const eventBus = useEventBus()
 
-    const getControllerData = (fasadeNdx:number) => {
+    const getControllerData = (fasadeNdx: number) => {
         let result = [];
         const model = modelState.getCurrentModel;
 
@@ -63,7 +63,7 @@ const useHandlesAction = () => {
 
             if (!curType && !curMillinType && ndx == 0) id = el.ID
 
-            return { action: el.CODE, id: el.ID, active: el.ID === id }
+            return { action: FasadeTextAlignAction[el.CODE as keyof typeof FasadeTextAlignAction], id: el.ID, active: el.ID === id, name: el.NAME }
         });
 
         return textList

@@ -38,7 +38,7 @@ import ColorRedactor from "@/components/right-menu/customiser-pages/ColorRightPa
 import { useHandlesAction } from "@/components/right-menu/customiser-pages/FigureRightPage/Handles/useHandlesAction.ts";
 import { useConversationActions } from "@/components/right-menu/actions/useConversationActions.ts";
 import { TFasadeSize } from "@/types/types.ts";
-import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
+import LoopPositionSelect from "@/components/ui/direction/LoopPositionSelect.vue";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import ShowcaseRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/ShowcaseRedactor.vue";
@@ -971,13 +971,9 @@ onBeforeUnmount(() => {
       <MainInput v-if="incomeSize.width" :inputClass="'input__search right-menu'" :type="'number'" :min="incomeSize.min"
         :max="incomeSize.max" @update:modelValue="updateFasadeSize" v-model="incomeSize.width" />
 
-      <DirectionControl v-if="isFasadeTypesExist" :handle-pos="fasadeTypesList"
-        @changeDirectionPos="onChangeIntegratedHandlePos" :container="'card'" :scale="1" :gap="2" :max-width="120"
-        :size="20" :fontSize="10" />
+      <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList" @change="onChangeIntegratedHandlePos" />
 
-      <DirectionControl v-if="isFasadeHandleExist" :handle-pos="fasadeHandleList"
-        @changeDirectionPos="onChangeMillingHandlePos" :container="'card'" :scale="1" :gap="2" :max-width="120"
-        :size="20" :fontSize="10" />
+      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList" @change="onChangeMillingHandlePos" />
     </div>
 
     <SurfaceRedactor v-if="currentEditableOption === 'surface' && materialList[0]?.FASADES" :materialList="materialList"
