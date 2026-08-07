@@ -975,6 +975,8 @@ export class FasadeBuilder {
         isUMmodule: boolean = false
     ) {
 
+        console.log('AUF');
+        
         if (isUMmodule) return props.FASADE_POSITIONS[key];
 
         const { SIZE, EXPRESSIONS, FASADE_PROPS, FASADE_POSITIONS, FASADE_SIZE } = props;

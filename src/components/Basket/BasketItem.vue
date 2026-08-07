@@ -321,11 +321,15 @@
       <span>{{ item.product.allPriceOldFormat ?? 0 }}</span>
     </div>
 
+
     <div class="basket-item__price basket-item__action" v-if="isNonDelete">
 
       <DeleteBasketButton @click="
         deleteProductInBusket(item.product.BASKETID, item?.product.TYPE)
         " />
+
+      <button v-if="item?.product.TYPE === 'scene' || item?.product.TYPE === 'umscene'" class="basket-item__goto-btn"
+        @click="goToObject">перейти</button>
     </div>
     <InfoPopUp v-if="isShowInfoPopup" @close="closeInfoPopup" v-bind="currentProductInfo" />
   </div>
@@ -344,6 +348,7 @@ import { propsLabel } from "./helper/basketMapper";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useConfigStore } from "@/store/appStore/useConfigStore";
 import { BASE_DOMAIN } from "@/utils/originalDomain";
+import { usePopupStore } from "@/store/appStore/popUpsStore";
 
 // const API_URL = ref('https://dev.vardek.online');
 const API_URL = ref(`https://${BASE_DOMAIN}`);
@@ -364,6 +369,7 @@ const currentProductInfo = ref({
 
 const props = defineProps<Props>();
 const basketStore = useBasketStore();
+const popupStore = usePopupStore();
 const appDataStore = useAppData();
 const quantity = ref(props.item.product.quantity);
 const {
@@ -771,6 +777,13 @@ function updateQuantity(id: string, type: string) {
   basketStore.updateQuantity(id, type, quantity);
 }
 
+const goToObject = () => {
+  popupStore.closePopup('basket');
+  if (props.item.product.TYPE === 'scene' || props.item.product.TYPE === 'umscene') {
+    useEventBus().emit('A:SelectFromBasket', { basketId: props.item.product.BASKETID });
+  }
+};
+
 const deleteProductInBusket = (id: string, type: string) => {
   console.log(id, type);
   // basketStore.removeFromBasket(id, type);
@@ -1067,7 +1080,7 @@ const isNonDelete = computed(() => {
 <style scoped lang="scss">
 .basket-item {
   display: grid;
-  grid-template-columns: 150px 1fr 75px 135px 135px 135px 50px;
+  grid-template-columns: 150px 1fr 75px 135px 135px 135px 135px;
   align-items: center;
   gap: 10px;
   padding: 15px 0;
@@ -1100,6 +1113,23 @@ const isNonDelete = computed(() => {
   //   right: 10px;
   //   top: 10px;
   // }
+  &__goto-btn {
+    width: 100%;
+    padding: 4px 0;
+    background: #ecebf1;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    color: $dark-grey;
+    cursor: pointer;
+    transition: background, color, 0.15s;
+
+    &:hover {
+      background: $dark-grey;
+      color:$black;
+    }
+  }
+
   &__picture {
     margin-bottom: auto;
     text-align: center;
@@ -1240,6 +1270,10 @@ const isNonDelete = computed(() => {
       top: 7px;
       left: 0;
     }
+  }
+  &__action{
+    display: flex;
+    gap: 1rem;
   }
 }
 </style>

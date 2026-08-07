@@ -72,16 +72,15 @@ const handleList = ref<THandlesItem[]>();
 
 onBeforeMount(() => {
   const model = modelState.getCurrentModel;
-  const { FASADE_TYPE, FASADE_POSITIONS } = model?.userData.PROPS.CONFIG;
+  const config = model?.userData?.PROPS?.CONFIG;
+  const FASADE_TYPE: any[] = config?.FASADE_TYPE ?? [];
+  const FASADE_POSITIONS: any[] = config?.FASADE_POSITIONS ?? [];
 
-  const filtered = FASADE_TYPE.filter((el) => el !== null);
   const indexed = FASADE_TYPE.findIndex((item) => item !== null);
   let index;
 
-  if (
-    FASADE_POSITIONS[0].FASADE_TYPE.findIndex((item) => item !== null) == -1
-  ) {
-    const tempIndex = FASADE_TYPE.findIndex((item) => item !== null);
+  const firstPositionTypes: any[] = FASADE_POSITIONS[0]?.FASADE_TYPE ?? [];
+  if (firstPositionTypes.findIndex((item) => item !== null) == -1) {
     if (props.index) {
       index = props.index;
     } else if (indexed > -1) {
@@ -90,7 +89,7 @@ onBeforeMount(() => {
       index = 0;
     }
   } else {
-    index = FASADE_POSITIONS[0].FASADE_TYPE.findIndex((item) => item !== null);
+    index = firstPositionTypes.findIndex((item) => item !== null);
   }
 
   if (index === -1) {

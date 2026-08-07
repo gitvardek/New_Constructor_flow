@@ -246,6 +246,39 @@ export class TrafficManager {
             this.removeFromRoom({ product: target });
         });
 
+        this.events.on('A:SelectFromBasket', (payload: any) => {
+            const basketId = payload?.basketId || payload?.BASKETID || payload?.id || payload;
+            let target: THREE.Object3D | undefined;
+
+            if (basketId && this.room && this.room.contant) {
+                const byId = (this.room.contant as any)[`${basketId}`];
+                if (byId) target = byId;
+            }
+
+            if (!target && basketId && this.scene) {
+                const byScene = this.scene.getObjectByProperty('id', basketId as any) as THREE.Object3D | undefined;
+                if (byScene) target = byScene;
+            }
+
+            if (!target) return;
+
+            this.boxHelper.removeBoxHelper();
+            this.boxHelper.addBoxHelper(target);
+
+            this.events.emit('A:FocusOnObject', target);
+
+            const box = new THREE.Box3().setFromObject(target);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            const projected = center.clone().project(this.camera as THREE.Camera);
+            target.userData.MOUSE_POSITION = {
+                x: projected.x * this._sizes.width * 0.5,
+                y: projected.y * this._sizes.height * -0.5,
+            };
+
+            this._currentObject = target;
+        });
+
     }
 
     removeVueEvents() {

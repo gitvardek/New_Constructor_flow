@@ -257,6 +257,7 @@ const resizeModel = (value: object) => {
 };
 
 const checkFillingConditions = (data, size) => {
+
   const { width, height, depth } = size;
   const extensionsPrepare = expressionsReplace(
     modelState._FILLING[data].CONDITIONS,

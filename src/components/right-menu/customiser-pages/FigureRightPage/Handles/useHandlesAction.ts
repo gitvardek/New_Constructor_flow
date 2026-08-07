@@ -4,7 +4,7 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
 import { MILLING_HANDLE_KEYS, additionalMillingKeys } from "@/Application/F-millings";
 import { TMillingListItem } from "@/store/appliction/useModelState";
-import { TConfig } from "@/types/types";
+import { TConfig, FasadeTextAlignAction } from "@/types/types";
 
 export type THandleType = "milling" | "integrate"
 
@@ -15,8 +15,12 @@ const useHandlesAction = () => {
     const getControllerData = (fasadeNdx:number) => {
         let result = [];
         const model = modelState.getCurrentModel;
+        const config = model?.userData?.PROPS?.CONFIG;
+        if (!config) return result;
 
-        const { FASADE_TYPE, FASADE_POSITIONS, ELEMENT_TYPE, MODULEGRID } = model?.userData.PROPS.CONFIG;
+        const { FASADE_TYPE, FASADE_POSITIONS, ELEMENT_TYPE, MODULEGRID } = config;
+        if (!FASADE_POSITIONS?.[fasadeNdx]) return result;
+
         const prepare = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE.map((el: number) => modelState._FASADE_TYPE[el]).filter(
             Boolean
         );
@@ -42,11 +46,13 @@ const useHandlesAction = () => {
             return result;
         }
 
+        return result;
     };
 
     const getIntegratedHandleControllerData = (data: TMillingListItem, fasadeNdx: number, type: THandleType) => {
         const model = modelState.getCurrentModel;
-        const { FASADE_POSITIONS, FASADE_PROPS } = model?.userData.PROPS.CONFIG as TConfig;
+        const { FASADE_POSITIONS, FASADE_PROPS } = (model?.userData?.PROPS?.CONFIG ?? {}) as TConfig;
+        if (!FASADE_POSITIONS || !FASADE_PROPS) return [];
         const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE
 
 
@@ -63,7 +69,7 @@ const useHandlesAction = () => {
 
             if (!curType && !curMillinType && ndx == 0) id = el.ID
 
-            return { action: el.CODE, id: el.ID, active: el.ID === id, name: el.NAME }
+            return { action: FasadeTextAlignAction[el.CODE as keyof typeof FasadeTextAlignAction], id: el.ID, active: el.ID === id, name: el.NAME }
         });
 
         return textList
@@ -80,6 +86,9 @@ const useHandlesAction = () => {
 
         const key = additionalMillingKeys[currentMilling] ?? currentMilling
         const map = MILLING_HANDLE_KEYS[key]
+
+        // console.log(key,map,type,'{{{{')
+         console.log(map[action],'action')
 
         if (type === "milling") {
             if (!key || !map) return;

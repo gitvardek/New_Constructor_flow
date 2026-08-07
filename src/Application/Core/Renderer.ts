@@ -115,6 +115,14 @@ export class Renderer {
 
     }
 
+    public setToneMapping(value) {
+        if (value) {
+            this.instance.toneMapping = THREE.LinearToneMapping;
+            return
+        }
+         this.instance.toneMapping = THREE.ReinhardToneMapping;
+    }
+
     setLableRenderer() {
         this.labelRenderer.setSize(this.sizes.width, this.sizes.height);
         this.labelRenderer.domElement.style.position = 'absolute';

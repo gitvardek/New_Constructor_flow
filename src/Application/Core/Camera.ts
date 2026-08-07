@@ -304,6 +304,36 @@ export class Camera {
         // })
     }
 
+    /**
+     * Перемещает камеру так, чтобы объект был в центре обзора.
+     * Направление взгляда сохраняется (XZ-угол от текущей позиции),
+     * дистанция вычисляется по размеру объекта и FOV камеры.
+     */
+    focusOnObject(object: THREE.Object3D): void {
+        const box = new THREE.Box3().setFromObject(object)
+        const center = new THREE.Vector3()
+        box.getCenter(center)
+        const size = new THREE.Vector3()
+        box.getSize(size)
+
+        const maxDim = Math.max(size.x, size.y, size.z)
+        const fovRad = ((this.instance as THREE.PerspectiveCamera).fov * Math.PI) / 180
+        const idealDistance = (maxDim / 2 / Math.tan(fovRad / 2)) * 2.0
+        const distance = Math.max(idealDistance, this.controls.minDistance)
+
+        // Сохраняем горизонтальное направление взгляда
+        const dir = new THREE.Vector3()
+            .subVectors(this.instance.position, this.controls.target)
+            .normalize()
+
+        const cameraPos = center.clone().addScaledVector(dir, distance)
+        cameraPos.y = center.y + size.y * 0.5
+
+        this.instance.position.copy(cameraPos)
+        this.controls.target.copy(center)
+        this.controls.update()
+    }
+
     vueEvents() {
 
         this.onSetPosition = (value) => {
@@ -311,6 +341,9 @@ export class Camera {
         }
 
         this.eventBuss.on('A:ChangeCameraPos', this.onSetPosition)
+        this.eventBuss.on('A:FocusOnObject', (object: THREE.Object3D) => {
+            this.focusOnObject(object)
+        })
 
     }
 

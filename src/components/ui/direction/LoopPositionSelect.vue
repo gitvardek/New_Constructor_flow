@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import Accordion from '@/components/ui/accordion/Accordion.vue'
 
 type TLoopOption = {
-  action: string
+  action: number
   id: number
   active: boolean
   name: string
@@ -14,7 +14,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'change', action: string, id: number): void
+  (e: 'change', action: number, id: number): void
 }>()
 
 const isOpen = ref(false)
@@ -22,14 +22,15 @@ const isOpen = ref(false)
 const activeOption = computed(() => props.options.find(o => o.active) ?? null)
 const localActiveId = ref<number | null>(activeOption.value?.id ?? null)
 
-watch(activeOption, (v) => { localActiveId.value = v?.id ?? null })
+watch(activeOption, (value) => { localActiveId.value = value?.id ?? null })
 
 const localLabel = computed(() =>
-  props.options.find(o => o.id === localActiveId.value)?.name ?? '—'
+  props.options.find(option => option.id === localActiveId.value)?.name ?? '—'
 )
 
 const onSelect = (opt: TLoopOption, toggle: () => void) => {
   localActiveId.value = opt.id
+  console.log(opt)
   emit('change', opt.action, opt.id)
   toggle()
 }

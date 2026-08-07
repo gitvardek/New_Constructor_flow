@@ -353,6 +353,8 @@ const onSelectShowcase = (data) => {
 };
 
 const onChangeMillingHandlePos = (action, id) => {
+  console.log(action, id, 'onChangeMillingHandlePos')
+
   const { FASADE_PROPS, FASADE_POSITIONS } = productData.value.PROPS.CONFIG;
   const fasadeProps = FASADE_PROPS[props.tabIndex];
   const isShowcase = FASADE_POSITIONS[props.tabIndex].SHOWCASE === 1;
