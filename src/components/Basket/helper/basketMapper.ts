@@ -287,7 +287,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
   const item = arr.map(el => {
 
-    const base = {
+    let base = {
       ID: el.product,
       PATH: false,
       MATERIAL_ID: el.material, // Материал полки
@@ -301,6 +301,15 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
       basketRenderPosition: el.basketRenderPosition || false,
     }
 
+    if (el.tsarga) {
+      const tsargaData = {
+        "PRODUCT_ID": el.tsarga.PRODUCT_ID,
+        "MATERIAL_ID": el.tsarga.MATERIAL_ID,
+        "WIDTH": el.tsarga.WIDTH,
+      }
+      base = { ...base, tsarga: tsargaData }
+    }
+
     if (el.type === 'section_partition') {
       return {
         ...base,
@@ -308,6 +317,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
         SECTION_ID: el.id, // ID товара полки
         UP_POSITION: el.ADDITIVES?.top?.additive_position,
         DOWN_POSITION: el.ADDITIVES?.bottom?.additive_position,
+
       }
     } else if (el.type === 'profile') {
       return {
@@ -319,13 +329,14 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
     }
     else {
       const fasadeData = createFasadeData(el)
-      return fasadeData ? { ...base, FASADE: fasadeData, VALUE: el.VALUE } : { ...base, VALUE: el.VALUE };
+      return fasadeData ? { ...base, FASADE: fasadeData, VALUE: el.VALUE, } : { ...base, VALUE: el.VALUE, };
     }
 
   })
 
   return item
 }
+
 function convertModuleToLegacyFormat(newModuleObject) {
   if (!newModuleObject?.CONFIG) {
     return {};

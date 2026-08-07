@@ -15,8 +15,12 @@ const useHandlesAction = () => {
     const getControllerData = (fasadeNdx: number) => {
         let result = [];
         const model = modelState.getCurrentModel;
+        const config = model?.userData?.PROPS?.CONFIG;
+        if (!config) return result;
 
-        const { FASADE_TYPE, FASADE_POSITIONS, ELEMENT_TYPE, MODULEGRID } = model?.userData.PROPS.CONFIG;
+        const { FASADE_TYPE, FASADE_POSITIONS, ELEMENT_TYPE, MODULEGRID } = config;
+        if (!FASADE_POSITIONS?.[fasadeNdx]) return result;
+
         const prepare = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE.map((el: number) => modelState._FASADE_TYPE[el]).filter(
             Boolean
         );
@@ -42,11 +46,13 @@ const useHandlesAction = () => {
             return result;
         }
 
+        return result;
     };
 
     const getIntegratedHandleControllerData = (data: TMillingListItem, fasadeNdx: number, type: THandleType) => {
         const model = modelState.getCurrentModel;
-        const { FASADE_POSITIONS, FASADE_PROPS } = model?.userData.PROPS.CONFIG as TConfig;
+        const { FASADE_POSITIONS, FASADE_PROPS } = (model?.userData?.PROPS?.CONFIG ?? {}) as TConfig;
+        if (!FASADE_POSITIONS || !FASADE_PROPS) return [];
         const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE
 
 
