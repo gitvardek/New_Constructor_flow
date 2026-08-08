@@ -66,6 +66,10 @@ const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 const { module, UMconstructor } = toRefs(props);
 const currentModule = ref(null);
 
+const hasMetalTsarga = computed(() =>
+  UMconstructor.value?.UM_STORE.getUMData()?.CONFIG?.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active) ?? false
+);
+
 let appReady = false;
 
 let app: Application,
@@ -616,6 +620,12 @@ const renderGrid = (_moduleGrid) => {
     } else {
       const pxHeight = getPixelHeight(section.height);
       // Отрисовываем секцию
+
+      if (!hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
+        section.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
+      } else {
+        delete section.tsarga;
+      }
 
       let sector = createSector({
         x: xOffset,
@@ -2059,8 +2069,6 @@ function onDragMove(event) {
 }
 
 function updateRowTsarga(row, isCellRoof = false) {
-
-  console.log(row)
   if (row.extras?.length > 0) {
     delete row.tsarga;
     row.extras.forEach((extra, key) => {
@@ -2068,13 +2076,15 @@ function updateRowTsarga(row, isCellRoof = false) {
         delete extra.tsarga;
       }
       else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-        extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0 };
+        extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0, type:'tsarga' };
       } else {
         delete extra.tsarga;
       }
     });
-  } else if (!isCellRoof && row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-    row.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0 };
+  } else if (isCellRoof && hasMetalTsarga.value) {
+    delete row.tsarga;
+  } else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+    row.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0, type:'tsarga' };
   } else {
     delete row.tsarga;
   }
@@ -2210,11 +2220,10 @@ function dragMove(event) {
       section.cells.forEach((cell, cellIdx) => {
         cell.width = section.width;
         cell.position.x = section.position.x;
-        // cells[0] и ячейки с cellsRows — царга не нужна; остальные — по ширине
-        if (cellIdx === 0 || cell.cellsRows?.length) {
+        if (cell.cellsRows?.length) {
           delete cell.tsarga;
         } else {
-          updateRowTsarga(cell);
+          updateRowTsarga(cell, cellIdx === 0);
         }
 
         if (cell.cellsRows?.length) {
@@ -2350,6 +2359,14 @@ function dragMove(event) {
         }
       });
 
+      if (!section.cells.length) {
+        if (!hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
+          section.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
+        } else {
+          delete section.tsarga;
+        }
+      }
+
       if (section.fillings?.length) {
         section.fillings.forEach((filling) => {
           if (filling.isVerticalItem) {
@@ -2369,11 +2386,10 @@ function dragMove(event) {
       nextSection.cells.forEach((cell, cellIdx) => {
         cell.width = nextSection.width;
         cell.position.x = nextSection.position.x;
-        // cells[0] и ячейки с cellsRows — царга не нужна; остальные — по ширине
-        if (cellIdx === 0 || cell.cellsRows?.length) {
+        if (cell.cellsRows?.length) {
           delete cell.tsarga;
         } else {
-          updateRowTsarga(cell);
+          updateRowTsarga(cell, cellIdx === 0);
         }
 
         if (cell.cellsRows?.length) {
@@ -2512,6 +2528,14 @@ function dragMove(event) {
           });
         }
       });
+
+      if (!nextSection.cells.length) {
+        if (!hasMetalTsarga.value && nextSection.width >= MIN_TSARGA_WIDTH && nextSection.width <= MAX_TSARGA_WIDTH) {
+          nextSection.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: nextSection.width, POSITION: nextSection.position.x, type: 'tsarga' };
+        } else {
+          delete nextSection.tsarga;
+        }
+      }
 
       if (nextSection.fillings?.length) {
         nextSection.fillings.forEach((filling) => {
@@ -3493,6 +3517,10 @@ watch(
     setModuleGrid(UMconstructor?.value?.UM_STORE.getUMGrid());
   },
 );
+
+watch(hasMetalTsarga, () => {
+  UMconstructor.value?.reset();
+});
 
 watch(
   () => UMconstructor?.value?.UM_STORE.getSelected("module"),

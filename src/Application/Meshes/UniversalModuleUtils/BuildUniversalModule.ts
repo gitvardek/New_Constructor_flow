@@ -11,6 +11,7 @@ import {
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from '@/store/appliction/useModelState';
 
+import { UM_PARAMS } from '@/components/UMconstructor/utils/Const';
 import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";
@@ -26,6 +27,7 @@ export class BuildUniversalModule extends BuildProduct {
 
     private readonly correctPosZGroups: number[] = [2166309]
     private readonly fillingOffset: number = 50
+    private readonly UM_PARAMS: ReturnType<typeof UM_PARAMS> = UM_PARAMS
 
     constructor(root: THREETypes.TApplication) {
         super(root);
@@ -156,7 +158,7 @@ export class BuildUniversalModule extends BuildProduct {
             })
             : null;
 
-        console.log(fasade,  'FFFFF')    
+        console.log(fasade, 'FFFFF')
 
         /** Добавляем стреки размеров */
         const arrows = this.addArrowSize({ object: body, props: PROPS })
@@ -298,6 +300,7 @@ export class BuildUniversalModule extends BuildProduct {
         }
 
         const isSlidingDoors = product_data.fasades ? 100 : 0
+        const hasMetalTsarga = PROPS.CONFIG.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active)
 
         product_data.sections.forEach((section, secIndex) => {
 
@@ -350,8 +353,8 @@ export class BuildUniversalModule extends BuildProduct {
             }
 
             cells?.forEach((cell, cellIndex) => {
-                console.log(cell.tsarga, 'cell')
-                if (cellIndex > 0)
+                if (cellIndex > 0) {
+                    const cellTsarga = getCellTopTsarga(cells[cellIndex - 1]);
                     curSection.fillings.push({  //Добавляем полку, как товар наполнения
                         position: new THREE.Vector3(cell.position.x, cell.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
                             curSection.position.z - (isSlidingDoors / 2 || 0)),
@@ -360,8 +363,12 @@ export class BuildUniversalModule extends BuildProduct {
                         id: curSection.fillings.length + 1,
                         material: PROPS.CONFIG.MODULE_COLOR,
                         type: 'shelf',
-                        tsarga: getCellTopTsarga(cells[cellIndex - 1])
+                        ...(cellTsarga ? { tsarga: cellTsarga } : {})
                     })
+                    // if (cellTsarga) {
+                    //     curSection.fillings.push(cellTsarga)
+                    // }
+                }
 
                 cell.cellsRows?.forEach((row, rowIndex) => {
                     if (rowIndex > 0)
@@ -377,8 +384,8 @@ export class BuildUniversalModule extends BuildProduct {
                         })
 
                     row.extras?.slice().sort((a, b) => a.position.y - b.position.y).forEach((extra, extraIndex, sortedExtras) => {
-                        console.log(extra.tsarga,  extra.number, 'extra')
-                        if (extraIndex > 0)
+                        if (extraIndex > 0) {
+                            const extraTsarga = sortedExtras[extraIndex - 1]?.tsarga;
                             curSection.fillings.push({  //Добавляем полку, как товар наполнения
                                 position: new THREE.Vector3(extra.position.x, extra.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
                                     curSection.position.z - (isSlidingDoors / 2 || 0)),
@@ -387,8 +394,13 @@ export class BuildUniversalModule extends BuildProduct {
                                 id: curSection.fillings.length + 1,
                                 material: PROPS.CONFIG.MODULE_COLOR,
                                 type: 'shelf',
-                                tsarga: sortedExtras[extraIndex - 1]?.tsarga
+                                ...(extraTsarga ? { tsarga: extraTsarga } : {})
                             })
+                            // if (extraTsarga) {
+                            //     curSection.fillings.push(extraTsarga)
+                            // }
+                        }
+
 
                         extra.fillings?.forEach((filling) => {
                             let z_pos = filling.type !== "any" ? product_data.depth - filling.size.z / 2 - (isSlidingDoors || 0) : curSection.position.z - (isSlidingDoors || 0)
@@ -455,6 +467,23 @@ export class BuildUniversalModule extends BuildProduct {
                     curSection.fillings.push(newFilling)
                 })
             })
+
+            if (!hasMetalTsarga) {
+                if (cells.length > 0) {
+                    const topCellTsarga = getCellTopTsarga(cells[cells.length - 1]);
+                    if (topCellTsarga) {
+                        curSection.fillings.push(topCellTsarga);
+                    }
+                } else if (section.width >= this.UM_PARAMS.MIN_TSARGA_WIDTH && section.width <= this.UM_PARAMS.MAX_TSARGA_WIDTH) {
+                    curSection.fillings.push({
+                        PRODUCT_ID: 4586184,
+                        MATERIAL_ID: 15826,
+                        WIDTH: section.width,
+                        POSITION: curSection.position.x,
+                        type: 'tsarga'
+                    });
+                }
+            }
 
             section.fillings?.forEach((filling) => {
                 let z_pos = filling.type !== "any" ? product_data.depth - filling.size.z / 2 - (isSlidingDoors || 0) : curSection.position.z - (isSlidingDoors || 0)
@@ -668,6 +697,22 @@ export class BuildUniversalModule extends BuildProduct {
             if (section.fillings?.length) {
 
                 section.fillings.map((filling) => {
+                    if (filling.type === 'tsarga') {
+                        const sizeModule = PROPS.CONFIG.SIZE;
+                        const shelfPosition = new THREE.Vector3(0, sizeModule.height / 2 - moduleThickness / 2 + baseOffset, 0);
+                        this.tsarga_builder.createFillingTsarga({
+                            shelfPosition,
+                            sizeModule,
+                            tsargaData: filling,
+                            PROPS,
+                            group,
+                            moduleThickness,
+                            isSlidingDoors,
+                            fillingSize: new THREE.Vector3(section.size.x, moduleThickness, section.size.z)
+                        });
+                        return;
+                    }
+
                     const productInfo = this._PRODUCTS[filling.product]
 
                     if (!productInfo)
@@ -725,8 +770,6 @@ export class BuildUniversalModule extends BuildProduct {
                             group.add(productFilling, edge, deffEdge)
 
 
-                            console.log(filling,  'fillingfilling')
-
                             if (filling.tsarga) {
                                 this.tsarga_builder.createFillingTsarga({
                                     shelfPosition: start_position.clone(),
@@ -762,6 +805,21 @@ export class BuildUniversalModule extends BuildProduct {
                         onLoad(productFilling, false)
                     }
                 })
+            }
+
+            if (section.tsarga) {
+                const sizeModule = PROPS.CONFIG.SIZE;
+                const shelfPosition = new THREE.Vector3(0, sizeModule.height / 2 - moduleThickness / 2 + baseOffset, 0);
+                this.tsarga_builder.createFillingTsarga({
+                    shelfPosition,
+                    sizeModule,
+                    tsargaData: section.tsarga,
+                    PROPS,
+                    group,
+                    moduleThickness,
+                    isSlidingDoors,
+                    fillingSize: new THREE.Vector3(section.size.x, moduleThickness, section.size.z)
+                });
             }
         })
 

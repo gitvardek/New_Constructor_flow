@@ -697,6 +697,8 @@ export default class UMconstructorClass {
                     })
                 }
 
+                this.SHELVES.recalcSectionTsarga(newSection);
+
                 return newSection
             }
 

@@ -303,13 +303,27 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
       basketRenderPosition: el.basketRenderPosition || false,
     }
 
-    if (el.tsarga) {
+    if (el.tsarga?.PRODUCT_ID) {
+      console.log('777')
       const tsargaData = {
         "PRODUCT_ID": el.tsarga.PRODUCT_ID,
         "MATERIAL_ID": el.tsarga.MATERIAL_ID,
         "WIDTH": el.tsarga.WIDTH,
+        "PRODUCT_TYPE": el.tsarga.type,
       }
-      base = { ...base, tsarga: tsargaData }
+      return tsargaData
+    }
+
+    if (el.type === 'tsarga') {
+      console.log('555')
+      const tsargaData = {
+        "PRODUCT_ID": el.PRODUCT_ID,
+        "MATERIAL_ID": el.MATERIAL_ID,
+        "WIDTH": el.WIDTH,
+        "PRODUCT_TYPE": el.type,
+      }
+      return tsargaData
+      // base = { ...base, tsarga: tsargaData }
     }
 
     if (el.type === 'section_partition') {

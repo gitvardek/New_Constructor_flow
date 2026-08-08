@@ -95,6 +95,10 @@ export class TsargaBuilder {
      * Создаёт 2 BoxGeometry (задний и передний край) под полкой в UM-модуле.
      * Вызывается из buildModulegrid для каждого filling с tsarga-объектом.
      */
+
+    /** TO DO
+     * Царги теперь не превязаны к полкам, нужно либо переписать логику  отрисовки, либо корректировать передачу  в филинги  BuildUniversalModule
+     */
     createFillingTsarga({
         shelfPosition,
         sizeModule,
