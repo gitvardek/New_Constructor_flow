@@ -13,7 +13,7 @@ import {
 } from "vue";
 import { Application, Container, Graphics, Text } from "pixi.js";
 import { Shape, ShapeAdjuster, Section } from "./../utils/PixiMethods.ts";
-import { UM_PARAMS, UM_DRAWERS_IDS } from "./../utils/Const.ts";
+import { UM_PARAMS, UM_DRAWERS_IDS, WITH_TSARGA } from "./../utils/Const.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import * as THREE from "three";
 import { LOOPSIDE, TSelectedCell } from "./../types/UMtypes.ts";
@@ -66,6 +66,19 @@ const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 const { module, UMconstructor } = toRefs(props);
 const currentModule = ref(null);
 
+const hasTsargaProduct = computed(() =>
+  WITH_TSARGA.includes(module.value?.productID)
+);
+
+const effectiveMaxSectionWidth = computed(() =>
+  hasTsargaProduct.value ? UM_PARAMS.MAX_SECTION_WIDTH_TSARGA : UM_PARAMS.MAX_SECTION_WIDTH
+);
+
+const hasMetalTsarga = computed(() =>
+  hasTsargaProduct.value &&
+  (UMconstructor.value?.UM_STORE.getUMData()?.CONFIG?.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active) ?? false)
+);
+
 let appReady = false;
 
 let app: Application,
@@ -102,7 +115,6 @@ const {
   MIN_FASADE_HEIGHT,
   MIN_FASADE_WIDTH,
   MIN_SLIDE_DOOR_WIDTH,
-  MAX_SECTION_WIDTH,
   MIN_TSARGA_WIDTH,
   MAX_TSARGA_WIDTH,
 } = UM_PARAMS;
@@ -614,6 +626,12 @@ const renderGrid = (_moduleGrid) => {
     } else {
       const pxHeight = getPixelHeight(section.height);
       // Отрисовываем секцию
+
+      if (hasTsargaProduct.value && !hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
+        section.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
+      } else {
+        delete section.tsarga;
+      }
 
       let sector = createSector({
         x: xOffset,
@@ -1239,7 +1257,7 @@ const createFilling = (data, sector) => {
 
   // Для внутренних ящиков (15222587, 2166308) ограничиваем перемещение
   // пределами фасада внешнего ящика. Constraint хранится в data.innerDrawerConstraint (мм).
-  const OUTER_DRAWER_IDS = [5726092, 6560591]
+
   let customSectorBounds = undefined
   let containerShape = undefined
 
@@ -1744,6 +1762,8 @@ const toggleSectionColor = (
     section?.sector ||
     props.module.sector;
 
+  console.log(sector, 'sector')
+
   sections[0].children.forEach((elem) => {
     if (elem.children[1]) elem.children[1].visible = false;
     // elem.children[0].alpha = 1;
@@ -2049,21 +2069,27 @@ function onDragMove(event) {
 }
 
 function updateRowTsarga(row, isCellRoof = false) {
-
+  if (!hasTsargaProduct.value) {
+    delete row.tsarga;
+    row.extras?.forEach(extra => delete extra.tsarga);
+    return;
+  }
   if (row.extras?.length > 0) {
     delete row.tsarga;
     row.extras.forEach((extra, key) => {
-      if (isCellRoof && key == 0) {
+      if (isCellRoof && key == 0 && hasMetalTsarga.value) {
         delete extra.tsarga;
       }
       else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-        extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0 };
+        extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0, type: 'tsarga' };
       } else {
         delete extra.tsarga;
       }
     });
-  } else if (!isCellRoof && row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-    row.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0 };
+  } else if (isCellRoof && hasMetalTsarga.value) {
+    delete row.tsarga;
+  } else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
+    row.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0, type: 'tsarga' };
   } else {
     delete row.tsarga;
   }
@@ -2181,17 +2207,16 @@ function dragMove(event) {
 
       let nextSection = next || prev;
 
-      if (newLeftWidth > MAX_SECTION_WIDTH) {
-        deltaMm -= newLeftWidth - MAX_SECTION_WIDTH;
-        newLeftWidth = MAX_SECTION_WIDTH;
+      if (newLeftWidth > effectiveMaxSectionWidth.value) {
+        deltaMm -= newLeftWidth - effectiveMaxSectionWidth.value;
+        newLeftWidth = effectiveMaxSectionWidth.value;
         newRightWidth = startRightWidth - deltaMm;
-      } else if (newRightWidth > MAX_SECTION_WIDTH) {
-        deltaMm += newRightWidth - MAX_SECTION_WIDTH;
-        newRightWidth = MAX_SECTION_WIDTH;
+      } else if (newRightWidth > effectiveMaxSectionWidth.value) {
+        deltaMm += newRightWidth - effectiveMaxSectionWidth.value;
+        newRightWidth = effectiveMaxSectionWidth.value;
         newLeftWidth = startLeftWidth + deltaMm;
       }
 
-      fillings
       let delta1 = section.width - newLeftWidth;
       let deltaPos1 = next ? -delta1 / 2 : delta1 / 2;
       section.width = newLeftWidth;
@@ -2200,11 +2225,10 @@ function dragMove(event) {
       section.cells.forEach((cell, cellIdx) => {
         cell.width = section.width;
         cell.position.x = section.position.x;
-        // cells[0] и ячейки с cellsRows — царга не нужна; остальные — по ширине
-        if (cellIdx === 0 || cell.cellsRows?.length) {
+        if (cell.cellsRows?.length) {
           delete cell.tsarga;
         } else {
-          updateRowTsarga(cell);
+          updateRowTsarga(cell, cellIdx === 0);
         }
 
         if (cell.cellsRows?.length) {
@@ -2340,6 +2364,14 @@ function dragMove(event) {
         }
       });
 
+      if (!section.cells.length) {
+        if (hasTsargaProduct.value && !hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
+          section.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
+        } else {
+          delete section.tsarga;
+        }
+      }
+
       if (section.fillings?.length) {
         section.fillings.forEach((filling) => {
           if (filling.isVerticalItem) {
@@ -2359,11 +2391,10 @@ function dragMove(event) {
       nextSection.cells.forEach((cell, cellIdx) => {
         cell.width = nextSection.width;
         cell.position.x = nextSection.position.x;
-        // cells[0] и ячейки с cellsRows — царга не нужна; остальные — по ширине
-        if (cellIdx === 0 || cell.cellsRows?.length) {
+        if (cell.cellsRows?.length) {
           delete cell.tsarga;
         } else {
-          updateRowTsarga(cell);
+          updateRowTsarga(cell, cellIdx === 0);
         }
 
         if (cell.cellsRows?.length) {
@@ -2502,6 +2533,14 @@ function dragMove(event) {
           });
         }
       });
+
+      if (!nextSection.cells.length) {
+        if (hasTsargaProduct.value && !hasMetalTsarga.value && nextSection.width >= MIN_TSARGA_WIDTH && nextSection.width <= MAX_TSARGA_WIDTH) {
+          nextSection.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: nextSection.width, POSITION: nextSection.position.x, type: 'tsarga' };
+        } else {
+          delete nextSection.tsarga;
+        }
+      }
 
       if (nextSection.fillings?.length) {
         nextSection.fillings.forEach((filling) => {
@@ -2851,7 +2890,7 @@ const adjustSectionSize = (
   const minValue =
     dimension === "width" ? MIN_SECTION_WIDTH : MIN_SECTION_HEIGHT;
   newValue = Math.max(Math.floor(newValue / props.step) * props.step, minValue);
-  if (dimension === "width") newValue = Math.min(newValue, MAX_SECTION_WIDTH);
+  if (dimension === "width") newValue = Math.min(newValue, effectiveMaxSectionWidth.value);
   let calcValue;
 
   const module = props.module;
@@ -3076,7 +3115,6 @@ const adjustSectionSize = (
           );
         }
 
-        // Минимальная высота ячейки
         if (!Number.isFinite(curMin) || curMin < MIN_SECTION_HEIGHT) curMin = MIN_SECTION_HEIGHT;
         if (!Number.isFinite(nextMin) || nextMin < MIN_SECTION_HEIGHT) nextMin = MIN_SECTION_HEIGHT;
 
@@ -3482,6 +3520,10 @@ watch(
     setModuleGrid(UMconstructor?.value?.UM_STORE.getUMGrid());
   },
 );
+
+watch(hasMetalTsarga, () => {
+  UMconstructor.value?.reset();
+});
 
 watch(
   () => UMconstructor?.value?.UM_STORE.getSelected("module"),

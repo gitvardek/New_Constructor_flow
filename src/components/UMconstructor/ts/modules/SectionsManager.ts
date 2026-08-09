@@ -2,7 +2,7 @@
 
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA } from "@/components/UMconstructor/utils/Const.ts";
 import * as THREE from "three";
 import {
     GridModule,
@@ -106,6 +106,7 @@ export default class SectionsManager {
 
         this.selectCell(0, null)
         this.scope.debounce("postResetSelect", () => this.selectCell(0, null), 150)
+
     };
 
     updateSectionWidth({
@@ -118,11 +119,15 @@ export default class SectionsManager {
             secIndex: number,
             value: number,
         }) {
+
         this.scope.debounce("updateSectionWidth", () => {
 
             const newValue = value;
             let adjustedValue;
-            const { MIN_SECTION_WIDTH, MAX_SECTION_WIDTH } = this.scope.CONST
+            const { MIN_SECTION_WIDTH } = this.scope.CONST
+            const MAX_SECTION_WIDTH = WITH_TSARGA.includes(grid.productID)
+                ? this.scope.CONST.MAX_SECTION_WIDTH_TSARGA
+                : this.scope.CONST.MAX_SECTION_WIDTH;
 
             // Обновляем выбранную секцию для визуального отображения
             this.selectCell(secIndex, null);
@@ -139,7 +144,7 @@ export default class SectionsManager {
 
             if (adjustedValue) {
                 if (adjustedValue > MAX_SECTION_WIDTH) {
-                    this.scope.callAlert("warning", `Ширина секции превышает допустимый предел ${MAX_SECTION_WIDTH}! Уменьшите ширину секции!`)
+                    this.scope.callAlert("warning", `Ширина секции превышает допустимый предел! Уменьшите ширину секции!`)
                     return;
                 }
 
@@ -151,11 +156,11 @@ export default class SectionsManager {
                 let delta1 = section.width - adjustedValue
                 let newNeighbourWidth = nextSection.width + delta1
                 if (newNeighbourWidth < MIN_SECTION_WIDTH) {
-                    this.scope.callAlert("warning", `Ширина соседней секции станет меньше допустимого минимума ${MIN_SECTION_WIDTH}! Уменьшите ширину секции!`)
+                    this.scope.callAlert("warning", `Ширина соседней секции станет меньше допустимого минимума! Уменьшите ширину секции!`)
                     return;
                 }
                 if (newNeighbourWidth > MAX_SECTION_WIDTH) {
-                    this.scope.callAlert("warning", `Ширина соседней секции превысит допустимый предел ${MAX_SECTION_WIDTH}! Увеличьте ширину секции!`)
+                    this.scope.callAlert("warning", `Ширина соседней секции превысит допустимый предел! Увеличьте ширину секции!`)
                     return;
                 }
 
@@ -465,7 +470,9 @@ export default class SectionsManager {
     };
 
     deleteSection(grid: GridModule = this.scope.UM_STORE.getUMGrid(), secIndex: number, reset: boolean = false) {
-        const { MAX_SECTION_WIDTH } = this.scope.CONST
+        const MAX_SECTION_WIDTH = WITH_TSARGA.includes(grid.productID)
+            ? this.scope.CONST.MAX_SECTION_WIDTH_TSARGA
+            : this.scope.CONST.MAX_SECTION_WIDTH;
         const current = grid.sections[secIndex];
         const next = grid.sections[secIndex + 1];
         const prev = grid.sections[secIndex - 1];
@@ -475,7 +482,7 @@ export default class SectionsManager {
             : current.width + prev.width + grid.moduleThickness;
 
         if (combinedWidth > MAX_SECTION_WIDTH) {
-            this.scope.callAlert("warning", `Суммарная ширина новой секции превысит допустимый предел ${MAX_SECTION_WIDTH}! Уменьшите ширину секций!`)
+            this.scope.callAlert("warning", `Суммарная ширина новой секции превысит допустимый предел! Уменьшите ширину секций!`)
             return;
         }
 
@@ -506,8 +513,6 @@ export default class SectionsManager {
             this.scope.FILLINGS.updateSecAfterDelete(grid, secIndex);
         }
 
-        this.selectCell(0, 0)
-
         // Пересчёт царги для объединённой секции
         this.scope.SHELVES.recalcSectionTsarga(next || prev);
 
@@ -517,7 +522,7 @@ export default class SectionsManager {
         this.selectCell(0, null)
         this.scope.debounce("postResetSelect", () => this.selectCell(0, null), 150)
     };
-    
+
     autoSelectDeepest = (grid: GridModule = this.scope.UM_STORE.getUMGrid()) => {
 
         const sec = 0;

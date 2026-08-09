@@ -2,7 +2,7 @@
 
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
 import type { Application } from "@/Application/Core/Application.ts";
-import { UM_PARAMS } from "./../utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA } from "./../utils/Const.ts";
 import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManager.ts";
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
 import SidecolorsManager from "@/components/UMconstructor/ts/modules/SidecolorsManager.ts";
@@ -73,7 +73,6 @@ export default class UMconstructorClass {
         this.OPTIONS = new OptionsManager(this)
         this.DEBOUNCES = {}
     }
-
 
     selectCell(type: constructorMode, newSelected: TSelectedCell) {
         this.UM_STORE.setSelected(type, newSelected);
@@ -480,8 +479,10 @@ export default class UMconstructorClass {
         const {
             MIN_SECTION_HEIGHT,
             MIN_SECTION_WIDTH,
-            MAX_SECTION_WIDTH,
         } = this.CONST;
+        const MAX_SECTION_WIDTH = WITH_TSARGA.includes(grid.productID)
+            ? this.CONST.MAX_SECTION_WIDTH_TSARGA
+            : this.CONST.MAX_SECTION_WIDTH;
 
         let moduleGrid = saveUMGrid(grid)
 
@@ -698,6 +699,8 @@ export default class UMconstructorClass {
                     })
                 }
 
+                this.SHELVES.recalcSectionTsarga(newSection);
+
                 return newSection
             }
 
@@ -761,6 +764,7 @@ export default class UMconstructorClass {
             }
 
             module = this.FASADES.updateFasades(module)
+            this.FILLINGS.cleanupOversizedFillings(module)
         }
         catch (error) {
             console.error(error)

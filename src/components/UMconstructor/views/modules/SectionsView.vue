@@ -6,9 +6,10 @@ import "@/components/UMconstructor/styles/UM.scss"
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import CounterInput from "@/components/ui/inputs/CounterInput.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { onMounted, ref, toRefs, watch } from "vue";
+import { computed, onMounted, ref, toRefs, watch } from "vue";
 import { TSelectedCell, GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
+import { UM_PARAMS, WITH_TSARGA } from "@/components/UMconstructor/utils/Const.ts";
 
 const props = defineProps({
   module: {
@@ -28,6 +29,12 @@ const props = defineProps({
 const { module, mode, UMconstructor } = toRefs(props)
 const selectedCell = ref<TSelectedCell>(<TSelectedCell>{})
 const step = ref<number>(1)
+
+const maxSectionWidth = computed(() =>
+  WITH_TSARGA.includes(module.value?.productID)
+    ? UM_PARAMS.MAX_SECTION_WIDTH_TSARGA
+    : UM_PARAMS.MAX_SECTION_WIDTH
+);
 
 const getCellMaxHeight = (section: any, cellIndex: number): number => {
   const cell = section.cells[cellIndex]
@@ -138,9 +145,8 @@ onMounted(() => {
                                 secIndex,
                                 value: value ?? UMconstructor.CONST.MIN_SECTION_WIDTH
                               })" :type="'number'" :inputClass="'actions-input'" :modelValue="section.width"
-                                :min="UMconstructor.CONST.MIN_SECTION_WIDTH"
-                                :max="UMconstructor.CONST.MAX_SECTION_WIDTH" :disabled="module.sections.length < 2"
-                                :step="step" :isUM="true" />
+                                :min="UMconstructor.CONST.MIN_SECTION_WIDTH" :max="maxSectionWidth"
+                                :disabled="module.sections.length < 2" :step="step" :isUM="true" />
 
                             </div>
                           </div>
@@ -353,7 +359,7 @@ onMounted(() => {
                       <p class="actions-title">Ширина</p>
                       <div :class="['actions-input--container']">
                         <input type="number" :step="step" :min="UMconstructor.CONST.MIN_SECTION_WIDTH"
-                          :max="UMconstructor.CONST.MAX_SECTION_WIDTH" class="actions-input" :value="section.width"
+                          :max="maxSectionWidth" class="actions-input" :value="section.width"
                           :disabled="module.sections.length < 2" @input="
                             UMconstructor.SECTIONS.updateSectionWidth({
                               grid: module,

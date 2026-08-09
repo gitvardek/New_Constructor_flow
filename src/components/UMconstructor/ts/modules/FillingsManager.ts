@@ -15,7 +15,7 @@ import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
 type TCollisionExclusionRule = {
     prop: string
     values: any[],
-    collisionWith: string,
+    collisionWith: string
     condition?: (grid: GridModule) => boolean
 }
 
@@ -262,6 +262,7 @@ export default class FillingsManager {
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
 
+        console.log(_product, '_product')
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
             const minDepth = _product.SIZE_EDIT_DEPTH?.length
@@ -294,8 +295,6 @@ export default class FillingsManager {
             this.scope.callAlert("warning", "Необходимо выбрать секцию");
             return;
         }
-
-        console.log(sec, 'sec')
 
         if (this.OUTER_DRAWER_IDS.includes(productGroupID) && cell !== null) {
             const currentCell = currentSection.cells?.[cell]
@@ -445,7 +444,7 @@ export default class FillingsManager {
             outerContainer.fillings.push(fillingObject)
             this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
             this.scope.reset(grid)
-            this.selectCell(outerSec, outerCell, outerRow, outerExtra, outerContainer.fillings.length - 1)
+            this.selectCell(outerSec, outerCell, outerRow, outerExtra, null)
             return
         }
 
@@ -454,6 +453,11 @@ export default class FillingsManager {
         const currentExtra = currentRow?.extras?.[extra];
 
         let currentModuleSegment = currentExtra || currentRow || currentCell || currentSection
+
+        if (currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
+            this.scope.callAlert("error", `Нельзя добавить наполнение: ширина области (${currentModuleSegment.width} мм) превышает ${UM_PARAMS.FILLINGS_MAX_WIDTH} мм`)
+            return;
+        }
 
         if (row === null && cell === null && sec === null && extra === null) {
             this.scope.callAlert("info", "Пожалуйста, выберите секцию для добавления наполнения")
@@ -709,8 +713,9 @@ export default class FillingsManager {
         }
 
         this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
+
         this.scope.reset(grid)
-        this.selectCell(sec, cell, row, extra, currentFillingsArray.length - 1);
+        this.selectCell(sec, cell, row, extra, null);
     };
 
     clearFillings(
@@ -763,10 +768,7 @@ export default class FillingsManager {
         }
     ) {
         const curSection = grid.sections[sec];
-        if (!curSection) {
-            this.scope.callAlert("warning", "Необходимо выбрать секцию");
-            return null;
-        }
+        if (!curSection) return null;
         const curCell = curSection.cells?.[cell];
         const curRow = curCell?.cellsRows?.[row];
         const curExtra = curRow?.extras?.[extra];
@@ -1373,7 +1375,6 @@ export default class FillingsManager {
         this.scope.reset(grid);
     }
 
-
     private reconcileInnerDrawers(
         secIndex: number,
         outerDrawer: FillingObject,
@@ -1411,22 +1412,26 @@ export default class FillingsManager {
 
         if (!innerIndices.length) return
 
-        // Кумулятивная высота: стек снизу вверх.
-        // Ящики с высокими индексами — наверху стека, их удаляем первыми при нехватке места.
+        const { INNER_DRAWER_GAP, INNER_DRAWER_FACADE_GAP } = UM_PARAMS
+
+        // Кумулятивная высота и число валидных ящиков (не помеченных на принудительное удаление)
         let totalHeight = 0
+        let count = 0
         for (const raw of innerIndices) {
-            if (raw >= 0) totalHeight += fillings[raw].height
+            if (raw >= 0) { totalHeight += fillings[raw].height; count++ }
         }
 
         const toDelete: number[] = []
 
-        // Удаляем с верха стека (конец массива innerIndices) пока не влезет
+        // Удаляем с верха стека (конец массива innerIndices) пока не влезет с учётом отступов
         let i = innerIndices.length - 1
-        while ((totalHeight > newAvailableHeight || innerIndices[i] < 0) && i >= 0) {
+        while (i >= 0) {
+            const requiredSpace = totalHeight + count * INNER_DRAWER_GAP + INNER_DRAWER_FACADE_GAP
+            if (requiredSpace <= newAvailableHeight && innerIndices[i] >= 0) break
             const raw = innerIndices[i]
             const realIdx = raw < 0 ? -raw - 1 : raw
             toDelete.push(realIdx)
-            if (raw >= 0) totalHeight -= fillings[raw].height
+            if (raw >= 0) { totalHeight -= fillings[raw].height; count-- }
             i--
         }
 
@@ -1438,23 +1443,27 @@ export default class FillingsManager {
 
         const removed = toDelete.length > 0
 
-        // Обновляем constraint и переукладываем оставшиеся ящики снизу вверх
+        // Обновляем constraint и переукладываем оставшиеся ящики от тела вверх с отступами
         const newStartY = outerDrawer.position.y - newAvailableHeight
-        let stackY = newStartY
         const currentFillings = container.fillings
-        for (let idx = 0; idx < currentFillings.length; idx++) {
-            const f = currentFillings[idx]
-            if (!this.INNER_DRAWER_IDS.includes(f.productGroupID)) continue
-            if (outerDrawer.innerDrawerGroupId &&
-                f.innerDrawerConstraint?.outerDrawerGroupId !== outerDrawer.innerDrawerGroupId) continue
 
+        const remaining = currentFillings.filter(f =>
+            this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
+            (!outerDrawer.innerDrawerGroupId ||
+                f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
+        )
+        // Сортируем по убыванию Y: ближайший к телу (большее Y) — первым
+        remaining.sort((a, b) => b.position.y - a.position.y)
+
+        let stackBottom = outerDrawer.position.y - INNER_DRAWER_GAP
+        for (const f of remaining) {
             if (f.innerDrawerConstraint) {
                 f.innerDrawerConstraint.height = newAvailableHeight
                 f.innerDrawerConstraint.startY = newStartY
             }
             if (f.position) {
-                f.position.y = stackY
-                stackY += f.height
+                f.position.y = stackBottom - f.height
+                stackBottom -= f.height + INNER_DRAWER_GAP
             }
         }
 
@@ -1463,6 +1472,8 @@ export default class FillingsManager {
         }
     }
 
+    // После удаления секции decrementирует поле sec у всех fillings/fasadesDrawers,
+    // которые ссылались на секции с индексом > deletedSecIndex
     updateSecAfterDelete(grid: GridModule, deletedSecIndex: number) {
         const patchSec = (obj: any) => {
             if (obj && obj.sec > deletedSecIndex) obj.sec--
@@ -1485,5 +1496,36 @@ export default class FillingsManager {
                 })
             })
         })
+    }
+
+    cleanupOversizedFillings(grid: GridModule) {
+        const maxWidth = UM_PARAMS.FILLINGS_MAX_WIDTH;
+        const deleteOversized = (
+            segment: any,
+            secIndex: number,
+            cellIndex: number | null,
+            rowIndex: number | null,
+            extraIndex: number | null,
+        ) => {
+            if (!segment?.fillings?.length || segment.width <= maxWidth) return;
+            // Удаляем в обратном порядке чтобы не сбивать индексы
+            for (let i = segment.fillings.length - 1; i >= 0; i--) {
+                if (segment.fillings[i]?.type !== 'tsarga') {
+                    this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false);
+                }
+            }
+        };
+        grid.sections?.forEach((section, secIndex) => {
+            deleteOversized(section, secIndex, null, null, null);
+            section.cells?.forEach((cell, cellIndex) => {
+                deleteOversized(cell, secIndex, cellIndex, null, null);
+                cell.cellsRows?.forEach((row, rowIndex) => {
+                    deleteOversized(row, secIndex, cellIndex, rowIndex, null);
+                    row.extras?.forEach((extra, extraIndex) => {
+                        deleteOversized(extra, secIndex, cellIndex, rowIndex, extraIndex);
+                    });
+                });
+            });
+        });
     }
 }
