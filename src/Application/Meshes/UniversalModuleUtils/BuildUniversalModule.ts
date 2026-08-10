@@ -11,7 +11,7 @@ import {
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from '@/store/appliction/useModelState';
 
-import { UM_PARAMS } from '@/components/UMconstructor/utils/Const';
+import { UM_PARAMS, WITH_TSARGA } from '@/components/UMconstructor/utils/Const';
 import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";
@@ -300,7 +300,8 @@ export class BuildUniversalModule extends BuildProduct {
         }
 
         const isSlidingDoors = product_data.fasades ? 100 : 0
-        const hasMetalTsarga = PROPS.CONFIG.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active)
+        const hasMetalTsarga = WITH_TSARGA.includes(product_data.productID) &&
+            PROPS.CONFIG.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active)
 
         product_data.sections.forEach((section, secIndex) => {
 
@@ -340,8 +341,9 @@ export class BuildUniversalModule extends BuildProduct {
                     let foundTsarga;
                     cell.cellsRows.some(row => {
                         if (row.extras?.length) {
+                            // sort ascending by y → sorted[0] = верхний extra (наименьший y = ближайший к крышке)
                             const sorted = [...row.extras].sort((a, b) => a.position.y - b.position.y);
-                            foundTsarga = sorted[sorted.length - 1]?.tsarga;
+                            foundTsarga = sorted[0]?.tsarga;
                         } else {
                             foundTsarga = row.tsarga;
                         }

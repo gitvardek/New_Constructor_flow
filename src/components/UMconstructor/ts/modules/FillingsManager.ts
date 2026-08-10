@@ -454,6 +454,11 @@ export default class FillingsManager {
 
         let currentModuleSegment = currentExtra || currentRow || currentCell || currentSection
 
+        if (currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
+            this.scope.callAlert("error", `Нельзя добавить наполнение: ширина области (${currentModuleSegment.width} мм) превышает ${UM_PARAMS.FILLINGS_MAX_WIDTH} мм`)
+            return;
+        }
+
         if (row === null && cell === null && sec === null && extra === null) {
             this.scope.callAlert("info", "Пожалуйста, выберите секцию для добавления наполнения")
             return;
@@ -1491,5 +1496,36 @@ export default class FillingsManager {
                 })
             })
         })
+    }
+
+    cleanupOversizedFillings(grid: GridModule) {
+        const maxWidth = UM_PARAMS.FILLINGS_MAX_WIDTH;
+        const deleteOversized = (
+            segment: any,
+            secIndex: number,
+            cellIndex: number | null,
+            rowIndex: number | null,
+            extraIndex: number | null,
+        ) => {
+            if (!segment?.fillings?.length || segment.width <= maxWidth) return;
+            // Удаляем в обратном порядке чтобы не сбивать индексы
+            for (let i = segment.fillings.length - 1; i >= 0; i--) {
+                if (segment.fillings[i]?.type !== 'tsarga') {
+                    this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false);
+                }
+            }
+        };
+        grid.sections?.forEach((section, secIndex) => {
+            deleteOversized(section, secIndex, null, null, null);
+            section.cells?.forEach((cell, cellIndex) => {
+                deleteOversized(cell, secIndex, cellIndex, null, null);
+                cell.cellsRows?.forEach((row, rowIndex) => {
+                    deleteOversized(row, secIndex, cellIndex, rowIndex, null);
+                    row.extras?.forEach((extra, extraIndex) => {
+                        deleteOversized(extra, secIndex, cellIndex, rowIndex, extraIndex);
+                    });
+                });
+            });
+        });
     }
 }

@@ -8,7 +8,7 @@ import {
     GridCellsRow,
     GridRowExtra,
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA } from "@/components/UMconstructor/utils/Const.ts";
 
 export default class ShelvesManager {
     scope: UMconstructorClass
@@ -19,6 +19,10 @@ export default class ShelvesManager {
 
     private get metalTsargaActive(): boolean {
         return this.scope.UM_STORE.getUMData()?.CONFIG?.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active) ?? false;
+    }
+
+    private hasTsargaProduct(grid: GridModule): boolean {
+        return WITH_TSARGA.includes(grid.productID);
     }
 
     addCell(
@@ -98,16 +102,16 @@ export default class ShelvesManager {
                 newCell.height += deltaLastCell;
             }
 
-            // Новые ячейки получают царгу по ширине
-            if (newCell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && newCell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
+            // Новые ячейки получают царгу по ширине (только для продуктов с царгой)
+            if (this.hasTsargaProduct(grid) && newCell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && newCell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
                 newCell.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: newCell.width, POSITION: newCell.position.x, type: 'tsarga' };
             }
 
             section.cells.splice(cellIndex || 0, 0, newCell);
         }
 
-        // Восстанавливаем tsarga базовой ячейки (она сместилась вглубь массива)
-        if (cell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && cell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
+        // Восстанавливаем tsarga базовой ячейки (только для продуктов с царгой)
+        if (this.hasTsargaProduct(grid) && cell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && cell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
             cell.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x, type: 'tsarga' };
         } else {
             delete cell.tsarga;
@@ -868,6 +872,18 @@ export default class ShelvesManager {
 
     recalcSectionTsarga(section) {
         const { MIN_TSARGA_WIDTH, MAX_TSARGA_WIDTH } = UM_PARAMS;
+        const productID = this.scope.UM_STORE.getUMGrid()?.productID;
+        if (!WITH_TSARGA.includes(productID)) {
+            delete section.tsarga;
+            section.cells?.forEach(cell => {
+                delete cell.tsarga;
+                cell.cellsRows?.forEach(row => {
+                    delete row.tsarga;
+                    row.extras?.forEach(extra => delete extra.tsarga);
+                });
+            });
+            return;
+        }
         const metalTsarga = this.metalTsargaActive;
         // section.cells должен быть уже отсортирован по убыванию position.y (cells[0] = верхняя = крыша)
         section.cells.forEach((cell, cellIdx) => {
@@ -879,7 +895,7 @@ export default class ShelvesManager {
                     if (row.extras?.length > 0) {
                         delete row.tsarga;
                         row.extras.forEach((extra, extraIdx) => {
-                            if (isCellRoof && extraIdx === 0) {
+                            if (isCellRoof && extraIdx === 0 && metalTsarga) {
                                 delete extra.tsarga;
                             } else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
                                 extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position.x, type: 'tsarga' };

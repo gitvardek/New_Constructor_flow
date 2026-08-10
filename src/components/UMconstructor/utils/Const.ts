@@ -4,8 +4,12 @@ export const UM_PARAMS = {
     CONST_MAX_AREA_WIDTH: 800, // Максимальная ширина области в пикселях
     CONST_MAX_AREA_HEIGHT: 500, // Максимальная высота области в пикселях
     MIN_SECTION_WIDTH: 114, // Минимальная ширина секции
+
     MIN_SECTION_HEIGHT: 100, // Минимальная высота секции
-    MAX_SECTION_WIDTH: 1200, // Максимальная ширина секции 900
+    MAX_SECTION_WIDTH: 900, // Максимальная ширина секции без царги
+
+    MAX_SECTION_WIDTH_TSARGA: 1200,  // Максимальная ширина секции с царгой
+
     MIN_FASADE_HEIGHT: 360,
     MIN_FASADE_WIDTH: 126,
     MAX_FASADE_WIDTH: 600,
@@ -18,11 +22,14 @@ export const UM_PARAMS = {
     BACKGROUND_COLOR: "#FFFFFF",
     HOLE_OFFSET: 10,// Отступ от краёв
     SECTOR_PADDING: 0,
+
     RASPASHNOY_ID: 1942652, // ID распашного шкафа
-    MIN_TSARGA_WIDTH: 700, // Минимальная ширина царги
+
+    MIN_TSARGA_WIDTH: 900, // Минимальная ширина царги
     MAX_TSARGA_WIDTH: 1200,  // Максимальная ширина царги
     INNER_DRAWER_GAP: 30,        // Отступ от тела внешнего ящика и между внутренними ящиками (мм)
-    INNER_DRAWER_FACADE_GAP: 45  // Отступ от крайнего внутреннего ящика до фасада внешнего ящика (мм)
+    INNER_DRAWER_FACADE_GAP: 45,  // Отступ от крайнего внутреннего ящика до фасада внешнего ящика (мм)
+    FILLINGS_MAX_WIDTH: 900//Максимальная ширина секции при которой можно добавить наполнение
 }
 
 export const UM_DRAWERS_IDS = {
@@ -30,3 +37,5 @@ export const UM_DRAWERS_IDS = {
     OUTER: [5726092, 6560591],
     UNIVERSAL: [15309443]
 }
+
+export const WITH_TSARGA = [3954672];

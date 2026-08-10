@@ -13,7 +13,7 @@ import {
 } from "vue";
 import { Application, Container, Graphics, Text } from "pixi.js";
 import { Shape, ShapeAdjuster, Section } from "./../utils/PixiMethods.ts";
-import { UM_PARAMS, UM_DRAWERS_IDS } from "./../utils/Const.ts";
+import { UM_PARAMS, UM_DRAWERS_IDS, WITH_TSARGA } from "./../utils/Const.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import * as THREE from "three";
 import { LOOPSIDE, TSelectedCell } from "./../types/UMtypes.ts";
@@ -66,8 +66,17 @@ const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 const { module, UMconstructor } = toRefs(props);
 const currentModule = ref(null);
 
+const hasTsargaProduct = computed(() =>
+  WITH_TSARGA.includes(module.value?.productID)
+);
+
+const effectiveMaxSectionWidth = computed(() =>
+  hasTsargaProduct.value ? UM_PARAMS.MAX_SECTION_WIDTH_TSARGA : UM_PARAMS.MAX_SECTION_WIDTH
+);
+
 const hasMetalTsarga = computed(() =>
-  UMconstructor.value?.UM_STORE.getUMData()?.CONFIG?.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active) ?? false
+  hasTsargaProduct.value &&
+  (UMconstructor.value?.UM_STORE.getUMData()?.CONFIG?.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active) ?? false)
 );
 
 let appReady = false;
@@ -106,7 +115,6 @@ const {
   MIN_FASADE_HEIGHT,
   MIN_FASADE_WIDTH,
   MIN_SLIDE_DOOR_WIDTH,
-  MAX_SECTION_WIDTH,
   MIN_TSARGA_WIDTH,
   MAX_TSARGA_WIDTH,
 } = UM_PARAMS;
@@ -621,7 +629,7 @@ const renderGrid = (_moduleGrid) => {
       const pxHeight = getPixelHeight(section.height);
       // Отрисовываем секцию
 
-      if (!hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
+      if (hasTsargaProduct.value && !hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
         section.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
       } else {
         delete section.tsarga;
@@ -2069,10 +2077,15 @@ function onDragMove(event) {
 }
 
 function updateRowTsarga(row, isCellRoof = false) {
+  if (!hasTsargaProduct.value) {
+    delete row.tsarga;
+    row.extras?.forEach(extra => delete extra.tsarga);
+    return;
+  }
   if (row.extras?.length > 0) {
     delete row.tsarga;
     row.extras.forEach((extra, key) => {
-      if (isCellRoof && key == 0) {
+      if (isCellRoof && key == 0 && hasMetalTsarga.value) {
         delete extra.tsarga;
       }
       else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
@@ -2202,13 +2215,13 @@ function dragMove(event) {
 
       let nextSection = next || prev;
 
-      if (newLeftWidth > MAX_SECTION_WIDTH) {
-        deltaMm -= newLeftWidth - MAX_SECTION_WIDTH;
-        newLeftWidth = MAX_SECTION_WIDTH;
+      if (newLeftWidth > effectiveMaxSectionWidth.value) {
+        deltaMm -= newLeftWidth - effectiveMaxSectionWidth.value;
+        newLeftWidth = effectiveMaxSectionWidth.value;
         newRightWidth = startRightWidth - deltaMm;
-      } else if (newRightWidth > MAX_SECTION_WIDTH) {
-        deltaMm += newRightWidth - MAX_SECTION_WIDTH;
-        newRightWidth = MAX_SECTION_WIDTH;
+      } else if (newRightWidth > effectiveMaxSectionWidth.value) {
+        deltaMm += newRightWidth - effectiveMaxSectionWidth.value;
+        newRightWidth = effectiveMaxSectionWidth.value;
         newLeftWidth = startLeftWidth + deltaMm;
       }
 
@@ -2360,7 +2373,7 @@ function dragMove(event) {
       });
 
       if (!section.cells.length) {
-        if (!hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
+        if (hasTsargaProduct.value && !hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
           section.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
         } else {
           delete section.tsarga;
@@ -2530,7 +2543,7 @@ function dragMove(event) {
       });
 
       if (!nextSection.cells.length) {
-        if (!hasMetalTsarga.value && nextSection.width >= MIN_TSARGA_WIDTH && nextSection.width <= MAX_TSARGA_WIDTH) {
+        if (hasTsargaProduct.value && !hasMetalTsarga.value && nextSection.width >= MIN_TSARGA_WIDTH && nextSection.width <= MAX_TSARGA_WIDTH) {
           nextSection.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: nextSection.width, POSITION: nextSection.position.x, type: 'tsarga' };
         } else {
           delete nextSection.tsarga;
@@ -2887,7 +2900,7 @@ const adjustSectionSize = (
   const minValue =
     dimension === "width" ? MIN_SECTION_WIDTH : MIN_SECTION_HEIGHT;
   newValue = Math.max(Math.floor(newValue / props.step) * props.step, minValue);
-  if (dimension === "width") newValue = Math.min(newValue, MAX_SECTION_WIDTH);
+  if (dimension === "width") newValue = Math.min(newValue, effectiveMaxSectionWidth.value);
   let calcValue;
 
   const module = props.module;

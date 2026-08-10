@@ -2,7 +2,7 @@
 
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA } from "@/components/UMconstructor/utils/Const.ts";
 import * as THREE from "three";
 import {
     GridModule,
@@ -125,7 +125,10 @@ export default class SectionsManager {
 
             const newValue = value;
             let adjustedValue;
-            const { MIN_SECTION_WIDTH, MAX_SECTION_WIDTH } = this.scope.CONST
+            const { MIN_SECTION_WIDTH } = this.scope.CONST
+            const MAX_SECTION_WIDTH = WITH_TSARGA.includes(grid.productID)
+                ? this.scope.CONST.MAX_SECTION_WIDTH_TSARGA
+                : this.scope.CONST.MAX_SECTION_WIDTH;
 
             // Обновляем выбранную секцию для визуального отображения
             this.selectCell(secIndex, null);
@@ -468,7 +471,9 @@ export default class SectionsManager {
     };
 
     deleteSection(grid: GridModule = this.scope.UM_STORE.getUMGrid(), secIndex: number, reset: boolean = false) {
-        const { MAX_SECTION_WIDTH } = this.scope.CONST
+        const MAX_SECTION_WIDTH = WITH_TSARGA.includes(grid.productID)
+            ? this.scope.CONST.MAX_SECTION_WIDTH_TSARGA
+            : this.scope.CONST.MAX_SECTION_WIDTH;
         const current = grid.sections[secIndex];
         const next = grid.sections[secIndex + 1];
         const prev = grid.sections[secIndex - 1];

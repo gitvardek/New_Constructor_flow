@@ -286,15 +286,14 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
       }
     }
   }
-
-  const item = arr.map(el => {
+  const item = arr.flatMap(el => {
 
     let base = {
       ID: el.product,
       PATH: false,
-      MATERIAL_ID: el.material, // Материал полки
+      MATERIAL_ID: el.material,
       PRODUCT_TYPE: el.type,
-      SIZE: { // Размеры
+      SIZE: {
         width: el.size?.x || 0,
         height: el.size?.y || 0,
         depth: el.size?.z || 0
@@ -303,51 +302,49 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
       basketRenderPosition: el.basketRenderPosition || false,
     }
 
+    // Формируем основной объект по остальным условиям
+    let mainItem
+    if (el.type === 'section_partition') {
+      mainItem = {
+        ...base,
+        PARTITION_ID: el.product,
+        SECTION_ID: el.id,
+        UP_POSITION: el.ADDITIVES?.top?.additive_position,
+        DOWN_POSITION: el.ADDITIVES?.bottom?.additive_position,
+      }
+    } else if (el.type === 'profile') {
+      mainItem = {
+        ...base,
+        VALUE: el.VALUE,
+        MATERIAL_ID: el.isProfile.COLOR,
+        SIZE: el.size?.x || 0
+      }
+    } else if (el.type === 'tsarga') {
+      mainItem = {
+        "PRODUCT_ID": el.PRODUCT_ID,
+        "MATERIAL_ID": el.MATERIAL_ID,
+        "WIDTH": el.WIDTH,
+        "PRODUCT_TYPE": el.type,
+      }
+    } else {
+      const fasadeData = createFasadeData(el)
+      mainItem = fasadeData
+        ? { ...base, FASADE: fasadeData, VALUE: el.VALUE }
+        : { ...base, VALUE: el.VALUE }
+    }
+
+    // Если есть tsarga — возвращаем ДВА объекта
     if (el.tsarga?.PRODUCT_ID) {
-      console.log('777')
       const tsargaData = {
         "PRODUCT_ID": el.tsarga.PRODUCT_ID,
         "MATERIAL_ID": el.tsarga.MATERIAL_ID,
         "WIDTH": el.tsarga.WIDTH,
         "PRODUCT_TYPE": el.tsarga.type,
       }
-      return tsargaData
+      return [tsargaData, mainItem]
     }
 
-    if (el.type === 'tsarga') {
-      console.log('555')
-      const tsargaData = {
-        "PRODUCT_ID": el.PRODUCT_ID,
-        "MATERIAL_ID": el.MATERIAL_ID,
-        "WIDTH": el.WIDTH,
-        "PRODUCT_TYPE": el.type,
-      }
-      return tsargaData
-      // base = { ...base, tsarga: tsargaData }
-    }
-
-    if (el.type === 'section_partition') {
-      return {
-        ...base,
-        PARTITION_ID: el.product,
-        SECTION_ID: el.id, // ID товара полки
-        UP_POSITION: el.ADDITIVES?.top?.additive_position,
-        DOWN_POSITION: el.ADDITIVES?.bottom?.additive_position,
-
-      }
-    } else if (el.type === 'profile') {
-      return {
-        ...base,
-        VALUE: el.VALUE,
-        MATERIAL_ID: el.isProfile.COLOR,
-        SIZE: el.size?.x || 0
-      }
-    }
-    else {
-      const fasadeData = createFasadeData(el)
-      return fasadeData ? { ...base, FASADE: fasadeData, VALUE: el.VALUE, } : { ...base, VALUE: el.VALUE, };
-    }
-
+    return [mainItem]
   })
 
   return item
