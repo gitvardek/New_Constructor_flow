@@ -57,6 +57,8 @@ export class ModelsBuilder {
             "#Z#": depth,
         })
 
+        // const format = this.getFileFormat(model.file)
+
         return new Promise((resolve, reject) => {
 
             this.resources.startLoading(path, model.model_type || 'DAE', (file: any) => {
@@ -79,14 +81,14 @@ export class ModelsBuilder {
                     z: corr_z ? parseFloat(corr_z) : 0
                 }
 
-                if (model.model_type.length === 0) {
+                // if (model.model_type.length === 0) {
 
-                    normolized.traverse(child => {
-                        if (child instanceof THREE.Mesh) {
-                            child.rotation.x = -Math.PI * 0.5;
-                        }
-                    })
-                }
+                //     normolized.traverse(child => {
+                //         if (child instanceof THREE.Mesh) {
+                //             child.rotation.x = -Math.PI * 0.5;
+                //         }
+                //     })
+                // }
 
                 normolized.name = 'MODEL'
                 if (PROD) {
@@ -333,6 +335,10 @@ export class ModelsBuilder {
         targetGroup.userData.obb = obb;
 
         targetGroup.updateMatrixWorld(true);
+    }
+
+    private getFileFormat(path) {
+        return path.split('.').pop().toLowerCase();
     }
 }
 
