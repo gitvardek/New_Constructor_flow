@@ -319,6 +319,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
       }
     } else if (el.type === 'tsarga') {
       mainItem = {
+        "ID": el.ID,
         "PRODUCT_ID": el.PRODUCT_ID,
         "MATERIAL_ID": el.MATERIAL_ID,
         "WIDTH": el.WIDTH,
@@ -334,6 +335,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
     // Если есть tsarga — возвращаем ДВА объекта
     if (el.tsarga?.PRODUCT_ID) {
       const tsargaData = {
+        "ID": el.tsarga.ID,
         "PRODUCT_ID": el.tsarga.PRODUCT_ID,
         "MATERIAL_ID": el.tsarga.MATERIAL_ID,
         "WIDTH": el.tsarga.WIDTH,
