@@ -286,21 +286,21 @@ function CatalogApp() {
 		});
 
 		toastr.options = {
-			"closeButton": true,
-			"debug": false,
-			"newestOnTop": false,
-			"progressBar": false,
-			"positionClass": "toast-bottom-right",
-			"preventDuplicates": true,
-			"onclick": null,
-			"showDuration": "300",
-			"hideDuration": "1000",
-			"timeOut": "3000",
-			"extendedTimeOut": "1000",
-			"showEasing": "swing",
-			"hideEasing": "linear",
-			"showMethod": "fadeIn",
-			"hideMethod": "fadeOut"
+			closeButton: true,
+			debug: false,
+			newestOnTop: false,
+			progressBar: false,
+			positionClass: "toast-bottom-right",
+			preventDuplicates: true,
+			onclick: null,
+			// showDuration: "300",
+			// hideDuration: "1000",
+			timeOut: 3500,
+			extendedTimeOut: 200,
+			showEasing: "swing",
+			hideEasing: "linear",
+			showMethod: "fadeIn",
+			hideMethod: "fadeOut",
 		}
 
 	}
@@ -1290,6 +1290,24 @@ function CatalogApp() {
 	};
 
 	this.catalogInitEvent = function (ElementGetPriceFunc, addToBasketFunc) {
+
+		toastr.options = {
+			closeButton: true,
+			// debug: false,
+			// newestOnTop: true,
+			// progressBar: false,
+			positionClass: "toast-bottom-right",
+			// preventDuplicates: true,
+			// onclick: null,
+			// // showDuration: "300",
+			// // hideDuration: "1000",
+			timeOut: 3500,
+			extendedTimeOut: 200,
+			showEasing: "swing",
+			hideEasing: "linear",
+			showMethod: "fadeIn",
+			hideMethod: "fadeOut",
+		}
 
 		// Глобальный флаг, чтобы регистрировать document-обработчики только один раз на все переходы
 		if (typeof window !== 'undefined') {
