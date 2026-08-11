@@ -284,25 +284,6 @@ function CatalogApp() {
 				}
 			}
 		});
-
-		toastr.options = {
-			closeButton: true,
-			debug: false,
-			newestOnTop: false,
-			progressBar: false,
-			positionClass: "toast-bottom-right",
-			preventDuplicates: true,
-			onclick: null,
-			// showDuration: "300",
-			// hideDuration: "1000",
-			timeOut: 3500,
-			extendedTimeOut: 200,
-			showEasing: "swing",
-			hideEasing: "linear",
-			showMethod: "fadeIn",
-			hideMethod: "fadeOut",
-		}
-
 	}
 
 	// this.catalogAddToBasket = function (e) {

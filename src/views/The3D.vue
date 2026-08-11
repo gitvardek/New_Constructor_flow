@@ -371,7 +371,7 @@ const screenPrint = async () => {
     console.log(`Начинаем создание скриншотов для ${allRooms.length} комнат`);
 
     // Сохраняем текущую комнату, чтобы восстановить её после создания скриншотов
-    const currentRoomId = roomContantData.value?.roomId || null;
+    const currentRoomId = roomState.getRoomId || null;
 
     // Сохраняем текущий режим чертежа
     const currentDrawingMode = menuStore.getDrowModeValue;
@@ -471,8 +471,20 @@ const screenPrint = async () => {
 
     // Восстанавливаем исходную комнату, если она была
     if (currentRoomId) {
+      const restorePromise = waitForSceneLoad();
       eventBus.emit("A:Load", currentRoomId);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await restorePromise;
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Пересобираем mainConstructor с актуальными Three.js id текущей сцены,
+      // иначе basket UI покажет устаревшие BASKETID и удаление не найдёт объект в contant.
+      const currentSceneData = VerdekConstructor.value?.getAction?.()?.save?.();
+      if (currentSceneData && roomContantData.value) {
+        roomContantData.value.setRoomContantDataForBasket(currentSceneData);
+        basketStore.addFromScene();
+        await basketStore.syncBasket();
+      }
     }
 
     // Восстанавливаем исходный режим чертежа
