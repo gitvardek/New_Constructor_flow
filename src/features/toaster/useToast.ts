@@ -1,6 +1,7 @@
 import toastr from 'toastr'
 import 'toastr/build/toastr.min.css'
 
+
 toastr.options = {
   closeButton: true,
   debug: false,
@@ -65,5 +66,6 @@ export const useToast = () => {
     error: (msg: string, target?: string | HTMLElement) => show('error', msg, target),
     info: (msg: string, target?: string | HTMLElement) => show('info', msg, target),
     warning: (msg: string, target?: string | HTMLElement) => show('warning', msg, target),
+    clear: () => toastr.clear()
   }
 }

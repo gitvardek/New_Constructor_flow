@@ -30,11 +30,55 @@ export const usePrint = () => {
         }
       });
 
+      // Собираем ручки из корзины и добавляем как отдельные каталожные позиции
+      // (зеркало логики useBasketStore.countHandles + transformCountHandles)
+      const collectHandleIds = (items: any[]): number[] => {
+        const ids: number[] = [];
+        items.forEach(item => {
+          if (item?.HANDLES) {
+            item.HANDLES.forEach((h: any) => {
+              const hId = h?.ID ?? h?.id;
+              if (hId && hId !== 69920) ids.push(hId);
+            });
+          } else {
+            item.PROPS?.FASADE?.forEach((fasade: any) => {
+              const hId = fasade?.HANDLES?.ID ?? fasade?.HANDLES?.id;
+              if (hId && hId !== 69920) ids.push(hId);
+            });
+          }
+        });
+        return ids;
+      };
+
+      const makeHandleItems = (ids: number[]) => {
+        const countMap = new Map<number, number>();
+        ids.forEach(id => countMap.set(id, (countMap.get(id) || 0) + 1));
+        return Array.from(countMap.entries()).map(([id, qty]) => ({
+          BASKETID: `handle-${id}-${Date.now()}`,
+          PRODUCT: id,
+          PROPS: { ID: id, IGNORE_SIZE: 0, NOT_DISCOUNT: 1.25 },
+          QUANTITY: qty,
+          TYPE: "catalog",
+        }));
+      };
+
+      // Сохраняем текущее состояние корзины до синха всех комнат
+      const savedBasketData = basketStore.basketData;
+
       if (mergedBasketItems.length > 0) {
-        await basketStore.syncBasketMulti(mergedBasketItems);
+        const handleIds = collectHandleIds(mergedBasketItems);
+        const itemsToSync = handleIds.length > 0
+          ? [...mergedBasketItems, ...makeHandleItems(handleIds)]
+          : mergedBasketItems;
+        await basketStore.syncBasketMulti(itemsToSync);
       }
 
+      // Снимаем данные для печати из объединённой корзины всех комнат
       const basketData = basketStore.basketData;
+
+      // Немедленно восстанавливаем корзину текущей комнаты —
+      // до открытия диалога печати, чтобы связь 3D-сцены и корзины не терялась
+      basketStore.updateBasket(savedBasketData as any);
       
       // Получаем данные приложения для доступа к названиям цветов
       const appDataStore = useAppData();
@@ -75,6 +119,26 @@ export const usePrint = () => {
             if (fasade.PALETTE) rows.push(`Палитра ${n}: ${appData?.PALETTE?.[fasade.PALETTE]?.NAME || fasade.PALETTE}`);
             if (fasade.GLASS) rows.push(`Стекло ${n}: ${appData?.GLASS?.[fasade.GLASS]?.NAME || fasade.GLASS}`);
             if (fasade.PATINA) rows.push(`Патина ${n}: ${appData?.PATINA?.[fasade.PATINA]?.NAME || fasade.PATINA}`);
+            if (fasade.HANDLES) {
+              console.log(fasade.HANDLES,'<<<<HANDLES>>>>')
+
+              const hId = fasade.HANDLES.ID ?? fasade.HANDLES.id;
+              if (hId && hId !== 69920) {
+                const name = appData?.CATALOG?.PRODUCTS?.[hId]?.NAME;
+                if (name) rows.push(`Ручка ${n}: ${name}`);
+              }
+            }
+          });
+        }
+
+        // HANDLES для UM-продуктов (top-level, рядом с PROPS)
+        if (Array.isArray(product?.HANDLES) && product.HANDLES.length > 0) {
+          product.HANDLES.forEach((handle: any, i: number) => {
+            const hId = handle.id ?? handle.ID;
+            if (hId && hId !== 69920) {
+              const name = appData?.CATALOG?.PRODUCTS?.[hId]?.NAME;
+              if (name) rows.push(`Ручка ${i + 1}: ${name}`);
+            }
           });
         }
 
@@ -582,6 +646,10 @@ export const usePrint = () => {
         document.head.removeChild(printStyles);
         document.body.removeChild(printDiv);
         window.removeEventListener('afterprint', cleanup);
+
+        // Восстанавливаем корзину текущей комнаты — syncBasketMulti перезаписал
+        // basketData объединёнными данными всех комнат, что рвёт связь с 3D-сценой
+        basketStore.syncBasket();
       });
 
     } catch (error) {

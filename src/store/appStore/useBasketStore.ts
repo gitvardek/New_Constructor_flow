@@ -23,15 +23,17 @@ const countHandles = (items: any[]): number[] => {
   items.forEach(item => {
     if (item?.HANDLES) {
       item.HANDLES.forEach(handle => {
-        if (handle?.ID && handle.ID !== 69920) {
-          handles.push(handle.ID)
+        const hId = handle?.ID ?? handle?.id
+        if (hId && hId !== 69920) {
+          handles.push(hId)
         }
       })
     }
     else {
       item.PROPS?.FASADE?.forEach(facade => {
-        if (facade.HANDLES?.ID && facade.HANDLES?.ID !== 69920) {
-          handles.push(facade.HANDLES.ID)
+        const hId = facade.HANDLES?.ID ?? facade.HANDLES?.id
+        if (hId && hId !== 69920) {
+          handles.push(hId)
         }
       })
     }
