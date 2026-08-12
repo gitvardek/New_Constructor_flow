@@ -60,6 +60,10 @@ const props = defineProps({
     type: Array,
     default: [],
   },
+  noGlass: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const { getIntegratedHandleControllerData, setIntegratedHandleAction } =
@@ -259,7 +263,7 @@ const onSelectMaterial = (data) => {
 
   /** @Стёкла */
   glassList.value = modelState.getCurrentGlassData;
-  isGlassExist.value = glassList.value.length > 0 && haveShowcase || glassList.value.length > 0 && data.MATERIAL?.includes("Alum");
+  isGlassExist.value = !props.noGlass && (glassList.value.length > 0 && haveShowcase || glassList.value.length > 0 && data.MATERIAL?.includes("Alum"));
 
   /** @Тип_фасада */
   isFasadeTypesExist.value = modelState.getCurrentFasadeTypesData.length > 0;
@@ -715,7 +719,7 @@ const prepareData = () => {
   }
 
   /** @Стёкла */
-  if (haveShowcase && glassData.length > 0 || glassData.length > 0 && ALUM !== null) {
+  if (!props.noGlass && (haveShowcase && glassData.length > 0 || glassData.length > 0 && ALUM !== null)) {
     glassList.value = glassData;
     isGlassExist.value = glassData.length > 0;
   }
