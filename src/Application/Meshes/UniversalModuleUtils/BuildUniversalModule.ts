@@ -478,8 +478,8 @@ export class BuildUniversalModule extends BuildProduct {
                     }
                 } else if (section.width >= this.UM_PARAMS.MIN_TSARGA_WIDTH && section.width <= this.UM_PARAMS.MAX_TSARGA_WIDTH) {
                     curSection.fillings.push({
-                        PRODUCT_ID: 4586184,
-                        ID: 4586184,
+                        PRODUCT_ID: 15335121,
+                        ID: 15335121,
                         MATERIAL_ID: 15826,
                         WIDTH: section.width,
                         POSITION: curSection.position.x,
