@@ -297,18 +297,27 @@ const selectOption = (
   palette: Object = false,
 ) => {
   switch (currentOption.value) {
-    case "MODULE_COLOR":
+    case "MODULE_COLOR": {
+      const oldModuleColor = objectData.value.CONFIG["MODULE_COLOR"];
       objectData.value.CONFIG[currentOption.value] = value.ID;
       module.value.moduleColor = value.ID;
       module.value.moduleThickness = value.DEPTH;
 
-      if (!objectData.value.CONFIG["LEFTSIDECOLOR"]?.COLOR)
-        module.value.leftWallThickness = value.DEPTH;
+      const updateSideWall = (side: "LEFTSIDECOLOR" | "RIGHTSIDECOLOR", wallKey: "leftWallThickness" | "rightWallThickness") => {
+        const cfg = objectData.value.CONFIG[side];
+        if (!cfg) return;
+        module.value[wallKey] = value.DEPTH;
+        // Сброс собственного цвета стенки при смене цвета корпуса (стенка следует корпусу)
+        if (cfg.COLOR) {
+          objectData.value.CONFIG[side] = { COLOR: false };
+        }
+      };
 
-      if (!objectData.value.CONFIG["RIGHTSIDECOLOR"]?.COLOR)
-        module.value.rightWallThickness = value.DEPTH;
+      updateSideWall("LEFTSIDECOLOR", "leftWallThickness");
+      updateSideWall("RIGHTSIDECOLOR", "rightWallThickness");
 
       break;
+    }
     case "PROFILECOLOR":
       objectData.value.CONFIG["PROFILECOLOR"] = value
         ? value.ID || value
@@ -551,7 +560,8 @@ onBeforeUnmount(() => {
         <div v-else>
           <AdvanceCorpusMaterialRedactor class="color--left-select-item" v-if="getCurrentRedactor" :key="currentOption"
             :element-data="getCurrentValue" :element-index="currentOption" :material-list="materialList"
-            :fasade-size="elementSize" @parent-callback="selectOption" />
+            :fasade-size="elementSize" :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR'"
+            @parent-callback="selectOption" />
           <CorpusMaterialRedactor v-else class="color--left-select-item" :is2Dconstructor="true"
             :material-list="materialList" :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
             @parent-callback="selectOption" />

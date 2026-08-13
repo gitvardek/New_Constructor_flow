@@ -104,7 +104,7 @@ export default class ShelvesManager {
 
             // Новые ячейки получают царгу по ширине (только для продуктов с царгой)
             if (this.hasTsargaProduct(grid) && newCell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && newCell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
-                newCell.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: newCell.width, POSITION: newCell.position.x, type: 'tsarga' };
+                newCell.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: newCell.width, POSITION: newCell.position.x, type: 'tsarga' };
             }
 
             section.cells.splice(cellIndex || 0, 0, newCell);
@@ -112,7 +112,7 @@ export default class ShelvesManager {
 
         // Восстанавливаем tsarga базовой ячейки (только для продуктов с царгой)
         if (this.hasTsargaProduct(grid) && cell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && cell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
-            cell.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x, type: 'tsarga' };
+            cell.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x, type: 'tsarga' };
         } else {
             delete cell.tsarga;
         }
@@ -898,7 +898,7 @@ export default class ShelvesManager {
                             if (isCellRoof && extraIdx === 0 && metalTsarga) {
                                 delete extra.tsarga;
                             } else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-                                extra.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position.x, type: 'tsarga' };
+                                extra.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position.x, type: 'tsarga' };
                             } else {
                                 delete extra.tsarga;
                             }
@@ -906,7 +906,7 @@ export default class ShelvesManager {
                     } else if (isCellRoof && metalTsarga) {
                         delete row.tsarga;
                     } else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
-                        row.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position.x, type: 'tsarga' };
+                        row.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position.x, type: 'tsarga' };
                     } else {
                         delete row.tsarga;
                     }
@@ -914,7 +914,7 @@ export default class ShelvesManager {
             } else if (isCellRoof && metalTsarga) {
                 delete cell.tsarga;
             } else if (cell.width >= MIN_TSARGA_WIDTH && cell.width <= MAX_TSARGA_WIDTH) {
-                cell.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x, type:'tsarga' };
+                cell.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x, type:'tsarga' };
             } else {
                 delete cell.tsarga;
             }
@@ -922,7 +922,7 @@ export default class ShelvesManager {
 
         if (!metalTsarga && section.cells.length === 0) {
             if (section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
-                section.tsarga = { PRODUCT_ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
+                section.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
             } else {
                 delete section.tsarga;
             }
