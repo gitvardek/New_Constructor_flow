@@ -82,6 +82,7 @@ export const useOptions = () => {
 
         if (values) {
             OPTIONS.forEach(opt => {
+
                 const commonSection = hasCommonNumbers(opt.section, curOpt.section)
 
                 const checkAvailable =
@@ -126,6 +127,19 @@ export const useOptions = () => {
                     opt.active = false;
                 }
             });
+        }
+
+
+        // Обязательная группа — не снимаем, если эта опция единственная активная
+        if (!values && curOpt.close === '1') {
+            const groupActives = OPTIONS.filter(opt =>
+                opt.close === '1' &&
+                opt.active &&
+                hasCommonNumbers(opt.section, curOpt.section)
+            );
+            if (groupActives.length <= 1) {
+                return curOpt.active;
+            }
         }
 
         curOpt.active = values;
@@ -238,6 +252,7 @@ export const useOptions = () => {
         const curOptions = PROPS.CONFIG.OPTIONS
 
         let filtered = []
+
         const curOptionsList = curOptions
             .map(el => {
                 if (!options[el.id]) return
@@ -270,8 +285,6 @@ export const useOptions = () => {
             if (item.CONTANT.length > 0) return item
 
         })
-
-
 
         return filtered
     }
@@ -377,7 +390,8 @@ export const useOptions = () => {
 
                     contant.forEach(_item2 => {
                         if (_item2.CLOSE_OTHER_OPTIONS === '1' &&
-                            (_item2.IBLOCK_SECTION_ID?.[0] === optionCurrent.IBLOCK_SECTION_ID?.[0])) {
+                            optionCurrent.IBLOCK_SECTION_ID?.[0] !== undefined &&
+                            _item2.IBLOCK_SECTION_ID?.[0] === optionCurrent.IBLOCK_SECTION_ID?.[0]) {
                             closeOptions.push(_item2)
                         }
                     });
@@ -398,9 +412,9 @@ export const useOptions = () => {
                 if (optionCurrent.close === '1') {
                     let closeOptions = []
 
-                    global.forEach(_item2 => {
+                    props.forEach(_item2 => {
                         if (_item2.close === '1' &&
-                            (_item2.section === optionCurrent.section)) {
+                            hasCommonNumbers(_item2.section, optionCurrent.section)) {
                             closeOptions.push(_item2)
                         }
                     });
