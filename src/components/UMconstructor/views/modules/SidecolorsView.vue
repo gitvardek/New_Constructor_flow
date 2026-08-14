@@ -283,6 +283,9 @@ const setEccentricOption = (props = { PROPS: false, side: false }) => {
     PROPS.CONFIG.eccentricOption = true;
   } else {
     delete PROPS.CONFIG.eccentricOption;
+    // Снимаем принудительную активацию 8390271 — боковые стенки убраны
+    const opt = PROPS.CONFIG.OPTIONS?.find((item) => +item.id === 8390271);
+    if (opt) opt.active = false;
   }
 
   let option = PROPS.CONFIG.OPTIONS.find((item) => +item.id === 8390271);
@@ -316,6 +319,7 @@ const selectOption = (
       updateSideWall("LEFTSIDECOLOR", "leftWallThickness");
       updateSideWall("RIGHTSIDECOLOR", "rightWallThickness");
 
+      setEccentricOption({ PROPS: objectData.value, side: false });
       break;
     }
     case "PROFILECOLOR":
@@ -560,8 +564,9 @@ onBeforeUnmount(() => {
         <div v-else>
           <AdvanceCorpusMaterialRedactor class="color--left-select-item" v-if="getCurrentRedactor" :key="currentOption"
             :element-data="getCurrentValue" :element-index="currentOption" :material-list="materialList"
-            :fasade-size="elementSize" :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR'"
-            @parent-callback="selectOption" />
+            :fasade-size="elementSize"
+            :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR'"
+            @parent-callback="selectOption" @select_material="emit('eccentric-action')" />
           <CorpusMaterialRedactor v-else class="color--left-select-item" :is2Dconstructor="true"
             :material-list="materialList" :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
             @parent-callback="selectOption" />
@@ -594,8 +599,8 @@ onBeforeUnmount(() => {
     }
   }
 }
-.container{
+
+.container {
   max-height: calc(var(--modal-large-height) - 115px)
 }
-
 </style>

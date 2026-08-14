@@ -80,7 +80,7 @@ enum partsNames {
   PROFILECOLOR = "Цвет профиля",
 }
 
-const emit = defineEmits(["parent-callback"]);
+const emit = defineEmits(["parent-callback", "select_material"]);
 
 const callback = (material: Object, type: String, palette: Number, alum:number) => {
   emit("parent-callback", material, type, palette, alum);
@@ -349,6 +349,8 @@ const onSelectMaterial = (data) => {
   }
 
   callback(data, "COLOR", palette, data.MODEL);
+  emit("select_material", data);
+  eventBus.emit("A:OptionsUpdate");
 };
 
 const onSelectMilling = (data) => {

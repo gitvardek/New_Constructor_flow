@@ -6,8 +6,9 @@ import "@/components/UMconstructor/styles/UM.scss";
 import RailsRightPage from "@/components/right-menu/customiser-pages/RailsRightPage/RailsRightPage.vue";
 import Options from "@/components/right-menu/customiser-pages/RailsRightPage/Options.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { toRefs, ref, onBeforeMount } from "vue";
+import { toRefs, ref, onBeforeMount, onBeforeUnmount } from "vue";
 import { TTotalProps } from "@/types/types.ts";
+import { useEventBus } from "@/store/appliction/useEventBus";
 import SidecolorsView from "@/components/UMconstructor/views/modules/SidecolorsView.vue";
 import ModuleSizeView from "@/components/UMconstructor/views/modules/ModuleSizeView.vue";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
@@ -30,14 +31,20 @@ const props = defineProps({
 const { module, mode, UMconstructor } = toRefs(props);
 const productData = ref<TTotalProps>(<TTotalProps>{});
 
+const eventBus = useEventBus();
 const railsKey = ref(0);
 
 const handleEccentricAction = () => {
-  railsKey.value++; // инкремент key вызовет полный ререндер компонента
+  railsKey.value++;
 };
 
 onBeforeMount(() => {
   productData.value = UMconstructor?.value?.UM_STORE.getUMData();
+  eventBus.on("A:OptionsUpdate", handleEccentricAction);
+});
+
+onBeforeUnmount(() => {
+  eventBus.off("A:OptionsUpdate", handleEccentricAction);
 });
 </script>
 

@@ -927,10 +927,11 @@ export default class FasadesManager {
 
             const currSection = grid.sections[secIndex];
 
-            if (currSection.loopsSides?.[doorIndex])
-                tmp_list = tmp_list.filter(
-                    (item) => item.ID !== currSection.loopsSides[doorIndex]
-                );
+            // Фильтруем стороны, уже занятые существующими дверями (по реальному loopsSide фасада)
+            const usedSides = new Set(
+                currSection.fasades.flatMap(door => door.map(f => f.loopsSide))
+            );
+            tmp_list = tmp_list.filter(item => !usedSides.has(item.ID));
 
             return tmp_list.length > 0;
         }

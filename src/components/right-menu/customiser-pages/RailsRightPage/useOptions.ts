@@ -130,6 +130,18 @@ export const useOptions = () => {
         }
 
 
+        // Обязательная группа — не снимаем, если эта опция единственная активная
+        if (!values && curOpt.close === '1') {
+            const groupActives = OPTIONS.filter(opt =>
+                opt.close === '1' &&
+                opt.active &&
+                hasCommonNumbers(opt.section, curOpt.section)
+            );
+            if (groupActives.length <= 1) {
+                return curOpt.active;
+            }
+        }
+
         curOpt.active = values;
 
         if (!values && curOpt.close === '1') {
@@ -371,6 +383,8 @@ export const useOptions = () => {
 
     //Обязательная установка хотя бы одной опции активной
     const checkNecessaryOptions = (contant: any[], props?: any[]) => {
+        console.log(props)
+
         if (contant.length > 0) {
             contant.forEach((optionCurrent) => {
                 if (optionCurrent.CLOSE_OTHER_OPTIONS === '1') {
@@ -378,7 +392,8 @@ export const useOptions = () => {
 
                     contant.forEach(_item2 => {
                         if (_item2.CLOSE_OTHER_OPTIONS === '1' &&
-                            (_item2.IBLOCK_SECTION_ID?.[0] === optionCurrent.IBLOCK_SECTION_ID?.[0])) {
+                            optionCurrent.IBLOCK_SECTION_ID?.[0] !== undefined &&
+                            _item2.IBLOCK_SECTION_ID?.[0] === optionCurrent.IBLOCK_SECTION_ID?.[0]) {
                             closeOptions.push(_item2)
                         }
                     });
@@ -399,9 +414,9 @@ export const useOptions = () => {
                 if (optionCurrent.close === '1') {
                     let closeOptions = []
 
-                    global.forEach(_item2 => {
+                    props.forEach(_item2 => {
                         if (_item2.close === '1' &&
-                            (_item2.section === optionCurrent.section)) {
+                            hasCommonNumbers(_item2.section, optionCurrent.section)) {
                             closeOptions.push(_item2)
                         }
                     });
@@ -497,8 +512,6 @@ export const useOptions = () => {
     }
 
     const checkAvailable = (options: TRootOptionType) => {
-
-        console.log('asd')
 
         const PROPS = modelState.getCurrentModel.userData.PROPS as TTotalProp;
         const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize

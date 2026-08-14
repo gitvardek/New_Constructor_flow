@@ -34,7 +34,12 @@ const changeValue = (event: InputEvent, option: TRootOptionType) => {
 
   if (!props.umMechanizm) {
     const check = event.target!.checked;
-    checkActive(option, check);
+    const result = checkActive(option, check);
+    // Обязательная группа заблокировала снятие — возвращаем DOM-чекбокс в checked
+    if (!check && result) {
+      (event.target as HTMLInputElement).checked = true;
+      return;
+    }
     createList();
     return;
   }

@@ -695,7 +695,7 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
 
 export function createBasketItem(objProps: TTotalProps, index: number, key: any = ''): IBasket {
 
-
+  console.log(objProps,objProps.CONFIG.KROMKA, 'objProps')
   const props: any = {};
 
   // Добавляем свойства только если они существуют и не пустые
