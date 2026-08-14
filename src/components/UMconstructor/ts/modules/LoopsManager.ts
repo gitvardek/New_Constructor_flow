@@ -109,6 +109,7 @@ export default class LoopsManager {
             return
 
         const curSection = grid.sections[secIndex]
+        // console.log(curSection, 'curSection')
         const FASADES = curSection.fasades || []
 
         if (grid.noLoops) {
@@ -123,7 +124,6 @@ export default class LoopsManager {
         }
 
         // Восстанавливаем loopsSide если ранее была активна опция "без петель"
-
         FASADES.forEach((door, doorKey) => {
             door.forEach((fasade) => {
                 if (fasade.loopsSide === LOOPSIDE.none) {
@@ -154,7 +154,22 @@ export default class LoopsManager {
         // Correct loopsSide: plain left/right ↔ _on_partition based on whether a neighbor section exists
         const sectionLeft = grid.sections[secIndex - 1] || null
         const sectionRight = grid.sections[secIndex + 1] || null
-        FASADES.forEach((door) => {
+
+        const isDoors = FASADES.length > 1
+
+        const rightLoopsList = [LOOPSIDE.right_on_partition, LOOPSIDE.right]
+        const leftLoopsList = [LOOPSIDE.left_on_partition, LOOPSIDE.left]
+
+        // Конфликт: правый сосед имеет петли на левой стороне той же перегородки
+        const rightNeighborConflicts = sectionRight?.fasades?.some(door =>
+            door.some(f => leftLoopsList.includes(f.loopsSide))
+        ) ?? false
+        // Конфликт: левый сосед имеет петли на правой стороне той же перегородки
+        const leftNeighborConflicts = sectionLeft?.fasades?.some(door =>
+            door.some(f => rightLoopsList.includes(f.loopsSide))
+        ) ?? false
+
+        FASADES.forEach((door, doorKey) => {
             door.forEach((fasade) => {
                 if (fasade.loopsSide === LOOPSIDE.right && sectionRight)
                     fasade.loopsSide = LOOPSIDE.right_on_partition
@@ -164,7 +179,17 @@ export default class LoopsManager {
                     fasade.loopsSide = LOOPSIDE.left_on_partition
                 else if (fasade.loopsSide === LOOPSIDE.left_on_partition && !sectionLeft)
                     fasade.loopsSide = LOOPSIDE.left
+                // Конфликт петель на одной перегородке: смещаем на противоположную сторону.
+                // 2-дверные секции приоритетны — они не уступают; уступает соседняя 1-дверная.
+                else if (!isDoors && fasade.loopsSide === LOOPSIDE.right_on_partition && rightNeighborConflicts)
+                    fasade.loopsSide = sectionLeft ? LOOPSIDE.left_on_partition : LOOPSIDE.left
+                else if (!isDoors && fasade.loopsSide === LOOPSIDE.left_on_partition && leftNeighborConflicts)
+                    fasade.loopsSide = sectionRight ? LOOPSIDE.right_on_partition : LOOPSIDE.right
             })
+            // Синхронизируем loopsSides с актуальным loopsSide первого фасада двери
+            if (curSection.loopsSides && door[0]) {
+                curSection.loopsSides[doorKey] = door[0].loopsSide
+            }
         })
 
         FASADES.forEach((door, doorKey) => {
@@ -545,6 +570,12 @@ export default class LoopsManager {
         const loopsData = this.scope.APP.LOOPSIDE
         // const MokLoop = [...productInfo.LOOPSIDE, 14981055] /** ДЛЯ МАСТЕРА  */
         const MokLoop = [...productInfo.LOOPSIDE]
+
+        if (isDoors) {
+            const sideId = currSection.loopsSides?.[doorIndex];
+            const sideObj = sideId ? loopsData[sideId] : null;
+            return sideObj ? [sideObj] : [];
+        }
 
         const topPossibles = () => {
 

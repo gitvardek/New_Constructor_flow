@@ -102,6 +102,11 @@ export default class SectionsManager {
             this.scope.SHELVES.recalcSectionTsarga(grid.sections[secIndex + i]);
         }
 
+        // Пересчёт петель для всех секций — смена топологии меняет соседство
+        for (let i = 0; i < grid.sections.length; i++) {
+            this.scope.LOOPS.calcLoops(i, grid);
+        }
+
         if (reset) { this.scope.reset(grid) }
 
         this.selectCell(0, null)
@@ -506,11 +511,14 @@ export default class SectionsManager {
             });
         }
 
-        this.scope.LOOPS.calcLoops(next ? secIndex + 1 : secIndex - 1, grid);
-
         if (grid.sections.length > 1) {
             grid.sections.splice(secIndex, 1);
             this.scope.FILLINGS.updateSecAfterDelete(grid, secIndex);
+        }
+
+        // Пересчёт петель для всех секций — смена топологии меняет соседство
+        for (let i = 0; i < grid.sections.length; i++) {
+            this.scope.LOOPS.calcLoops(i, grid);
         }
 
         // Пересчёт царги для объединённой секции
