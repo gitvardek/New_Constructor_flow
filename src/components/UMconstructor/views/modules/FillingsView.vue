@@ -200,7 +200,8 @@ const selectHandle = (data: any, type: string) => {
 };
 
 const selectOption = (value: Object, type: string, palette: Object = false) => {
-  currentFasadeMaterial.value.data[type] = value ? value.ID : null;
+
+  currentFasadeMaterial.value.data[type] = value ? value.ID ?? value : null;
   if (palette) currentFasadeMaterial.value.data["PALETTE"] = palette;
 
   if (type === "COLOR") {

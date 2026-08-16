@@ -505,7 +505,7 @@ export class FasadeBuilder {
             else {
                 fasadeData.PATINA = defPatina ?? 475428
             }
-        } else {
+        } else if (!fasadeData.SHOW) { 
             fasadeData.MILLING = null;
             fasadeData.PATINA = null;
         }
