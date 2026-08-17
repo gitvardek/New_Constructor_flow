@@ -777,7 +777,7 @@ const prepareData = () => {
       currentShowcaseData,
       "currentShowcaseData",
     );
-    callback(SHOWCASE, "SWOCASE");
+    callback(SHOWCASE, "SHOWCASE");
   }
 
   if (GLASS) {

@@ -518,7 +518,10 @@ export class FasadeBuilder {
             console.log(defPatina, defaultConfig, 'defPatina')
             console.log(this._FASADE[fasadeData.COLOR], 'COLOR')
             console.log(this._MILLING[fasadeData.MILLING], 'MILLING')
-        } else {
+        } else if (!fasadeData.SHOW) {
+            // Сбрасываем только у скрытого фасада. Пустой millingList у видимого фасада
+            // означает лишь, что размер не прошёл фильтр конверсий — уже выбранную
+            // фрезеровку в этом случае затирать нельзя (buildFasades её тоже сохраняет)
             fasadeData.MILLING = null;
             fasadeData.PATINA = null;
         }
@@ -976,7 +979,7 @@ export class FasadeBuilder {
     ) {
 
         console.log('AUF');
-        
+
         if (isUMmodule) return props.FASADE_POSITIONS[key];
 
         const { SIZE, EXPRESSIONS, FASADE_PROPS, FASADE_POSITIONS, FASADE_SIZE } = props;

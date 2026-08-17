@@ -261,7 +261,7 @@ export const useOptions = () => {
                 const disabled = +el.id === 8390271
                     ? !!(PROPS.CONFIG.LEFTSIDECOLOR?.COLOR || PROPS.CONFIG.RIGHTSIDECOLOR?.COLOR)
                     : el.disabled;
-
+                    
                 return { ...cloneOption, active: el.active, visible: el.visible, cutSize: cutSize, disabled }
             })
             .filter(Boolean);

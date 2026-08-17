@@ -272,8 +272,10 @@ const createFacadeData = (fasadeIndex) => {
   });
 };
 
-const setEccentricOption = (props = { PROPS: false, side: false }) => {
-  let { PROPS, side } = props;
+const setEccentricOption = (
+  props = { PROPS: false, side: false, keepActive: false },
+) => {
+  let { PROPS, side, keepActive } = props;
 
   if (
     (side && PROPS.CONFIG[side]?.COLOR) ||
@@ -282,10 +284,13 @@ const setEccentricOption = (props = { PROPS: false, side: false }) => {
   ) {
     PROPS.CONFIG.eccentricOption = true;
   } else {
+    // Опция перестаёт быть обязательной — чекбокс разблокируется
     delete PROPS.CONFIG.eccentricOption;
-    // Снимаем принудительную активацию 8390271 — боковые стенки убраны
-    const opt = PROPS.CONFIG.OPTIONS?.find((item) => +item.id === 8390271);
-    if (opt) opt.active = false;
+    // keepActive: стенка на месте (перешла на цвет корпуса) — галку не снимаем
+    if (!keepActive) {
+      const opt = PROPS.CONFIG.OPTIONS?.find((item) => +item.id === 8390271);
+      if (opt) opt.active = false;
+    }
   }
 
   let option = PROPS.CONFIG.OPTIONS.find((item) => +item.id === 8390271);
@@ -319,7 +324,13 @@ const selectOption = (
       updateSideWall("LEFTSIDECOLOR", "leftWallThickness");
       updateSideWall("RIGHTSIDECOLOR", "rightWallThickness");
 
-      setEccentricOption({ PROPS: objectData.value, side: false });
+      // Смена цвета корпуса не убирает стенки — галку эксцентриков сохраняем,
+      // пересчитываем только обязательность (блокировку) опции
+      setEccentricOption({
+        PROPS: objectData.value,
+        side: false,
+        keepActive: true,
+      });
       break;
     }
     case "PROFILECOLOR":
@@ -376,9 +387,13 @@ const selectOption = (
       if (type === "COLOR") {
         if (tmp_value === objectData.value.CONFIG.MODULE_COLOR) {
           objectData.value.CONFIG[currentOption.value] = { COLOR: false };
+
+          // Стенка перешла на цвет корпуса, но осталась на месте — галку эксцентриков
+          // сохраняем, пересчитываем только обязательность (блокировку) опции
           setEccentricOption({
             PROPS: objectData.value,
             side: currentOption.value,
+            keepActive: true,
           });
           break;
         }

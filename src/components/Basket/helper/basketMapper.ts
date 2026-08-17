@@ -290,7 +290,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
     let base = {
       ID: el.product,
-      PATH: false,
+      PATH: el.fasade ? (el.fasade.id - 1) : false,
       MATERIAL_ID: el.material,
       PRODUCT_TYPE: el.type,
       SIZE: {

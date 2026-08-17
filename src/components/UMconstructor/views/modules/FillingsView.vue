@@ -201,7 +201,9 @@ const selectHandle = (data: any, type: string) => {
 };
 
 const selectOption = (value: Object, type: string, palette: Object = false) => {
-  currentFasadeMaterial.value.data[type] = value ? value.ID : null;
+  // prepareData шлёт сырые ID (числа), onSelectMaterial — объекты справочника.
+  // Без фолбэка на само значение число превращалось бы в undefined и затирало MILLING/PATINA/GLASS
+  currentFasadeMaterial.value.data[type] = value ? value.ID ?? value : null;
   if (palette) currentFasadeMaterial.value.data["PALETTE"] = palette;
 
   if (type === "COLOR") {
@@ -779,8 +781,6 @@ watch(
             </div>
 
             <div class="accordion" v-if="section.cells.length">
-              ХУЕТА
-
               <div v-for="(cell, cellIndex) in section.cells" :key="cellIndex">
                 <Accordion v-if="cell.fillings?.length" :open="false" class="item-group">
                   <template #title>
