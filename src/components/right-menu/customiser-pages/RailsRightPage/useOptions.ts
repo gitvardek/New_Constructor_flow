@@ -291,9 +291,8 @@ export const useOptions = () => {
 
     const filterGroups = (groups, incomingIds, props) => {
         const idStrs = incomingIds.map(id => id.toString());
-        const tmp_active_options = props?.slice().filter(item => item.active === true).map(item => {
-            return +item.id
-        }) || []
+
+        const tmp_active_options = getActiveOptionIds(props)
 
         let result = groups.map(group => {
             const contant = group.CONTANT;
@@ -335,24 +334,16 @@ export const useOptions = () => {
                     const curOptionInConfig = props.find(el => el.id === item.ID)
 
                     if (curOptionInConfig) {
-                        curOptionInConfig.visible = shouldBeVisible
-                        if (!shouldBeVisible) {
-                            curOptionInConfig.active = false
+                        // Зависимость от другой опции: пересчитываем в обе стороны
+                        if (!isRequirementMet(item, tmp_active_options)) {
+                            shouldBeVisible = false
                         }
 
-                        if (item.REQUIRED_OPTIONS.length > 0) {
-                            let check = false
-                            for (let option of item.REQUIRED_OPTIONS) {
-                                if (tmp_active_options.includes(+option)) {
-                                    check = true
-                                    break;
-                                }
-                            }
-                            if (!check) {
-                                curOptionInConfig.active = item.active = false;
-                                curOptionInConfig.visible = shouldBeVisible = false
-                                eventBus.emit("A:SelectModelOption")
-                            }
+                        curOptionInConfig.visible = shouldBeVisible
+
+                        if (!shouldBeVisible && curOptionInConfig.active) {
+                            curOptionInConfig.active = item.active = false
+                            eventBus.emit("A:SelectModelOption")
                         }
 
 
@@ -368,7 +359,7 @@ export const useOptions = () => {
             });
 
 
-            let visible_contant = modifiedContant.filter(item => item.visible === true)
+            let visible_contant = modifiedContant.filter(item => item?.visible === true)
             if (visible_contant.length) {
                 checkNecessaryOptions(visible_contant, props)
                 return {
@@ -430,6 +421,7 @@ export const useOptions = () => {
 
     const processVisibility = (groups: any[], incomingIds: any[], global?: any[]) => {
         const idStrs = incomingIds.map(id => id.toString());
+        const activeIds = getActiveOptionIds(global);
         groups.forEach(group => {
             const contant = group.CONTANT;
             // Проверяем, есть ли в CONTANT хотя бы один элемент с хотя бы одним incomingId в SHOW_ON_FASADE
@@ -462,10 +454,17 @@ export const useOptions = () => {
                     }
                 }
 
+                // Зависимость от другой опции — тот же учёт, что и в filterGroups
+                if (!isRequirementMet(item, activeIds)) {
+                    shouldBeVisible = false
+                }
+
                 if (global) {
                     const curOptionInConfig = global.find(el => el.id === item.ID)
+                    if (!curOptionInConfig) return
+
                     curOptionInConfig.visible = shouldBeVisible
-                    if (!shouldBeVisible) {
+                    if (!shouldBeVisible && curOptionInConfig.active) {
                         curOptionInConfig.active = false
                         eventBus.emit("A:SelectModelOption")
                     }
@@ -515,8 +514,8 @@ export const useOptions = () => {
         const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize
 
         const isConditions = options.CONDITIONS
-        if (UNIVERSALE_MODULES.includes(PROPS.PRODUCT)) return options.visible
-        if (!isConditions) return options.visible
+        if (UNIVERSALE_MODULES.includes(PROPS.PRODUCT)) return true
+        if (!isConditions) return true
 
         const convert = expressionsReplace(isConditions, {
             "#X#": BODY_WIDTH,
@@ -536,6 +535,19 @@ export const useOptions = () => {
         const setA = new Set(a);
         return b.some(num => setA.has(num));
     }
+
+    // Опция с REQUIRED_OPTIONS показывается, только если активна хотя бы одна из перечисленных.
+    // Без REQUIRED_OPTIONS ограничения нет
+    const isRequirementMet = (option, activeIds: number[]): boolean => {
+        if (!option.REQUIRED_OPTIONS?.length) return true
+        return option.REQUIRED_OPTIONS.some(id => activeIds.includes(+id))
+    }
+
+    // Активные опции из CONFIG.OPTIONS
+    const getActiveOptionIds = (props?: any[]): number[] => {
+        return props?.filter(item => item.active === true).map(item => +item.id) ?? []
+    }
+
 
     return { createOptionList, checkActive, resetGlobal }
 }
