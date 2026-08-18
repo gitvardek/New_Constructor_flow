@@ -257,7 +257,13 @@ export default class ExternalFasadesManager {
                 box.position = new THREE.Vector3()
             }
 
-            const boxFasadeHeight = box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
+            // Г-образный профиль крепится к корпусу и высоту фасада не занимает.
+            // Без этого в расчёт уходил box.height (= moduleThickness), т.к. имя профиля
+            // парсится в кириллическую "г" и не совпадает с латинскими "c"/"l",
+            // из-за чего offsetFasades остаётся нулевым
+            const boxFasadeHeight = box.isProfile?.isBottomHiTechProfile
+                ? 0
+                : box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
 
             fasadeList.push({
                 y: Math.floor(bottomFasadePosition),
