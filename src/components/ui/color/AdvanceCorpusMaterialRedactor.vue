@@ -446,7 +446,7 @@ const onChangeIntegratedHandlePos = (action, id) => {
 const deleteSelectedOptions = (type: String) => {
   const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
 
-  if (type == "surface" && props.isFasade) {
+  if (type == "surface") {
     let { NAME, DETAIL_PICTURE } = _FASADE[7397];
     currentSurfaceData.value = { name: NAME, imgSrc: DETAIL_PICTURE };
     isMillingExist.value = false;
