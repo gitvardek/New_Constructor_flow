@@ -22,6 +22,7 @@ export const useOptions = () => {
 
     const UNIVERSALE_MODULES = [3954672, 6469966, 9028125, 5168676]
     const NESTANDART_MODULES = [971222, 1814256]
+    const NESTANDART_FASADE = [14831]
     const cutOptionsId = [4722787, 4722786];
     const cutOptionsTempSize = 20;
 
@@ -512,7 +513,7 @@ export const useOptions = () => {
 
         const PROPS = modelState.getCurrentModel.userData.PROPS as TTotalProp;
         const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize
-
+        const isNestandartFasade = NESTANDART_FASADE.includes(PROPS.PRODUCT)
         const isConditions = options.CONDITIONS
         if (UNIVERSALE_MODULES.includes(PROPS.PRODUCT)) return true
         if (!isConditions) return true
@@ -520,8 +521,8 @@ export const useOptions = () => {
         const convert = expressionsReplace(isConditions, {
             "#X#": BODY_WIDTH,
             "#Y#": BODY_HEIGHT,
-            "#FASADE_HEIGHT_MAX#": 0,
-            "#FASADE_HEIGHT_MIN#": 100000
+            "#FASADE_HEIGHT_MAX#": isNestandartFasade ? BODY_HEIGHT : 0,
+            "#FASADE_HEIGHT_MIN#": isNestandartFasade ? BODY_HEIGHT : 100000
         })
 
         const converted = calculateFromString(convert)
