@@ -8,7 +8,7 @@ import {
     GridModule,
     LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import {TFasadeProp} from "@/types/types.ts";
+import { TFasadeProp } from "@/types/types.ts";
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 
@@ -24,7 +24,7 @@ export default class ExternalFasadesManager {
     calcDrawersFasades(secIndex: number, fillingData: FillingObject = false, grid: GridModule = this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()) {
 
         if (fillingData) {
-            if(fillingData.fasade && grid.sections[secIndex].fasadesDrawers) {
+            if (fillingData.fasade && grid.sections[secIndex].fasadesDrawers) {
                 fillingData.fasade.position.y = grid.height - (fillingData.position.y + fillingData.height + fillingData.fasade.manufacturerOffset)
 
                 let drawerInfoId = grid.sections[secIndex].fasadesDrawers.findIndex(item => (
@@ -37,7 +37,7 @@ export default class ExternalFasadesManager {
 
                 grid.sections[secIndex].fasadesDrawers[drawerInfoId] = fillingData.fasade
             }
-            else if (fillingData.isProfile && grid.sections[secIndex].hiTechProfiles){
+            else if (fillingData.isProfile && grid.sections[secIndex].hiTechProfiles) {
                 let profileInfoId = grid.sections[secIndex].hiTechProfiles?.findIndex(item => (
                     item.sec === fillingData.sec &&
                     item.cell === fillingData.cell &&
@@ -61,7 +61,7 @@ export default class ExternalFasadesManager {
 
         let baseFasade = grid.sections[secIndex]?.fasades?.[0]?.find(item => !item.manufacturerOffset)
 
-        if(!baseFasade) {
+        if (!baseFasade) {
             const PROPS = this.FASADES_MANAGER.scope.UM_STORE.getUMData();
 
             let FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
@@ -95,13 +95,13 @@ export default class ExternalFasadesManager {
             baseFasade.loopsSide = LOOPSIDE['none']
         }
 
-        if(baseFasade.minY === undefined) {
+        if (baseFasade.minY === undefined) {
             let fasadeMinMax = this.FASADES_MANAGER.getFasadePositionMinMax(baseFasade);
             baseFasade = Object.assign(baseFasade, fasadeMinMax);
         }
 
         let baseFasade2 = grid.sections[secIndex].fasades[1]?.find(item => !item.manufacturerOffset)
-        if(baseFasade2 && baseFasade2.minY === undefined) {
+        if (baseFasade2 && baseFasade2.minY === undefined) {
             let fasadeMinMax = this.FASADES_MANAGER.getFasadePositionMinMax(baseFasade2);
             baseFasade2 = Object.assign(baseFasade2, fasadeMinMax);
         }
@@ -141,7 +141,7 @@ export default class ExternalFasadesManager {
                     drawerFasade.width = correctSectionFasadeWidth
                     drawerFasade.position.x = baseFasade.position.x
 
-                    if(filling)
+                    if (filling)
                         filling.fasade = drawerFasade
 
                     drawerIndex += 1
@@ -150,8 +150,8 @@ export default class ExternalFasadesManager {
                     let fasadeClone = Object.assign(<FasadeObject>{}, baseFasade)
                     fasadeClone.id = index + 1
                     fasadeClone.height = item.height
-                    fasadeClone.material = {...baseFasade.material}
-                    fasadeClone.material.HANDLES = {...fasadeClone.material.HANDLES}
+                    fasadeClone.material = { ...baseFasade.material }
+                    fasadeClone.material.HANDLES = { ...fasadeClone.material.HANDLES }
 
                     fasadeClone.position = new THREE.Vector2(baseFasade.position.x, item.y)
 
@@ -165,8 +165,8 @@ export default class ExternalFasadesManager {
                     if (baseFasade2) {
                         let fasadeClone2 = Object.assign(<FasadeObject>{}, fasadeClone)
                         fasadeClone2.position = new THREE.Vector2(baseFasade2.position.x, item.y)
-                        fasadeClone2.material = {...fasadeClone.material}
-                        fasadeClone2.material.HANDLES = {...fasadeClone2.material.HANDLES}
+                        fasadeClone2.material = { ...fasadeClone.material }
+                        fasadeClone2.material.HANDLES = { ...fasadeClone2.material.HANDLES }
                         fasadeClone2.loopsSide = baseFasade2.loopsSide
 
                         grid.sections[secIndex].fasades[1].push(Object.assign(<FasadeObject>{}, fasadeClone2))
@@ -180,9 +180,9 @@ export default class ExternalFasadesManager {
         this.FASADES_MANAGER.scope.LOOPS.calcLoops(secIndex, grid)
     };
 
-    calcDrawersFasadesPositons(secIndex: number, _grid: GridModule){
+    calcDrawersFasadesPositons(secIndex: number, _grid: GridModule) {
         const fasadeList = []
-        const {CONFIG} = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
+        const { CONFIG } = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
         const grid = _grid || this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()
 
         let moduleThickness = grid.moduleThickness || 18
@@ -257,7 +257,9 @@ export default class ExternalFasadesManager {
                 box.position = new THREE.Vector3()
             }
 
-            const boxFasadeHeight = box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
+            const boxFasadeHeight = box.isProfile?.isBottomHiTechProfile
+                ? 0
+                : box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
 
             fasadeList.push({
                 y: Math.floor(bottomFasadePosition),
