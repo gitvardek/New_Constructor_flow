@@ -20,13 +20,18 @@ export const useOptions = () => {
     const { weightCalculation, createMeckhanizmList } = mechanism;
 
 
-    const UNIVERSALE_MODULES = [3954672, 6469966, 9028125, 5168676]
-    const NESTANDART_MODULES = [971222, 1814256]
-    const NESTANDART_FASADE = [14831]
+    const UNIVERSALE_MODULES = [3954672, 6469966, 9028125, 5168676];
+    const NESTANDART_MODULES = [971222, 1814256];
+    const NESTANDART_FASADE = [14831];
+    const NO_HORIZONT_OPTIONS = [4722965, 5738924];
     const cutOptionsId = [4722787, 4722786];
     const cutOptionsTempSize = 20;
 
     const mechanismList = createMeckhanizmList();
+
+    const syncHorizont = (options: any[]) => {
+        UM_STORE.onHorizont = !options.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id) && opt.active)
+    }
 
     const createOptionList = () => {
 
@@ -109,15 +114,12 @@ export const useOptions = () => {
                                 break;
                             case 5738924:   //Без дна
                                 PROPS.CONFIG.BACKWALL = { COLOR: PROPS.CONFIG.MODULE_COLOR, SHOW: true };
-                                //PROPS.CONFIG.HORIZONT = 78
-                                UM_STORE.onHorizont = true
                                 UM_STORE.noBottom = false
                                 break;
                             case 1795067: //Опция без петель
                                 UM_STORE.noLoops = false
                                 break
                             case 4722965:   //Навесной
-                                UM_STORE.onHorizont = true
                                 UM_STORE.onWallModule = false
                                 modelState.createCurrentBackwallData(ID);
                                 break;
@@ -184,14 +186,7 @@ export const useOptions = () => {
                     delete PROPS.CONFIG.TSARGA
                 break;
             case 4722965:   //Навесной
-                if (curOpt.active) {
-                    UM_STORE.onHorizont = false
-                    UM_STORE.onWallModule = true
-                }
-                else {
-                    UM_STORE.onHorizont = true
-                    UM_STORE.onWallModule = false
-                }
+                UM_STORE.onWallModule = curOpt.active
                 modelState.createCurrentBackwallData(ID);
                 let currentBackwallData = modelState.getCurrentBackwallData;
 
@@ -212,13 +207,9 @@ export const useOptions = () => {
             case 5738924:   //Без дна
                 if (curOpt.active) {
                     PROPS.CONFIG.BACKWALL = { COLOR: false, SHOW: false };
-                    //PROPS.CONFIG.HORIZONT = 0
-                    UM_STORE.onHorizont = false
                     UM_STORE.noBottom = true
                 } else {
                     PROPS.CONFIG.BACKWALL = { COLOR: PROPS.CONFIG.MODULE_COLOR, SHOW: true };
-                    //PROPS.CONFIG.HORIZONT = 78
-                    UM_STORE.onHorizont = true
                     UM_STORE.noBottom = false
                 }
                 break;
@@ -226,6 +217,8 @@ export const useOptions = () => {
                 break;
         }
 
+        // Пересчитываем цоколь один раз, когда состояние всех опций уже устоялось
+        syncHorizont(OPTIONS)
         eventBus.emit("A:SelectModelOption", { option, values, disabledOptions })
 
         //  eventBus.emit("A:SelectModelOption")
