@@ -28,7 +28,7 @@ export default class FillingsManager {
     private loopCollisionExclusion: TloopCollisionExclusion = [
         {
             prop: 'productGroupID',
-            values: [2166309, 6174300, 15222587, 6513322],
+            values: [ 6174300, 15222587, 6513322], //2166309
             collisionWith: 'loop'
         },
         {
