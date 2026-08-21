@@ -580,7 +580,7 @@ onBeforeUnmount(() => {
           <AdvanceCorpusMaterialRedactor class="color--left-select-item" v-if="getCurrentRedactor" :key="currentOption"
             :element-data="getCurrentValue" :element-index="currentOption" :material-list="materialList"
             :fasade-size="elementSize"
-            :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR'"
+            :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR' || currentOption === 'TOPFASADECOLOR'"
             @parent-callback="selectOption" @select_material="emit('eccentric-action')" />
           <CorpusMaterialRedactor v-else class="color--left-select-item" :is2Dconstructor="true"
             :material-list="materialList" :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"

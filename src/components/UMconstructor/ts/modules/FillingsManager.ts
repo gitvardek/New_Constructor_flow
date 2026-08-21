@@ -28,7 +28,7 @@ export default class FillingsManager {
     private loopCollisionExclusion: TloopCollisionExclusion = [
         {
             prop: 'productGroupID',
-            values: [2166309, 6174300, 15222587, 6513322],
+            values: [6174300, 15222587, 6513322], //2166309
             collisionWith: 'loop'
         },
         {
@@ -42,6 +42,7 @@ export default class FillingsManager {
     ]
     private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
     private readonly INNER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.INNER
+    private readonly UNIVERSAL_DROWER: number[] = UM_DRAWERS_IDS.UNIVERSAL
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope
@@ -256,13 +257,25 @@ export default class FillingsManager {
         return this.scope.RENDER_REF.checkPositionFillingToCreate(tempFilling);
     };
 
+    // Свободное пространство внутри внешнего ящика — это часть фасада выше верха тела.
+    // Фасад опущен на manufacturerOffset ниже дна тела (ExternalFasadesManager:
+    // fasade.position.y = grid.height - (position.y + height + manufacturerOffset)),
+    // поэтому над телом остаётся ровно fasadeHeight - manufacturerOffset - height.
+    // Слагаемое (moduleThickness - 2) сюда не входит: это поправка на начало координат
+    // зоны перетаскивания, из-за неё отступ до фасада получался на 14 мм больше нужного
+    getInnerDrawerSpace(outerDrawer: any, fasadeHeight?: number): number {
+        if (!outerDrawer.fasade) return outerDrawer.height
+        const height = fasadeHeight ?? outerDrawer.fasade.height
+        return height - outerDrawer.fasade.manufacturerOffset - outerDrawer.height
+    };
+
     addFilling(
         _product: any,
         productGroupID: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
 
-        console.log(_product, '_product')
+        console.log(productGroupID, 'productGroupID')
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
             const minDepth = _product.SIZE_EDIT_DEPTH?.length
@@ -296,7 +309,11 @@ export default class FillingsManager {
             return;
         }
 
-        if (this.OUTER_DRAWER_IDS.includes(productGroupID) && cell !== null) {
+        // Скобки обязательны: && связывает сильнее ||, и без них проверка cell !== null
+        // прикрывала только универсальный ящик, а внешний ящик в секцию (cell === null)
+        // упирался в cells?.[null] и всегда отклонялся
+        const isOuterKindDrawer = this.OUTER_DRAWER_IDS.includes(productGroupID) || this.UNIVERSAL_DROWER.includes(productGroupID)
+        if (isOuterKindDrawer && cell !== null) {
             const currentCell = currentSection.cells?.[cell]
             const isNarrowCell = !currentCell || currentCell.width !== currentSection.width
             if (isNarrowCell || row !== null || extra !== null) {
@@ -340,12 +357,7 @@ export default class FillingsManager {
             }
 
             // Доступная высота = расстояние от верха тела до верха фасада внешнего ящика
-            const availableHeight = outerDrawer.fasade
-                ? outerDrawer.fasade.height
-                - outerDrawer.fasade.manufacturerOffset
-                - outerDrawer.height
-                - ((outerDrawer.moduleThickness || 16) - 2)
-                : outerDrawer.height
+            const availableHeight = this.getInnerDrawerSpace(outerDrawer)
 
             if (availableHeight <= 0) {
                 this.scope.callAlert("error", "Внешний ящик не имеет свободного пространства для встраиваемого ящика")
@@ -1235,10 +1247,7 @@ export default class FillingsManager {
                 currentfilling.fasade.height = newValue;
 
                 // Пересчитываем пространство фасада и согласуем внутренние ящики
-                const newAvailableHeight = newValue
-                    - currentfilling.fasade.manufacturerOffset
-                    - currentfilling.height
-                    - ((currentfilling.moduleThickness || 16) - 2)
+                const newAvailableHeight = this.getInnerDrawerSpace(currentfilling, newValue)
                 this.reconcileInnerDrawers(secIndex, currentfilling, newAvailableHeight, grid)
             } else {
                 currentfilling.fasade.height = prevValue;

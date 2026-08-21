@@ -236,7 +236,6 @@ export class FasadeBuilder {
         isLoad?: boolean
     }): THREE.Object3D {
 
-        console.log('All', props)
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
         const { deffShowcase, defPatina } = defaultConfig;
@@ -317,6 +316,8 @@ export class FasadeBuilder {
                 this.uniformeTextureStartData = [];
                 continue;
             }
+
+            console.log(fasadeData.COLOR, PRODUCT, key, trueSize)
 
             const millingList = this.parent.modelState.createCurrentMillingData({
                 fasadeId: fasadeData.COLOR,
@@ -490,7 +491,12 @@ export class FasadeBuilder {
             fasadeNdx: fasadeNdx,
             fasadeSize: trueSize,
         });
+
+        console.log(millingList, 'UPDATE')
+
         const firstValueMilling = millingList[0] as any;
+
+        console.log(firstValueMilling)
 
         if (fasadeData.SHOW && pallite && firstValuePall && fasadeData.PALETTE === null) {
             fasadeData.PALETTE = pallite;
@@ -515,10 +521,7 @@ export class FasadeBuilder {
             else {
                 fasadeData.PATINA = defPatina ?? 475428
             }
-            console.log(defPatina, defaultConfig, 'defPatina')
-            console.log(this._FASADE[fasadeData.COLOR], 'COLOR')
-            console.log(this._MILLING[fasadeData.MILLING], 'MILLING')
-        } else if (!fasadeData.SHOW) {
+        } else if (!fasadeData.SHOW || !firstValueMilling) {
             // Сбрасываем только у скрытого фасада. Пустой millingList у видимого фасада
             // означает лишь, что размер не прошёл фильтр конверсий — уже выбранную
             // фрезеровку в этом случае затирать нельзя (buildFasades её тоже сохраняет)

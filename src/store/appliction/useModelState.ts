@@ -178,7 +178,7 @@ export const useModelState = defineStore('ModelState', () => {
 
             const groupId = section.UF_GROUP;
             if (!acc[groupId]) acc[groupId] = [];
-            
+
             acc[groupId].push(facadeId);
 
             acc[groupId].sort()
@@ -466,6 +466,8 @@ export const useModelState = defineStore('ModelState', () => {
             return isFiltered
         }
 
+        console.log(result, 'result')
+
         if (defaultFasade) {
             return result
         }
@@ -545,7 +547,6 @@ export const useModelState = defineStore('ModelState', () => {
 
         const haveShowCase = fasadePosData?.glass == 1
         const sideColors = ["LEFTSIDECOLOR", "RIGHTSIDECOLOR"]
-
 
         if ((_FASADE.value[fasadeId].ATTACH_MILLINGS.length && _FASADE.value[fasadeId].ATTACH_MILLINGS[0] != null) || (sideColors.includes(fasadeNdx) && _FASADE.value[fasadeId].ATTACH_MILLINGS_SIDE?.[0])) {
 

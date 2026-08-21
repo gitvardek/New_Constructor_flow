@@ -447,7 +447,10 @@ const onChangeIntegratedHandlePos = (action, id) => {
 const deleteSelectedOptions = (type: String) => {
   const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
 
-  if (type == "surface" && props.isFasade) {
+  // Раньше здесь стояло && props.isFasade — из-за этого сброс не работал в SidecolorsView
+  // (накладка на крышку, боковые стенки), где флаг не передаётся. Доступ к FASADE_PROPS
+  // по нефасадному индексу защищён проверкой ниже
+  if (type == "surface") {
     let { NAME, DETAIL_PICTURE } = _FASADE[7397];
     currentSurfaceData.value = { name: NAME, imgSrc: DETAIL_PICTURE };
     isMillingExist.value = false;
