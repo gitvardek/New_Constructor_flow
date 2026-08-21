@@ -188,9 +188,10 @@ export class FasadeBuilder {
         // Ручки
         if (fasadeData.HANDLES.id && fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
             const handleId = fasadeData.HANDLES.id;
-            const handleModel = this._APP.CATALOG.PRODUCTS[handleId].models[0];
-
-            this.handlesBuilder.createHandle({ id: handleId, model: handleModel }, mesh, fasadeData);
+            const handleModel = this._APP.CATALOG.PRODUCTS[handleId]?.models[0];
+            if (handleModel) {
+                this.handlesBuilder.createHandle({ id: handleId, model: handleModel }, mesh, fasadeData);
+            }
         }
 
         // Видимость с учётом исключений
@@ -505,7 +506,7 @@ export class FasadeBuilder {
             else {
                 fasadeData.PATINA = defPatina ?? 475428
             }
-        } else if (!fasadeData.SHOW || !firstValueMilling) { 
+        } else if (!fasadeData.SHOW || !firstValueMilling) {
             fasadeData.MILLING = null;
             fasadeData.PATINA = null;
         }
