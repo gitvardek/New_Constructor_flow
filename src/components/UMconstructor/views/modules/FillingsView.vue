@@ -194,6 +194,7 @@ const selectHandle = (data: any, type: string) => {
   const fillObj = curModuleSegment?.fillings?.find(f => f.id === item);
   if (fillObj?.fasade) {
     fillObj.fasade.material = Object.assign(fillObj.fasade.material, currentHandle.value.data);
+    UMconstructor?.value?.FILLINGS.syncDrawerFasade(sec, fillObj, module.value);
   }
 
   reset()
@@ -219,6 +220,7 @@ const selectOption = (value: Object, type: string, palette: Object = false) => {
   const fillObj = curModuleSegment?.fillings?.find(f => f.id === item);
   if (fillObj?.fasade) {
     fillObj.fasade.material = Object.assign(fillObj.fasade.material, currentFasadeMaterial.value.data);
+    UMconstructor?.value?.FILLINGS.syncDrawerFasade(sec, fillObj, module.value);
   }
 };
 
@@ -655,14 +657,14 @@ watch(
                         filling.fasade.material.COLOR
                         ]
                         " @click.stop="
-                            openFasadeSelector(
-                              secIndex,
-                              null,
-                              null,
-                              null,
-                              fillingIndex,
-                            )
-                            " />
+                          openFasadeSelector(
+                            secIndex,
+                            null,
+                            null,
+                            null,
+                            fillingIndex,
+                          )
+                          " />
 
                     <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                       {
@@ -893,14 +895,14 @@ watch(
                             filling.fasade.material.COLOR
                             ]
                             " @click.stop="
-                                openFasadeSelector(
-                                  secIndex,
-                                  cellIndex,
-                                  null,
-                                  null,
-                                  fillingIndex,
-                                )
-                                " />
+                              openFasadeSelector(
+                                secIndex,
+                                cellIndex,
+                                null,
+                                null,
+                                fillingIndex,
+                              )
+                              " />
 
                         <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                           {
@@ -1139,14 +1141,14 @@ watch(
                                 filling.fasade.material.COLOR
                                 ]
                                 " @click.stop="
-                                    openFasadeSelector(
-                                      secIndex,
-                                      cellIndex,
-                                      rowIndex,
-                                      null,
-                                      fillingIndex,
-                                    )
-                                    " />
+                                  openFasadeSelector(
+                                    secIndex,
+                                    cellIndex,
+                                    rowIndex,
+                                    null,
+                                    fillingIndex,
+                                  )
+                                  " />
 
                             <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                               {

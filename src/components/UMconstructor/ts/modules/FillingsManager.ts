@@ -28,7 +28,7 @@ export default class FillingsManager {
     private loopCollisionExclusion: TloopCollisionExclusion = [
         {
             prop: 'productGroupID',
-            values: [ 6174300, 15222587, 6513322], //2166309
+            values: [6174300, 15222587, 6513322], //2166309
             collisionWith: 'loop'
         },
         {
@@ -254,6 +254,22 @@ export default class FillingsManager {
         };
 
         return this.scope.RENDER_REF.checkPositionFillingToCreate(tempFilling);
+    };
+
+    syncDrawerFasade(secIndex: number, filling: any, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const fasade = filling?.fasade
+        const list = grid.sections?.[secIndex]?.fasadesDrawers
+        if (!fasade || !list) return
+
+        const index = list.findIndex(item =>
+            item.sec === fasade.sec &&
+            item.cell === fasade.cell &&
+            item.row === fasade.row &&
+            item.extra === fasade.extra &&
+            item.item === fasade.item
+        )
+
+        if (index !== -1) list[index] = fasade
     };
 
     addFilling(
