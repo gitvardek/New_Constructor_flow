@@ -15429,7 +15429,7 @@ export const MILLINGS = {
                     nameCondition: "default",
                     condition: {
                         width: {
-                            min: 296,
+                            min: 149,
                             max: Infinity,
                         },
                         height: {
@@ -15458,7 +15458,7 @@ export const MILLINGS = {
                     nameCondition: "default",
                     condition: {
                         width: {
-                            min: 296,
+                            min: 149,
                             max: Infinity,
                         },
                         height: {
@@ -15504,7 +15504,7 @@ export const MILLINGS = {
                     nameCondition: "default",
                     condition: {
                         width: {
-                            min: 296,
+                            min: 149,
                             max: Infinity,
                         },
                         height: {
@@ -15550,7 +15550,7 @@ export const MILLINGS = {
                     nameCondition: "default",
                     condition: {
                         width: {
-                            min: 296,
+                            min: 149,
                             max: Infinity,
                         },
                         height: {
@@ -15579,7 +15579,7 @@ export const MILLINGS = {
                     nameCondition: "default",
                     condition: {
                         width: {
-                            min: 296,
+                            min: 149,
                             max: Infinity,
                         },
                         height: {
@@ -15625,7 +15625,7 @@ export const MILLINGS = {
                     nameCondition: "default",
                     condition: {
                         width: {
-                            min: 296,
+                            min: 149,
                             max: Infinity,
                         },
                         height: {
@@ -15654,7 +15654,7 @@ export const MILLINGS = {
                     nameCondition: "default",
                     condition: {
                         width: {
-                            min: 296,
+                            min: 149,
                             max: Infinity,
                         },
                         height: {
