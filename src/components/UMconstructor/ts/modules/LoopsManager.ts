@@ -547,6 +547,47 @@ export default class LoopsManager {
         return loops;
     }
 
+    //Проверка: петли не должны стоять с обеих сторон одной перегородки.
+
+    resolvePartitionLoopsConflicts(grid: GridModule = this.scope.UM_STORE.getUMGrid()): boolean {
+        const sections = grid.sections ?? []
+        const usesSide = (section, side: number) =>
+            (section?.fasades ?? []).some(door => door?.some(fasade => fasade.loopsSide === side))
+
+        const doorsCount = (section) => section?.fasades?.length ?? 0
+
+        const dropDoors = (section) => {
+            section.fasades = []
+            section.loops = []
+            section.loopsSides = {}
+        }
+
+        let resolved = false
+
+        for (let i = 0; i < sections.length - 1; i++) {
+            const left = sections[i]
+            const right = sections[i + 1]
+
+            const conflict = usesSide(left, LOOPSIDE['right_on_partition']) &&
+                usesSide(right, LOOPSIDE['left_on_partition'])
+
+            if (!conflict) continue
+
+            // При равенстве убираем у правой секции — она получила петли последней
+            const target = doorsCount(left) < doorsCount(right) ? left : right
+
+            if (doorsCount(target) !== 1) {
+                this.scope.callAlert("warning", "Петли соседних секций встали на одну перегородку — измените сторону открывания")
+                continue
+            }
+
+            dropDoors(target)
+            resolved = true
+        }
+
+        return resolved
+    };
+
     getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) {
 
 
