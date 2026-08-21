@@ -272,6 +272,12 @@ export default class FillingsManager {
         if (index !== -1) list[index] = fasade
     };
 
+    getInnerDrawerSpace(outerDrawer: any, fasadeHeight?: number): number {
+        if (!outerDrawer.fasade) return outerDrawer.height
+        const height = fasadeHeight ?? outerDrawer.fasade.height
+        return height - outerDrawer.fasade.manufacturerOffset - outerDrawer.height
+    };
+
     addFilling(
         _product: any,
         productGroupID: number,
@@ -356,12 +362,7 @@ export default class FillingsManager {
             }
 
             // Доступная высота = расстояние от верха тела до верха фасада внешнего ящика
-            const availableHeight = outerDrawer.fasade
-                ? outerDrawer.fasade.height
-                - outerDrawer.fasade.manufacturerOffset
-                - outerDrawer.height
-                - ((outerDrawer.moduleThickness || 16) - 2)
-                : outerDrawer.height
+            const availableHeight = this.getInnerDrawerSpace(outerDrawer)
 
             if (availableHeight <= 0) {
                 this.scope.callAlert("error", "Внешний ящик не имеет свободного пространства для встраиваемого ящика")
@@ -1251,10 +1252,7 @@ export default class FillingsManager {
                 currentfilling.fasade.height = newValue;
 
                 // Пересчитываем пространство фасада и согласуем внутренние ящики
-                const newAvailableHeight = newValue
-                    - currentfilling.fasade.manufacturerOffset
-                    - currentfilling.height
-                    - ((currentfilling.moduleThickness || 16) - 2)
+                const newAvailableHeight = this.getInnerDrawerSpace(currentfilling, newValue)
                 this.reconcileInnerDrawers(secIndex, currentfilling, newAvailableHeight, grid)
             } else {
                 currentfilling.fasade.height = prevValue;
