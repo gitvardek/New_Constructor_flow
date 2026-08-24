@@ -7,6 +7,7 @@ import {_URL} from "@/types/constants.ts";
 const FORM_API_URL = _URL + '/api/modellerjwt/formtech';
 const BASE_API_URL = _URL + '/api/modellerjwt/technologist';
 const REQUEST_TIMEOUT = 10000; // 10 секунд
+const REQUEST_TIMEOUT_TECH = 60000; // 10 секунд
 
 export const TechnologistService = {
   /**
@@ -25,7 +26,7 @@ export const TechnologistService = {
             headers: {
               "Authorization": `Bearer ${token}`,
             },
-            timeout: REQUEST_TIMEOUT,
+            timeout: REQUEST_TIMEOUT_TECH,
           }
       );
 
