@@ -1,12 +1,12 @@
 <script setup lang="ts">
 // @ts-nocheck
 import Modal from "@/components/ui/modals/Modal.vue";
-import {defineExpose, nextTick, onBeforeUnmount, ref} from "vue";
+import { defineExpose, nextTick, onBeforeUnmount, ref } from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus.ts";
-import {saveUMGrid} from "@/components/UMconstructor/utils/PixiMethods.ts";
+import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import MainView from "@/components/UMconstructor/views/MainView.vue"
-import {useUMStorage} from "@/store/appStore/UniversalModule/useUMStorage.ts";
-import {useToast} from "@/features/toaster/useToast.ts";
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useToast } from "@/features/toaster/useToast.ts";
 import UMLoader from "@/components/UMconstructor/UMLoader.vue";
 import type { Application } from "@/Application/Core/Application";
 
@@ -38,14 +38,14 @@ const saveUMData = ({ data, canvasHeight }) => {
     return;
 
   let saveData = universalModule2DConstructor.value.saveGrid()
-  if(!saveData)
+  if (!saveData)
     return;
 
   let tmp_result = saveUMGrid(saveData)
 
   props.product.userData.PROPS.CONFIG.MODULEGRID = tmp_result;
   UMstore.setUMCashGrid(tmp_result)
-  const {PROPS} = props.product.userData
+  const { PROPS } = props.product.userData
   saveConfigCash(PROPS, true)
 
   gridUMSaved.value = true;
@@ -56,7 +56,7 @@ const saveUMData = ({ data, canvasHeight }) => {
 };
 
 const saveConfigCash = (PROPS, skipGrid = false) => {
-  const {CONFIG} = PROPS
+  const { CONFIG } = PROPS
   const {
     MODULEGRID,
     BACKWALL,
@@ -77,27 +77,27 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
   let universalModuleConfigCash = {
     HORIZONT,
     MODULE_COLOR,
-    EXPRESSIONS : {...EXPRESSIONS}
+    EXPRESSIONS: { ...EXPRESSIONS }
   };
 
-  if(BACKWALL)
-    universalModuleConfigCash.BACKWALL = {...CONFIG.BACKWALL};
+  if (BACKWALL)
+    universalModuleConfigCash.BACKWALL = { ...CONFIG.BACKWALL };
 
-  if(RIGHTSIDECOLOR)
-    universalModuleConfigCash.RIGHTSIDECOLOR = {...CONFIG.RIGHTSIDECOLOR};
+  if (RIGHTSIDECOLOR)
+    universalModuleConfigCash.RIGHTSIDECOLOR = { ...CONFIG.RIGHTSIDECOLOR };
 
-  if(LEFTSIDECOLOR)
-    universalModuleConfigCash.LEFTSIDECOLOR = {...CONFIG.LEFTSIDECOLOR};
+  if (LEFTSIDECOLOR)
+    universalModuleConfigCash.LEFTSIDECOLOR = { ...CONFIG.LEFTSIDECOLOR };
 
-  if(TSARGA)
-    universalModuleConfigCash.TSARGA = {...CONFIG.TSARGA};
+  if (TSARGA)
+    universalModuleConfigCash.TSARGA = { ...CONFIG.TSARGA };
 
-  if(TOPFASADECOLOR)
-    universalModuleConfigCash.TOPFASADECOLOR = {...CONFIG.TOPFASADECOLOR};
+  if (TOPFASADECOLOR)
+    universalModuleConfigCash.TOPFASADECOLOR = { ...CONFIG.TOPFASADECOLOR };
 
-  if(OPTIONS?.length) {
+  if (OPTIONS?.length) {
     universalModuleConfigCash.OPTIONS = [...CONFIG.OPTIONS.map(opt => {
-      return {...opt}
+      return { ...opt }
     })];
   }
 
@@ -105,7 +105,7 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
 }
 
 const openUMRedactor = () => {
-  const {PROPS} = props.product.userData
+  const { PROPS } = props.product.userData
   saveConfigCash(PROPS)
   isUMModalOpen.value = true;
 };
@@ -123,7 +123,7 @@ const closeUMRedactor = () => {
   UMstore.clearStorage()
 };
 
-onBeforeUnmount(()=>{
+onBeforeUnmount(() => {
   universalModuleData.value = false;
   isUMModalOpen.value = false;
   gridUMSaved.value = false;
@@ -137,38 +137,26 @@ defineExpose({
 </script>
 
 <template>
-  <Modal
-    v-if="universalModuleData && props.product"
-    :container="`modal--tableTop`"
-    @open-modal="openUMRedactor"
-    @close-modal="closeUMRedactor"
-  >
+  <Modal v-if="universalModuleData && props.product" :container="`modal--tableTop`" @open-modal="openUMRedactor"
+    @close-modal="closeUMRedactor">
     <template #modalBody="{ onModalClose }" class="modal--tableTop">
       <div class="um-modal-body-wrapper">
-        <MainView
-          v-if="isUMModalOpen"
-          ref="universalModule2DConstructor"
-          :productData="universalModuleData.PROPS"
-          :canvasHeight="universalModuleData.canvasHeight"
-          :canvasWidth="universalModuleData.canvasWidth"
-          :verdekConstructor="verdekConstructor"
-          @close-modal="closeUMRedactor"
-        >
+        <MainView v-if="isUMModalOpen" ref="universalModule2DConstructor" :productData="universalModuleData.PROPS"
+          :canvasHeight="universalModuleData.canvasHeight" :canvasWidth="universalModuleData.canvasWidth"
+          :verdekConstructor="verdekConstructor" @close-modal="closeUMRedactor">
           <template #save>
-            <button class="no-select actions-btn actions-btn--footer" @click="saveUMData">
+            <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMData">
               Сохранить
             </button>
           </template>
 
           <template #close>
-            <button
-              @click="
-                () => {
-                  onModalClose();
-                }
-              "
-              class="no-select actions-btn actions-btn--footer"
-            >
+            <button @click="
+              () => {
+                onModalClose();
+              }
+            " class="no-select actions-btn actions-btn--footer">
               Закрыть
             </button>
           </template>
@@ -187,7 +175,13 @@ defineExpose({
   </Modal>
 </template>
 
-<style  lang="scss">
+<style lang="scss">
+.actions-btn--footer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .um-modal-body-wrapper {
   display: flex;
   gap: 1rem;
@@ -222,9 +216,12 @@ defineExpose({
 }
 
 .no-select {
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none;     /* IE 10+ и Edge */
-  user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+  -webkit-user-select: none;
+  /* Safari */
+  -ms-user-select: none;
+  /* IE 10+ и Edge */
+  user-select: none;
+  /* Стандарт: Chrome, Firefox, Opera, Edge */
 }
 
 .cut {
@@ -248,6 +245,7 @@ defineExpose({
   &-icon {
     width: 25px;
     height: 25px;
+
     svg {
       g {
         path {

@@ -110,11 +110,17 @@ export default class UMconstructorClass {
     debounce(timerKey: string, callback: Function, wait: number) {
         if (this.DEBOUNCES[timerKey]) {
             clearTimeout(this.DEBOUNCES[timerKey])
+        } else {
+            this.UM_STORE.pendingOperations++
         }
 
         this.DEBOUNCES[timerKey] = setTimeout(() => {
-            callback();
             delete this.DEBOUNCES[timerKey]
+            try {
+                callback();
+            } finally {
+                this.UM_STORE.pendingOperations = Math.max(0, this.UM_STORE.pendingOperations - 1)
+            }
         }, wait)
     }
 
