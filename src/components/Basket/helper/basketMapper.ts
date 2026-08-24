@@ -727,10 +727,10 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
           serviseData: el.serviseData.filter(el => el.value).map(el => {
 
             if (el.separated == '0') return
-            if (el.width) {
+            if (el.EURO_WIDTH) {
               return {
                 ID: el.ID,
-                width: el.width,
+                width: parseInt(el.EURO_WIDTH),
                 NAME: el.NAME
               }
             } else {
