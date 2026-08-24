@@ -255,6 +255,12 @@ export class HandlesBuilder {
                 child.castShadow = true;
             }
         });
+
+        if (modelType !== 'DAE') {
+            handleMesh.scale.set(1, 1, 1);
+            handleMesh.updateMatrixWorld(true);
+        }
+
         const box = new THREE.Box3().setFromObject(handleMesh);
         handleMesh.userData.aabb = box
 
