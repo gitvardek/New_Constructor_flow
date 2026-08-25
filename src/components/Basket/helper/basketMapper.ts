@@ -162,7 +162,7 @@ function generateDoorsSimple(moduleData) {
       section.fasades?.forEach(fasadeArray => {
         fasadeArray.forEach((fasade, index) => {
           const doorNum = fasade.door || 1;
-          const segmentNum = index; // номер сегмента = индекс в массиве
+          const segmentNum = fasade.id - 1;
           const color = fasade.material.COLOR;
 
           if (!DOORS[sectionNum][doorNum]) {
@@ -445,12 +445,15 @@ function convertModuleToLegacyFormat(newModuleObject) {
       section.fasades?.forEach(doorGroup => {
         doorGroup.forEach((fasade, index) => {
           const doorNumber = fasade.door;
+          const fasId = fasade.id - 1
 
           if (!result[fasadesSizeKey][doorNumber]) {
-            result[fasadesSizeKey][doorNumber] = [];
+            result[fasadesSizeKey][doorNumber] = {};
           }
 
-          result[fasadesSizeKey][doorNumber].push(fasade.height);
+          if (fasade.height) {
+            result[fasadesSizeKey][doorNumber][fasId] = fasade.height
+          }
 
           if (!result[fasadesWidthKey][doorNumber]) {
             result[fasadesWidthKey][doorNumber] = fasade.width;
