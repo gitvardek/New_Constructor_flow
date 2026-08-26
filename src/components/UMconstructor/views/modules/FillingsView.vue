@@ -336,7 +336,7 @@ const getLocalPosition = (
 const getUniversalDepthOptions = (filling: FillingObject): number[] => {
   const product = UMconstructor.value?.APP?.CATALOG?.PRODUCTS?.[filling.product];
   if (!product?.SIZE_EDIT_DEPTH?.length) return [];
-  const maxAllowed = (module.value?.depth ?? 0) - 7;
+  const maxAllowed = (module.value?.depth ?? 0) - 50;
   return product.SIZE_EDIT_DEPTH.filter((d: number) => d <= maxAllowed);
 };
 
