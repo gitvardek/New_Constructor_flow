@@ -691,7 +691,9 @@ export class BuildUniversalModule extends BuildProduct {
 
         PROPS.JSON_FILLINGS = []
         const moduleThickness = PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18
-        const full_horizont_height = moduleThickness + PROPS.CONFIG.EXPRESSIONS['#HORIZONT#']
+
+        const noBottom = !!PROPS.CONFIG.MODULEGRID?.noBottom
+        const full_horizont_height = (noBottom ? 0 : moduleThickness) + PROPS.CONFIG.EXPRESSIONS['#HORIZONT#']
         const subGeometries = []
         const isSlidingDoors = PROPS.CONFIG.MODULEGRID?.fasades ? 100 : 0
 
