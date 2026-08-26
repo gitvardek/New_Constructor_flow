@@ -109,7 +109,11 @@ function createOptionsProps(objProps: any) {
 }
 
 function createRaspilData(objProps: any) {
+  console.log('HMM')
+
   if (!objProps.RASPIL?.data) return {};
+
+  console.log(objProps.RASPIL, '<<RSPIL>>')
 
   const raspilData = objProps.RASPIL.data.flat().map((el: any) => ({
     height: el.height,
@@ -163,8 +167,10 @@ function generateDoorsSimple(moduleData) {
 
       section.fasades?.forEach(fasadeArray => {
         fasadeArray.forEach((fasade, index) => {
+          console.log(fasade, '<< fasade fasade  >>')
+
           const doorNum = fasade.door || 1;
-          const segmentNum = index; // номер сегмента = индекс в массиве
+          const segmentNum = fasade.id - 1; // номер сегмента = индекс в массиве
           const color = fasade.material.COLOR;
 
           if (!DOORS[sectionNum][doorNum]) {
@@ -447,13 +453,25 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
       section.fasades?.forEach(doorGroup => {
         doorGroup.forEach((fasade, index) => {
-          const doorNumber = fasade.door;
+          console.log(index, 'indexindexindexindexindex')
 
+          const doorNumber = fasade.door;
+          const fasId = fasade.id - 1
+
+          console.log(fasId)
+          // Объект, а не массив: id фасадов выдаются в calcDrawersFasades сквозным
+          // счётчиком по списку, куда входят и ящики, поэтому у фасадов они идут с
+          // пропусками (1, 4, ...). В массиве это давало дыры [751, empty x 2, 657]
+          // и null в JSON; у объекта ключи просто разрежены: {0: 751, 3: 657}
           if (!result[fasadesSizeKey][doorNumber]) {
-            result[fasadesSizeKey][doorNumber] = [];
+            result[fasadesSizeKey][doorNumber] = {};
           }
 
-          result[fasadesSizeKey][doorNumber].push(fasade.height);
+          // result[fasadesSizeKey][doorNumber].push(fasade.height);
+          if (fasade.height) {
+            result[fasadesSizeKey][doorNumber][fasId] = fasade.height
+          }
+
 
           if (!result[fasadesWidthKey][doorNumber]) {
             result[fasadesWidthKey][doorNumber] = fasade.width;
@@ -496,6 +514,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
           }
         });
       });
+
+      console.log(result, 'result')
 
       legacyProps[`${sectionKey}`] = section.width;
       legacyProps[`${fasadesSizeKey}`] = result[fasadesSizeKey]
@@ -695,7 +715,7 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
 
 export function createBasketItem(objProps: TTotalProps, index: number, key: any = ''): IBasket {
 
-  console.log(objProps,objProps.CONFIG.KROMKA, 'objProps')
+  console.log(objProps, objProps.CONFIG.KROMKA, 'objProps')
   const props: any = {};
 
   // Добавляем свойства только если они существуют и не пустые
@@ -726,18 +746,22 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
 
   if (objProps.RASPIL && objProps.RASPIL.length !== 0) {
 
+    console.log(props.RASPIL)
+
     props.RASPIL = {
       data: objProps.RASPIL.data.flat().map(el => {
+        console.log(el, 'RREE')
+
         return {
           height: el.height,
           width: el.width,
           serviseData: el.serviseData.filter(el => el.value).map(el => {
 
             if (el.separated == '0') return
-            if (el.width) {
+            if (el.EURO_WIDTH) {
               return {
                 ID: el.ID,
-                width: el.width,
+                width: parseInt(el.EURO_WIDTH),
                 NAME: el.NAME
               }
             } else {

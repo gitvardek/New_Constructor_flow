@@ -517,6 +517,10 @@ export default class SectionsManager {
             this.scope.FILLINGS.updateSecAfterDelete(grid, secIndex);
         }
 
+        // Удалённая секция могла разделять секции с петлями на встречных перегородках —
+        // снимаем дверь до пересчёта, чтобы петли считались по итоговому набору
+        this.scope.LOOPS.resolvePartitionLoopsConflicts(grid);
+
         // Пересчёт петель для всех секций — смена топологии меняет соседство
         for (let i = 0; i < grid.sections.length; i++) {
             this.scope.LOOPS.calcLoops(i, grid);

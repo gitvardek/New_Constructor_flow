@@ -157,7 +157,11 @@ defineExpose({
           @close-modal="closeUMRedactor"
         >
           <template #save>
-            <button class="no-select actions-btn actions-btn--footer" @click="saveUMData">
+            <button
+              class="no-select actions-btn actions-btn--footer"
+              :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMData"
+            >
               Сохранить
             </button>
           </template>
@@ -190,6 +194,13 @@ defineExpose({
 </template>
 
 <style  lang="scss">
+// Пока есть неприменённые отложенные правки УМ, сохранение заблокировано
+.actions-btn--footer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .um-modal-body-wrapper {
   display: flex;
   gap: 1rem;

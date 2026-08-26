@@ -255,6 +255,15 @@ export class HandlesBuilder {
                 child.castShadow = true;
             }
         });
+
+        // Для GLTF масштаб корня уже ушёл в геометрию: updateWorldMatrix(true, ...) поднимается
+        // до корня, поэтому applyMatrix4(matrixWorld) запекает scaleVector в вершины.
+        // Если оставить его ещё и на корне, модель умножится на scale повторно
+        if (modelType !== 'DAE') {
+            handleMesh.scale.set(1, 1, 1);
+            handleMesh.updateMatrixWorld(true);
+        }
+
         const box = new THREE.Box3().setFromObject(handleMesh);
         handleMesh.userData.aabb = box
 

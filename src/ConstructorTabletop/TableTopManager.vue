@@ -1136,6 +1136,8 @@ onBeforeMount(() => {
   tempProfile.value = JSON.parse(JSON.stringify(PROFILE));
   tempUslugi.value = JSON.parse(JSON.stringify(USLUGI));
 
+  console.log(parent)
+
   setGridData(grid.value);
   setProfileData(tempProfile.value);
   setKromkaId(KROMKA);

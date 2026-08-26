@@ -257,6 +257,25 @@ export default class FillingsManager {
         return this.scope.RENDER_REF.checkPositionFillingToCreate(tempFilling);
     };
 
+    // saveUMGrid пересобирает fillings[].fasade и fasadesDrawers[] по отдельности,
+    // поэтому после каждого reset общая ссылка между ними рвётся и правка фасада
+    // остаётся только в fillings. Возвращаем ссылку на место
+    syncDrawerFasade(secIndex: number, filling: any, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const fasade = filling?.fasade
+        const list = grid.sections?.[secIndex]?.fasadesDrawers
+        if (!fasade || !list) return
+
+        const index = list.findIndex(item =>
+            item.sec === fasade.sec &&
+            item.cell === fasade.cell &&
+            item.row === fasade.row &&
+            item.extra === fasade.extra &&
+            item.item === fasade.item
+        )
+
+        if (index !== -1) list[index] = fasade
+    };
+
     // Свободное пространство внутри внешнего ящика — это часть фасада выше верха тела.
     // Фасад опущен на manufacturerOffset ниже дна тела (ExternalFasadesManager:
     // fasade.position.y = grid.height - (position.y + height + manufacturerOffset)),

@@ -195,6 +195,7 @@ const selectHandle = (data: any, type: string) => {
   const fillObj = curModuleSegment?.fillings?.find(f => f.id === item);
   if (fillObj?.fasade) {
     fillObj.fasade.material = Object.assign(fillObj.fasade.material, currentHandle.value.data);
+    UMconstructor?.value?.FILLINGS.syncDrawerFasade(sec, fillObj, module.value);
   }
 
   reset()
@@ -221,6 +222,7 @@ const selectOption = (value: Object, type: string, palette: Object = false) => {
   const fillObj = curModuleSegment?.fillings?.find(f => f.id === item);
   if (fillObj?.fasade) {
     fillObj.fasade.material = Object.assign(fillObj.fasade.material, currentFasadeMaterial.value.data);
+    UMconstructor?.value?.FILLINGS.syncDrawerFasade(sec, fillObj, module.value);
   }
 };
 
@@ -336,7 +338,7 @@ const getLocalPosition = (
 const getUniversalDepthOptions = (filling: FillingObject): number[] => {
   const product = UMconstructor.value?.APP?.CATALOG?.PRODUCTS?.[filling.product];
   if (!product?.SIZE_EDIT_DEPTH?.length) return [];
-  const maxAllowed = (module.value?.depth ?? 0) - 7;
+  const maxAllowed = (module.value?.depth ?? 0) - 70;
   return product.SIZE_EDIT_DEPTH.filter((d: number) => d <= maxAllowed);
 };
 

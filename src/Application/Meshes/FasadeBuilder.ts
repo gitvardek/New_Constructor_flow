@@ -195,9 +195,11 @@ export class FasadeBuilder {
 
         if (fasadeData.HANDLES.id && fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
             const handleId = fasadeData.HANDLES.id;
-            const handleModel = this._APP.CATALOG.PRODUCTS[handleId].models[0];
+            const handleModel = this._APP.CATALOG.PRODUCTS[handleId]?.models[0];
+            if (handleModel) {
+                this.handlesBuilder.createHandle({ id: handleId, model: handleModel }, mesh, fasadeData);
+            }
 
-            this.handlesBuilder.createHandle({ id: handleId, model: handleModel }, mesh, fasadeData);
         }
 
         // Видимость с учётом исключений

@@ -34,6 +34,9 @@ export const useUMStorage = defineStore('um-data', () => {
     const onWallModule = ref<boolean>(false);
     const noLoops = ref<boolean>(false);
     const noBackwall = ref<boolean>(false);
+    // Число отложенных (debounce) правок УМ, которые ещё не применены к сетке.
+    // Пока счётчик не нулевой, сохранять нельзя — уйдёт устаревшая конфигурация
+    const pendingOperations = ref<number>(0);
 
     const setUMGrid = (value: GridModule) => {
         if (value)
@@ -169,6 +172,7 @@ export const useUMStorage = defineStore('um-data', () => {
         onWallModule.value = false;
         noLoops.value = false;
         noBackwall.value = false;
+        pendingOperations.value = 0;
     }
 
     return {
@@ -184,6 +188,7 @@ export const useUMStorage = defineStore('um-data', () => {
         noBottom,
         onWallModule,
         noLoops,
+        pendingOperations,
         setUMGrid,
         setUMData,
         setUMCashConfig,
