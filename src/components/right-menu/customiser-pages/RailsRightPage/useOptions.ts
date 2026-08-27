@@ -217,8 +217,14 @@ export const useOptions = () => {
                 break;
         }
 
-        // Пересчитываем цоколь один раз, когда состояние всех опций уже устоялось
-        syncHorizont(OPTIONS)
+        const horizontAffected = NO_HORIZONT_OPTIONS.includes(+curOpt.id) ||
+            disabledOptions.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id))
+
+        if (horizontAffected) {
+            syncHorizont(OPTIONS)
+        }
+
+
         eventBus.emit("A:SelectModelOption", { option, values, disabledOptions })
 
         //  eventBus.emit("A:SelectModelOption")
