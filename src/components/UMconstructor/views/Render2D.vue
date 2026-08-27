@@ -2046,6 +2046,13 @@ function onHorizontalDragStart(event) {
     dragState.minTop = curMin;
   } else dragState.minTop = shapeAdjuster.getSectionTop(curSector, curMin);
 
+  // Содержимое ячейки со своим обязательным нижним отступом: без этого разделитель
+  // ужимал ячейку ниже ящика, distances.bottom уходил в минус, и фасад вылезал за низ
+  dragState.minTop = Math.max(
+    dragState.minTop,
+    UMconstructor.value?.SHELVES.getCellMinHeight(cur, module) ?? MIN_SECTION_HEIGHT,
+  );
+
   let nextMin = next.minY;
   if (next.cellsRows?.length) {
     let count = 1;
@@ -2062,6 +2069,11 @@ function onHorizontalDragStart(event) {
     dragState.minBottom = nextMin;
   } else
     dragState.minBottom = shapeAdjuster.getSectionBottom(nextSector, nextMin);
+
+  dragState.minBottom = Math.max(
+    dragState.minBottom,
+    UMconstructor.value?.SHELVES.getCellMinHeight(next, module) ?? MIN_SECTION_HEIGHT,
+  );
 
   app.stage.on("pointermove", onDragMove);
   app.stage.on("pointerup", onDragEnd);
@@ -3093,9 +3105,13 @@ const adjustSectionSize = (
       }*/
     } else {
       if (nextRow) {
-        let curMin = next
-          ? currentRow.maxY
-          : currentRow.minY || MIN_SECTION_HEIGHT;
+        // Минимум задаёт содержимое, а не minY/maxY — те хранят абсолютные координаты
+        // по канве (например 2049 для ячейки с ящиком), и подстановка координаты вместо
+        // размера зажимала значение в максимум: 356 -> 2049 -> total - MIN = 855
+        const contentHeight = (entity) =>
+          UMconstructor.value?.SHELVES.getCellMinHeight(entity, module) ?? MIN_SECTION_HEIGHT;
+
+        let curMin = Math.max(contentHeight(currentRow), MIN_SECTION_HEIGHT);
         if (currentRow.cellsRows?.length) {
           let count = 1;
           currentRow.cellsRows.forEach((elem) => {
@@ -3110,7 +3126,7 @@ const adjustSectionSize = (
           );
         }
 
-        let nextMin = next ? nextRow.minY : nextRow.maxY || MIN_SECTION_HEIGHT;
+        let nextMin = Math.max(contentHeight(nextRow), MIN_SECTION_HEIGHT);
         if (nextRow.cells?.length) {
           let count = 1;
           nextRow.cellsRows.forEach((elem) => {

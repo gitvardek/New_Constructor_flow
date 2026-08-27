@@ -859,7 +859,7 @@ export class MeshEvents extends BuildersHelper {
     public async processOptions(data) {
 
         if (!data) return
-        const { NAME, ID } = data.option
+        const { NAME, ID } = data.option ?? {}
         if (!this._currentMesh) return;
 
         console.log(data, 'OPTIONS NAME')
@@ -867,7 +867,7 @@ export class MeshEvents extends BuildersHelper {
         const { FASADE, FASADE_DEFAULT, LEG, CONFIG } = this._currentMesh.userData.PROPS;
         const { width, height, depth } = CONFIG.SIZE;
 
-        if (NAME.includes('Опоры')) {
+        if (NAME?.includes('Опоры')) {
             this.changeModelSize({ data: { width, height, depth } })
             return
         }

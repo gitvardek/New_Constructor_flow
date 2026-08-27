@@ -210,14 +210,30 @@ const getCurrentValue = computed(() => {
 
       if (!result.COLOR) result.COLOR = objectData.value.CONFIG.MODULE_COLOR;
 
+      // isPanel: это не дверь, поэтому предел задаёт размер листа,
+      // а не константы MAX_FASADE_WIDTH/MIN_FASADE_WIDTH универсального модуля
       elementSize.value = {
         FASADE_WIDTH: module.value.depth,
         FASADE_HEIGHT: module.value.height,
+        isPanel: true,
+      };
+
+      break;
+    case "TOPFASADECOLOR":
+      result = objectData.value.CONFIG[currentOption.value];
+
+      // Раньше размер здесь не задавался вовсе, и накладка наследовала габариты
+      // боковой стенки, открытой до неё
+      elementSize.value = {
+        FASADE_WIDTH: module.value.width,
+        FASADE_HEIGHT: module.value.depth,
+        isPanel: true,
       };
 
       break;
     default:
       result = objectData.value.CONFIG[currentOption.value];
+      elementSize.value = false;
       break;
   }
 
@@ -235,6 +251,8 @@ const getMaterialsList = () => {
     case "RIGHTSIDECOLOR":
     case "LEFTSIDECOLOR":
       materialList.value = modelState.getCurrentSidewallData;
+    console.log(materialList.value , 'materialList.value  ============== ')
+
       break;
     case "PROFILECOLOR":
       materialList.value = module.value.profilesConfig.colorsList.map(

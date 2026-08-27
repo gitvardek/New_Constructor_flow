@@ -48,7 +48,10 @@ export const useConversationActions = () => {
         });
     }
 
-    const createFasadeConversations = (fasadeId: number, curModel: Object3D | null): TFasadeGroupSize => {
+    // isPanel — элемент не является дверью (боковая стенка, накладка на крышку).
+    // Для двери у УМ действуют константы MAX_FASADE_WIDTH/MIN_FASADE_WIDTH, для панели
+    // предел задаёт размер листа из _FASADE_SIZE_RESTRICT
+    const createFasadeConversations = (fasadeId: number, curModel: Object3D | null, isPanel: boolean = false): TFasadeGroupSize => {
 
         let restrict = {
             MAX_HEIGHT: Infinity,
@@ -83,11 +86,15 @@ export const useConversationActions = () => {
         const toCheck = modelState._FASADE_SIZE_RESTRICT[section.ID];
 
 
+        // Дверные лимиты УМ применимы только к дверям: боковая стенка и накладка
+        // ограничены размером листа, поэтому для них ветка isUM пропускается
+        const useDoorLimits = isUM && !isPanel
+
         restrict = {
             MAX_HEIGHT: toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.HEIGHT : Infinity,
             MIN_HEIGHT: toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.MIN_HEIGHT : -Infinity,
-            MAX_WIDTH: isUM ? (isSlideDoor ? UM_PARAMS.MAX_SLIDE_DOOR_WIDTH : UM_PARAMS.MAX_FASADE_WIDTH) : toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.WIDTH : Infinity,
-            MIN_WIDTH: isUM ? (isSlideDoor ? UM_PARAMS.MIN_SLIDE_DOOR_WIDTH : UM_PARAMS.MIN_FASADE_WIDTH) : toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.MIN_WIDTH : -Infinity,
+            MAX_WIDTH: useDoorLimits ? (isSlideDoor ? UM_PARAMS.MAX_SLIDE_DOOR_WIDTH : UM_PARAMS.MAX_FASADE_WIDTH) : toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.WIDTH : Infinity,
+            MIN_WIDTH: useDoorLimits ? (isSlideDoor ? UM_PARAMS.MIN_SLIDE_DOOR_WIDTH : UM_PARAMS.MIN_FASADE_WIDTH) : toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.MIN_WIDTH : -Infinity,
         }
 
         return restrict
@@ -121,14 +128,13 @@ export const useConversationActions = () => {
     }
 
     const checkFasadeConversations = (fasadeId: number, size: TFasadeTrueSizes) => {
-        console.log('СТРАУС')
-
         const curModel = modelState.getCurrentModel
         const { FASADE_WIDTH, FASADE_HEIGHT } = size
-        const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel)
+        // Признак панели приходит в объекте размера — так же, как isDrawer для ящиков
+        const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel, !!size?.isPanel)
 
-        console.log(`Полоно HEIGHT: min:${MIN_HEIGHT} - max:${MAX_HEIGHT}, WIDTH: min:${MIN_WIDTH} - max:${MAX_WIDTH}`);
-        console.log(`Размер фасада: HEIGHT:${FASADE_HEIGHT}, WIDTH:${FASADE_WIDTH}`)
+        // console.log(`Полоно HEIGHT: min:${MIN_HEIGHT} - max:${MAX_HEIGHT}, WIDTH: min:${MIN_WIDTH} - max:${MAX_WIDTH}`);
+        // console.log(`Размер фасада: HEIGHT:${FASADE_HEIGHT}, WIDTH:${FASADE_WIDTH}`)
 
         const check =
             FASADE_HEIGHT <= MAX_HEIGHT &&
@@ -136,11 +142,11 @@ export const useConversationActions = () => {
             FASADE_WIDTH <= MAX_WIDTH &&
             FASADE_WIDTH >= MIN_WIDTH;
 
-        console.log(`
-                1:${FASADE_HEIGHT <= MAX_HEIGHT}, 
-                2:${FASADE_HEIGHT >= MIN_HEIGHT},  
-                3:${FASADE_WIDTH <= MAX_WIDTH},  
-                4:${FASADE_WIDTH >= MIN_WIDTH}`)
+        // console.log(`
+        //         1:${FASADE_HEIGHT <= MAX_HEIGHT}, 
+        //         2:${FASADE_HEIGHT >= MIN_HEIGHT},  
+        //         3:${FASADE_WIDTH <= MAX_WIDTH},  
+        //         4:${FASADE_WIDTH >= MIN_WIDTH}`)
 
         if (!check) {
             toaster.error(`Размер Фасада №${fasadeId + 1} не соответствует доступному размеру полотна`)

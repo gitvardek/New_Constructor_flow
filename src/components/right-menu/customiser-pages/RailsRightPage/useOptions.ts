@@ -229,7 +229,13 @@ export const useOptions = () => {
         if (horizontAffected)
             syncHorizont(OPTIONS)
 
-        eventBus.emit("A:SelectModelOption", { option, values, disabledOptions })
+        // setEccentricOption зовёт checkActive с урезанной опцией ({ ID: 8390271 }),
+        // у которой нет NAME. Подписчики (MeshEvents.processOptions) читают NAME,
+        // поэтому восстанавливаем полную запись из справочника
+        const optionData = appData.getAppData.OPTION?.[id] ?? {}
+        const emittedOption = { ...optionData, ...(option && typeof option === 'object' ? option : {}) }
+
+        eventBus.emit("A:SelectModelOption", { option: emittedOption, values, disabledOptions })
 
         //  eventBus.emit("A:SelectModelOption")
 

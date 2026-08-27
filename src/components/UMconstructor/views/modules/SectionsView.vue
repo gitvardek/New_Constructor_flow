@@ -36,6 +36,14 @@ const maxSectionWidth = computed(() =>
     : UM_PARAMS.MAX_SECTION_WIDTH
 );
 
+// Ячейку нельзя ужать ниже её содержимого: наполнение прижато к низу, поэтому
+// сохранять нужно его высоту вместе с нижним отступом (инвариант ячейки —
+// height = filling.height + distances.top + distances.bottom). Без этого инпут
+// принимал заведомо неприменимое значение: геометрия зажимала его до минимума,
+// а в поле оставалось введённое число
+const getCellMinHeight = (section: any, cellIndex: number): number =>
+    UMconstructor.value.SHELVES.getCellMinHeight(section.cells[cellIndex], module.value)
+
 const getCellMaxHeight = (section: any, cellIndex: number): number => {
     const cell = section.cells[cellIndex]
     const neighbor = section.cells[cellIndex + 1] || section.cells[cellIndex - 1]
@@ -161,9 +169,9 @@ onMounted(() => {
                                 grid: module,
                                 secIndex,
                                 cellIndex,
-                                value: value ?? UMconstructor.CONST.MIN_SECTION_HEIGHT
+                                value: value ?? getCellMinHeight(section, cellIndex)
                               })" :type="'number'" :inputClass="'actions-input'" :modelValue="cell.height"
-                                :min="UMconstructor.CONST.MIN_SECTION_HEIGHT"
+                                :min="getCellMinHeight(section, cellIndex)"
                                 :max="getCellMaxHeight(section, cellIndex)" :step="step"
                                 :isUM="true" />
 

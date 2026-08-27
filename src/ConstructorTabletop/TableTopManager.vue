@@ -480,7 +480,9 @@ const checkProfileDisablegroups = (keepValues = true) => {
           NEW_CONSTRUCTOR_CHOISEGROUP: el.NEW_CONSTRUCTOR_CHOISEGROUP,
           value: el.value,
           RADIUS: el.RADIUS,
-          EURO_WIDTH: el.EURO_WIDTH,
+          // Ширина еврозапила задаётся отдельно для каждой части, поэтому берём сохранённое значение секции,
+          // иначе при перезаходе в редактор оно сбрасывается на значение по умолчанию из глобального списка услуг
+          EURO_WIDTH: el.EURO_WIDTH && curUsluga?.EURO_WIDTH ? curUsluga.EURO_WIDTH : el.EURO_WIDTH,
           CORNER: el.CORNER,
           separated: el.separated,
           visible: el.visible,
