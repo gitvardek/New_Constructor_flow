@@ -46,9 +46,18 @@ const getCellMinHeight = (section: any, cellIndex: number): number =>
 
 const getCellMaxHeight = (section: any, cellIndex: number): number => {
     const cell = section.cells[cellIndex]
-    const neighbor = section.cells[cellIndex + 1] || section.cells[cellIndex - 1]
     const MIN = UMconstructor.value.CONST.MIN_SECTION_HEIGHT
-    return neighbor ? cell.height + neighbor.height - MIN : section.height - MIN
+
+    // Изменение компенсирует сосед сверху (prev) — см. ShelvesManager.updateCellHeight.
+    // Раньше максимум считался по соседу снизу, и предел брался не с той ячейки:
+    // при нижнем соседе 279 нельзя было задать 500, хотя сверху свободно 992
+    const neighborIndex = section.cells[cellIndex - 1] ? cellIndex - 1 : cellIndex + 1
+    const neighbor = section.cells[neighborIndex]
+
+    if (!neighbor) return section.height - MIN
+
+    // Сосед не может уйти ниже собственного минимума по содержимому
+    return cell.height + neighbor.height - getCellMinHeight(section, neighborIndex)
 }
 
 const showCurrentCol = (secIndex: number | null = 0, cellIndex: number | null = null, rowIndex: number | null = null, extraIndex: number | null = null) => {

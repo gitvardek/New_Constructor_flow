@@ -192,8 +192,11 @@ export default class ShelvesManager {
                 let prev = curSection.cells[cellIndex - 1];
                 let next = curSection.cells[cellIndex + 1]
 
-                let nextCell = next || prev
-                let nextIndex = next ? cellIndex + 1 : cellIndex - 1
+                // Индекс в массиве растёт сверху вниз, поэтому prev — ячейка над текущей.
+                // Компенсируем изменение высоты именно ей: при уменьшении ячейки растёт
+                // соседняя сверху, а не снизу
+                let nextCell = prev || next
+                let nextIndex = prev ? cellIndex - 1 : cellIndex + 1
 
                 let delta1 = cell.height - adjustedValue
                 cell.height = adjustedValue
