@@ -2041,6 +2041,11 @@ function onHorizontalDragStart(event) {
     dragState.minTop = curMin;
   } else dragState.minTop = shapeAdjuster.getSectionTop(curSector, curMin);
 
+  dragState.minTop = Math.max(
+    dragState.minTop,
+    UMconstructor.value?.SHELVES.getCellMinHeight(cur, module) ?? MIN_SECTION_HEIGHT,
+  );
+
   let nextMin = next.minY;
   if (next.cellsRows?.length) {
     let count = 1;
@@ -2057,6 +2062,11 @@ function onHorizontalDragStart(event) {
     dragState.minBottom = nextMin;
   } else
     dragState.minBottom = shapeAdjuster.getSectionBottom(nextSector, nextMin);
+
+  dragState.minBottom = Math.max(
+    dragState.minBottom,
+    UMconstructor.value?.SHELVES.getCellMinHeight(next, module) ?? MIN_SECTION_HEIGHT,
+  );
 
   app.stage.on("pointermove", onDragMove);
   app.stage.on("pointerup", onDragEnd);
@@ -2973,119 +2983,20 @@ const adjustSectionSize = (
       } else {
         calcValue = newValue;
       }
-      /*if (sectionIndex < module.sections.length - 1) {
-        const nextRow = rowIndex !== null ? cell.cellsRows[rowIndex + 1] :
-            cellIndex !== null ? section.cells[cellIndex + 1] :
-                module.sections[sectionIndex + 1];
 
-        const totalWidth = currentRow.width + nextRow.width;
-
-        const minCurrent = MIN_SECTION_WIDTH /!*Math.max(
-            MIN_SECTION_WIDTH,
-            shapeAdjuster.getLeftSectionWidth(currentRow.sector, currentRow.maxX)
-        );*!/
-
-        const minNext = MIN_SECTION_WIDTH /!*Math.max(
-            MIN_SECTION_WIDTH,
-            shapeAdjuster.getRightSectionWidth(nextRow.sector, nextRow.minX)
-        );*!/
-        calcValue = updateSizes(
-            newValue,
-            dimension,
-            currentRow,
-            nextRow,
-            totalWidth,
-            minCurrent,
-            minNext
-        );
-      }
-      else if (sectionIndex > 0) {
-
-        if (row) {
-          const nextRow = cell.cellsRows[rowIndex + 1] || cell.cellsRows[rowIndex - 1]
-          const totalWidth = section.width + nextRow.width;
-
-          const minCurrent = MIN_SECTION_WIDTH /!*Math.max(
-              MIN_SECTION_WIDTH,
-              shapeAdjuster.getRightSectionWidth(section.sector, section.minX)
-          );*!/
-
-          const minPrev = MIN_SECTION_WIDTH /!*Math.max(
-              MIN_SECTION_WIDTH,
-              shapeAdjuster.getLeftSectionWidth(nextRow.sector, nextRow.maxX)
-          );*!/
-
-          calcValue = updateSizes(
-              newValue,
-              dimension,
-              section,
-              nextRow,
-              totalWidth,
-              minCurrent,
-              minPrev
-          );
-        }
-        else {
-          const prevRow = cellIndex !== null ? section.cells[cellIndex - 1] :
-                  module.sections[sectionIndex - 1];
-          const totalWidth = section.width + prevRow.width;
-
-          const minCurrent = MIN_SECTION_WIDTH/!* Math.max(
-            MIN_SECTION_WIDTH,
-            shapeAdjuster.getRightSectionWidth(section.sector, section.minX)
-        );*!/
-
-          const minPrev = MIN_SECTION_WIDTH /!*Math.max(
-            MIN_SECTION_WIDTH,
-            shapeAdjuster.getLeftSectionWidth(prevRow.sector, prevRow.maxX)
-        );
-*!/
-          calcValue = updateSizes(
-              newValue,
-              dimension,
-              section,
-              prevRow,
-              totalWidth,
-              minCurrent,
-              minPrev
-          );
-        }
-
-      }
-      else {
-        if (row) {
-          const nextRow = cell.cellsRows[rowIndex + 1] || cell.cellsRows[rowIndex - 1]
-          const totalWidth = section.width + nextRow.width;
-
-          const minCurrent = MIN_SECTION_WIDTH /!*Math.max(
-              MIN_SECTION_WIDTH,
-              shapeAdjuster.getRightSectionWidth(section.sector, section.minX)
-          );*!/
-
-          const minPrev = MIN_SECTION_WIDTH /!*Math.max(
-              MIN_SECTION_WIDTH,
-              shapeAdjuster.getLeftSectionWidth(nextRow.sector, nextRow.maxX)
-          );*!/
-
-          calcValue = updateSizes(
-              newValue,
-              dimension,
-              section,
-              nextRow,
-              totalWidth,
-              minCurrent,
-              minPrev
-          );
-        } else {
-          section.cells.forEach((cell) => (cell.width = newValue));
-          section.width = newValue
-        }
-      }*/
     } else {
+
       if (nextRow) {
-        let curMin = next
-          ? currentRow.maxY
-          : currentRow.minY || MIN_SECTION_HEIGHT;
+
+        // По высоте компенсирует сосед сверху (prev), как и в ShelvesManager.updateCellHeight.
+        // Предел и общая высота должны считаться по той же ячейке, которая реально изменится
+        nextRow = prev || next;
+
+        const contentHeight = (entity) =>
+          UMconstructor.value?.SHELVES.getCellMinHeight(entity, module) ?? MIN_SECTION_HEIGHT;
+
+        let curMin = Math.max(contentHeight(currentRow), MIN_SECTION_HEIGHT);
+
         if (currentRow.cellsRows?.length) {
           let count = 1;
           currentRow.cellsRows.forEach((elem) => {
@@ -3100,7 +3011,7 @@ const adjustSectionSize = (
           );
         }
 
-        let nextMin = next ? nextRow.minY : nextRow.maxY || MIN_SECTION_HEIGHT;
+        let nextMin = Math.max(contentHeight(nextRow), MIN_SECTION_HEIGHT);
         if (nextRow.cells?.length) {
           let count = 1;
           nextRow.cellsRows.forEach((elem) => {

@@ -217,6 +217,10 @@ export const useOptions = () => {
                 break;
         }
 
+        // Пересчитываем цоколь только если менялась опция, которая им управляет.
+        // Безусловный пересчёт затирал ручное переключение тумблера «Цоколь»
+        // при клике по любой другой опции
+
         const horizontAffected = NO_HORIZONT_OPTIONS.includes(+curOpt.id) ||
             disabledOptions.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id))
 
@@ -225,7 +229,10 @@ export const useOptions = () => {
         }
 
 
-        eventBus.emit("A:SelectModelOption", { option, values, disabledOptions })
+        const optionData = appData.getAppData.OPTION?.[id] ?? {}
+        const emittedOption = { ...optionData, ...(option && typeof option === 'object' ? option : {}) }
+
+        eventBus.emit("A:SelectModelOption", { option: emittedOption, values, disabledOptions })
 
         //  eventBus.emit("A:SelectModelOption")
 

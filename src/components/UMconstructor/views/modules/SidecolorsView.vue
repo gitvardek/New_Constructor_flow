@@ -213,11 +213,25 @@ const getCurrentValue = computed(() => {
       elementSize.value = {
         FASADE_WIDTH: module.value.depth,
         FASADE_HEIGHT: module.value.height,
+        isPanel: true,
       };
 
       break;
+
+    case "TOPFASADECOLOR":
+      result = objectData.value.CONFIG[currentOption.value];
+
+      elementSize.value = {
+        FASADE_WIDTH: module.value.width,
+        FASADE_HEIGHT: module.value.depth,
+        isPanel: true,
+      };
+
+      break;
+
     default:
       result = objectData.value.CONFIG[currentOption.value];
+      elementSize.value = false;
       break;
   }
 
@@ -579,7 +593,7 @@ onBeforeUnmount(() => {
         <div v-else>
           <AdvanceCorpusMaterialRedactor class="color--left-select-item" v-if="getCurrentRedactor" :key="currentOption"
             :element-data="getCurrentValue" :element-index="currentOption" :material-list="materialList"
-            :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR'|| currentOption === 'TOPFASADECOLOR'"
+            :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR' || currentOption === 'TOPFASADECOLOR'"
             :fasade-size="elementSize" @parent-callback="selectOption" @select_material="emit('eccentric-action')" />
           <CorpusMaterialRedactor v-else class="color--left-select-item" :is2Dconstructor="true"
             :material-list="materialList" :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"

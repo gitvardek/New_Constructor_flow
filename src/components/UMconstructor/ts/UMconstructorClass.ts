@@ -405,7 +405,8 @@ export default class UMconstructorClass {
         if (CONFIG['RIGHTSIDECOLOR']?.COLOR) {
             let check = this.FASADES.FASADES_CONVERSATION.checkFasadeConversations(CONFIG['RIGHTSIDECOLOR'].COLOR, {
                 FASADE_WIDTH: this.UM_STORE.totalDepth,
-                FASADE_HEIGHT: this.UM_STORE.totalHeight
+                FASADE_HEIGHT: this.UM_STORE.totalHeight,
+                isPanel: true
             })
 
             if (!check) {
@@ -417,7 +418,8 @@ export default class UMconstructorClass {
         if (CONFIG['LEFTSIDECOLOR']?.COLOR) {
             let check = this.FASADES.FASADES_CONVERSATION.checkFasadeConversations(CONFIG['LEFTSIDECOLOR'].COLOR, {
                 FASADE_WIDTH: this.UM_STORE.totalDepth,
-                FASADE_HEIGHT: this.UM_STORE.totalHeight
+                FASADE_HEIGHT: this.UM_STORE.totalHeight,
+                isPanel: true
             })
 
             if (!check) {

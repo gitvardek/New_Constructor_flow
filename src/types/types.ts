@@ -372,6 +372,7 @@ export type TFasadeTrueSizes = {
   FASADE_DEPTH: number,
   FASADE_HEIGHT: number,
   isDrawer?: boolean,
+  isPanel?:boolean
 }
 
 export type TFasadeConversation = {

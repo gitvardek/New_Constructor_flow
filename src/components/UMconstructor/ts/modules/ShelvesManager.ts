@@ -25,6 +25,40 @@ export default class ShelvesManager {
         return WITH_TSARGA.includes(grid.productID);
     }
 
+    // У внешнего ящика ограничение задаёт его фасад: ячейка не может быть ниже верхней
+    // точки фасада. Верх фасада относительно низа ячейки равен
+    // distances.bottom - manufacturerOffset + fasade.height, а минимально допустимый
+    // distances.bottom (при котором фасад стоит на 4 мм от нижнего горизонта) равен
+    // manufacturerOffset - (moduleThickness - 4). После подстановки manufacturerOffset
+    // сокращается и остаётся fasade.height - (moduleThickness - 4)
+
+    getFillingMinHeight(filling: any, grid: GridModule = this.scope.UM_STORE.getUMGrid()): number {
+        if (filling?.fasade) {
+            // Верхняя точка фасада относительно низа ячейки
+            const fasadeTop = (filling.fasade.height ?? 0) - (grid.moduleThickness - 4)
+
+            // Фасад заходит под полку сверху, поэтому её толщина в высоту ячейки
+            // не входит — минус толщина полки и обратно технологический зазор 4 мм
+            return fasadeTop - grid.moduleThickness + 4
+        }
+
+        return (filling?.height ?? 0) + Math.max(filling?.distances?.bottom ?? 0, 0)
+    };
+
+    // Минимальная высота ячейки — по самому требовательному наполнению
+    getCellMinHeight(cell: any, grid: GridModule = this.scope.UM_STORE.getUMGrid()): number {
+        const MIN = this.scope.CONST.MIN_SECTION_HEIGHT
+        const fillings = cell?.fillings ?? []
+
+        if (!fillings.length) return MIN
+
+        const needed = Math.max(...fillings.map((filling: any) =>
+            this.getFillingMinHeight(filling, grid)
+        ))
+
+        return Math.max(needed, MIN)
+    };
+
     addCell(
         {
             grid = this.scope.UM_STORE.getUMGrid(),
@@ -157,8 +191,13 @@ export default class ShelvesManager {
                 let prev = curSection.cells[cellIndex - 1];
                 let next = curSection.cells[cellIndex + 1]
 
-                let nextCell = next || prev
-                let nextIndex = next ? cellIndex + 1 : cellIndex - 1
+                // Расчёт сверху вниз
+                // let nextCell = next || prev
+                // let nextIndex = next ? cellIndex + 1 : cellIndex - 1 
+
+                // Расчёт снизу вверх
+                let nextCell = prev || next
+                let nextIndex = prev ? cellIndex - 1 : cellIndex + 1
 
                 let delta1 = cell.height - adjustedValue
                 cell.height = adjustedValue

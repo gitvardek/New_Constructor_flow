@@ -36,6 +36,9 @@ const maxSectionWidth = computed(() =>
     : UM_PARAMS.MAX_SECTION_WIDTH
 );
 
+const getCellMinHeight = (section: any, cellIndex: number): number =>
+  UMconstructor.value.SHELVES.getCellMinHeight(section.cells[cellIndex], module.value)
+
 const getCellMaxHeight = (section: any, cellIndex: number): number => {
   const cell = section.cells[cellIndex]
   const neighbor = section.cells[cellIndex + 1] || section.cells[cellIndex - 1]
@@ -160,10 +163,10 @@ onMounted(() => {
                                 grid: module,
                                 secIndex,
                                 cellIndex,
-                                value: value ?? UMconstructor.CONST.MIN_SECTION_HEIGHT
+                                value: value ?? getCellMinHeight(section, cellIndex)
                               })" :type="'number'" :inputClass="'actions-input'" :modelValue="cell.height"
-                                :min="UMconstructor.CONST.MIN_SECTION_HEIGHT"
-                                :max="getCellMaxHeight(section, cellIndex)" :step="step" :isUM="true" />
+                                :min="getCellMinHeight(section, cellIndex)" :max="getCellMaxHeight(section, cellIndex)"
+                                :step="step" :isUM="true" />
 
                             </div>
                           </div>
