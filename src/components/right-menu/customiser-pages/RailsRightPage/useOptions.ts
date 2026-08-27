@@ -220,8 +220,14 @@ export const useOptions = () => {
                 break;
         }
 
-        // Пересчитываем цоколь один раз, когда состояние всех опций уже устоялось
-        syncHorizont(OPTIONS)
+        // Пересчитываем цоколь только если менялась опция, которая им управляет.
+        // Безусловный пересчёт затирал ручное переключение тумблера «Цоколь»
+        // при клике по любой другой опции
+        const horizontAffected = NO_HORIZONT_OPTIONS.includes(+curOpt.id) ||
+            disabledOptions.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id))
+
+        if (horizontAffected)
+            syncHorizont(OPTIONS)
 
         eventBus.emit("A:SelectModelOption", { option, values, disabledOptions })
 

@@ -110,6 +110,9 @@ export default class ExternalFasadesManager {
         let fasadesDrawers = grid.sections[secIndex].fasadesDrawers || []
 
         let baseDrawerFasade = fasadesDrawers[0]
+
+        this.liftStackAboveBottom(secIndex, grid)
+
         let fasadesList = this.calcDrawersFasadesPositons(secIndex, grid) || []
 
         grid.sections[secIndex].fasades[0] = []
@@ -180,13 +183,61 @@ export default class ExternalFasadesManager {
         this.FASADES_MANAGER.scope.LOOPS.calcLoops(secIndex, grid)
     };
 
+    // Фасад ящика свисает на manufacturerOffset ниже дна тела. Со снятым цоколем
+    // (опция «Без дна») тело опускается почти к полу модуля, и фасад уходит за габарит:
+    // при moduleThickness 16 и offset 28 его низ оказывается на -14. Поднимаем стопку
+    // целиком — тела ящиков, их фасады и профили — чтобы нижний фасад встал на
+    // BOTTOM_FASADE_OFFSET. Зазоры внутри стопки и размеры деталей при этом не меняются.
+    // С цоколем сдвиг выходит отрицательным и метод ничего не делает
+    liftStackAboveBottom(secIndex: number, grid: GridModule) {
+        const BOTTOM_FASADE_OFFSET = 2
+
+        const section = grid.sections?.[secIndex]
+        const drawerFasades = section?.fasadesDrawers ?? []
+        if (!drawerFasades.length) return
+
+        const lowest = Math.min(...drawerFasades.map(fasade => fasade.position?.y ?? 0))
+        const shift = BOTTOM_FASADE_OFFSET - lowest
+        if (shift <= 0) return
+
+        // После saveUMGrid fillings[].fasade, hiTechProfiles и fasadesDrawers могут быть
+        // как одним объектом, так и разными копиями — двигаем каждый объект ровно один раз
+        const moved = new Set()
+        const moveBody = (body) => {
+            if (!body?.position || moved.has(body)) return
+            moved.add(body)
+
+            // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
+            body.position.y -= shift
+            if (body.distances) {
+                body.distances.top -= shift
+                body.distances.bottom += shift
+            }
+        }
+
+        section.fillings?.forEach(filling => {
+            if (!filling?.fasade && !filling?.isProfile) return
+            moveBody(filling)
+        })
+        section.hiTechProfiles?.forEach(moveBody)
+
+        // Позицию фасада пересчитываем от тела — единственного источника истины
+        const placeFasade = (fasade, body) => {
+            if (!fasade?.position || !body?.position) return
+            fasade.position.y = grid.height - (body.position.y + body.height + fasade.manufacturerOffset)
+        }
+
+        section.fillings?.forEach(filling => placeFasade(filling.fasade, filling))
+        drawerFasades.forEach(fasade => {
+            const body = section.fillings?.find(filling => filling.id === fasade.item)
+            placeFasade(fasade, body)
+        })
+    };
+
     calcDrawersFasadesPositons(secIndex: number, _grid: GridModule){
         const fasadeList = []
         const {CONFIG} = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
         const grid = _grid || this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()
-
-        let moduleThickness = grid.moduleThickness || 18
-        moduleThickness = !grid.horizont ? -2 : moduleThickness - 2
 
         //Ящики с фасадами
         const BOX_FASADE = grid.sections[secIndex].fasadesDrawers || []

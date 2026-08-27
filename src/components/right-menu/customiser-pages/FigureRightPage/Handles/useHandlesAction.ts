@@ -12,7 +12,7 @@ const useHandlesAction = () => {
     const modelState = useModelState()
     const eventBus = useEventBus()
 
-    const getControllerData = (fasadeNdx:number) => {
+    const getControllerData = (fasadeNdx: number) => {
         let result = [];
         const model = modelState.getCurrentModel;
         const config = model?.userData?.PROPS?.CONFIG;
@@ -87,8 +87,8 @@ const useHandlesAction = () => {
         const key = additionalMillingKeys[currentMilling] ?? currentMilling
         const map = MILLING_HANDLE_KEYS[key]
 
-        // console.log(key,map,type,'{{{{')
-         console.log(map[action],'action')
+        console.log(map, '{{{{')
+        console.log(map[action], 'action')
 
         if (type === "milling") {
             if (!key || !map) return;
