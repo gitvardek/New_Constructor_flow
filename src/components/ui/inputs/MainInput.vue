@@ -26,18 +26,18 @@ interface IProps {
   isUM?: boolean;
 };
 
-const props = withDefaults(defineProps < IProps > (), {}); // описаны инлайн ниже
+const props = withDefaults(defineProps<IProps>(), {}); // описаны инлайн ниже
 
 // явные дефолты через withDefaults не нужны — используем деструктуризацию ниже
 
-const emit = defineEmits < {
+const emit = defineEmits<{
   (e: "update:modelValue", value: string | number): void;
-}> ();
+}>();
 
 // Refs
 
-const inputRef = useTemplateRef < HTMLInputElement > ("inputRef");
-const inputValue = ref < string | number > (props.modelValue);
+const inputRef = useTemplateRef<HTMLInputElement>("inputRef");
+const inputValue = ref<string | number>(props.modelValue);
 let resetTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ------------------------------- Computed -------------------------------
@@ -64,6 +64,23 @@ const isValueValid = (value: string | number): boolean => {
   return true;
 };
 
+/**
+ * Приводит значение к допустимому диапазону: ниже min — вернёт min, выше max — max.
+ * Пустая строка и нечисловой ввод откатываются к текущему значению
+ */
+const clampToRange = (value: string | number): string | number => {
+  if (props.type === "text") return value;
+  if (value === "" || value === null || value === undefined) return props.modelValue;
+
+  const num = Number(value);
+  if (Number.isNaN(num)) return props.modelValue;
+
+  if (props.min != null && num < Number(props.min)) return Number(props.min);
+  if (props.max != null && num > Number(props.max)) return Number(props.max);
+
+  return num;
+};
+
 /** Фильтрует нецифровые символы и обрезает по maxlength */
 const applyDigitsOnly = (value: string | number): string => {
   const digits = String(value ?? "").replace(/\D/g, "");
@@ -81,9 +98,14 @@ const setInputColor = (valid: boolean) => {
 // ------------------------------- Обработка изменения значения -------------------------------
 
 /**
- * isUM=true — с отложенным сбросом:
- * невалидное значение подсвечивается красным и через 1 с откатывается
+ * isUM=true — с отложенной коррекцией:
+ * значение вне диапазона подсвечивается красным и через 1 с заменяется ближайшей
+ * границей (ниже min — на min, выше max — на max).
+ *
+ * Пауза нужна для набора: при мгновенном зажиме промежуточная «5» на пути к «500»
+ * сразу схлопывалась бы в минимум
  */
+
 const handleValueWithReset = (newValue: string | number) => {
   if (newValue === props.modelValue) return;
 
@@ -110,7 +132,10 @@ const handleValueWithReset = (newValue: string | number) => {
   setInputColor(false);
   resetTimer = setTimeout(() => {
     setInputColor(true);
-    inputValue.value = props.modelValue;
+    const corrected = clampToRange(newValue);
+    inputValue.value = corrected;
+
+    if (corrected !== props.modelValue) emit("update:modelValue", corrected);
     resetTimer = null;
   }, 1000);
 };
