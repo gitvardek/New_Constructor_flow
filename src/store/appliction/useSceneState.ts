@@ -9,6 +9,7 @@ import { IWallSizes, ICameraData, ILightsObjects, IProjectParams } from '@/types
 
 import { START_PROJECT_PARAMS } from '@/Application/F-startData';
 import { useRoomState } from './useRoomState';
+import { useWallHeightStore } from '@/store/constructor2d/store/useWallHeightStore';
 
 export const useSceneState = defineStore('SceneState', () => {
 
@@ -150,7 +151,14 @@ export const useSceneState = defineStore('SceneState', () => {
     })
 
     const getStartHeightClamp = computed(() => {
-        return startHeightClamp.value
+        // height_clamp — сохранённый параметр проекта со значением по умолчанию 3000,
+        // с высотой комнаты он не связан. Примагничивать выше потолка нельзя, поэтому
+        // ограничиваем фактической высотой стен (в сторе она в сантиметрах)
+        const roomHeight = useWallHeightStore().wallHeightMm * 10
+
+        if (!roomHeight) return startHeightClamp.value
+
+        return Math.min(Number(startHeightClamp.value), roomHeight)
     })
 
     const getCurrentProjectParams = computed(() => {
