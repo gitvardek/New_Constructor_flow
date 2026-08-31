@@ -265,6 +265,14 @@ const selectOption = (value: Object, type: string, palette: Object = false, alum
       currentFasadeMaterial.value.data,
     );
   }
+
+  // Петли сегмента разделённого фасада зависят от материала: без материала сегмента
+  // фактически нет и петли ему не назначаются. Как только материал выбран (или снят),
+  // пересчитываем петли секции — calcLoops сам вернёт loopsSide, сброшенный в none
+  if (type === "COLOR" && sec !== null) {
+    UMconstructor?.value?.LOOPS.calcLoops(sec, module.value);
+    UMconstructor?.value?.RENDER_REF.renderGrid(module.value);
+  }
 };
 
 const closeMenu = () => {

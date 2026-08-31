@@ -55,6 +55,9 @@ export interface FasadeObject {
     minX?: number;
     maxX?: number;
     error?: boolean;
+    // Идентификатор принадлежности к ручному разделению фасада. Общий у сегментов одного
+    // разделения, отсутствует у фасадов, порождённых промежутками между внешними ящиками
+    splitGroup?: number;
 }
 
 export const MANUFACTURER = {

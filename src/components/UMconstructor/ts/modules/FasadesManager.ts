@@ -171,7 +171,16 @@ export default class FasadesManager {
                             let lastSegment = door[door.length - 1];
                             if (lastSegment && !lastSegment.manufacturerOffset) {
 
-                                if (lastSegment.height + deltaHeight <= 0) {
+                                const newHeight = lastSegment.height + deltaHeight;
+                                const isSplitFasade = !!lastSegment.splitGroup;
+
+                                // Сегмент разделённого фасада перестал помещаться по высоте —
+                                // снимаем разделение и возвращаем обычный фасад (петли ему
+                                // назначатся, т.к. calcLoops не фильтрует одиночный сегмент).
+                                // Раньше сегмент удалялся только при height <= 0, а при высоте
+                                // ниже минимальной лишь помечался error и оставался в массиве,
+                                // из-за чего фасад продолжал считаться разделённым
+                                if (newHeight <= 0 || (isSplitFasade && newHeight < (lastSegment.minY ?? 0))) {
                                     this.removeFasadeSegment(secIndex, doorIndex, door.length - 1, grid, false)
                                     needReset = true;
                                 }
@@ -592,6 +601,12 @@ export default class FasadesManager {
                 ? grid.fasades
                 : grid.sections[secIndex].fasades;
         let segment = fasades[doorIndex][segmentIndex];
+
+        // Идентификатор принадлежности к разделению. По нему сегменты ручного деления
+        // отличаются от фасадов, порождённых промежутками между ящиками, — иначе одно
+        // принимается за другое, потому что и то и другое просто элементы fasades[door]
+        segment.splitGroup = segment.splitGroup ?? Date.now()
+
         const halfHeight = Math.floor(
             (segment.height - (grid.isSlidingDoors ? 0 : 4)) / 2
         );
@@ -791,6 +806,14 @@ export default class FasadesManager {
 
         if (currentSection.length > 1) {
             currentSection.splice(segmentIndex, 1);
+        }
+
+        // Сегмент удалили нативно — если в группе не осталось пары, разделения больше нет
+        // и фасад должен вести себя как обычный
+        const groupId = currentSegment.splitGroup
+        if (groupId) {
+            const rest = currentSection.filter(item => item.splitGroup === groupId)
+            if (rest.length < 2) rest.forEach(item => delete item.splitGroup)
         }
 
         // Обновляем текущий сектор

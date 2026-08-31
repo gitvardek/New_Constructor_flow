@@ -192,10 +192,19 @@ export default class LoopsManager {
             }
         })
 
+        // Материал не выбран или стоит «без фасада» — сегмента фактически нет
+        const hasFasadeMaterial = (fasade: any) => {
+            const color = fasade?.material?.COLOR
+            return !!color && +color !== UM_PARAMS.NO_FASADE_ID
+        }
+
         FASADES.forEach((door, doorKey) => {
             const additional_fasades = []
 
             door.forEach((fasade, key) => {
+                // Проверка только у сегментов с признаком разделения: у обычного фасада
+                // петли считаются как раньше, независимо от материала
+                if (fasade?.splitGroup && !hasFasadeMaterial(fasade)) return
                 additional_fasades.push(fasade)
             })
 
