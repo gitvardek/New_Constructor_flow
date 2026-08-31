@@ -9,6 +9,7 @@ import { IWallSizes, ICameraData, ILightsObjects, IProjectParams } from '@/types
 
 import { START_PROJECT_PARAMS } from '@/Application/F-startData';
 import { useRoomState } from './useRoomState';
+import { useWallHeightStore } from '@/store/constructor2d/store/useWallHeightStore';
 
 export const useSceneState = defineStore('SceneState', () => {
 
@@ -150,7 +151,9 @@ export const useSceneState = defineStore('SceneState', () => {
     })
 
     const getStartHeightClamp = computed(() => {
-        return startHeightClamp.value
+        const roomHeight = useWallHeightStore().wallHeightMm * 10
+        if (!roomHeight) return startHeightClamp.value
+        return Math.min(Number(startHeightClamp.value), roomHeight)
     })
 
     const getCurrentProjectParams = computed(() => {

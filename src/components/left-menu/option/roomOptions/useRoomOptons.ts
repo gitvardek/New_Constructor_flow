@@ -11,6 +11,7 @@ import { useModelState } from '@/store/appliction/useModelState';
 import { useSceneState } from '@/store/appliction/useSceneState';
 import { useRoomState } from '@/store/appliction/useRoomState';
 import { useFigureRightPage } from '@/utils/useFigureRightPage';
+import { useWallHeightStore } from '@/store/constructor2d/store/useWallHeightStore';
 
 
 
@@ -316,12 +317,19 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     //--------------------------------------------------
 
     const setHeightClamp = (value: number | string | null) => {
-        const curValue = value ?? 3000
+        // По умолчанию примагничиваем к потолку
+        const curValue = value ?? useWallHeightStore().wallHeightMm * 10
         startHeightClamp.value = curValue
     }
 
     const getHeightClamp = computed(() => {
-        return startHeightClamp.value
+
+        const roomHeight = useWallHeightStore().wallHeightMm * 10
+        const value = Number(startHeightClamp.value)
+
+        if (!roomHeight || !Number.isFinite(value)) return startHeightClamp.value
+
+        return Math.min(value, roomHeight)
     })
 
     //--------------------------------------------------

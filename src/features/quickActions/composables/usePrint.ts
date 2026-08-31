@@ -116,9 +116,13 @@ export const usePrint = () => {
 
         // BODY: размеры
         const size = props.BODY?.SIZE;
-        if (size?.WIDTH) rows.push(`Ширина: ${size.WIDTH}`);
-        if (size?.HEIGHT) rows.push(`Высота: ${size.HEIGHT}`);
-        if (size?.DEPTH) rows.push(`Глубина: ${size.DEPTH}`);
+        const width = size?.WIDTH ?? props.SIZEEDITWIDTH;
+        const height = size?.HEIGHT ?? props.SIZEEDITHEIGHT;
+        const depth = size?.DEPTH ?? props.SIZEEDITDEPTH;
+
+        if (width) rows.push(`Ширина: ${width}`);
+        if (height) rows.push(`Высота: ${height}`);
+        if (depth) rows.push(`Глубина: ${depth}`);
 
         // Цвет корпуса: для UM — MODULECOLOR, для обычных — BODY.COLOR
         const bodyColorId = props.MODULECOLOR || props.BODY?.COLOR;

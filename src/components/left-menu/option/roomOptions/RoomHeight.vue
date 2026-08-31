@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
 import MainButton from "@/components/ui/buttons/MainButton.vue";
+import { useWallHeightStore } from "@/store/constructor2d/store/useWallHeightStore";
 
 const props = defineProps<{ clampHeight: number | null }>();
 const emit = defineEmits<{ (e: "apply", value: number | null): void }>();
+
+const wallHeightStore = useWallHeightStore();
+
+const maxHeight = computed(() => wallHeightStore.wallHeightMm * 10);
 
 const localHeight = ref<number | null>(props.clampHeight ?? null);
 
@@ -25,10 +30,10 @@ const apply = () => {
     <MainInput
       v-model="localHeight"
       :min="500"
-      :max="3000"
+      :max="maxHeight"
       class="input__search"
       type="number"
-      placeholder="3000"
+      :placeholder="maxHeight"
     />
     <MainButton :className="'red__button right-menu'" @click="apply">
       Применить

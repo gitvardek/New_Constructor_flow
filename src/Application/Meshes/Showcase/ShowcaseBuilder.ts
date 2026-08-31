@@ -7,6 +7,7 @@ import * as BufferGeometry from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { MillingBuilder } from '../MillingBuilder';
 import { useModelState } from "@/store/appliction/useModelState";
 import { HandlePositions } from './HandlePositions';
+import { createGlassMaterial } from '../Utils/glassMaterial';
 
 export class ShowcaseBuilder extends MillingBuilder {
     scene: THREE.Scene
@@ -78,24 +79,10 @@ export class ShowcaseBuilder extends MillingBuilder {
             width: FASADE_WIDTH - offset,
             height: FASADE_HEIGHT - offset,
             depth: 5,
-            material: {
-                reflectivity: 1,
-                transmission: 0.95,
-                roughness: roughness,
-                metalness: 0.25,
-                color: glassColor,
-                ior: 1.5,
-                thickness: 0.5,
-                clearcoat: 0.1,
-                clearcoatRoughness: 0.1,
-                opacity: 0.8,
-            }
-
         }
 
         const geometry = new THREE.BoxGeometry(params.width, params.height, params.depth);
-        const material = new THREE.MeshPhysicalMaterial({ ...params.material });
-        material.encoding = THREE.SRGBColorSpace;
+        const material = createGlassMaterial({ color: glassColor, roughness });
 
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.z = zPos

@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import * as THREETypes from "@/types/types"
 
 import { BuildProduct } from './BuildProduct'
+import { createGlassMaterial } from './Utils/glassMaterial'
 
 interface CreateMeshParams {
     data: THREETypes.TObject
@@ -243,17 +244,8 @@ export class JsonBuilder {
 
     private resolveMeshMaterial(data: THREETypes.TObject): THREE.Material {
         if (data.glass) {
-            const mat = new THREE.MeshPhongMaterial({
-                color: "#939393",
-                transparent: true,
-                opacity: 0.5,
-                shininess: 100,
-                specular: 0x999999,
-            })
-            mat.color.convertSRGBToLinear()
-            return mat
+            return createGlassMaterial()
         }
-
 
         const id: string = data.id ?? ''
 
