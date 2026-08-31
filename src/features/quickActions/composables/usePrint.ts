@@ -142,11 +142,17 @@ export const usePrint = () => {
           });
         }
 
-        // BODY: размеры
+        // Размеры. У обычных товаров они в BODY.SIZE, у УМ — плоскими ключами
+        // SIZEEDIT*: convertModuleToLegacyFormat возвращает собственный объект PROPS,
+        // в котором BODY отсутствует вовсе
         const size = props.BODY?.SIZE;
-        if (size?.WIDTH) rows.push(`Ширина: ${size.WIDTH}`);
-        if (size?.HEIGHT) rows.push(`Высота: ${size.HEIGHT}`);
-        if (size?.DEPTH) rows.push(`Глубина: ${size.DEPTH}`);
+        const width = size?.WIDTH ?? props.SIZEEDITWIDTH;
+        const height = size?.HEIGHT ?? props.SIZEEDITHEIGHT;
+        const depth = size?.DEPTH ?? props.SIZEEDITDEPTH;
+
+        if (width) rows.push(`Ширина: ${width}`);
+        if (height) rows.push(`Высота: ${height}`);
+        if (depth) rows.push(`Глубина: ${depth}`);
 
         // Цвет корпуса: для UM — MODULECOLOR, для обычных — BODY.COLOR
         const bodyColorId = props.MODULECOLOR || props.BODY?.COLOR;
@@ -174,6 +180,31 @@ export const usePrint = () => {
           props.OPTION.forEach((optId: any) => {
             const name = appData?.OPTION?.[optId]?.NAME;
             if (name) rows.push(`Опции: ${name}`);
+          });
+        }
+
+        // Фрезеровка, палитра и патина секций. У обычных товаров они печатаются
+        // из props.FASADE, у УМ приходят посекционно: MILLING1, PALETTE1, PATINA1 —
+        // объекты вида { дверь: { индекс: id } }
+        const sectionMaterials: Array<[string, string, any]> = [
+          ['MILLING', 'Фрезеровка', appData?.MILLING],
+          ['PALETTE', 'Палитра', appData?.PALETTE],
+          ['PATINA', 'Патина', appData?.PATINA],
+        ];
+
+        for (let i = 1; i <= 10; i++) {
+          sectionMaterials.forEach(([key, label, dict]) => {
+            const byDoor = props[`${key}${i}`];
+            if (!byDoor || typeof byDoor !== 'object') return;
+
+            for (const [doorNum, byIndex] of Object.entries(byDoor as any)) {
+              if (!byIndex || typeof byIndex !== 'object') continue;
+
+              for (const [, id] of Object.entries(byIndex as any)) {
+                if (!id) continue;
+                rows.push(`${label} секции ${i}: дверь ${doorNum}: ${dict?.[id as any]?.NAME || id}`);
+              }
+            }
           });
         }
 
