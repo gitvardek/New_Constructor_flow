@@ -115,7 +115,16 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
         const activeProfile = toptableData?.PROFILE ? tempProfileData.value.find((el) => el.ID === toptableData.PROFILE) : tempProfileData.value.find((prof) => prof.value);
 
-        const { HEM, REC_HEM } = PRODUCTS[productId]
+        // const { HEM, REC_HEM } = PRODUCTS[productId]
+        const product = PRODUCTS[productId]
+        const HEM = product.HEM
+        const REC_HEM = product.REC_HEM
+
+        if (!HEM) {
+            tempKromkaId.value = null
+            kromkaActive.value = false
+            return
+        }
 
         if (tempProfileData.value.length > 0) {
 
@@ -213,7 +222,12 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         if (!kromkaActive.value || !productId)
             return
 
-        const { HEM, REC_HEM } = PRODUCTS[productId]
+        // const { HEM, REC_HEM } = PRODUCTS[productId]
+        const product = PRODUCTS[productId]
+        const HEM = product.HEM
+        const REC_HEM = product.REC_HEM
+        if (!product.HEM) return []
+
         const hemList = HEM.map((el: number) => {
             return HEMLIST[el]
         }).filter(Boolean)

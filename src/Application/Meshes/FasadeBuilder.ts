@@ -421,6 +421,7 @@ export class FasadeBuilder {
         curFasade.geometry = FASADE_DEFAULT[fasadeNdx].geometry.clone();
 
         if (remove) {
+            fasadeData.MANUAL_NO_FASADE = true;
             fasadeData.COLOR = 7397;
             fasadeData.PALETTE = null;
             fasadeData.SHOW = false;
