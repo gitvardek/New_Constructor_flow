@@ -260,6 +260,21 @@ export class FasadeBuilder {
                 fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad, nstShalfs
             );
 
+            // ВРЕМЕННЫЙ ЗОНД — удалить после диагностики
+            if (color !== fasadeData.COLOR) console.log('[NO_FASADE_PROBE]', {
+                source: 'createFasade',
+                fasade: key,
+                ELEMENT_TYPE,
+                colorWas: fasadeData.COLOR,
+                colorNow: color,
+                MANUAL_NO_FASADE: fasadeData.MANUAL_NO_FASADE,
+                defFasadeTop: defaultConfig.defFasadeTop,
+                defFasadeBottom: defaultConfig.defFasadeBottom,
+                globalTop: defaultConfig.fasadsTop?.global,
+                globalBottom: defaultConfig.fasadsBottom?.global,
+                isLoad,
+            })
+
             // Подготовка данных до создания меша
             const curFasadeList = this.parent.modelState.createFlatFasadeData({
                 data: currentProduct.FACADE, fasadeNdx: key, def: true, productId: PRODUCT, fasadeCount: FASADE_PROPS.length
@@ -428,6 +443,21 @@ export class FasadeBuilder {
         const { color, pallite, milling } = this.resolveColorId(
             fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad
         );
+
+        // ВРЕМЕННЫЙ ЗОНД — удалить после диагностики
+        if (color !== fasadeData.COLOR) console.log('[NO_FASADE_PROBE]', {
+            source: 'updateFasade',
+            fasade: fasadeNdx,
+            ELEMENT_TYPE,
+            colorWas: fasadeData.COLOR,
+            colorNow: color,
+            MANUAL_NO_FASADE: fasadeData.MANUAL_NO_FASADE,
+            defFasadeTop: defaultConfig.defFasadeTop,
+            defFasadeBottom: defaultConfig.defFasadeBottom,
+            globalTop: defaultConfig.fasadsTop?.global,
+            globalBottom: defaultConfig.fasadsBottom?.global,
+            isLoad,
+        })
         const haveShowcase = FASADE_POSITIONS[fasadeNdx].SHOWCASE === 1;
 
         let curFasade = FASADE[fasadeNdx];
@@ -437,6 +467,13 @@ export class FasadeBuilder {
 
         if (remove) {
             fasadeData.COLOR = 7397;
+
+            // Фасад убрали вручную. Без этой пометки resolveColorId видит просто
+            // неокрашенный фасад (isDefault) и при следующей пересборке — changeModelSize
+            // или processOptions — подставляет ему цвет из глобальных fasadsTop/fasadsBottom,
+            // из-за чего удалённый фасад снова отрисовывается
+            fasadeData.MANUAL_NO_FASADE = true;
+
             fasadeData.PALETTE = null;
             fasadeData.SHOW = false;
             fasadeData.GLASS = null;
