@@ -719,7 +719,7 @@ const changeFasadeSize = async (data: TFasadeSize) => {
 
   currentSize.value = data;
   const curData = productData.value;
-  const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
+  const { width, height, depth } = curData.PROPS.CONFIG.SIZE;
   const { FASADE_PROPS, FASADE_SIZE } = curData.PROPS.CONFIG;
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;
@@ -764,7 +764,7 @@ const changeFasadeSize = async (data: TFasadeSize) => {
 
 const updateFasadeSize = async (data) => {
   const curData = productData.value;
-  const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
+  const { width, height, depth } = curData.PROPS.CONFIG.SIZE;
   const { FASADE_PROPS } = curData.PROPS.CONFIG;
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;
