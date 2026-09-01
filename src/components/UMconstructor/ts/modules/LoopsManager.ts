@@ -102,6 +102,40 @@ export default class LoopsManager {
 
     // -----------------------------------------------------------------------------------------------
 
+    // Сегмент разделённого фасада без материала петель не имеет, и сторона открывания у
+    // него не показывается — там остаётся none. Как только материал выбран, он должен
+    // открываться так же, как остальные фасады секции: берём сторону у соседа, у которого
+    // петли есть. Вызывать до calcLoops — иначе она подставит сторону по номеру двери
+    syncSplitLoopside(
+        secIndex: number,
+        doorIndex: number,
+        segmentIndex: number,
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
+    ) {
+        const section = grid.sections?.[secIndex]
+        const fasade = section?.fasades?.[doorIndex]?.[segmentIndex]
+
+        const hasMaterial = (item: any) => {
+            const color = item?.material?.COLOR
+            return !!color && +color !== UM_PARAMS.NO_FASADE_ID
+        }
+
+        if (!fasade?.splitGroup || !hasMaterial(fasade)) return
+
+        const isUsableSide = (side: any) => !!side && +side !== LOOPSIDE.none
+
+        const neighbour = section.fasades
+            .flat()
+            .find(item => item !== fasade
+                && !item.manufacturerOffset
+                && hasMaterial(item)
+                && isUsableSide(item.loopsSide))
+
+        const side = neighbour?.loopsSide ?? section.loopsSides?.[doorIndex]
+
+        if (isUsableSide(side)) fasade.loopsSide = side
+    }
+
     calcLoops(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
         const { CONFIG, SECTIONS } = this.scope.UM_STORE.getUMData();
 

@@ -227,8 +227,11 @@ function transformLoops(sections, horizont, moduleThickness) {
       coordsResult[key] = {};
       sidesResult[key] = {};
       section.loops.forEach((loopArray, loopKey) => {
-        coordsResult[key][loopKey + 1] = loopArray[0].coords.map(coord => {
-          return coord - horizont - moduleThickness
+        // В двери столько записей, сколько у неё фасадов: у разделённого фасада петли
+        // есть у каждого сегмента. Раньше брался только первый и координаты остальных
+        // сегментов в корзину не попадали
+        coordsResult[key][loopKey + 1] = loopArray.flatMap(loop => {
+          return loop.coords.map(coord => coord - horizont - moduleThickness)
         });
         sidesResult[key][loopKey + 1] = loopArray[0].side;
 

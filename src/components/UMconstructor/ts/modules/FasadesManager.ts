@@ -916,6 +916,24 @@ export default class FasadesManager {
     ) {
         fasade.loopsSide = typeof newSide === "string" ? parseInt(newSide) : newSide;
 
+        // Временно: сторона открывания едина для всей секции — меняем её сразу у всех
+        // фасадов. Фасады ящиков пропускаем, петель у них нет; сегмент разделённого
+        // фасада без материала тоже — ему петли не назначаются и выбора стороны у него
+        // нет. В двухдверных секциях сюда не попасть: getLoopsideList отдаёт там один
+        // вариант и селект заблокирован
+        const { NO_FASADE_ID } = this.scope.CONST
+
+        grid.sections[secIndex]?.fasades?.forEach(door => {
+            door?.forEach(item => {
+                const color = item?.material?.COLOR
+                const hasMaterial = !!color && +color !== NO_FASADE_ID
+
+                if (item.manufacturerOffset || (item.splitGroup && !hasMaterial)) return
+
+                item.loopsSide = fasade.loopsSide
+            })
+        })
+
         // if(!grid.sections[secIndex].loopsSides){
         //     grid.sections[secIndex].loopsSides = {}
         // }
