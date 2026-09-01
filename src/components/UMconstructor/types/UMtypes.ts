@@ -55,6 +55,7 @@ export interface FasadeObject {
     minX?: number;
     maxX?: number;
     error?: boolean;
+    splitGroup?: number;
 }
 
 export const MANUFACTURER = {

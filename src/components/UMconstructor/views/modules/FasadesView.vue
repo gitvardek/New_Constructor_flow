@@ -260,6 +260,15 @@ const selectOption = (value: Object, type: string, palette: Object = false, alum
       currentFasadeMaterial.value.data,
     );
   }
+
+  // Петли сегмента разделённого фасада зависят от материала: без материала сегмента
+  // фактически нет и петли ему не назначаются. Как только материал выбран (или снят),
+  // пересчитываем петли секции — calcLoops сам вернёт loopsSide, сброшенный в none
+  if (type === "COLOR" && sec !== null) {
+    UMconstructor?.value?.LOOPS.syncSplitLoopside(sec, cell, row, module.value);
+    UMconstructor?.value?.LOOPS.calcLoops(sec, module.value);
+    UMconstructor?.value?.RENDER_REF.renderGrid(module.value);
+  }
 };
 
 const closeMenu = () => {
@@ -305,6 +314,14 @@ const changeLoopside = (secIndex, segment, event, doorIndex, module) => {
     doorIndex,
     module,
   );
+};
+
+// У сегмента разделённого фасада без материала петель нет — выбор стороны скрыт
+const hasLoopside = (segment) => {
+  if (!segment?.splitGroup) return true;
+
+  const color = segment?.material?.COLOR;
+  return !!color && +color !== UMconstructor?.value?.CONST.NO_FASADE_ID;
 };
 
 const createMechanizmList = (segment) => {
@@ -680,7 +697,8 @@ watch(
 
                           </div>
 
-                          <div class="actions-items--selector" v-if="!module.isRestrictedModule">
+                          <div class="actions-items--selector"
+                            v-if="!module.isRestrictedModule && hasLoopside(segment)">
 
                             <div class="actions-inputs">
                               <p class="actions-title">Сторона открывания</p>

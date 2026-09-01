@@ -102,6 +102,36 @@ export default class LoopsManager {
 
     // -----------------------------------------------------------------------------------------------
 
+    syncSplitLoopside(
+        secIndex: number,
+        doorIndex: number,
+        segmentIndex: number,
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
+    ) {
+        const section = grid.sections?.[secIndex]
+        const fasade = section?.fasades?.[doorIndex]?.[segmentIndex]
+
+        const hasMaterial = (item: any) => {
+            const color = item?.material?.COLOR
+            return !!color && +color !== UM_PARAMS.NO_FASADE_ID
+        }
+
+        if (!fasade?.splitGroup || !hasMaterial(fasade)) return
+
+        const isUsableSide = (side: any) => !!side && +side !== LOOPSIDE.none
+
+        const neighbour = section.fasades
+            .flat()
+            .find(item => item !== fasade
+                && !item.manufacturerOffset
+                && hasMaterial(item)
+                && isUsableSide(item.loopsSide))
+
+        const side = neighbour?.loopsSide ?? section.loopsSides?.[doorIndex]
+
+        if (isUsableSide(side)) fasade.loopsSide = side
+    }
+
     calcLoops(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
         const { CONFIG, SECTIONS } = this.scope.UM_STORE.getUMData();
 
@@ -192,10 +222,19 @@ export default class LoopsManager {
             }
         })
 
+        // Материал не выбран или стоит «без фасада» — сегмента фактически нет
+        const hasFasadeMaterial = (fasade: any) => {
+            const color = fasade?.material?.COLOR
+            return !!color && +color !== UM_PARAMS.NO_FASADE_ID
+        }
+
         FASADES.forEach((door, doorKey) => {
             const additional_fasades = []
 
             door.forEach((fasade, key) => {
+                // Проверка только у сегментов с признаком разделения: у обычного фасада
+                // петли считаются как раньше, независимо от материала
+                if (fasade?.splitGroup && !hasFasadeMaterial(fasade)) return
                 additional_fasades.push(fasade)
             })
 
