@@ -120,8 +120,16 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
         const parent = modelState.getCurrentRaspilParent ?? modelState.getCurrentModel
 
-        const { HEM, REC_HEM } = PRODUCTS[productId]
+        // const { HEM, REC_HEM } = PRODUCTS[productId]
+        const product = PRODUCTS[productId]
+        const HEM = product.HEM
+        const REC_HEM = product.REC_HEM
 
+        if (!HEM) {
+            tempKromkaId.value = null
+            kromkaActive.value = false
+            return
+        }
 
         if (tempProfileData.value.length > 0) {
 
@@ -216,9 +224,15 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
         if (!kromkaActive.value || !productId)
             return
+        const product = PRODUCTS[productId]
+        const HEM = product.HEM
+        const REC_HEM = product.REC_HEM
+        if (!product.HEM) {
+            tempKromkaList.value = []
+            return []
+        }
 
-        const { HEM, REC_HEM } = PRODUCTS[productId]
-        const hemList = HEM.map((el: number) => {
+        const hemList = product.HEM.map((el: number) => {
             return HEMLIST[el]
         }).filter(Boolean)
 

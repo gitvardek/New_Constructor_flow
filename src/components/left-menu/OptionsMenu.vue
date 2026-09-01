@@ -389,7 +389,7 @@ onUnmounted(() => {
             display: flex;
             align-items: center;
             gap: 5px;
-            padding: 10px 0;
+            padding: 1rem 0;
             border-top: 1px solid $stroke;
             border-bottom: 1px solid $stroke;
           }
@@ -401,7 +401,7 @@ onUnmounted(() => {
 
             .option-small {
               flex: 46%;
-              padding: 10px;
+              padding: 1rem;
               border-radius: 15px;
               background-color: $bg;
 
@@ -409,7 +409,7 @@ onUnmounted(() => {
                 display: flex;
                 align-items: center;
                 gap: 10px;
-                margin-bottom: 10px;
+                margin-bottom: 1rem;
 
                 .label__image {
                   display: flex;
@@ -431,7 +431,7 @@ onUnmounted(() => {
 
             .option-standart {
               width: 100%;
-              padding: 10px;
+              padding: 1rem;
               border-radius: 15px;
               background-color: $bg;
 
@@ -446,7 +446,7 @@ onUnmounted(() => {
                   display: flex;
                   align-items: center;
                   gap: 10px;
-                  margin-bottom: 10px;
+                  margin-bottom: 1rem;
 
                   .label__image {
                     display: flex;
@@ -479,7 +479,7 @@ onUnmounted(() => {
         display: flex;
         flex-direction: column;
         gap: 15px;
-        padding: 15px;
+        padding: 1.5rem;
         background: $white;
         box-shadow: 0px 0px 10px 0px #3030301a;
         z-index: 1;
@@ -489,8 +489,8 @@ onUnmounted(() => {
 
         .menu__close {
           position: absolute;
-          right: 15px;
-          top: 15px;
+          right: 1.5rem;
+          top: 1.5rem;
           cursor: pointer;
         }
 

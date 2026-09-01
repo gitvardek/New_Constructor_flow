@@ -107,10 +107,10 @@ onBeforeMount(() => {
             :disabled="option.disabled"
           />
           <span class="control_indicator"></span>
-          <span class="text-lg text-gray-800 font-medium">{{
+          <span class="">{{
             option.NAME
           }}</span>
-          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize"
+          <span class="" v-if="option.cutSize"
             >&emsp;{{ option.cutSize }} + {{ option.cutSize }}</span
           >
         </label>

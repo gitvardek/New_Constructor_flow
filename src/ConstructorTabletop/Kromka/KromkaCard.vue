@@ -41,7 +41,7 @@ const handleSelect = () => {
   }
   &-full,
   &-small {
-    padding: 10px;
+    padding: 1rem;
     border-radius: 15px;
     background-color: $bg;
     color: black;
@@ -63,13 +63,13 @@ const handleSelect = () => {
   }
   &-small {
     flex: 46%;
-    padding: 10px;
+    padding: 1rem;
   }
 }
 
 .label__img {
-  height: 60px;
-  width: 60px;
+  height: 45px;
+  width: 45px;
   padding: 5px;
   border-radius: 15px;
   background-color: #ffffff;

@@ -119,7 +119,7 @@ watch(
             <label class="control control-checkbox">
               <input type="checkbox" :checked="item.value" @change="cutChacked($event, item)" />
               <span class="control_indicator"></span>
-              <span class="text-lg text-gray-800 font-medium">{{
+              <span class="">{{
                 item.NAME
               }}</span>
             </label>

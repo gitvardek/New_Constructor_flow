@@ -58,7 +58,7 @@ const changeValue = (event: InputEvent, key: string) => {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 1rem;
     border-radius: 15px;
     transition-property: background-color;
     transition-duration: 0.25s;
@@ -78,21 +78,21 @@ const changeValue = (event: InputEvent, key: string) => {
 
   &-small {
     flex: 46%;
-    padding: 10px;
+    padding: 1rem;
     border-radius: 15px;
     background-color: $bg;
   }
 
   &-standart {
     width: 100%;
-    padding: 10px;
+    padding: 1rem;
     border-radius: 15px;
     background-color: $bg;
   }
 
   &-standart {
     width: 100%;
-    padding: 10px;
+    padding: 1rem;
     border-radius: 15px;
     background-color: $bg;
   }
