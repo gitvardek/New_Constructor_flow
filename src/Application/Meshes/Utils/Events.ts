@@ -989,7 +989,13 @@ export class MeshEvents extends BuildersHelper {
         this.dispose.clearParent(currentMesh as THREE.Object3D);
 
         // Пересоздаём по новым параметрам
-        const body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+        let body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+
+        if (this.buildProduct.filters.revalidateOptions(PROPS)) {
+            this.dispose.clearParent(currentMesh as THREE.Object3D);
+            body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+        }
+        
         currentMesh.add(body as THREE.Object3D);
         currentMesh.position.set(POSITION.x, POSITION.y, POSITION.z);
         currentMesh.updateMatrixWorld(true);

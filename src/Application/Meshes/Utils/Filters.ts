@@ -6,6 +6,7 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from "@/store/appliction/useModelState"
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons"
+import { useExpressions } from "@/utils/useExpressions"
 
 import { TFasadeProp, IProductFull, FasadeTextAlignAction } from "@/types/types"
 
@@ -24,6 +25,7 @@ export class Filters extends GlobalsData {
 
     }
     private readonly handlesProductsExceptions = [2106690, 4133662, 5766303, 5766313, 10252945, 10252974, 11451643, 11451772]
+    private readonly nestandartFasade = [14831]
 
     constructor(root: THREETypes.TApplication) {
         super(root._appData);
@@ -412,6 +414,54 @@ export class Filters extends GlobalsData {
             info = Object.assign({}, info)
 
         return info;
+    }
+
+    revalidateOptions(PROPS: THREETypes.TObject) {
+        const OPTIONS = PROPS?.CONFIG?.OPTIONS
+        const trueSize = PROPS?.BODY?.userData?.trueSize
+
+        if (!OPTIONS?.length || !trueSize) return false
+
+        const { expressionsReplace, calculateFromString } = useExpressions()
+        const { BODY_WIDTH, BODY_HEIGHT } = trueSize
+        const isNestandartFasade = this.nestandartFasade.includes(PROPS.PRODUCT)
+
+        const conditionsMet = (id: number | string) => {
+            const conditions = this._OPTION[id]?.CONDITIONS
+            if (!conditions) return true
+
+            const convert = expressionsReplace(conditions, {
+                "#X#": BODY_WIDTH,
+                "#Y#": BODY_HEIGHT,
+                "#FASADE_HEIGHT_MAX#": isNestandartFasade ? BODY_HEIGHT : 0,
+                "#FASADE_HEIGHT_MIN#": isNestandartFasade ? BODY_HEIGHT : 100000
+            })
+
+            return !!calculateFromString(convert)
+        }
+
+        let changed = false
+        let dropped = true
+
+        while (dropped) {
+            dropped = false
+            const activeIds = OPTIONS.filter(item => item.active).map(item => +item.id)
+
+            OPTIONS.forEach(item => {
+                if (!item.active) return
+
+                const required = this._OPTION[item.id]?.REQUIRED_OPTIONS ?? []
+                const requirementMet = !required.length || required.some(id => activeIds.includes(+id))
+
+                if (conditionsMet(item.id) && requirementMet) return
+
+                item.active = false
+                item.visible = false
+                dropped = changed = true
+            })
+        }
+
+        return changed
     }
 
 } 
