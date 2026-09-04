@@ -485,6 +485,9 @@ export type TConfig = {
   MECHANISM: NumStr | null,
   MECHANISM_TEMP: TMechanismData[] | [],
   SIZE: TSize,
+  // Размер, заданный пользователем линейкой. От него считаются выражения ширины и
+  // глубины модели, тогда как SIZE у таких моделей хранит уже пересчитанный результат
+  SIZE_BASE?: TSize,
   SIZE_OFFSET: TSize,
   SIZE_EDIT: TSizeEdit,
   SHOWCASE: number[],

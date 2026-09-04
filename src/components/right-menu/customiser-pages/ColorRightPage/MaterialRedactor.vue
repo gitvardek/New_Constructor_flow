@@ -722,8 +722,12 @@ const changeFasadeSize = async (data: TFasadeSize) => {
 
   currentSize.value = data;
   const curData = productData.value;
-  const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
-  console.log(width, height, depth)
+
+  // Пересобираем от размера, заданного пользователем, а пока его не меняли — от
+  // каталожного. Текущий SIZE брать нельзя: у моделей, где ширина задана выражением
+  // от #MWIDTH#, он хранит уже пересчитанное значение и правки накручивались бы
+  const { width, height, depth } =
+    curData.PROPS.CONFIG.SIZE_BASE ?? _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
 
   const { FASADE_PROPS, FASADE_SIZE } = curData.PROPS.CONFIG;
   const curFasade = FASADE_PROPS[props.tabIndex];
@@ -769,7 +773,10 @@ const changeFasadeSize = async (data: TFasadeSize) => {
 
 const updateFasadeSize = async (data) => {
   const curData = productData.value;
-  const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
+
+  // Тот же случай, что и в changeFasadeSize: базовый размер, а не пересчитанный SIZE
+  const { width, height, depth } =
+    curData.PROPS.CONFIG.SIZE_BASE ?? _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
   const { FASADE_PROPS } = curData.PROPS.CONFIG;
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;

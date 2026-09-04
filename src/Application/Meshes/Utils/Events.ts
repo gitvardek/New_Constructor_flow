@@ -988,6 +988,12 @@ export class MeshEvents extends BuildersHelper {
         const { POSITION, UNIFORM_TEXTURE, SIZE, SIZE_OFFSET } = CONFIG as THREETypes.TConfig;
         const fasadeSize = type === 'resize';
 
+        // Базовый размер модуля — тот, что задал пользователь линейкой (type не передан).
+        // Выражения ширины и глубины модели (#MWIDTH#, #MDEPTH#) считаются именно от него:
+        // у таких моделей SIZE хранит уже пересчитанный результат, и если брать за основу
+        // его, каждая правка размера фасада накручивалась бы на предыдущую
+        if (!type) CONFIG.SIZE_BASE = { width: data.width, height: data.height, depth: data.depth }
+
         if (fillingId !== undefined) {
             const product = this._PRODUCTS[PRODUCT];
             CONFIG.FILLING = fillingId;
