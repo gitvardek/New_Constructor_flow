@@ -450,7 +450,7 @@ export class BuildProduct extends BuildersHelper {
         PARAMS.SIZE = loadedProps ? loadedProps.CONFIG.SIZE : this.getProductSize(PARAMS, product_data);
         PARAMS.SIZE_EDIT = { ...this.getSizeEdit(product_data, PARAMS) };
         PARAMS.SIZE_OFFSET = loadedProps ? loadedProps.CONFIG.SIZE_OFFSET : { width: 0, height: 0, depth: 0 };
-
+        PARAMS.SIZE_BASE = loadedProps?.CONFIG?.SIZE_BASE;
         return PARAMS;
     }
 

@@ -977,6 +977,8 @@ export class MeshEvents extends BuildersHelper {
         const { POSITION, UNIFORM_TEXTURE, SIZE, SIZE_OFFSET } = CONFIG as THREETypes.TConfig;
         const fasadeSize = type === 'resize';
 
+        if (!type) CONFIG.SIZE_BASE = { width: data.width, height: data.height, depth: data.depth }
+
         if (fillingId !== undefined) {
             const product = this._PRODUCTS[PRODUCT];
             CONFIG.FILLING = fillingId;

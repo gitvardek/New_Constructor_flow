@@ -372,7 +372,7 @@ export type TFasadeTrueSizes = {
   FASADE_DEPTH: number,
   FASADE_HEIGHT: number,
   isDrawer?: boolean,
-  isPanel?:boolean
+  isPanel?: boolean
 }
 
 export type TFasadeConversation = {
@@ -486,6 +486,7 @@ export type TConfig = {
   MECHANISM: NumStr | null,
   MECHANISM_TEMP: TMechanismData[] | [],
   SIZE: TSize,
+  SIZE_BASE?: TSize,
   SIZE_OFFSET: TSize,
   SIZE_EDIT: TSizeEdit,
   SHOWCASE: number[],
