@@ -1004,7 +1004,17 @@ export class MeshEvents extends BuildersHelper {
         this.dispose.clearParent(currentMesh as THREE.Object3D);
 
         // Пересоздаём по новым параметрам
-        const body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+        let body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+
+        // Новый размер мог вывести опции за их CONDITIONS. Снимаем такие и те, что
+        // держались на них через REQUIRED_OPTIONS, и пересобираем тело ещё раз — иначе
+        // и в CONFIG.OPTIONS, и в геометрии остаются опции, которые больше не подходят.
+        // Повтор ровно один: размер на втором проходе тот же, снимать больше нечего
+        if (this.buildProduct.filters.revalidateOptions(PROPS)) {
+            this.dispose.clearParent(currentMesh as THREE.Object3D);
+            body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+        }
+
         currentMesh.add(body as THREE.Object3D);
         currentMesh.position.set(POSITION.x, POSITION.y, POSITION.z);
         currentMesh.updateMatrixWorld(true);

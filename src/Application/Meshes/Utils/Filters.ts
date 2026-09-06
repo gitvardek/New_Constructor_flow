@@ -6,6 +6,7 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from "@/store/appliction/useModelState"
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons"
+import { useExpressions } from "@/utils/useExpressions"
 
 import { TFasadeProp, IProductFull, FasadeTextAlignAction } from "@/types/types"
 
@@ -348,6 +349,65 @@ export class Filters extends GlobalsData {
 
         return { uslugi, profile }
 
+    }
+
+    // Продукты, у которых условия опций считаются от высоты тела как от высоты фасада.
+    // Тот же список, что и NESTANDART_FASADE в RailsRightPage/useOptions.ts
+    private readonly nestandartFasade = [14831]
+
+    // Пересчёт активности опций после изменения размера модуля. Опция, чьи CONDITIONS
+    // больше не выполняются, снимается, а следом снимаются те, что держались на ней через
+    // REQUIRED_OPTIONS. Проходов несколько: зависимости бывают цепочными, и снятая на
+    // первом проходе опция может увести за собой следующую.
+    // Возвращает true, если что-то изменилось — вызывающему нужно пересобрать тело
+    revalidateOptions(PROPS: THREETypes.TObject) {
+        const OPTIONS = PROPS?.CONFIG?.OPTIONS
+        const trueSize = PROPS?.BODY?.userData?.trueSize
+
+        if (!OPTIONS?.length || !trueSize) return false
+
+        const { expressionsReplace, calculateFromString } = useExpressions()
+        const { BODY_WIDTH, BODY_HEIGHT } = trueSize
+        const isNestandartFasade = this.nestandartFasade.includes(PROPS.PRODUCT)
+
+        // Те же подстановки, что и в checkAvailable, иначе панель опций и пересчёт при
+        // ресайзе расходились бы в оценке одного и того же условия
+        const conditionsMet = (id: number | string) => {
+            const conditions = this._OPTION[id]?.CONDITIONS
+            if (!conditions) return true
+
+            const convert = expressionsReplace(conditions, {
+                "#X#": BODY_WIDTH,
+                "#Y#": BODY_HEIGHT,
+                "#FASADE_HEIGHT_MAX#": isNestandartFasade ? BODY_HEIGHT : 0,
+                "#FASADE_HEIGHT_MIN#": isNestandartFasade ? BODY_HEIGHT : 100000
+            })
+
+            return !!calculateFromString(convert)
+        }
+
+        let changed = false
+        let dropped = true
+
+        while (dropped) {
+            dropped = false
+            const activeIds = OPTIONS.filter(item => item.active).map(item => +item.id)
+
+            OPTIONS.forEach(item => {
+                if (!item.active) return
+
+                const required = this._OPTION[item.id]?.REQUIRED_OPTIONS ?? []
+                const requirementMet = !required.length || required.some(id => activeIds.includes(+id))
+
+                if (conditionsMet(item.id) && requirementMet) return
+
+                item.active = false
+                item.visible = false
+                dropped = changed = true
+            })
+        }
+
+        return changed
     }
 
     filterOption(option: number[]) {
