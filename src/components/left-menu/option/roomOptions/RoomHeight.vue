@@ -9,6 +9,9 @@ const emit = defineEmits<{ (e: "apply", value: number | null): void }>();
 
 const wallHeightStore = useWallHeightStore();
 
+// Ограничение сверху — фактическая высота комнаты. В сторе она хранится в сантиметрах,
+// поэтому переводим в мм (так же считает DoorWindowOpeningSizePopUpView).
+// Значение обновляют попапы параметров комнаты и высоты стены
 const maxHeight = computed(() => wallHeightStore.wallHeightMm * 10);
 
 const localHeight = ref<number | null>(props.clampHeight ?? null);
@@ -27,17 +30,14 @@ const apply = () => {
 
 <template>
   <div class="room-modheight">
-    <MainInput
-      v-model="localHeight"
-      :min="500"
-      :max="maxHeight"
-      class="input__search"
-      type="number"
-      :placeholder="maxHeight"
-    />
-    <MainButton :className="'red__button right-menu'" @click="apply">
+    <MainInput v-model="localHeight" :min="500" :max="maxHeight" class="room-modheight--search" type="number"
+      :placeholder="maxHeight" />
+    <button class="room-modheight--button" @click="apply">
       Применить
-    </MainButton>
+    </button>
+    <!-- <MainButton :className="'red__button right-menu'" @click="apply">
+      Применить
+    </MainButton> -->
   </div>
 </template>
 
@@ -46,7 +46,33 @@ const apply = () => {
   display: flex;
   align-items: center;
   gap: 15px;
+
+  &--search {
+    padding: 0.25rem 0.5rem;
+    background-color: $white;
+    text-align: center;
+  }
+
+  &--button {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid $black;
+    border-radius: 1rem;
+    background-color: transparent;
+    transition-property: color, border-color, background-color;
+    transition-timing-function: ease;
+    transition-duration: 0.25s;
+
+    @media(hover: hover) {
+      &:hover {
+        border-color: $black;
+        background-color: $black;
+        color: $bg;
+      }
+    }
+
+  }
 }
+
 
 .input__search {
   width: 140px;

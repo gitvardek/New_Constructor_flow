@@ -995,7 +995,7 @@ export class MeshEvents extends BuildersHelper {
             this.dispose.clearParent(currentMesh as THREE.Object3D);
             body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
         }
-        
+
         currentMesh.add(body as THREE.Object3D);
         currentMesh.position.set(POSITION.x, POSITION.y, POSITION.z);
         currentMesh.updateMatrixWorld(true);
@@ -1036,6 +1036,8 @@ export class MeshEvents extends BuildersHelper {
 
         currentMesh.position.copy(adjusted.position);
         currentMesh.rotation.copy(adjusted.rotation);
+        CONFIG.POSITION = currentMesh.position.clone();
+        CONFIG.ROTATION = currentMesh.rotation.clone();
 
         const center = new THREE.Vector3();
         currentMesh.userData.aabb.getCenter(center);

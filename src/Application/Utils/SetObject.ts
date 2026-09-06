@@ -44,8 +44,13 @@ export class SetObject {
         const positionEmpty = POSITION == null;
         const rotationEmpty = ROTATION == null;
 
-        let position = POSITION ?? new THREE.Vector3(point.x, point.y, point.z)
-        let rotation = ROTATION ?? new THREE.Euler(0, 0, 0, 'XYZ')
+        let position = point
+            ? new THREE.Vector3(point.x, point.y, point.z)
+            : POSITION ?? new THREE.Vector3(0, 0, 0)
+
+        let rotation = rotate
+            ? new THREE.Euler(rotate._x, rotate._y, rotate._z, 'XYZ')
+            : ROTATION ?? new THREE.Euler(0, 0, 0, 'XYZ')
 
         if (rotate) {
             CONFIG.POSITION = new THREE.Vector3(point.x, point.y, point.z)
