@@ -30,7 +30,7 @@ const apply = () => {
 
 <template>
   <div class="room-modheight">
-    <MainInput v-model="localHeight" :min="500" :max="maxHeight" class="room-modheight--search" type="number"
+    <MainInput v-model="localHeight" :min="50" :max="maxHeight" class="room-modheight--search" type="number"
       :placeholder="maxHeight" />
     <button class="room-modheight--button" @click="apply">
       Применить

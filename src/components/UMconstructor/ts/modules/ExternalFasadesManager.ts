@@ -142,7 +142,7 @@ export default class ExternalFasadesManager {
         const hasFasadeSplitters = !!(fasadesDrawers.length || grid.sections[secIndex].hiTechProfiles?.length)
 
         const prevSegments = (grid.sections[secIndex].fasades ?? []).map(door => {
-            if (!door?.length) return null
+            if (!door?.length) return []
 
             // Пересборка создаёт фасады клонированием baseFasade
             const describe = (group: FasadeObject[]) => {
@@ -161,122 +161,132 @@ export default class ExternalFasadesManager {
             }
 
             const marked = door.filter(fasade => fasade?.splitGroup)
+
             if (marked.length) {
-                const id = marked[0].splitGroup
-                const group = marked.filter(fasade => fasade.splitGroup === id)
-                if (group.length > 1) return { id, ...describe(group) }
+
+                const ids = [...new Set(marked.map(fasade => fasade.splitGroup))]
+
+                const groups = ids
+                    .map(id => marked.filter(fasade => fasade.splitGroup === id))
+                    .filter(group => group.length > 1)
+                    .map(group => ({ id: group[0].splitGroup, ...describe(group) }))
+
+                if (groups.length) return groups
             }
 
             if (marked.length === 0 && door.length > 1 && !hasFasadeSplitters) {
                 const id = Date.now()
                 door.forEach(fasade => { fasade.splitGroup = id })
-        return { id, ...describe(door) }
-    }
+                return [{ id, ...describe(door) }]
+            }
 
-            return null
+            return []
         })
 
-this.liftStackAboveBottom(secIndex, grid)
+        this.liftStackAboveBottom(secIndex, grid)
 
-let fasadesList = this.calcDrawersFasadesPositons(secIndex, grid) || []
+        let fasadesList = this.calcDrawersFasadesPositons(secIndex, grid) || []
 
 
-grid.sections[secIndex].fasades[0] = []
-if (grid.sections[secIndex].fasades[1])
-    grid.sections[secIndex].fasades[1] = []
+        grid.sections[secIndex].fasades[0] = []
+        if (grid.sections[secIndex].fasades[1])
+            grid.sections[secIndex].fasades[1] = []
 
-grid.sections[secIndex].fasadesDrawers = fasadesDrawers.sort((a, b) => a.position.y - b.position.y)
+        grid.sections[secIndex].fasadesDrawers = fasadesDrawers.sort((a, b) => a.position.y - b.position.y)
 
-let drawerIndex = 0
-fasadesList = fasadesList.filter((item) => {
-    return item.type != "profile"
-})
+        let drawerIndex = 0
+        fasadesList = fasadesList.filter((item) => {
+            return item.type != "profile"
+        })
 
-fasadesList.forEach((item, index) => {
+        fasadesList.forEach((item, index) => {
 
-    switch (item.type) {
-        case "drawer":
-            let drawerFasade = fasadesDrawers[drawerIndex]
-            let filling = this.scope.FILLINGS.getFillingObject({
-                grid,
-                sec: drawerFasade.sec,
-                cell: drawerFasade.cell,
-                row: drawerFasade.row,
-                extra: drawerFasade.extra,
-                item: drawerFasade.item - 1,
-            });
+            switch (item.type) {
+                case "drawer":
+                    let drawerFasade = fasadesDrawers[drawerIndex]
+                    let filling = this.scope.FILLINGS.getFillingObject({
+                        grid,
+                        sec: drawerFasade.sec,
+                        cell: drawerFasade.cell,
+                        row: drawerFasade.row,
+                        extra: drawerFasade.extra,
+                        item: drawerFasade.item - 1,
+                    });
 
-            drawerFasade.id = index + 1
-            drawerFasade.width = correctSectionFasadeWidth
-            drawerFasade.position.x = baseFasade.position.x
+                    drawerFasade.id = index + 1
+                    drawerFasade.width = correctSectionFasadeWidth
+                    drawerFasade.position.x = baseFasade.position.x
 
-            if (filling)
-                filling.fasade = drawerFasade
+                    if (filling)
+                        filling.fasade = drawerFasade
 
-            drawerIndex += 1
-            break;
-        case "fasade":
-            let fasadeClone = Object.assign(<FasadeObject>{}, baseFasade)
-            delete fasadeClone.splitGroup
-            fasadeClone.id = index + 1
-            fasadeClone.height = item.height
-            fasadeClone.material = { ...baseFasade.material }
-            fasadeClone.material.HANDLES = { ...fasadeClone.material.HANDLES }
+                    drawerIndex += 1
+                    break;
+                case "fasade":
+                    let fasadeClone = Object.assign(<FasadeObject>{}, baseFasade)
+                    delete fasadeClone.splitGroup
+                    fasadeClone.id = index + 1
+                    fasadeClone.height = item.height
+                    fasadeClone.material = { ...baseFasade.material }
+                    fasadeClone.material.HANDLES = { ...fasadeClone.material.HANDLES }
 
-            fasadeClone.position = new THREE.Vector2(baseFasade.position.x, item.y)
+                    fasadeClone.position = new THREE.Vector2(baseFasade.position.x, item.y)
 
-            if (fasadeClone.height < fasadeClone.minY || fasadeClone.width < fasadeClone.minX)
-                fasadeClone.error = true
-            else
-                delete fasadeClone.error;
+                    if (fasadeClone.height < fasadeClone.minY || fasadeClone.width < fasadeClone.minX)
+                        fasadeClone.error = true
+                    else
+                        delete fasadeClone.error;
 
-            grid.sections[secIndex].fasades[0].push(fasadeClone)
+                    grid.sections[secIndex].fasades[0].push(fasadeClone)
 
-            if (baseFasade2) {
-                let fasadeClone2 = Object.assign(<FasadeObject>{}, fasadeClone)
-                fasadeClone2.position = new THREE.Vector2(baseFasade2.position.x, item.y)
-                fasadeClone2.material = { ...fasadeClone.material }
-                fasadeClone2.material.HANDLES = { ...fasadeClone2.material.HANDLES }
-                fasadeClone2.loopsSide = baseFasade2.loopsSide
+                    if (baseFasade2) {
+                        let fasadeClone2 = Object.assign(<FasadeObject>{}, fasadeClone)
+                        fasadeClone2.position = new THREE.Vector2(baseFasade2.position.x, item.y)
+                        fasadeClone2.material = { ...fasadeClone.material }
+                        fasadeClone2.material.HANDLES = { ...fasadeClone2.material.HANDLES }
+                        fasadeClone2.loopsSide = baseFasade2.loopsSide
 
-                grid.sections[secIndex].fasades[1].push(Object.assign(<FasadeObject>{}, fasadeClone2))
+                        grid.sections[secIndex].fasades[1].push(Object.assign(<FasadeObject>{}, fasadeClone2))
+                    }
+                    break
+                default:
+                    break;
             }
-            break
-        default:
-            break;
-    }
-})
-this.restoreFasadeSegments(grid.sections[secIndex].fasades, prevSegments, grid)
-this.FASADES_MANAGER.scope.LOOPS.calcLoops(secIndex, grid)
+        })
+        this.restoreFasadeSegments(grid.sections[secIndex].fasades, prevSegments, grid)
+        this.FASADES_MANAGER.scope.LOOPS.calcLoops(secIndex, grid)
     };
 
     static readonly MIN_SPLIT_HEIGHT = 784
 
-// Возвращает ручное разделение фасада, потерянное при пересборке списка:
-// делит самый высокий сегмент пополам, пока их число не совпадёт с прежним.
-// Деление прекращается, если половина окажется ниже минимально допустимой высоты
-restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[], grid: GridModule) {
-    if (!fasades?.length) return
+    // Возвращает ручное разделение фасада, потерянное при пересборке списка:
+    // делит самый высокий сегмент пополам, пока их число не совпадёт с прежним.
+    // Деление прекращается, если половина окажется ниже минимально допустимой высоты
+    restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[][], grid: GridModule) {
+        if (!fasades?.length) return
 
-    const gap = grid.isSlidingDoors ? 0 : 4
+        fasades.forEach((door, doorIndex) => {
+            const splits = prevSegments[doorIndex] ?? []
+            if (!door?.length || !splits.length) return
 
-    const minSplitHeight = ExternalFasadesManager.MIN_SPLIT_HEIGHT
+            splits.forEach(split => this.restoreSplitGroup(door, split, grid))
 
-    fasades.forEach((door, doorIndex) => {
-        const split = prevSegments[doorIndex]
-        if (!door?.length || !split) return
+            door.forEach((fasade, i) => { fasade.id = i + 1 })
+        })
+    };
+
+    private restoreSplitGroup(door: FasadeObject[], split: SplitGroup, grid: GridModule) {
+        const gap = grid.isSlidingDoors ? 0 : 4
+
+        const minSplitHeight = ExternalFasadesManager.MIN_SPLIT_HEIGHT
 
         // Пересборка сохранила часть сегментов группы — восстанавливаем остальные.
         // Считаем каждый раз заново: сегменты группы могли не сохраниться совсем
         const groupSegments = () => door.filter(fasade => fasade.splitGroup === split.id)
 
-        // Сегменты разъехались — между ними появился ящик. Разделения больше нет:
-        // снимаем признак, каждый фасад дальше живёт сам по себе и получает петли.
-        // Высоты и позиции при этом не трогаем, фасады остаются на своих местах
         const separated = groupSegments()
         if (separated.length > 1 && !isSplitContiguous(separated, gap)) {
             separated.forEach(fasade => delete fasade.splitGroup)
-            door.forEach((fasade, i) => { fasade.id = i + 1 })
             return
         }
 
@@ -284,8 +294,7 @@ restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[], gri
             const group = groupSegments()
 
             // Пока сегменты группы есть — делим самый высокий из них. Если пересборка
-            // не сохранила ни одного, ищем область, на которой разделение было раньше:
-            // у неё наибольшее пересечение с прежними границами группы
+            // не сохранила ни одного, ищем область, на которой разделение было раньше
             let segment = group.length ? group[0] : door[0]
 
             if (group.length)
@@ -321,6 +330,9 @@ restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[], gri
             door.splice(index + 1, 0, clone)
         }
 
+        // Возвращаем сегментам их материал, ручки и сторону открывания. Петли при этом
+        // не назначаются вручную: calcLoops вызывается сразу после и сам отбросит
+        // сегмент, у которого материал сняли или поставили «без фасада»
         groupSegments()
             .sort((a, b) => a.position.y - b.position.y)
             .forEach((fasade, index) => {
@@ -331,6 +343,9 @@ restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[], gri
                 fasade.loopsSide = saved.loopsSide
             })
 
+        // Условия не сошлись: сегментов меньше пары или суммарная высота ниже
+        // допустимой — идентификатор снимается, дальше фасад ведёт себя как обычный.
+        // Обратно он не вернётся: в следующий раз группы в двери уже не будет
         const group = groupSegments()
         const totalHeight = group.reduce((sum, fasade) => sum + fasade.height, 0)
             + gap * (group.length - 1)
@@ -345,188 +360,185 @@ restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[], gri
 
             group.forEach(fasade => delete fasade.splitGroup)
         }
+    };
 
-        door.forEach((fasade, i) => { fasade.id = i + 1 })
-    })
-};
+    calcDrawersFasadesPositons(secIndex: number, _grid: GridModule) {
+        const fasadeList = []
+        const { CONFIG } = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
+        const grid = _grid || this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()
 
-calcDrawersFasadesPositons(secIndex: number, _grid: GridModule) {
-    const fasadeList = []
-    const { CONFIG } = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
-    const grid = _grid || this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()
+        // let moduleThickness = grid.moduleThickness || 18
+        // moduleThickness = !grid.horizont ? -2 : moduleThickness - 2
 
-    // let moduleThickness = grid.moduleThickness || 18
-    // moduleThickness = !grid.horizont ? -2 : moduleThickness - 2
+        //Ящики с фасадами
+        const BOX_FASADE = grid.sections[secIndex].fasadesDrawers || []
+        const HI_TECH_PROFILES = grid.sections[secIndex].hiTechProfiles || []
 
-    //Ящики с фасадами
-    const BOX_FASADE = grid.sections[secIndex].fasadesDrawers || []
-    const HI_TECH_PROFILES = grid.sections[secIndex].hiTechProfiles || []
+        const boxesArray = []
+        BOX_FASADE.forEach((box, box_key) => {
+            if (!box.position) {
+                box.position = new THREE.Vector3()
+            }
+            boxesArray.push(box)
+        })
 
-    const boxesArray = []
-    BOX_FASADE.forEach((box, box_key) => {
-        if (!box.position) {
-            box.position = new THREE.Vector3()
+        HI_TECH_PROFILES.forEach((_profile, box_key) => {
+            let profile = Object.assign(<FillingObject>{}, _profile)
+            if (!profile.position) {
+                profile.position = new THREE.Vector3()
+            }
+            else {
+                profile.position = {
+                    x: profile.position.x,
+                    y: grid.height - (profile.position.y + profile.height + profile.isProfile.manufacturerOffset)
+                }
+            }
+            boxesArray.push(profile)
+        })
+
+        const sortedBoxesByIncrease = boxesArray.sort((a, b) => a.position.y - b.position.y)
+
+        let fasadePosition = this.FASADES_MANAGER.getFasadePosition(this.FASADES_MANAGER.scope.APP.CATALOG.PRODUCTS[grid.productID].FASADE_POSITION[0])
+        if (!fasadePosition)
+            return
+
+        const otstup = 4
+
+        let fullFasadelSize = fasadePosition.FASADE_HEIGHT
+        let bottomFasadePosition = grid.horizont + 2
+        const firstFasadePosition = bottomFasadePosition
+
+        if (!sortedBoxesByIncrease.length) {
+            fasadeList.push({
+                y: Math.floor(firstFasadePosition),
+                height: Math.floor(fullFasadelSize),
+                type: "fasade",
+            })
+
+            return fasadeList
         }
-        boxesArray.push(box)
-    })
 
-    HI_TECH_PROFILES.forEach((_profile, box_key) => {
-        let profile = Object.assign(<FillingObject>{}, _profile)
-        if (!profile.position) {
-            profile.position = new THREE.Vector3()
+        const firstBox = sortedBoxesByIncrease[0] //нижний ящик
+        if ((firstBox.position.y - (firstBox.isProfile ? 0 : otstup)) > bottomFasadePosition) {
+            let firstFasadeSize = Math.abs(firstBox.position.y - (firstBox.isProfile ? 0 : otstup) - bottomFasadePosition)
+
+            if (firstFasadeSize > 200) {
+                fasadeList.push({
+                    y: firstFasadePosition,
+                    height: Math.floor(firstFasadeSize),
+                    type: "fasade",
+                })
+            }
+
+            fullFasadelSize = fullFasadelSize - firstFasadeSize - (firstBox.isProfile ? 0 : otstup)
+            bottomFasadePosition = bottomFasadePosition + firstFasadeSize + (firstBox.isProfile ? 0 : otstup)
         }
-        else {
-            profile.position = {
-                x: profile.position.x,
-                y: grid.height - (profile.position.y + profile.height + profile.isProfile.manufacturerOffset)
+
+        for (let index = 0; index < sortedBoxesByIncrease.length; index++) {
+            let box = sortedBoxesByIncrease[index]
+
+            if (!box.position?.y) {
+                box.position = new THREE.Vector3()
+            }
+
+            const boxFasadeHeight = box.isProfile?.isBottomHiTechProfile
+                ? 0
+                : box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
+
+            fasadeList.push({
+                y: Math.floor(bottomFasadePosition),
+                height: Math.floor(boxFasadeHeight),
+                type: box.isProfile ? "profile" : "drawer",
+            })
+
+            const topBox = sortedBoxesByIncrease[index + 1]
+            let upperFasadeSize = false
+
+            fullFasadelSize = fullFasadelSize - boxFasadeHeight - (box.isProfile || topBox?.isProfile ? 0 : otstup)
+            bottomFasadePosition = bottomFasadePosition + boxFasadeHeight + (box.isProfile || topBox?.isProfile ? 0 : otstup)
+
+            //Условие для нижней планки
+            if (topBox) {
+                upperFasadeSize = Math.abs(topBox.position.y - bottomFasadePosition)
+
+                if ((!box.isProfile && topBox.isProfile) && upperFasadeSize > 4) {
+                    bottomFasadePosition += otstup
+                    upperFasadeSize -= 4
+                } else if ((!box.isProfile && !topBox.isProfile) && upperFasadeSize > 0) {
+                    upperFasadeSize -= 4
+                }
+            } else {
+                upperFasadeSize = Math.abs(this.FASADES_MANAGER.scope.UM_STORE.totalHeight - 2 - bottomFasadePosition)
+            }
+
+            if (upperFasadeSize > 200)
+                fasadeList.push({
+                    y: Math.floor(bottomFasadePosition),
+                    height: Math.floor(upperFasadeSize),
+                    type: "fasade",
+                })
+
+            //Если между ящиками расстояние <= 4мм, то туда фасад не нужен, НО если информациб об этом "фасаде" не положить - сломется
+            //логика приложения. Поэтому, если у нас такой промежуток есть, то мы кладём его размер и позицию, но не смещаем её и не уменьшаем\
+            //общий фасад, тогда фасады отобразятся корректно.
+            if (upperFasadeSize > 0) {
+                fullFasadelSize = fullFasadelSize - upperFasadeSize - (box.isProfile || topBox?.isProfile ? 0 : otstup)
+                bottomFasadePosition = bottomFasadePosition + upperFasadeSize + (box.isProfile || topBox?.isProfile ? 0 : otstup)
             }
         }
-        boxesArray.push(profile)
-    })
 
-    const sortedBoxesByIncrease = boxesArray.sort((a, b) => a.position.y - b.position.y)
-
-    let fasadePosition = this.FASADES_MANAGER.getFasadePosition(this.FASADES_MANAGER.scope.APP.CATALOG.PRODUCTS[grid.productID].FASADE_POSITION[0])
-    if (!fasadePosition)
-        return
-
-    const otstup = 4
-
-    let fullFasadelSize = fasadePosition.FASADE_HEIGHT
-    let bottomFasadePosition = grid.horizont + 2
-    const firstFasadePosition = bottomFasadePosition
-
-    if (!sortedBoxesByIncrease.length) {
-        fasadeList.push({
-            y: Math.floor(firstFasadePosition),
-            height: Math.floor(fullFasadelSize),
-            type: "fasade",
-        })
+        if (fullFasadelSize >= this.FASADES_MANAGER.scope.CONST.MIN_FASADE_HEIGHT)
+            fasadeList.push({
+                y: Math.floor(bottomFasadePosition),
+                height: Math.floor(fullFasadelSize),
+                type: "fasade",
+            })
 
         return fasadeList
     }
 
-    const firstBox = sortedBoxesByIncrease[0] //нижний ящик
-    if ((firstBox.position.y - (firstBox.isProfile ? 0 : otstup)) > bottomFasadePosition) {
-        let firstFasadeSize = Math.abs(firstBox.position.y - (firstBox.isProfile ? 0 : otstup) - bottomFasadePosition)
+    liftStackAboveBottom(secIndex: number, grid: GridModule) {
+        const BOTTOM_FASADE_OFFSET = 2
 
-        if (firstFasadeSize > 200) {
-            fasadeList.push({
-                y: firstFasadePosition,
-                height: Math.floor(firstFasadeSize),
-                type: "fasade",
-            })
-        }
+        const section = grid.sections?.[secIndex]
+        const drawerFasades = section?.fasadesDrawers ?? []
+        if (!drawerFasades.length) return
 
-        fullFasadelSize = fullFasadelSize - firstFasadeSize - (firstBox.isProfile ? 0 : otstup)
-        bottomFasadePosition = bottomFasadePosition + firstFasadeSize + (firstBox.isProfile ? 0 : otstup)
-    }
+        const lowest = Math.min(...drawerFasades.map(fasade => fasade.position?.y ?? 0))
+        const shift = BOTTOM_FASADE_OFFSET - lowest
+        if (shift <= 0) return
 
-    for (let index = 0; index < sortedBoxesByIncrease.length; index++) {
-        let box = sortedBoxesByIncrease[index]
+        // После saveUMGrid fillings[].fasade, hiTechProfiles и fasadesDrawers могут быть
+        // как одним объектом, так и разными копиями — двигаем каждый объект ровно один раз
+        const moved = new Set()
+        const moveBody = (body) => {
+            if (!body?.position || moved.has(body)) return
+            moved.add(body)
 
-        if (!box.position?.y) {
-            box.position = new THREE.Vector3()
-        }
-
-        const boxFasadeHeight = box.isProfile?.isBottomHiTechProfile
-            ? 0
-            : box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
-
-        fasadeList.push({
-            y: Math.floor(bottomFasadePosition),
-            height: Math.floor(boxFasadeHeight),
-            type: box.isProfile ? "profile" : "drawer",
-        })
-
-        const topBox = sortedBoxesByIncrease[index + 1]
-        let upperFasadeSize = false
-
-        fullFasadelSize = fullFasadelSize - boxFasadeHeight - (box.isProfile || topBox?.isProfile ? 0 : otstup)
-        bottomFasadePosition = bottomFasadePosition + boxFasadeHeight + (box.isProfile || topBox?.isProfile ? 0 : otstup)
-
-        //Условие для нижней планки
-        if (topBox) {
-            upperFasadeSize = Math.abs(topBox.position.y - bottomFasadePosition)
-
-            if ((!box.isProfile && topBox.isProfile) && upperFasadeSize > 4) {
-                bottomFasadePosition += otstup
-                upperFasadeSize -= 4
-            } else if ((!box.isProfile && !topBox.isProfile) && upperFasadeSize > 0) {
-                upperFasadeSize -= 4
+            // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
+            body.position.y -= shift
+            if (body.distances) {
+                body.distances.top -= shift
+                body.distances.bottom += shift
             }
-        } else {
-            upperFasadeSize = Math.abs(this.FASADES_MANAGER.scope.UM_STORE.totalHeight - 2 - bottomFasadePosition)
         }
 
-        if (upperFasadeSize > 200)
-            fasadeList.push({
-                y: Math.floor(bottomFasadePosition),
-                height: Math.floor(upperFasadeSize),
-                type: "fasade",
-            })
-
-        //Если между ящиками расстояние <= 4мм, то туда фасад не нужен, НО если информациб об этом "фасаде" не положить - сломется
-        //логика приложения. Поэтому, если у нас такой промежуток есть, то мы кладём его размер и позицию, но не смещаем её и не уменьшаем\
-        //общий фасад, тогда фасады отобразятся корректно.
-        if (upperFasadeSize > 0) {
-            fullFasadelSize = fullFasadelSize - upperFasadeSize - (box.isProfile || topBox?.isProfile ? 0 : otstup)
-            bottomFasadePosition = bottomFasadePosition + upperFasadeSize + (box.isProfile || topBox?.isProfile ? 0 : otstup)
-        }
-    }
-
-    if (fullFasadelSize >= this.FASADES_MANAGER.scope.CONST.MIN_FASADE_HEIGHT)
-        fasadeList.push({
-            y: Math.floor(bottomFasadePosition),
-            height: Math.floor(fullFasadelSize),
-            type: "fasade",
+        section.fillings?.forEach(filling => {
+            if (!filling?.fasade && !filling?.isProfile) return
+            moveBody(filling)
         })
+        section.hiTechProfiles?.forEach(moveBody)
 
-    return fasadeList
-}
-
-liftStackAboveBottom(secIndex: number, grid: GridModule) {
-    const BOTTOM_FASADE_OFFSET = 2
-
-    const section = grid.sections?.[secIndex]
-    const drawerFasades = section?.fasadesDrawers ?? []
-    if (!drawerFasades.length) return
-
-    const lowest = Math.min(...drawerFasades.map(fasade => fasade.position?.y ?? 0))
-    const shift = BOTTOM_FASADE_OFFSET - lowest
-    if (shift <= 0) return
-
-    // После saveUMGrid fillings[].fasade, hiTechProfiles и fasadesDrawers могут быть
-    // как одним объектом, так и разными копиями — двигаем каждый объект ровно один раз
-    const moved = new Set()
-    const moveBody = (body) => {
-        if (!body?.position || moved.has(body)) return
-        moved.add(body)
-
-        // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
-        body.position.y -= shift
-        if (body.distances) {
-            body.distances.top -= shift
-            body.distances.bottom += shift
+        // Позицию фасада пересчитываем от тела — единственного источника истины
+        const placeFasade = (fasade, body) => {
+            if (!fasade?.position || !body?.position) return
+            fasade.position.y = grid.height - (body.position.y + body.height + fasade.manufacturerOffset)
         }
-    }
 
-    section.fillings?.forEach(filling => {
-        if (!filling?.fasade && !filling?.isProfile) return
-        moveBody(filling)
-    })
-    section.hiTechProfiles?.forEach(moveBody)
-
-    // Позицию фасада пересчитываем от тела — единственного источника истины
-    const placeFasade = (fasade, body) => {
-        if (!fasade?.position || !body?.position) return
-        fasade.position.y = grid.height - (body.position.y + body.height + fasade.manufacturerOffset)
-    }
-
-    section.fillings?.forEach(filling => placeFasade(filling.fasade, filling))
-    drawerFasades.forEach(fasade => {
-        const body = section.fillings?.find(filling => filling.id === fasade.item)
-        placeFasade(fasade, body)
-    })
-};
+        section.fillings?.forEach(filling => placeFasade(filling.fasade, filling))
+        drawerFasades.forEach(fasade => {
+            const body = section.fillings?.find(filling => filling.id === fasade.item)
+            placeFasade(fasade, body)
+        })
+    };
 }

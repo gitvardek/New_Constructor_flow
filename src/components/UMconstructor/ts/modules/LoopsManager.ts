@@ -118,10 +118,10 @@ export default class LoopsManager {
 
         if (!fasade?.splitGroup || !hasMaterial(fasade)) return
 
-        const isUsableSide = (side: any) => !!side && +side !== LOOPSIDE.none
+        // Соседа ищем только в своей двери: сторона открывания принадлежит двери, а не секции.
 
-        const neighbour = section.fasades
-            .flat()
+        const isUsableSide = (side: any) => !!side && +side !== LOOPSIDE.none
+        const neighbour = (section.fasades?.[doorIndex] ?? [])
             .find(item => item !== fasade
                 && !item.manufacturerOffset
                 && hasMaterial(item)
