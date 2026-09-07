@@ -1,5 +1,5 @@
 // import * as THREEInterfases from "../types/interfases"
-
+import { DEFAULT_TONE_MAPPING } from "./Core/toneMapping"
 const START_PROJECT_PARAMS = {
     projectId: null,
     type: 'New',

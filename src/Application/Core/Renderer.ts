@@ -7,6 +7,8 @@ import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRe
 import { Sizes } from "../Utils/Sizes"
 import { useEventBus } from '@/store/appliction/useEventBus';
 import { useMenuStore } from "@/store/appStore/useMenuStore";
+import { useSceneState } from "@/store/appliction/useSceneState";
+import { normalizeToneMapping } from "./toneMapping";
 
 export class Renderer {
 
@@ -14,6 +16,7 @@ export class Renderer {
     /** Глобальное хранилище Events */
     eventBus: ReturnType<typeof useEventBus> = useEventBus()
     menuStore: ReturnType<typeof useMenuStore> = useMenuStore()
+    sceneState: ReturnType<typeof useSceneState> = useSceneState()
     sizes: Sizes
     canvas: HTMLElement
     camera: THREE.Camera | null = null
@@ -30,6 +33,7 @@ export class Renderer {
     backgroundColor: '#ffffff'
 
     onSetQuality: (value: string) => void
+    onSetToneMapping: (value: number) => void
 
     constructor(parent: THREETypes.TApplication) {
 
@@ -92,16 +96,22 @@ export class Renderer {
             this.canvas.appendChild(this.instance.domElement)
 
             // this.instance.physicallyCorrectLights = true;
-            // this.instance.shadowMap.enabled = true;
-            this.instance.shadowMap.type = THREE.BasicShadowMap;
-            // this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
-            this.instance.toneMapping = THREE.ReinhardToneMapping;
+            this.instance.shadowMap.enabled = true;
+            this.instance.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            this.instance.toneMapping = normalizeToneMapping(this.sceneState.getToneMapping);
             this.instance.toneMappingExposure = 1.8;
-            // this.instance.receiveShadow = true;
+
         } catch (error) {
             console.error('Ошибка при создании нового WebGL рендерера:', error);
         }
 
+    }
+
+    public setToneMapping(value: number) {
+        if (!this.instance) return
+
+        this.instance.toneMapping = normalizeToneMapping(value);
     }
 
     setLableRenderer() {
@@ -243,7 +253,12 @@ export class Renderer {
             this.setQuality(value)
         }
 
+        this.onSetToneMapping = (value) => {
+            this.setToneMapping(value)
+        }
+
         this.eventBus.on('A:Quality', this.onSetQuality)
+        this.eventBus.on('A:ToneMapping', this.onSetToneMapping)
         this.eventBus.on('A:ToggleRulerVisibility', (value) => {
             this.rulerVisible = value
         })
@@ -252,6 +267,7 @@ export class Renderer {
 
     removeVueEvents() {
         this.eventBus.off('A:Quality', this.onSetQuality)
+        this.eventBus.off('A:ToneMapping', this.onSetToneMapping)
 
         // Безопасная очистка WebGL рендерера
         if (this.instance) {

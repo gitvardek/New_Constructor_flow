@@ -34,6 +34,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import RoomList from "./roomOptions/RoomList.vue";
 import RoomOptions from "./roomOptions/RoomOptions.vue";
+import RoomTone from "./roomOptions/RoomTone.vue";
 import RoomVisualSettings from "./roomOptions/RoomVisualSettings.vue";
 import ColorSelector from "./roomOptions/ColorSelector.vue";
 
@@ -204,6 +205,15 @@ const checkExtras = (
 
 const closeMenu = (menuType: MenuType) => {
   menuStore.closeMenu(menuType);
+};
+
+// Режим тонового отображения рендерера. Значение живёт в useSceneState и уходит
+// в сохранённый проект вместе с остальными его параметрами
+const toneMapping = computed(() => sceneState.getToneMapping);
+
+const changeToneMapping = (value: number) => {
+  sceneState.setToneMapping(value);
+  eventBus.emit("A:ToneMapping", value);
 };
 
 const loadRoom = async (id: number) => {
@@ -561,36 +571,23 @@ watch(shadows, () => toggleShadow(shadows.value));
       <h1 class="popup__title">Параметры помещения</h1>
       <ClosePopUpButton class="menu__close" @close="closeMenu('roomPar')" />
       <div class="room-popup__container">
-        <RoomList :rooms="roomsList" 
-          :currentRoomId="getCurrentRoomId" 
-          @load-room="loadRoom"
+        <RoomList :rooms="roomsList" :currentRoomId="getCurrentRoomId" @load-room="loadRoom"
           @delete-room="deliteRoom" />
 
-        <RoomOptions v-if="globalOptions" 
-          :options="globalOptions" 
-          @toSelect="getOption" 
-          @toToggle="totalSelect"
-          @toPalitteSelect="palitteSelect" 
-          @toMillingSelect="millingSelect" 
-          @toPlinthSelect="plinthSelect" />
+        <RoomOptions v-if="globalOptions" :options="globalOptions" @toSelect="getOption" @toToggle="totalSelect"
+          @toPalitteSelect="palitteSelect" @toMillingSelect="millingSelect" @toPlinthSelect="plinthSelect" />
 
-        <RoomVisualSettings 
-          :currentQuality="currentQuality" 
-          :quality="quality" 
-          v-model:shadows="shadows"
-          v-model:refraction="refraction" 
-          v-model:ambientLight="ambientLight" 
-          v-model:pointLight="pointLight"
+        <RoomTone :toneMapping="toneMapping" @apply="changeToneMapping" />
+
+        <RoomVisualSettings :currentQuality="currentQuality" :quality="quality" v-model:shadows="shadows"
+          v-model:refraction="refraction" v-model:ambientLight="ambientLight" v-model:pointLight="pointLight"
           @change-quality="changeQuality" />
       </div>
     </div>
 
     <transition name="slide--left" mode="out-in">
-      <ColorSelector v-if="optionsData" key="color-select" 
-        :optionsData="optionsData"
-        :currentOptionLabel="currentOptionLable" 
-        :getCurrentRedactor="currentRedactor" 
-        @select="selectOption" />
+      <ColorSelector v-if="optionsData" key="color-select" :optionsData="optionsData"
+        :currentOptionLabel="currentOptionLable" :getCurrentRedactor="currentRedactor" @select="selectOption" />
     </transition>
   </div>
 </template>

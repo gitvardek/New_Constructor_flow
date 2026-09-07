@@ -33,6 +33,7 @@ export interface IProjectParams {
     camera?: ICameraData,
     lights?: ILightsObjects,
     height_clamp?: number,
+    tone_mapping?: number,
     table_top_type_auto?: number | null,
     default_fasade_top?: number | null,
     default_fasade_bottom?: number | null,

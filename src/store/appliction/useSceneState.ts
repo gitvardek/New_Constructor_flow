@@ -10,6 +10,7 @@ import { IWallSizes, ICameraData, ILightsObjects, IProjectParams } from '@/types
 import { START_PROJECT_PARAMS } from '@/Application/F-startData';
 import { useRoomState } from './useRoomState';
 import { useWallHeightStore } from '@/store/constructor2d/store/useWallHeightStore';
+import { DEFAULT_TONE_MAPPING, normalizeToneMapping } from '@/Application/Core/toneMapping';
 
 export const useSceneState = defineStore('SceneState', () => {
 
@@ -26,7 +27,9 @@ export const useSceneState = defineStore('SceneState', () => {
 
     const startLightsDat = ref<ILightsObjects>(startParamsClone.lights);
 
-    const startHeightClamp = ref<number>(startParamsClone.height_clamp)
+    const startHeightClamp = ref<number>(startParamsClone.height_clamp);
+
+    const startToneMapping = ref<number>(normalizeToneMapping(startParamsClone.tone_mapping));
 
     // Отдельный клон чтобы мутации currentProjectParams не попадали в startRoomData/Camera/Lights
     const currentProjectParams = ref<IProjectParams>(JSON.parse(JSON.stringify(startParamsClone)))
@@ -66,6 +69,13 @@ export const useSceneState = defineStore('SceneState', () => {
 
         currentProjectParams.value = merged;
     };
+
+    const setToneMapping = (value: number) => {
+        const toneMapping = normalizeToneMapping(value)
+
+        startToneMapping.value = toneMapping
+        updateProjectParams({ tone_mapping: toneMapping })
+    }
 
     const setShadowValue = (value: boolean) => {
         shadowValue.value = value
@@ -110,6 +120,8 @@ export const useSceneState = defineStore('SceneState', () => {
 
         startHeightClamp.value = clone.height_clamp
 
+        startToneMapping.value = normalizeToneMapping(clone.tone_mapping)
+
         currentProjectParams.value = clone
 
     }
@@ -132,7 +144,11 @@ export const useSceneState = defineStore('SceneState', () => {
         if (data.lights) startLightsDat.value = data.lights
         if (data.height_clamp != null) startHeightClamp.value = data.height_clamp
 
+        startToneMapping.value = normalizeToneMapping(data.tone_mapping)
+
     }
+
+    const getToneMapping = computed(() => startToneMapping.value ?? DEFAULT_TONE_MAPPING)
 
     const getStartProjectParams = computed(() => {
         return startProjectParams.value
@@ -177,6 +193,7 @@ export const useSceneState = defineStore('SceneState', () => {
         getCurrentProjectParams,
         getRefractionValue,
         getShadowValue,
+        getToneMapping,
 
         updateProjectParams,
         updateStartRoomData,
@@ -184,7 +201,8 @@ export const useSceneState = defineStore('SceneState', () => {
         setRefractionValue,
         setShadowValue,
         createNewProject,
-        loadProjectFromData
+        loadProjectFromData,
+        setToneMapping
     };
 
 });
