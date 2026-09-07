@@ -773,6 +773,7 @@ export default class UMconstructorClass {
 
             module = this.FASADES.updateFasades(module)
             this.FILLINGS.cleanupOversizedFillings(module)
+            this.FILLINGS.cleanupUniversalDrawers(module)
         }
         catch (error) {
             console.error(error)
