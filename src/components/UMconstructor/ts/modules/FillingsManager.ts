@@ -288,6 +288,65 @@ export default class FillingsManager {
         return height - outerDrawer.fasade.manufacturerOffset - outerDrawer.height
     };
 
+    // Универсальный ящик крепится к боковинам корпуса, поэтому тонкая панель для него
+    // не годится
+    static readonly UNIVERSAL_DRAWER_MIN_THICKNESS = 18
+
+    // Толщину берём так же, как reset: у стенки без собственного цвета она корпусная.
+    // Не подходит любая из трёх панелей — корпус, левая или правая стенка
+    isUniversalDrawerAllowed(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const { CONFIG } = this.scope.UM_STORE.getUMData() ?? {}
+        const FASADE = this.scope.APP.FASADE ?? {}
+
+        const moduleThickness = FASADE[CONFIG?.MODULE_COLOR]?.DEPTH || grid?.moduleThickness || 18
+        const sideThickness = (side: string) => FASADE[CONFIG?.[side]?.COLOR]?.DEPTH || moduleThickness
+
+        return [moduleThickness, sideThickness("LEFTSIDECOLOR"), sideThickness("RIGHTSIDECOLOR")]
+            .every(depth => depth >= FillingsManager.UNIVERSAL_DRAWER_MIN_THICKNESS)
+    };
+
+    // Снимает уже установленные универсальные ящики, когда толщина панелей перестала
+    // подходить — например, после смены материала корпуса или боковой стенки
+    cleanupUniversalDrawers(grid: GridModule) {
+        if (this.isUniversalDrawerAllowed(grid)) return
+
+        let removed = false
+
+        const deleteUniversal = (
+            segment: any,
+            secIndex: number,
+            cellIndex: number | null,
+            rowIndex: number | null,
+            extraIndex: number | null,
+        ) => {
+            if (!segment?.fillings?.length) return
+
+            // Удаляем в обратном порядке чтобы не сбивать индексы
+            for (let i = segment.fillings.length - 1; i >= 0; i--) {
+                if (!UM_DRAWERS_IDS.UNIVERSAL.includes(segment.fillings[i]?.productGroupID)) continue
+
+                this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false)
+                removed = true
+            }
+        }
+
+        grid.sections?.forEach((section, secIndex) => {
+            deleteUniversal(section, secIndex, null, null, null)
+            section.cells?.forEach((cell, cellIndex) => {
+                deleteUniversal(cell, secIndex, cellIndex, null, null)
+                cell.cellsRows?.forEach((row, rowIndex) => {
+                    deleteUniversal(row, secIndex, cellIndex, rowIndex, null)
+                    row.extras?.forEach((extra, extraIndex) => {
+                        deleteUniversal(extra, secIndex, cellIndex, rowIndex, extraIndex)
+                    })
+                })
+            })
+        })
+
+        if (removed)
+            this.scope.callAlert("error", `Универсальный ящик удалён: толщина панели меньше ${FillingsManager.UNIVERSAL_DRAWER_MIN_THICKNESS} мм`)
+    };
+
     addFilling(
         _product: any,
         productGroupID: number,
@@ -297,6 +356,11 @@ export default class FillingsManager {
         console.log(productGroupID, 'productGroupID')
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
+            if (!this.isUniversalDrawerAllowed(grid)) {
+                this.scope.callAlert("error", `Невозможно установить универсальный ящик: толщина корпуса или боковой стенки меньше ${FillingsManager.UNIVERSAL_DRAWER_MIN_THICKNESS} мм`)
+                return;
+            }
+
             const minDepth = _product.SIZE_EDIT_DEPTH?.length
                 ? Math.min(..._product.SIZE_EDIT_DEPTH) + 7
                 : 0;
