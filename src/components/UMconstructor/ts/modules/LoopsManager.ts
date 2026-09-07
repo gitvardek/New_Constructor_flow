@@ -124,8 +124,10 @@ export default class LoopsManager {
 
         const isUsableSide = (side: any) => !!side && +side !== LOOPSIDE.none
 
-        const neighbour = section.fasades
-            .flat()
+        // Соседа ищем только в своей двери: сторона открывания принадлежит двери, а не
+        // секции. У двухдверной секции соседняя дверь открывается в другую сторону, и её
+        // сторона сегменту не подходит — петли уезжали на чужую дверь
+        const neighbour = (section.fasades?.[doorIndex] ?? [])
             .find(item => item !== fasade
                 && !item.manufacturerOffset
                 && hasMaterial(item)

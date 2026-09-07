@@ -146,12 +146,17 @@ export default class ExternalFasadesManager {
 
         let baseDrawerFasade = fasadesDrawers[0]
 
+        // Промежуточные фасады в двери появляются от внешних ящиков и от хай-тек профилей:
+        // и те и другие делят область на части. Пока в секции нет ни тех ни других, лишним
+        // сегментам взяться неоткуда
+        const hasFasadeSplitters = !!(fasadesDrawers.length || grid.sections[secIndex].hiTechProfiles?.length)
+
         // Ручное разделение помечено идентификатором splitGroup (см. FasadesManager.splitFasade).
         // Полная пересборка ниже теряет сегменты, поэтому запоминаем группы и восстанавливаем
         // после. Считаем только помеченные: фасады, порождённые промежутками между ящиками,
         // идентификатора не имеют и за разделение больше не принимаются
         const prevSegments = (grid.sections[secIndex].fasades ?? []).map(door => {
-            if (!door?.length) return null
+            if (!door?.length) return []
 
             // Пересборка создаёт фасады клонированием baseFasade, поэтому материал, ручки
             // и сторону открывания каждого сегмента запоминаем отдельно — снизу вверх,
@@ -173,20 +178,31 @@ export default class ExternalFasadesManager {
 
             const marked = door.filter(fasade => fasade?.splitGroup)
             if (marked.length) {
-                const id = marked[0].splitGroup
-                const group = marked.filter(fasade => fasade.splitGroup === id)
-                if (group.length > 1) return { id, ...describe(group) }
+                // Разделений в одной двери может быть несколько: например, своё над
+                // профилем и своё под ним. Каждое живёт под собственным splitGroup,
+                // поэтому собираем их все — раньше бралось только первое, и остальные
+                // после пересборки не восстанавливались
+                const ids = [...new Set(marked.map(fasade => fasade.splitGroup))]
+
+                const groups = ids
+                    .map(id => marked.filter(fasade => fasade.splitGroup === id))
+                    .filter(group => group.length > 1)
+                    .map(group => ({ id: group[0].splitGroup, ...describe(group) }))
+
+                if (groups.length) return groups
             }
 
-            // Проекты, сохранённые до появления splitGroup. Без внешних ящиков промежуточных
-            // фасадов взяться неоткуда, поэтому несколько сегментов — это точно разделение
-            if (marked.length === 0 && door.length > 1 && !fasadesDrawers.length) {
+            // Проекты, сохранённые до появления splitGroup: там признака нет, и разделение
+            // приходится узнавать по количеству сегментов. Делать это можно, только когда
+            // делителей в секции нет, иначе за разделение принимаются части, на которые
+            // дверь поделил ящик или профиль
+            if (marked.length === 0 && door.length > 1 && !hasFasadeSplitters) {
                 const id = Date.now()
                 door.forEach(fasade => { fasade.splitGroup = id })
-                return { id, ...describe(door) }
+                return [{ id, ...describe(door) }]
             }
 
-            return null
+            return []
         })
 
         this.liftStackAboveBottom(secIndex, grid)
@@ -278,105 +294,112 @@ export default class ExternalFasadesManager {
     // Возвращает ручное разделение фасада, потерянное при пересборке списка:
     // делит самый высокий сегмент пополам, пока их число не совпадёт с прежним.
     // Деление прекращается, если половина окажется ниже минимально допустимой высоты
-    restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[], grid: GridModule) {
+    restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[][], grid: GridModule) {
         if (!fasades?.length) return
 
+        fasades.forEach((door, doorIndex) => {
+            const splits = prevSegments[doorIndex] ?? []
+            if (!door?.length || !splits.length) return
+
+            splits.forEach(split => this.restoreSplitGroup(door, split, grid))
+
+            door.forEach((fasade, i) => { fasade.id = i + 1 })
+        })
+    };
+
+    // Восстанавливает одно разделение внутри двери: доводит число сегментов группы до
+    // прежнего, возвращает им материал и сторону открывания, а если разделение больше
+    // не помещается — снимает признак. Нумерацию сегментов выставляет вызывающий,
+    // когда разберётся со всеми группами двери
+    private restoreSplitGroup(door: FasadeObject[], split: SplitGroup, grid: GridModule) {
         const gap = grid.isSlidingDoors ? 0 : 4
 
         const minSplitHeight = ExternalFasadesManager.MIN_SPLIT_HEIGHT
 
-        fasades.forEach((door, doorIndex) => {
-            const split = prevSegments[doorIndex]
-            if (!door?.length || !split) return
+        // Пересборка сохранила часть сегментов группы — восстанавливаем остальные.
+        // Считаем каждый раз заново: сегменты группы могли не сохраниться совсем
+        const groupSegments = () => door.filter(fasade => fasade.splitGroup === split.id)
 
-            // Пересборка сохранила часть сегментов группы — восстанавливаем остальные.
-            // Считаем каждый раз заново: сегменты группы могли не сохраниться совсем
-            const groupSegments = () => door.filter(fasade => fasade.splitGroup === split.id)
+        // Сегменты разъехались — между ними появился ящик. Разделения больше нет:
+        // снимаем признак, каждый фасад дальше живёт сам по себе и получает петли.
+        // Высоты и позиции при этом не трогаем, фасады остаются на своих местах
+        const separated = groupSegments()
+        if (separated.length > 1 && !isSplitContiguous(separated, gap)) {
+            separated.forEach(fasade => delete fasade.splitGroup)
+            return
+        }
 
-            // Сегменты разъехались — между ними появился ящик. Разделения больше нет:
-            // снимаем признак, каждый фасад дальше живёт сам по себе и получает петли.
-            // Высоты и позиции при этом не трогаем, фасады остаются на своих местах
-            const separated = groupSegments()
-            if (separated.length > 1 && !isSplitContiguous(separated, gap)) {
-                separated.forEach(fasade => delete fasade.splitGroup)
-                door.forEach((fasade, i) => { fasade.id = i + 1 })
-                return
-            }
+        while (groupSegments().length < split.count) {
+            const group = groupSegments()
 
-            while (groupSegments().length < split.count) {
-                const group = groupSegments()
+            // Пока сегменты группы есть — делим самый высокий из них. Если пересборка
+            // не сохранила ни одного, ищем область, на которой разделение было раньше:
+            // у неё наибольшее пересечение с прежними границами группы
+            let segment = group.length ? group[0] : door[0]
 
-                // Пока сегменты группы есть — делим самый высокий из них. Если пересборка
-                // не сохранила ни одного, ищем область, на которой разделение было раньше:
-                // у неё наибольшее пересечение с прежними границами группы
-                let segment = group.length ? group[0] : door[0]
-
-                if (group.length)
-                    group.forEach(fasade => { if (fasade.height > segment.height) segment = fasade })
-                else
-                    door.forEach(fasade => {
-                        if (splitOverlap(fasade, split) > splitOverlap(segment, split)) segment = fasade
-                    })
-
-                const index = door.indexOf(segment)
-                const half = Math.floor((segment.height - gap) / 2)
-
-                // Делим, только если разделение поместится по суммарной высоте
-                if (segment.height < minSplitHeight) break
-                if (half < (segment.minY ?? 0)) break
-
-                segment.splitGroup = split.id
-
-                const delta = segment.height - half * 2 - gap
-                segment.height = half + delta
-
-                const nextY = segment.position.y + gap + segment.height
-
-                const clone = <FasadeObject>{
-                    ...segment,
-                    height: half,
-                    position: grid.isSlidingDoors
-                        ? new THREE.Vector3(segment.position.x, nextY, segment.position.z)
-                        : new THREE.Vector2(segment.position.x, nextY),
-                    material: { ...segment.material, HANDLES: { ...segment.material.HANDLES } },
-                }
-
-                door.splice(index + 1, 0, clone)
-            }
-
-            // Возвращаем сегментам их материал, ручки и сторону открывания. Петли при этом
-            // не назначаются вручную: calcLoops вызывается сразу после и сам отбросит
-            // сегмент, у которого материал сняли или поставили «без фасада»
-            groupSegments()
-                .sort((a, b) => a.position.y - b.position.y)
-                .forEach((fasade, index) => {
-                    const saved = split.segments?.[index]
-                    if (!saved) return
-
-                    fasade.material = saved.material
-                    fasade.loopsSide = saved.loopsSide
+            if (group.length)
+                group.forEach(fasade => { if (fasade.height > segment.height) segment = fasade })
+            else
+                door.forEach(fasade => {
+                    if (splitOverlap(fasade, split) > splitOverlap(segment, split)) segment = fasade
                 })
 
-            // Условия не сошлись: сегментов меньше пары или суммарная высота ниже
-            // допустимой — идентификатор снимается, дальше фасад ведёт себя как обычный.
-            // Обратно он не вернётся: в следующий раз группы в двери уже не будет
-            const group = groupSegments()
-            const totalHeight = group.reduce((sum, fasade) => sum + fasade.height, 0)
-                + gap * (group.length - 1)
+            const index = door.indexOf(segment)
+            const half = Math.floor((segment.height - gap) / 2)
 
-            if (group.length < 2 || totalHeight < minSplitHeight) {
-                const first = group[0]
+            // Делим, только если разделение поместится по суммарной высоте
+            if (segment.height < minSplitHeight) break
+            if (half < (segment.minY ?? 0)) break
 
-                if (first) {
-                    first.height = totalHeight
-                    group.slice(1).forEach(fasade => door.splice(door.indexOf(fasade), 1))
-                }
+            segment.splitGroup = split.id
 
-                group.forEach(fasade => delete fasade.splitGroup)
+            const delta = segment.height - half * 2 - gap
+            segment.height = half + delta
+
+            const nextY = segment.position.y + gap + segment.height
+
+            const clone = <FasadeObject>{
+                ...segment,
+                height: half,
+                position: grid.isSlidingDoors
+                    ? new THREE.Vector3(segment.position.x, nextY, segment.position.z)
+                    : new THREE.Vector2(segment.position.x, nextY),
+                material: { ...segment.material, HANDLES: { ...segment.material.HANDLES } },
             }
 
-            door.forEach((fasade, i) => { fasade.id = i + 1 })
-        })
+            door.splice(index + 1, 0, clone)
+        }
+
+        // Возвращаем сегментам их материал, ручки и сторону открывания. Петли при этом
+        // не назначаются вручную: calcLoops вызывается сразу после и сам отбросит
+        // сегмент, у которого материал сняли или поставили «без фасада»
+        groupSegments()
+            .sort((a, b) => a.position.y - b.position.y)
+            .forEach((fasade, index) => {
+                const saved = split.segments?.[index]
+                if (!saved) return
+
+                fasade.material = saved.material
+                fasade.loopsSide = saved.loopsSide
+            })
+
+        // Условия не сошлись: сегментов меньше пары или суммарная высота ниже
+        // допустимой — идентификатор снимается, дальше фасад ведёт себя как обычный.
+        // Обратно он не вернётся: в следующий раз группы в двери уже не будет
+        const group = groupSegments()
+        const totalHeight = group.reduce((sum, fasade) => sum + fasade.height, 0)
+            + gap * (group.length - 1)
+
+        if (group.length < 2 || totalHeight < minSplitHeight) {
+            const first = group[0]
+
+            if (first) {
+                first.height = totalHeight
+                group.slice(1).forEach(fasade => door.splice(door.indexOf(fasade), 1))
+            }
+
+            group.forEach(fasade => delete fasade.splitGroup)
+        }
     };
 
     // Фасад ящика свисает на manufacturerOffset ниже дна тела. Со снятым цоколем
