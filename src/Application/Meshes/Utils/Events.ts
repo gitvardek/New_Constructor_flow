@@ -1056,6 +1056,12 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.position.copy(adjusted.position);
         currentMesh.rotation.copy(adjusted.rotation);
 
+        // Ресайз мог сдвинуть объект от стены — конфиг должен знать об этом. Иначе
+        // CONFIG.POSITION расходится с положением в сцене, и проект сохраняет две
+        // разные точки
+        CONFIG.POSITION = currentMesh.position.clone();
+        CONFIG.ROTATION = currentMesh.rotation.clone();
+
         const center = new THREE.Vector3();
         currentMesh.userData.aabb.getCenter(center);
         currentMesh.userData.obb.center.copy(center);

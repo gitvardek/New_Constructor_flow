@@ -44,6 +44,7 @@ import AddLightHeaderButton from "@/components/ui/buttons/header/AddLightHeaderB
 import BuyBasketButton from "@/components/ui/buttons/header/BuyBasketButton.vue";
 
 import { QuickActionsToolbar } from "@/features/quickActions";
+import RoomHeight from "../left-menu/option/roomOptions/RoomHeight.vue";
 import AddPhotoHelperButton from "@/components/ui/buttons/header/helpers/AddPhotoHelperButton.vue";
 import GetAppHelperButton from "@/components/ui/buttons/header/helpers/GetAppHelperButton.vue";
 import VisibilityHelperButton from "@/components/ui/buttons/header/helpers/VisibilityHelperButton.vue";
@@ -74,6 +75,16 @@ const constructor2DHistory = useConstructor2DHistory();
 const popupStore = usePopupStore();
 const { setTransformControlsValue } = useTransformController();
 
+
+// Высота примагничивания навесных модулей. Значение живёт в useRoomOptions, компонент
+// только показывает его и отдаёт новое. В отличие от прежнего места в RoomOptionsMenu
+// сохраняем сразу: шапка не размонтируется, и отложить запись в стор некуда
+const clampHeight = computed(() => roomOptions.getHeightClamp);
+
+const changeHeightClamp = (value: number | null) => {
+  roomOptions.setHeightClamp(value);
+  eventBus.emit("A:Height-clamp", value);
+};
 
 const createNewRoom = (value: string) => {
   // 2D: создаем новую комнату на основе шаблона blankroom
@@ -562,6 +573,10 @@ onBeforeUnmount(() => {
             </Modal>
           </div>
         </div>
+        <div class="header-modheight" v-if="route.path === '/3d'">
+          <p class="header-modheight__label">Высота навесных модулей</p>
+          <RoomHeight :clampHeight="clampHeight" @apply="changeHeightClamp" />
+        </div>
       </div>
       <div class="header-utilitys">
         <div class="header-basket" v-if="route.path === '/3d'">
@@ -599,6 +614,20 @@ onBeforeUnmount(() => {
 
   &-basket {
     position: relative;
+  }
+}
+
+.header-modheight {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 1rem;
+
+  &__label {
+    font-size: 1.2rem;
+    color: $strong-grey;
+    white-space: nowrap;
   }
 }
 

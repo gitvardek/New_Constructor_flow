@@ -34,7 +34,6 @@ import { useModelState } from "@/store/appliction/useModelState";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import RoomList from "./roomOptions/RoomList.vue";
 import RoomOptions from "./roomOptions/RoomOptions.vue";
-import RoomHeight from "./roomOptions/RoomHeight.vue";
 import RoomVisualSettings from "./roomOptions/RoomVisualSettings.vue";
 import ColorSelector from "./roomOptions/ColorSelector.vue";
 
@@ -67,7 +66,6 @@ const {
   getTotalPlinthColorData,
   getDefaultHandlresData,
 
-  getHeightClamp,
   getQuality,
   getShadowValue,
   getRefractionValue,
@@ -79,7 +77,6 @@ const {
   setGlobalPlinth,
   setQuality,
 
-  setHeightClamp,
   setLightRange,
   setRefractionValue,
   setShadowValue,
@@ -89,7 +86,6 @@ const {
   apllyProjectFloor,
 } = useRoomOptions();
 
-const clampHeight = ref<number | null | string>(3000);
 const quality = ref<TQuality[] | null>(null);
 const currentQuality = ref<TQuality | null>(null);
 
@@ -142,7 +138,6 @@ onBeforeMount(() => {
 });
 
 onUnmounted(() => {
-  setHeightClamp(clampHeight.value);
   setLightRange("pointLight", pointLight.value);
   setLightRange("ambientLight", ambientLight.value);
   setRefractionValue(refraction.value);
@@ -174,7 +169,6 @@ const prepareOptions = () => {
 
   prepareExtras([fasadsBottom, fasadsTop, plinth]);
 
-  clampHeight.value = getHeightClamp;
   quality.value = getQuality;
   currentQuality.value = quality.value?.find((el) => el.active) ?? null;
 
@@ -210,11 +204,6 @@ const checkExtras = (
 
 const closeMenu = (menuType: MenuType) => {
   menuStore.closeMenu(menuType);
-};
-
-const changeHeightClamp = (value: number | null) => {
-  clampHeight.value = value;
-  eventBus.emit("A:Height-clamp", value);
 };
 
 const loadRoom = async (id: number) => {
@@ -578,9 +567,6 @@ watch(shadows, () => toggleShadow(shadows.value));
         <RoomOptions v-if="globalOptions" :options="globalOptions" @toSelect="getOption" @toToggle="totalSelect"
           @toPalitteSelect="palitteSelect" @toMillingSelect="millingSelect" @toPlinthSelect="plinthSelect" />
 
-        <h3 class="popup__title">Высота навесных модулей</h3>
-        <RoomHeight :clampHeight="clampHeight" @apply="changeHeightClamp" />
-
         <RoomVisualSettings :currentQuality="currentQuality" :quality="quality" v-model:shadows="shadows"
           v-model:refraction="refraction" v-model:ambientLight="ambientLight" v-model:pointLight="pointLight"
           @change-quality="changeQuality" />
@@ -609,12 +595,6 @@ watch(shadows, () => toggleShadow(shadows.value));
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-  }
-
-  &-modheight {
-    display: flex;
-    align-items: center;
-    gap: 15px;
   }
 
   &-select {
