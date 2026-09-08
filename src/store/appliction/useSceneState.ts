@@ -10,6 +10,7 @@ import { IWallSizes, ICameraData, ILightsObjects, IProjectParams } from '@/types
 import { START_PROJECT_PARAMS } from '@/Application/F-startData';
 import { useRoomState } from './useRoomState';
 import { useWallHeightStore } from '@/store/constructor2d/store/useWallHeightStore';
+import { DEFAULT_TONE_MAPPING, normalizeToneMapping } from '@/Application/Core/toneMapping';
 
 export const useSceneState = defineStore('SceneState', () => {
 
@@ -27,6 +28,8 @@ export const useSceneState = defineStore('SceneState', () => {
     const startLightsDat = ref<ILightsObjects>(startParamsClone.lights);
 
     const startHeightClamp = ref<number>(startParamsClone.height_clamp)
+
+    const startToneMapping = ref<number>(normalizeToneMapping(startParamsClone.tone_mapping))
 
     // Отдельный клон чтобы мутации currentProjectParams не попадали в startRoomData/Camera/Lights
     const currentProjectParams = ref<IProjectParams>(JSON.parse(JSON.stringify(startParamsClone)))
@@ -66,6 +69,15 @@ export const useSceneState = defineStore('SceneState', () => {
 
         currentProjectParams.value = merged;
     };
+
+    // Значение хранится и в currentProjectParams: оттуда его забирает saveSceneParams,
+    // поэтому режим уезжает в сохранённый проект без отдельной ветки в сохранении
+    const setToneMapping = (value: number) => {
+        const toneMapping = normalizeToneMapping(value)
+
+        startToneMapping.value = toneMapping
+        updateProjectParams({ tone_mapping: toneMapping })
+    }
 
     const setShadowValue = (value: boolean) => {
         shadowValue.value = value
@@ -109,6 +121,7 @@ export const useSceneState = defineStore('SceneState', () => {
         startLightsDat.value = clone.lights
 
         startHeightClamp.value = clone.height_clamp
+        startToneMapping.value = normalizeToneMapping(clone.tone_mapping)
 
         currentProjectParams.value = clone
 
@@ -131,6 +144,9 @@ export const useSceneState = defineStore('SceneState', () => {
         if (data.camera) startCameraData.value = data.camera
         if (data.lights) startLightsDat.value = data.lights
         if (data.height_clamp != null) startHeightClamp.value = data.height_clamp
+
+        // Проекты, сохранённые до появления параметра, открываются с режимом по умолчанию
+        startToneMapping.value = normalizeToneMapping(data.tone_mapping)
 
     }
 
@@ -161,6 +177,8 @@ export const useSceneState = defineStore('SceneState', () => {
         return Math.min(Number(startHeightClamp.value), roomHeight)
     })
 
+    const getToneMapping = computed(() => startToneMapping.value ?? DEFAULT_TONE_MAPPING)
+
     const getCurrentProjectParams = computed(() => {
         return currentProjectParams.value
     })
@@ -179,6 +197,7 @@ export const useSceneState = defineStore('SceneState', () => {
         getStartCameraData,
         getStartLightsData,
         getStartHeightClamp,
+        getToneMapping,
         getCurrentProjectParams,
         getRefractionValue,
         getShadowValue,
@@ -188,6 +207,7 @@ export const useSceneState = defineStore('SceneState', () => {
         updateDefaultData,
         setRefractionValue,
         setShadowValue,
+        setToneMapping,
         createNewProject,
         loadProjectFromData
     };

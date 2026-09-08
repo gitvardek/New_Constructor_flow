@@ -1,5 +1,7 @@
 // import * as THREEInterfases from "../types/interfases"
 
+import { DEFAULT_TONE_MAPPING } from "./Core/toneMapping"
+
 const START_PROJECT_PARAMS = {
     projectId: null,
     type: 'New',
@@ -117,6 +119,9 @@ const START_PROJECT_PARAMS = {
     },
 
     height_clamp: 3000,
+
+    // Режим тонового отображения рендерера, сохраняется вместе с проектом
+    tone_mapping: DEFAULT_TONE_MAPPING,
 
     project_name: 'New Pod',
     table_top_type_auto: true,
