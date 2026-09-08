@@ -275,7 +275,7 @@ onMounted(() => {
       </p>
 
       <p v-if="!noBottom" class="no-select item__label text-grey">
-        Мин: 50
+        Мин: 78
       </p>
       <p v-if="!noBottom" class="no-select item__label text-grey">
         Макс: 300
@@ -286,7 +286,7 @@ onMounted(() => {
             @update:modelValue="(value: number) => updateTotalSize('horizont', value)"
             :inputClass="'actions-input'"
             :modelValue="productData.CONFIG.EXPRESSIONS['#HORIZONT#']"
-            min="50"
+            min="78"
             max="300"
             :type="'number'"
             placeholder="0"
