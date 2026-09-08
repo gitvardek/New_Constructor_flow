@@ -434,12 +434,14 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesMillingKey = `MILLING${sectionNumber}`;
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
+      const fasadesGlassKey = `GLASS${sectionNumber}`;
 
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = {};
       result[fasadesMillingKey] = {};
       result[fasadesPaletteKey] = {};
       result[fasadesPattinaKey] = {};
+      result[fasadesGlassKey] = {};
 
 
       section.fasades?.forEach(doorGroup => {
@@ -494,6 +496,15 @@ function convertModuleToLegacyFormat(newModuleObject) {
             }
             result[fasadesPaletteKey][doorNumber][index] = fasade.material.PALETTE;
           }
+          if (fasade.material.GLASS) {
+            if (!result[fasadesGlassKey]) {
+              result[fasadesGlassKey] = {};
+            }
+            if (!result[fasadesGlassKey][doorNumber]) {
+              result[fasadesGlassKey][doorNumber] = {};
+            }
+            result[fasadesGlassKey][doorNumber][index] = fasade.material.GLASS;
+          }
         });
       });
 
@@ -504,6 +515,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
       legacyProps[`${fasadesMillingKey}`] = result[fasadesMillingKey]
       legacyProps[`${fasadesPattinaKey}`] = result[fasadesPattinaKey]
       legacyProps[`${fasadesPaletteKey}`] = result[fasadesPaletteKey]
+      legacyProps[`${fasadesGlassKey}`] = result[fasadesGlassKey]
     });
 
 
@@ -517,12 +529,14 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesMillingKey = `MILLING${sectionNumber}`;
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
+      const fasadesGlassKey = `GLASS${sectionNumber}`;
 
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = false;
       result[fasadesMillingKey] = {};
       result[fasadesPaletteKey] = {};
       result[fasadesPattinaKey] = {};
+      result[fasadesGlassKey] = {};
 
       doorGroup.forEach((fasade, index) => {
 
@@ -562,6 +576,14 @@ function convertModuleToLegacyFormat(newModuleObject) {
           result[fasadesPaletteKey][index] = fasade.material.PALETTE;
         }
 
+        if (fasade.material.GLASS) {
+          if (!result[fasadesGlassKey]) {
+            result[fasadesGlassKey] = {};
+          }
+
+          result[fasadesGlassKey][index] = fasade.material.GLASS;
+        }
+
       });
 
       legacyProps[`${fasadesSizeKey}`] = result[fasadesSizeKey]
@@ -569,6 +591,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
       legacyProps[`${fasadesMillingKey}`] = result[fasadesMillingKey]
       legacyProps[`${fasadesPattinaKey}`] = result[fasadesPattinaKey]
       legacyProps[`${fasadesPaletteKey}`] = result[fasadesPaletteKey]
+      legacyProps[`${fasadesGlassKey}`] = result[fasadesGlassKey]
     });
 
     legacyProps[`LOOPS`] = transformLoops(CONFIG.MODULEGRID?.sections, CONFIG.MODULEGRID?.horizont, CONFIG.MODULEGRID?.moduleThickness).coords;
