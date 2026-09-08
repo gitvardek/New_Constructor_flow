@@ -72,6 +72,14 @@
                       -
                       {{ getMillingName(propVal.FASADE.fasade.MILLING) }}
                     </p>
+
+                    <p v-if="
+                      propVal.FASADE &&
+                      propVal.FASADE.fasade &&
+                      propVal.FASADE.fasade.GLASS
+                    ">
+                      Стекло: {{ getGlassName(propVal.FASADE.fasade.GLASS) }}
+                    </p>
                   </template>
                 </span>
               </li>
@@ -172,6 +180,9 @@
                           : ""
                       }};
                     </li>
+                    <li v-if="String(colorKey) === 'GLASS' && colorItem">
+                      Стекло: {{ getGlassName(colorItem) }};
+                    </li>
                     <!-- TODO -->
                     <!-- <li v-if="String(colorKey) === 'MILLING'">
                       Фрезеровка: {{ getMillingSectionName(colorItem) }} - {{ getMillingName(colorItem) }}
@@ -262,8 +273,8 @@
       <!-- Секция свойств товара тип УМ-->
       <div class="basket-item__props" v-else>
 
-
-        <div style="list-style: none" v-for="(propValue, propKey) in renderDescription(item?.product.PROPS)"
+        <div style="list-style: none"
+          v-for="(propValue, propKey) in renderDescription(normalizeSegmentedProps(item?.product.PROPS))"
           :key="propKey">
           <div v-if="Array.isArray(propValue.value)">
             <span class="basket-item__props-lable">{{ propValue.key }}:</span>
@@ -740,6 +751,47 @@ const getMillingName = (id: any) => {
   }
   return `Фрезеровка ${id}`;
 };
+// Свойства, у которых вложенность «дверь → сегмент» и сегменты нумеруются числами.
+// Только их и нормализуем: OPTION, DOORS, SECTIONSFILLING и LOOPS массивами задуманы
+const SEGMENTED_PROP_TYPES = ["GLASS", "MILLING", "PATINA", "PALETTE"];
+
+// Бэкенд отдаёт объект со сплошными числовыми ключами от нуля как массив: { "0": id,
+// "1": id } возвращается как [id, id], а разреженный { "1": id } остаётся объектом.
+// Из-за этого одно и то же свойство приходит в двух формах (сравни GLASS1 = {"1":{"1":id}}
+// и GLASS2 = {"1":[id]}), и разбор путал дверь с сегментом.
+//
+// Приводим такие свойства к одной форме — объекту. Работаем строго с копией: сам ответ
+// не трогаем, он уходит обратно на бэкенд как есть при сохранении проекта
+// (useProjectAPI.saveProject, поле basket)
+const normalizeSegmentedProps = (props: any) => {
+  if (!isObject(props)) return props;
+
+  const result = { ...props };
+
+  for (const [key, value] of Object.entries(result)) {
+    if (!SEGMENTED_PROP_TYPES.includes(getPropDefinition(key)?.type)) continue;
+    if (!isObject(value) && !Array.isArray(value)) continue;
+
+    const doors = {};
+
+    for (const [doorNumber, doorData] of Object.entries(value)) {
+      doors[doorNumber] = Array.isArray(doorData) ? { ...doorData } : doorData;
+    }
+
+    result[key] = doors;
+  }
+
+  return result;
+};
+
+const getGlassName = (id: any) => {
+  // Получаем название стекла из store данных
+  if (appData.value && appData.value.GLASS && appData.value.GLASS[id]) {
+    return appData.value.GLASS[id].NAME || `Стекло ${id}`;
+  }
+  return `Стекло ${id}`;
+};
+
 const getUsliguName = (id: any) => {
   // Получаем название фрезеровки из store данных
   if (appData.value && appData.value.USLUGI && appData.value.USLUGI[id]) {
@@ -860,7 +912,7 @@ const renderDescription = computed(() => {
         return `${table ?? ""} ${PROFILE ?? ""} ${KROMKA ?? ""}`;
       }
 
-      return `${color ?? ""} ${pallette ?? ""} ${patina ?? ""} ${milling ?? ""}`;
+      return `${color ?? ""} ${pallette ?? ""} ${patina ?? ""} ${glass ?? ""} ${milling ?? ""}`;
     };
 
     if (data.DOORS) {
@@ -985,6 +1037,40 @@ const renderDescription = computed(() => {
       }
 
       if (getPropDefinition(key)?.NAME && isObject(value)) {
+        // Стекло приходит по-дверно: GLASS1 = { дверь: { сегмент: id } }, а у дверей-купе
+        // индекс плоский. Названия лежат в appData.GLASS, а не в CATALOG, поэтому общая
+        // ветка ниже его не разбирает.
+        // Вложенность бывает и массивом: сегменты нумеруются с нуля, и сплошной ряд
+        // ключей 0,1,… на бэкенде сериализуется в массив, а разреженный остаётся объектом
+        // (сравни GLASS1 = {"1":{"1":id}} и GLASS2 = {"1":[id]}). Разбираем обе формы
+        if (getPropDefinition(key)?.type === "GLASS") {
+          const segmentsOf = (source) =>
+            isObject(source) || Array.isArray(source) ? Object.entries(source) : null;
+
+          for (const [doorNumber, doorData] of Object.entries(value)) {
+            const segments = segmentsOf(doorData);
+
+            if (segments) {
+              for (const [segmentNumber, glassId] of segments) {
+                if (!glassId) continue;
+
+                result.push({
+                  key: getPropDefinition(key)?.NAME,
+                  value: ` дверь ${doorNumber} часть ${+segmentNumber + 1} : ${getGlassName(glassId)}`,
+                });
+              }
+              continue;
+            }
+
+            if (!doorData) continue;
+
+            result.push({
+              key: getPropDefinition(key)?.NAME,
+              value: ` часть ${+doorNumber + 1} : ${getGlassName(doorData)}`,
+            });
+          }
+        }
+
         if (
           getPropDefinition(key)?.NAME &&
           key !== "LEFTSIDECOLOR" &&
@@ -1126,7 +1212,7 @@ const isNonDelete = computed(() => {
 
     &:hover {
       background: $dark-grey;
-      color:$black;
+      color: $black;
     }
   }
 
@@ -1271,7 +1357,8 @@ const isNonDelete = computed(() => {
       left: 0;
     }
   }
-  &__action{
+
+  &__action {
     display: flex;
     gap: 1rem;
   }

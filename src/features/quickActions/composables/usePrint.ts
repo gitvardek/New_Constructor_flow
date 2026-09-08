@@ -183,13 +183,14 @@ export const usePrint = () => {
           });
         }
 
-        // Фрезеровка, палитра и патина секций. У обычных товаров они печатаются
-        // из props.FASADE, у УМ приходят посекционно: MILLING1, PALETTE1, PATINA1 —
-        // объекты вида { дверь: { индекс: id } }
+        // Фрезеровка, палитра, патина и стекло секций. У обычных товаров они печатаются
+        // из props.FASADE, у УМ приходят посекционно: MILLING1, PALETTE1, PATINA1,
+        // GLASS1 — объекты вида { дверь: { индекс: id } }
         const sectionMaterials: Array<[string, string, any]> = [
           ['MILLING', 'Фрезеровка', appData?.MILLING],
           ['PALETTE', 'Палитра', appData?.PALETTE],
           ['PATINA', 'Патина', appData?.PATINA],
+          ['GLASS', 'Стекло', appData?.GLASS],
         ];
 
         for (let i = 1; i <= 10; i++) {
@@ -198,12 +199,19 @@ export const usePrint = () => {
             if (!byDoor || typeof byDoor !== 'object') return;
 
             for (const [doorNum, byIndex] of Object.entries(byDoor as any)) {
-              if (!byIndex || typeof byIndex !== 'object') continue;
-
-              for (const [, id] of Object.entries(byIndex as any)) {
-                if (!id) continue;
-                rows.push(`${label} секции ${i}: дверь ${doorNum}: ${dict?.[id as any]?.NAME || id}`);
+              // Вложенность бывает и массивом: сплошной ряд ключей 0,1,… бэкенд отдаёт
+              // массивом, а разреженный — объектом. Object.entries разбирает обе формы
+              if (byIndex && typeof byIndex === 'object') {
+                for (const [partNum, id] of Object.entries(byIndex as any)) {
+                  if (!id) continue;
+                  rows.push(`${label} секции ${i}: дверь ${doorNum} часть ${+partNum + 1}: ${dict?.[id as any]?.NAME || id}`);
+                }
+                continue;
               }
+
+              // У дверей-купе индекс плоский: { сегмент: id } без уровня двери
+              if (!byIndex) continue;
+              rows.push(`${label} секции ${i}: часть ${+doorNum + 1}: ${dict?.[byIndex as any]?.NAME || byIndex}`);
             }
           });
         }

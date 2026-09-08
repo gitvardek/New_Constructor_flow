@@ -67,7 +67,7 @@
               <p class="error__title">Ошибка - {{ errorCount }} шт. </p>
             </div>
             <button class="basket__close" @click="closePopup">Закрыть</button>
-            <button class="basket__save">Печать</button>
+            <!-- <button class="basket__save">Печать</button> -->
             <button class="basket__order" @click="setInvoice"
               :disabled="errorBasket || technologistStorage.getTechnologistProject()">Оформить заказ</button>
           </div>
