@@ -563,7 +563,13 @@ export default class FasadesManager {
             }
         }
 
-        newDoor.loopsSide = tmp_list.pop().ID;
+        //Сторона открывания
+        const doorIndex = section.fasades.length
+        const preferredSide = doorIndex === 0 ? "left" : "right"
+
+        const preferred = tmp_list.find(item => LOOPSIDE[+item.ID]?.includes(preferredSide))
+
+        newDoor.loopsSide = (preferred ?? tmp_list.pop()).ID;
 
         if (!section.loopsSides)
             section.loopsSides = {}
