@@ -4,247 +4,155 @@ import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass
 import * as THREE from "three";
 import {
     GridModule,
-    TSelectedCell,
-    DrawerFasadeObject,
     FillingObject,
-    MANUFACTURER, GridSection, GridCell, GridCellsRow, GridRowExtra, FasadeObject, LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import { TFasadeProp } from "@/types/types.ts";
+import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
+import {
+    FILLING_TYPE_BY_GROUP_ID,
+    classifyFillingType,
+    isHiTechProfile as checkHiTechProfile,
+    isBottomHiTechProfile as checkBottomHiTechProfile,
+} from "./fillings/FillingTypePredicates.ts";
+import FillingsCore from "./fillings/FillingsCore.ts";
+import DrawerFillingHandler from "./fillings/DrawerFillingHandler.ts";
+import ShelfFillingHandler from "./fillings/ShelfFillingHandler.ts";
+import ProfileFillingHandler from "./fillings/ProfileFillingHandler.ts";
 
 type TCollisionExclusionRule = {
     prop: string
     values: any[],
     collisionWith: string
+    condition?: (grid: GridModule) => boolean
 }
 
 type TloopCollisionExclusion = TCollisionExclusionRule[]
 
+// Тонкий фасад над наполнением: общая логика (обход дерева, позиционирование,
+// коллизии) вынесена в FillingsCore, type-specific логика — в DrawerFillingHandler/
+// ShelfFillingHandler/ProfileFillingHandler (см. план рефакторинга,
+// C:\Users\MG_GO.MG\.claude\plans\iterative-launching-lerdorf.md, Фаза 1).
+// Отдельного AccessoryFillingHandler нет: у аксессуаров ("any") сегодня нет
+// собственной логики сверх общего пути размещения в addFilling/FillingsCore.
+// Публичные имена/сигнатуры сохраняются один в один — на этот класс завязаны
+// внешние вызовы из ShelvesManager/SectionsManager/ExternalFasadesManager/
+// FillingsView.vue/FillingsInsertPanel.vue/ModuleSizeView.vue.
 export default class FillingsManager {
     scope: UMconstructorClass
     FILLING_TYPES: Map<string, string>
+    core: FillingsCore
+    drawers: DrawerFillingHandler
+    shelves: ShelfFillingHandler
+    profiles: ProfileFillingHandler
 
     private loopCollisionExclusion: TloopCollisionExclusion = [
         {
             prop: 'productGroupID',
-            values: [2166309, 6174300, 2166308, 15222587, 6513322],
+            values: [6174300, 15222587, 6513322], //2166309
             collisionWith: 'loop'
+        },
+        {
+            // 2166308 исключается из коллизий петель только для НЕ-распашного шкафа.
+            // Для распашного (RASPASHNOY_ID) — участвует в коллизии.
+            prop: 'productGroupID',
+            values: [2166308],
+            collisionWith: 'loop',
+            condition: (grid) => grid.productID !== UM_PARAMS.RASPASHNOY_ID
         }
     ]
-    private readonly OUTER_DRAWER_IDS: number[] = [5726092, 6560591]
-    private readonly INNER_DRAWER_IDS: number[] = [15222587, 2166308]
+    private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
+    private readonly INNER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.INNER
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope
-        this.FILLING_TYPES = new Map(
-            Object.entries({
-                2166308: 'drawer', //Встраиваемые ящики
-                2166309: 'drawer', //Секции
-                5718462: 'drawer', //Секции купе
-                5726092: 'drawer', //Внешние ящики
-                6560591: 'drawer', //Внешние ящики Hi-Tech
-                5726093: 'shelf',  //Полки
-                12102124: 'shelf', //Полки Hi-Tech
-                6311723: 'shelf',  //Полки купе
-                6174300: 'any',    //Аксессуары для шкафов
-                6513322: 'profile',//Профиль Hi-Tech
-            })
-        )
+        this.FILLING_TYPES = new Map(Object.entries(FILLING_TYPE_BY_GROUP_ID))
+        this.core = new FillingsCore(scope)
+        this.drawers = new DrawerFillingHandler(scope, this.core)
+        this.shelves = new ShelfFillingHandler(scope, this.core)
+        this.profiles = new ProfileFillingHandler(scope, this.core)
     }
 
     // Регистрирует правила исключения коллизий в LoopsManager.
-    // Вызывается из UMconstructorClass после инициализации обоих менеджеров.
+    // Вызывается из UMconstructorClass после инициализации обоих менеджеров,
+    // а также заново при каждом addFilling (см. ниже) — сохраняем существующее поведение.
     public initCollisionRules(): void {
+        this.registerLoopCollisionExclusion()
+    }
+
+    registerLoopCollisionExclusion(): void {
         this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
     }
 
-    // Возвращает первое наполнение в секции с одним из указанных productGroupID.
-    // Сканирует все уровни: секция → ячейка → ряд → дополнительный уровень.
-    private findFirstFillingWithGroupIDs(section: GridSection, groupIDs: number[]): FillingObject | null {
-        const findIn = (fillings: FillingObject[] | undefined): FillingObject | null =>
-            fillings?.find(f => groupIDs.includes(f.productGroupID)) ?? null
+    // --- Делегация в FillingsCore (общая для всех типов наполнения логика) ---
 
-        let found = findIn(section.fillings)
-        if (found) return found
-
-        for (const cell of section.cells ?? []) {
-            found = findIn(cell.fillings)
-            if (found) return found
-            for (const row of cell.cellsRows ?? []) {
-                found = findIn(row.fillings)
-                if (found) return found
-                for (const extra of row.extras ?? []) {
-                    found = findIn(extra.fillings)
-                    if (found) return found
-                }
-            }
-        }
-
-        return null
+    existFilling(...args: Parameters<FillingsCore["existFilling"]>) {
+        return this.core.existFilling(...args)
     }
 
-    existFilling(grid: GridModule) {
-        let check = false;
-        if (grid) {
-            grid.sections?.forEach(section => {
-
-                if (section.cells.length > 0) {
-                    section.cells.forEach(cell => {
-
-                        if (cell.cellsRows?.length > 0) {
-                            cell.cellsRows?.forEach((cellRow) => {
-
-                                if (cellRow.extras?.length > 0) {
-                                    cellRow.extras?.forEach((extra) => {
-                                        if (extra.fillings?.length > 0) {
-                                            check = true;
-                                        }
-                                    })
-                                }
-
-                                if (cellRow.fillings?.length > 0) {
-                                    check = true;
-                                }
-                            })
-                        }
-
-                        if (cell.fillings?.length > 0) {
-                            check = true;
-                        }
-                    })
-                }
-
-                if (section.fillings?.length > 0) {
-                    check = true;
-                }
-            })
-
-            return check;
-        } else {
-            return check;
-        }
+    updateFilling(...args: Parameters<FillingsCore["updateFilling"]>) {
+        return this.core.updateFilling(...args)
     }
 
-    updateFilling(
-        value: number,
-        currentfilling: FillingObject,
-        type: string,
-        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
-    ) {
-        const { sec, cell, row, extra, item } = currentfilling
-        const { MAX_SECTION_WIDTH, MIN_SECTION_WIDTH } = this.scope.CONST
-        const section = grid.sections[sec];
+    checkLoopsCollision(...args: Parameters<FillingsCore["checkLoopsCollision"]>) {
+        return this.core.checkLoopsCollision(...args)
+    }
 
-        if (!section) return
+    selectCell(...args: Parameters<FillingsCore["selectCell"]>) {
+        return this.core.selectCell(...args)
+    }
 
+    createFillingDataToCheck(...args: Parameters<FillingsCore["createFillingDataToCheck"]>) {
+        return this.core.createFillingDataToCheck(...args)
+    }
 
-        const currentCell = section.cells?.[cell];
-        const currentRow = currentCell?.cellsRows?.[row];
-        const currentExtra = currentRow?.extras?.[extra];
+    syncDrawerFasade(...args: Parameters<FillingsCore["syncDrawerFasade"]>){
+        return this.core.syncDrawerFasade(...args)
+    }
 
-        const current = currentExtra || currentRow || currentCell || section;
-        const prevValue = currentfilling[type]; //Предыдущее значение
-        let newValue = value;
+    clearFillings(...args: Parameters<FillingsCore["clearFillings"]>) {
+        return this.core.clearFillings(...args)
+    }
 
-        let tmpSector = currentfilling.sector
-        let tmpFasade = currentfilling.fasade
-        delete currentfilling.sector
-        delete currentfilling.fasade
+    getFillingObject(...args: Parameters<FillingsCore["getFillingObject"]>) {
+        return this.core.getFillingObject(...args)
+    }
 
-        const fillingData = JSON.parse(JSON.stringify(currentfilling));
-        fillingData[type] = newValue;
-        fillingData.sector = tmpSector;
+    calcMinMaxPositionY = (...args: Parameters<FillingsCore["calcMinMaxPositionY"]>) => {
+        return this.core.calcMinMaxPositionY(...args)
+    }
 
-        if (tmpFasade)
-            fillingData.fasade = tmpFasade;
+    getAbsolutePositionY(...args: Parameters<FillingsCore["getAbsolutePositionY"]>) {
+        return this.core.getAbsolutePositionY(...args)
+    }
 
-        const pixiSector = current.sector;
+    getLocalPositionY(...args: Parameters<FillingsCore["getLocalPositionY"]>) {
+        return this.core.getLocalPositionY(...args)
+    }
 
-        const check = pixiSector ? this.scope.SHAPE_ADJUSTER.checkToCollision(pixiSector, currentfilling.type, fillingData) : true;
+    changeFillingPositionX(...args: Parameters<FillingsCore["changeFillingPositionX"]>) {
+        return this.core.changeFillingPositionX(...args)
+    }
 
-        if (check && (newValue < MAX_SECTION_WIDTH || newValue > MIN_SECTION_WIDTH)) {
-            delete currentfilling.error
-            currentfilling[type] = newValue;
+    changeFillingPositionY(...args: Parameters<FillingsCore["changeFillingPositionY"]>) {
+        return this.core.changeFillingPositionY(...args)
+    }
 
-            if (type === "width") {
-                currentfilling.size.x = newValue
-                currentfilling.position.x = current.position.x - newValue / 2;
-            }
-            if (type === "height") {
-                currentfilling.size.y = newValue
-                currentfilling.position.y = current.position.y;
-                if (currentfilling.distances) {
-                    currentfilling.distances.bottom = 0;
-                    currentfilling.distances.top = 0;
-                }
-            }
+    updateSecAfterDelete(...args: Parameters<FillingsCore["updateSecAfterDelete"]>) {
+        return this.core.updateSecAfterDelete(...args)
+    }
 
-        } else {
-            currentfilling.error = true
-            currentfilling[type] = prevValue;
-        }
+    cleanupOversizedFillings(...args: Parameters<FillingsCore["cleanupOversizedFillings"]>) {
+        return this.core.cleanupOversizedFillings(...args)
+    }
 
-        if (currentfilling.type === 'vertical_shelf') {
-            currentfilling.width = grid.moduleThickness
-            currentfilling.size.x = grid.moduleThickness
-        }
+    // --- Оркестрация размещения/удаления наполнения: генерика вперемешку с
+    // короткими вызовами в drawers/shelves/profiles там, где раньше был
+    // инлайновый код на конкретный тип (см. DrawerFillingHandler.ts,
+    // ShelfFillingHandler.ts, ProfileFillingHandler.ts) ---
 
-        if (currentfilling.type === 'shelf') {
-            currentfilling.height = grid.moduleThickness
-            currentfilling.size.y = grid.moduleThickness
-        }
-
-        currentfilling.sector = tmpSector;
-        if (tmpFasade)
-            currentfilling.fasade = tmpFasade;
-
-        return currentfilling;
-    };
-
-    checkLoopsCollision(secIndex: number, grid: GridModule) {
-        this.scope.LOOPS.checkLoopsCollision(secIndex, grid)
-    };
-
-    selectCell(sec: number, cell: number | null = null, row: number | null = null, extra: number | null = null, item: number | null = 0) {
-        // false и undefined нормализуем в null — FillingsView передаёт false для неприменимых уровней
-        const n = (v: any): number | null => (v === false || v === undefined) ? null : v;
-        this.scope.selectCell("fillings", <TSelectedCell>{ sec: n(sec), cell: n(cell), row: n(row), extra: n(extra), item: n(item) });
-    };
-
-    createFillingDataToCheck(
-        product,
-        currentSpace,
-        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
-        isVerticalItem = false,
-        isDrawer = false
-    ) {
-
-        if (!product || !currentSpace) return false
-
-        let width = product.width
-        let height = product.height
-        let isSlidingDoors = grid.fasades?.length ? 100 : 0
-
-        if (!isVerticalItem && (height > currentSpace.height || product.ACTUAL_DEPT > grid.depth - isSlidingDoors)) {
-            return false
-        }
-
-        if (isVerticalItem) {
-            height = currentSpace.height;
-        } else {
-            // Для нефасадного наполнения ширина всегда подгоняется под пространство
-            width = currentSpace.width;
-        }
-
-        let tempFilling = {
-            width,
-            height,
-            data: product,
-            isVerticalItem,
-            isDrawer,
-            productGroupID: product.productGroupID,
-        };
-
-        return this.scope.RENDER_REF.checkPositionFillingToCreate(tempFilling);
+    getInnerDrawerSpace(outerDrawer: any, fasadeHeight?: number): number {
+        if (!outerDrawer.fasade) return outerDrawer.height
+        const height = fasadeHeight ?? outerDrawer.fasade.height
+        return height - outerDrawer.fasade.manufacturerOffset - outerDrawer.height
     };
 
     addFilling(
@@ -253,128 +161,37 @@ export default class FillingsManager {
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
 
-        console.log(productGroupID, 'productGroupID')
+        console.log(_product, '_product')
+
+        if (!this.drawers.validateUniversalDrawerDepth(_product, productGroupID, grid)) {
+            return;
+        }
 
         const product = Object.assign({}, _product);
         product.productGroupID = productGroupID;
         const { sec, cell, row, extra } = this.scope.UM_STORE.getSelected("module")
-        const isHiTechProfile = this.scope.APP.PRODUCTS_TYPES[product.productType]?.CODE.includes("hi_tech_profile") || false
-        const isBottomHiTechProfile = isHiTechProfile && this.scope.APP.PRODUCTS_TYPES[product.productType]?.CODE.includes("bottom") || false
+        const isHiTechProfile = checkHiTechProfile(product, this.scope.APP)
+        const isBottomHiTechProfile = checkBottomHiTechProfile(isHiTechProfile, product, this.scope.APP)
         const PROPS = this.scope.UM_STORE.getUMData();
 
         let name = product.NAME?.toLowerCase()
-        let _type = name.includes('разделитель') ? 'vertical_shelf' : this.FILLING_TYPES.get(`${productGroupID}`) || 'any';
-        if (_type === 'shelf' && name.includes('стеклянная')) {
-            _type = "glass_shelf"
-        }
+        let _type = classifyFillingType(name, productGroupID, this.FILLING_TYPES)
 
         const isVerticalItem = _type === "vertical_shelf"
 
         const currentSection = grid.sections[sec];
 
-        if (!currentSection) return
+        if (!currentSection) {
+            this.scope.callAlert("warning", "Необходимо выбрать секцию");
+            return;
+        }
 
-        if (this.INNER_DRAWER_IDS.includes(productGroupID)) {
-            // Целевой внешний ящик — тот, который кликнут на канвасе (selectCell("fillings"))
-            const selectedOnCanvas = this.scope.UM_STORE.getSelected("fillings")
-            const outerSec = selectedOnCanvas?.sec ?? sec
+        if (!this.drawers.validateFullWidthDrawerPlacement(productGroupID, cell, row, extra, currentSection)) {
+            return;
+        }
 
-            if (outerSec === null || outerSec === undefined) {
-                this.scope.callAlert("info", "Кликните по внешнему ящику на канвасе, затем добавляйте встраиваемый ящик")
-                return
-            }
-
-            // Навигация к контейнеру, в котором находится выбранный внешний ящик
-            // Иерархия: sections → cells → cellsRows → extras → fillings
-            const outerCell = selectedOnCanvas?.cell ?? null
-            const outerRow = selectedOnCanvas?.row ?? null
-            const outerExtra = selectedOnCanvas?.extra ?? null
-
-            const outerSection = grid.sections[outerSec]
-            const outerCellObj = outerSection.cells?.[outerCell]
-            const outerRowObj = outerCellObj?.cellsRows?.[outerRow]
-            const outerExtraObj = outerRowObj?.extras?.[outerExtra]
-            const outerContainer = outerExtraObj || outerRowObj || outerCellObj || outerSection
-
-            const outerDrawer = (selectedOnCanvas?.item !== null && selectedOnCanvas?.item !== undefined)
-                ? outerContainer?.fillings?.find(
-                    f => f.id === selectedOnCanvas.item &&
-                        this.OUTER_DRAWER_IDS.includes(f.productGroupID)
-                ) ?? null
-                : null
-
-            if (!outerDrawer) {
-                this.scope.callAlert("info", "Кликните по внешнему ящику на канвасе, затем добавляйте встраиваемый ящик")
-                return
-            }
-
-            // Доступная высота = расстояние от верха тела до верха фасада внешнего ящика
-            const availableHeight = outerDrawer.fasade
-                ? outerDrawer.fasade.height
-                - outerDrawer.fasade.manufacturerOffset
-                - outerDrawer.height
-                - ((outerDrawer.moduleThickness || 16) - 2)
-                : outerDrawer.height
-
-            if (availableHeight <= 0) {
-                this.scope.callAlert("error", "Внешний ящик не имеет свободного пространства для встраиваемого ящика")
-                return
-            }
-
-            // Суммируем высоту уже добавленных внутренних ящиков для этого внешнего
-            const usedHeight = outerContainer.fillings
-                ?.filter(f => this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                    f.innerDrawerConstraint?.outerDrawerGroupId === outerDrawer.innerDrawerGroupId)
-                ?.reduce((sum, f) => sum + f.height, 0) ?? 0
-
-            const freeHeight = availableHeight - usedHeight
-
-            if (product.width > outerDrawer.width) {
-                this.scope.callAlert("error", `Ширина ящика (${product.width} мм) больше ширины внешнего ящика (${outerDrawer.width} мм)`)
-                return
-            }
-            if (product.height > freeHeight) {
-                this.scope.callAlert("error", `Недостаточно места: доступно ${Math.round(freeHeight)} мм, требуется ${product.height} мм`)
-                return
-            }
-
-            if (!outerContainer.fillings)
-                outerContainer.fillings = []
-
-            // Стек ящиков: новый размещается после уже добавленных
-            const startY = outerDrawer.position.y - availableHeight
-            const newDrawerY = startY + usedHeight
-
-            const fillingObject = <FillingObject>{
-                isVerticalItem: false,
-                product: product.ID,
-                id: outerContainer.fillings.length + 1,
-                name: product.NAME,
-                image: product.PREVIEW_PICTURE,
-                type: _type,
-                position: new THREE.Vector2(outerDrawer.position.x, newDrawerY),
-                size: new THREE.Vector3(product.width, product.height, product.depth || grid.depth),
-                width: product.width,
-                height: product.height,
-                color: false,
-                sec: outerSec,
-                cell: outerCell,
-                row: outerRow,
-                extra: outerExtra,
-                productGroupID,
-                innerDrawerConstraint: {
-                    outerDrawerGroupId: outerDrawer.innerDrawerGroupId,
-                    x: outerDrawer.position.x,
-                    startY,
-                    width: outerDrawer.width,
-                    height: availableHeight,
-                },
-            }
-
-            outerContainer.fillings.push(fillingObject)
-            this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
-            this.selectCell(outerSec, outerCell, outerRow, outerExtra, outerContainer.fillings.length - 1)
-            this.scope.reset(grid)
+        if (this.INNER_DRAWER_IDS.includes(productGroupID) && grid.productID !== UM_PARAMS.RASPASHNOY_ID) {
+            this.drawers.addInnerDrawer(product, productGroupID, grid, sec, cell, row, extra, _type)
             return
         }
 
@@ -383,6 +200,11 @@ export default class FillingsManager {
         const currentExtra = currentRow?.extras?.[extra];
 
         let currentModuleSegment = currentExtra || currentRow || currentCell || currentSection
+
+        if (currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
+            this.scope.callAlert("error", `Нельзя добавить наполнение: ширина области (${currentModuleSegment.width} мм) превышает ${UM_PARAMS.FILLINGS_MAX_WIDTH} мм`)
+            return;
+        }
 
         if (row === null && cell === null && sec === null && extra === null) {
             this.scope.callAlert("info", "Пожалуйста, выберите секцию для добавления наполнения")
@@ -401,31 +223,13 @@ export default class FillingsManager {
             }
         }
 
-        if (isBottomHiTechProfile && !this.scope.UM_STORE.onWallModule) {
-            this.scope.callAlert("error", "Г-образный профиль доступен только для навесного модуля")
+        if (!this.profiles.validatePlacement(isHiTechProfile, isBottomHiTechProfile, grid, row, extra)) {
             return;
-        }
-
-        if (isHiTechProfile) {
-            if (grid.profilesConfig?.sideProfile) {
-                this.scope.callAlert("error", "Нельзя добавить горизонтальный профиль вместе с боковым!")
-                return;
-            }
-            if (row || extra) {
-                this.scope.callAlert("error", "Нельзя установить профиль в вертикальный разделитель!")
-                return;
-            }
         }
 
         let currentFillingsArray = []
 
-        if (_type === 'shelf') {
-            product.height = grid.moduleThickness
-        }
-
-        if (_type === 'vertical_shelf') {
-            product.width = grid.moduleThickness
-        }
+        this.shelves.normalizeDimensions(product, _type, grid)
 
         const startFillingData = this.createFillingDataToCheck(product, currentModuleSegment, grid, isVerticalItem, !!product.MIN_FASADE_SIZE);
 
@@ -453,45 +257,10 @@ export default class FillingsManager {
 
         let profileData = {}
         if (isHiTechProfile) {
-            if (!grid.profilesConfig) {
-                grid.profilesConfig = { COLOR: product.COLOR[0] != null ? product.COLOR[0] : grid.moduleColor }
-                grid.profilesConfig.colorsList = [...product.COLOR]
-                grid.profilesConfig.onSectionSize = false
-
-                PROPS.CONFIG['PROFILECOLOR'] = grid.profilesConfig.COLOR
-            }
-
-            height = product.height || grid.moduleThickness
-            if (!isBottomHiTechProfile && !this.scope.APP.PRODUCTS_TYPES[product.productType]?.CODE.includes("section")) {
-                width = grid.profilesConfig.onSectionSize ? startFillingData.width : startFillingData.width + grid.moduleThickness * 2
-
-                if (!grid.profilesConfig.onSectionSize) {
-                    width = startFillingData.width + grid.moduleThickness * 2
-                    startFillingData.x -= grid.moduleThickness
-                } else {
-                    width = startFillingData.width
-                }
-            }
-
-            profileData.COLOR = grid.profilesConfig?.COLOR ? grid.profilesConfig?.COLOR : grid.moduleColor
-
-            let typeProfile = product.NAME.toLowerCase().split("-")[0].replace(/\s/g, '')
-            if (typeProfile !== "c" && typeProfile !== "l")
-                typeProfile = typeProfile.split(",").pop().replace(/\s/g, '')
-
-            profileData.TYPE_PROFILE = typeProfile
-            profileData.offsetFasades = typeProfile == "c" ? 36 : typeProfile == "l" ? 38 : 0
-            profileData.manufacturerOffset = typeProfile == "c" ? -18.5 : typeProfile == "l" ? -19.5 : 0
-
-            if (isBottomHiTechProfile) {
-                profileData.isBottomHiTechProfile = true
-                startFillingData.y = grid.height - grid.horizont - height
-            }
-
-            if (!currentSection.hiTechProfiles)
-                currentSection.hiTechProfiles = []
-
-            profileData.id = currentSection.hiTechProfiles.length + 1
+            const profileGeometry = this.profiles.computeProfileGeometry(product, isBottomHiTechProfile, grid, PROPS, startFillingData, currentSection, width)
+            width = profileGeometry.width
+            height = profileGeometry.height
+            profileData = profileGeometry.profileData
         }
 
         let fillingObject = <FillingObject>{
@@ -514,166 +283,36 @@ export default class FillingsManager {
         };
 
 
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID) && product.DROWER_FASADE_HEIGHT) {
+            const heightOptions = Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
+            const firstHeight = heightOptions[0];
+            if (firstHeight !== undefined) {
+                fillingObject.height = firstHeight;
+                fillingObject.size.y = firstHeight;
+            }
+            const maxAllowedDepth = grid.depth - 7;
+            const availableDepths = (product.SIZE_EDIT_DEPTH ?? []).filter((d: number) => d <= maxAllowedDepth);
+            const firstDepth = availableDepths[0];
+            if (firstDepth !== undefined) {
+                fillingObject.depth = firstDepth;
+                fillingObject.size.z = firstDepth;
+            }
+        }
+
         if (isHiTechProfile) {
-
-            fillingObject.isProfile = profileData
-            fillingObject.moduleThickness = grid.moduleThickness
-            currentSection.hiTechProfiles.push(fillingObject)
-            currentFillingsArray.push(fillingObject);
-
-            this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(sec, false, grid)
-            this.scope.callAlert('warning', 'Проверьте корректность рассчитанной позиции профиля!')
+            this.profiles.finalizeProfile(fillingObject, profileData, sec, currentSection, currentFillingsArray, grid)
         } else
             currentFillingsArray.push(fillingObject);
 
         if (product.MIN_FASADE_SIZE) {
-
-            console.log(product.MIN_FASADE_SIZE, 'MIN_FASADE_SIZE')
-
-            if (!currentSection.fasadesDrawers)
-                currentSection.fasadesDrawers = []
-
-            const leftWidth = grid.leftWallThickness || grid.moduleThickness;
-            const rightWidth = grid.rightWallThickness || grid.moduleThickness;
-
-            const correctSectionFasadeWidth =
-                grid.sections.length > 1 ?
-                    sec > 0 && sec < grid.sections.length - 1 ? currentSection.width + grid.moduleThickness - 4 :
-                        currentSection.width + ((sec == 0 ? leftWidth : rightWidth) - 2) + (grid.moduleThickness / 2 - 2) :
-                    grid.width - 4;
-
-            let baseFasade = grid.sections[sec]?.fasades?.[0]?.[0] || currentSection.fasadesDrawers?.[0]
-            if (!baseFasade) {
-                const PROPS = this.scope.UM_STORE.getUMData();
-
-                const FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
-                const FASADE = this.scope.FASADES.getFasadePosition(FASADE_PROPS.POSITION);
-
-                let startX = sec > 0 ? currentSection.position.x - currentSection.width / 2 - grid.moduleThickness / 2 + 2 : FASADE.POSITION_X;
-
-                let newDoorPosition = new THREE.Vector2(startX, grid.isRestrictedModule ? FASADE.POSITION_Y : grid.horizont + 2);
-                baseFasade = <FasadeObject>{
-                    id: 1,
-                    width: correctSectionFasadeWidth,
-                    height: grid.height - grid.horizont - 4,
-                    position: newDoorPosition,
-                    type: "fasade",
-                    material: <TFasadeProp>{
-                        ...FASADE_PROPS,
-                    },
-                };
-                let fasadeMinMax = this.scope.FASADES.getFasadePositionMinMax(baseFasade);
-                baseFasade = Object.assign(baseFasade, fasadeMinMax);
-                baseFasade.loopsSide = LOOPSIDE['none']
-            }
-
-            let manufacturerOffset = 0
-            let manufacturer_name = product.EN_NAME?.toLowerCase() || product.NAME?.toLowerCase()
-            if (product.FASADE_DRAWER_OFFSET) {
-                manufacturerOffset = product.FASADE_DRAWER_OFFSET
-            } else
-                Object.entries(MANUFACTURER).forEach(([key, offset]) => {
-                    if (manufacturer_name.includes(key)) {
-                        manufacturer_name = key
-                        manufacturerOffset = offset
-                    }
-                })
-
-            fillingObject.type = "drawer"
-            fillingObject.moduleThickness = grid.moduleThickness
-            // Уникальный ID группы: нужен для привязки внутренних ящиков к этому внешнему
-            fillingObject.innerDrawerGroupId = Date.now()
-            fillingObject.fasade = <DrawerFasadeObject>{
-                id: currentSection.fasadesDrawers.length + 1,
-                fasadeDrawerId: currentSection.fasadesDrawers.length + 1,
-                width: correctSectionFasadeWidth,
-                height: product.MIN_FASADE_SIZE,
-                minY: product.MIN_FASADE_SIZE,
-                maxY: product.MAX_FASADE_SIZE,
-                loopsSide: false,
-                position: new THREE.Vector2(baseFasade.position.x, grid.height - (startFillingData.y + startFillingData.height + manufacturerOffset)),
-                material: <TFasadeProp>{
-                    ...baseFasade.material,
-                    HANDLES: { ...baseFasade.material.HANDLES }
-                },
-                type: "fasade",
-                manufacturerOffset,
-                item: fillingObject.id,
-                sec,
-                cell,
-                row,
-            }
-
-
-            currentSection.fasadesDrawers.push(fillingObject.fasade);
-            this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(sec, false, grid)
-            this.scope.callAlert('warning', 'Проверьте корректность рассчитанной позиции ящика!')
+            this.drawers.attachFasade(fillingObject, product, productGroupID, sec, cell, row, currentSection, grid, startFillingData)
         }
 
         this.scope.LOOPS.addCollisionExclusionRule(this.loopCollisionExclusion)
 
-        this.selectCell(sec, cell, row, extra, currentFillingsArray.length - 1);
         this.scope.reset(grid)
+        this.selectCell(sec, cell, row, extra, null);
     };
-
-    clearFillings(
-        {
-            grid = this.scope.UM_STORE.getUMGrid(),
-            secIndex = 0,
-            cellIndex,
-            rowIndex,
-            extraIndex,
-            reset = false,
-        }:
-            {
-                grid: GridModule,
-                secIndex: number,
-                cellIndex: number | undefined,
-                rowIndex: number | undefined,
-                extraIndex: number | undefined,
-                reset: boolean
-            }
-    ) {
-        const sec = grid.sections[secIndex];
-        const cell = sec.cells?.[cellIndex];
-        const row = cell?.cellsRows?.[rowIndex];
-        const extra = row?.extras?.[extraIndex];
-        const curRow = extra || row || cell || sec;
-
-        for (let id = curRow.fillings.length - 1; id >= 0; id--) {
-            this.deleteFilling(secIndex, id, cellIndex, rowIndex, extraIndex, grid, false);
-        }
-
-        if (reset)
-            this.scope.reset(grid)
-    }
-
-    getFillingObject({
-        grid = this.scope.UM_STORE.getUMGrid(),
-        sec = 0,
-        cell,
-        row,
-        extra,
-        item = 0,
-    }:
-        {
-            grid: GridModule,
-            sec: number,
-            item: number,
-            cell?: number | undefined,
-            row?: number | undefined,
-            extra?: number | undefined,
-        }
-    ) {
-        const curSection = grid.sections[sec];
-        const curCell = curSection.cells?.[cell];
-        const curRow = curCell?.cellsRows?.[row];
-        const curExtra = curRow?.extras?.[extra];
-
-        const currentSpace = curExtra || curRow || curCell || curSection;
-
-        return currentSpace.fillings[item];
-    }
 
     deleteFilling(
         secIndex: number,
@@ -701,45 +340,11 @@ export default class FillingsManager {
         let curItemProfile = curItem.isProfile ? curItem : false;
 
         if (curItemFasade) {
-            sec.fasadesDrawers = sec.fasadesDrawers.filter((el, index) => {
-                return el.fasadeDrawerId !== curItemFasade.fasadeDrawerId;
-            });
-            sec.fasadesDrawers.forEach((fasade, index) => {
-                if (fasade.fasadeDrawerId > curItemFasade.fasadeDrawerId) {
-                    let filling = this.getFillingObject({
-                        grid,
-                        sec: fasade.sec,
-                        cell: fasade.cell,
-                        row: fasade.row,
-                        extra: fasade.extra,
-                        item: fasade.item - 1,
-                    });
-                    fasade.fasadeDrawerId -= 1;
-                    if (filling)
-                        filling.fasade = fasade
-                }
-            })
+            this.drawers.beforeDeleteFasade(curItemFasade, sec, grid)
         }
 
         if (curItemProfile) {
-            sec.hiTechProfiles = sec.hiTechProfiles.filter((el, index) => {
-                return el.isProfile.id !== curItemProfile.isProfile.id;
-            });
-            /*            sec.hiTechProfiles.forEach((profile, index) => {
-                            if (profile.isProfile.id > curItemProfile.isProfile.id) {
-                                let filling = this.getFillingObject({
-                                    grid,
-                                    sec: profile.sec,
-                                    cell: profile.cell,
-                                    row: profile.row,
-                                    extra: profile.extra,
-                                    item: profile.id - 1,
-                                });
-                                profile.isProfile.id -= 1;
-                                if(filling)
-                                    filling.isProfile.id = profile.isProfile.id;
-                            }
-                        })*/
+            this.profiles.beforeDeleteProfile(curItemProfile, sec)
         }
 
         curRow.fillings = curRow.fillings.filter((el, index) => {
@@ -776,18 +381,7 @@ export default class FillingsManager {
 
         // Каскадное удаление внутренних ящиков при удалении внешнего
         if (this.OUTER_DRAWER_IDS.includes(curItem.productGroupID) && curItem.innerDrawerGroupId) {
-            const groupId = curItem.innerDrawerGroupId
-            if (curRow.fillings) {
-                const prevLen = curRow.fillings.length
-                curRow.fillings = curRow.fillings.filter(f =>
-                    !(this.INNER_DRAWER_IDS.includes(f.productGroupID) &&
-                        f.innerDrawerConstraint?.outerDrawerGroupId === groupId)
-                )
-                if (curRow.fillings.length !== prevLen) {
-                    curRow.fillings.forEach((f, idx) => { f.id = idx + 1 })
-                    this.scope.callAlert('info', 'Встраиваемые ящики удалены вместе с внешним')
-                }
-            }
+            this.drawers.cascadeDeleteInnerDrawers(curItem, curRow)
         }
 
         if (curItemFasade || curItemProfile) {
@@ -800,439 +394,23 @@ export default class FillingsManager {
             this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
         }
 
-        if (reset)
+        if (reset) {
             this.scope.reset(grid)
-    };
-
-    changeFillingPositionX(
-        conversation: {
-            min: number,
-            max: number
-        },
-        _value: number,
-        key: number,
-        secIndex: number,
-        cellIndex: number | null = null,
-        rowIndex: number | null = null,
-        extraIndex: number | null = null,
-        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
-    ) {
-        this.scope.debounce("changeFillingPositionX", () => {
-            let value = Math.min(+_value, conversation.max);
-            value = Math.max(+value, conversation.min);
-
-            const sec = grid.sections[secIndex];
-            const currentColl = sec.cells?.[cellIndex];
-            const currentRow = currentColl?.cellsRows?.[rowIndex];
-            const currentExtra = currentRow?.extras?.[extraIndex];
-
-            const current = currentExtra || currentRow || currentColl || sec;
-
-            const currentfilling = current.fillings[key];
-
-            this.selectCell(secIndex, cellIndex, rowIndex, extraIndex, currentfilling?.id ?? key);
-
-            if (currentfilling?.isProfile?.isBottomHiTechProfile) {
-                this.scope.callAlert("info", "Г-образный профиль нельзя перемещать!")
-                return;
-            }
-
-            const prevValue = currentfilling.position.x; //Предыдущее значение
-            const prevValueLeft = currentfilling.distances.left; //Предыдущее значение
-
-            let delta = +value - prevValueLeft
-            const newValue = prevValue + delta
-
-            let tmpSector = currentfilling.sector
-            delete currentfilling.sector
-
-            const fillingData = JSON.parse(JSON.stringify(currentfilling));
-            fillingData.position.x = newValue;
-            fillingData.sector = tmpSector;
-
-            const pixiSector = current.sector;
-
-            // Проверяем коллизию
-            const check = this.scope.SHAPE_ADJUSTER.checkToCollision(pixiSector, false, fillingData);
-
-            if (check) {
-                currentfilling.position.x = newValue;
-                currentfilling.distances.left = +value
-            } else {
-                this.scope.callAlert("error", `Нельзя изменить позицию на ${+_value}`)
-                currentfilling.position.x = prevValue;
-                currentfilling.distances.left = prevValueLeft
-            }
-
-            currentfilling.sector = tmpSector;
-
-            if (currentfilling.fasade)
-                this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
-
-            this.scope.reset(grid)
-        }, 1000)
-    };
-
-    calcMinMaxPositionY = (
-        type: "min" | "max",
-        filling: FillingObject,
-        cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
-        grid: GridModule = this.scope.UM_STORE.getUMGrid()
-    ) => {
-
-        let result = 0
-        switch (type) {
-            case "max":
-                result = cell.height - filling.height + (filling.isProfile ? grid.moduleThickness : 0)
-                if (filling.fasade) {
-                    result += (grid.moduleThickness - 2) - filling.fasade.height + filling.fasade.manufacturerOffset + filling.height
-                    // distances.bottom измеряется от sectorBounds.y = moduleThickness, поэтому cell.position.y не добавляем
-                    return result
-                }
-                break;
-            case "min":
-                result = 0 - (filling.isProfile ? grid.moduleThickness : 0)
-                if (filling.fasade) {
-                    result = result - (grid.moduleThickness - 2) + filling.fasade.manufacturerOffset
-                    // distances.bottom измеряется от sectorBounds.y = moduleThickness, поэтому cell.position.y не добавляем
-                    return result
-                }
-                break;
+            this.selectCell(secIndex, cellIndex, rowIndex, extraIndex, null);
         }
+    };
 
-        return cell.position.y + result
+    // --- Делегация в DrawerFillingHandler (специфичные для ящиков операции) ---
+
+    changeDrawerFasade(...args: Parameters<DrawerFillingHandler["changeDrawerFasade"]>) {
+        return this.drawers.changeDrawerFasade(...args)
     }
 
-    getAbsolutePositionY(
-        filling: FillingObject,
-        cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
-    ) {
-        let resultPos = filling.position.y;
-
-        if (filling.distances) {
-            const grid = this.scope.UM_STORE.getUMGrid()
-            resultPos = cell.position.y + filling.distances.bottom - (grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness))
-        }
-
-        return resultPos >= 0 ? resultPos : 0;
+    changeUniversalDepth(...args: Parameters<DrawerFillingHandler["changeUniversalDepth"]>) {
+        return this.drawers.changeUniversalDepth(...args)
     }
 
-    getLocalPositionY(
-        value: number,
-        filling: FillingObject,
-        cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
-        isMinMax: boolean = false,
-    ) {
-        const grid = this.scope.UM_STORE.getUMGrid()
-        let result = value - cell.position.y
-
-        if (!isMinMax) {
-            result += (grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness))
-        }
-
-        return result >= 0 ? result : 0;
-    }
-
-    changeFillingPositionY(
-        conversation: {
-            min: number,
-            max: number
-        },
-        _value: number,
-        key: number,
-        secIndex: number,
-        cellIndex: number | null = null,
-        rowIndex: number | null = null,
-        extraIndex: number | null = null,
-        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
-        time: number = 1000,
-    ) {
-        this.scope.debounce("changeFillingPositionY", () => {
-            let value = Math.min(+_value, conversation.max);
-            value = Math.max(+value, conversation.min);
-
-            const sec = grid.sections[secIndex];
-            const currentColl = sec.cells?.[cellIndex];
-            const currentRow = currentColl?.cellsRows?.[rowIndex];
-            const currentExtra = currentRow?.extras?.[extraIndex];
-
-            const current = currentExtra || currentRow || currentColl || sec;
-
-            const currentfilling = current.fillings[key];
-
-            // item = filling.id (1-based), а не key (0-based индекс массива)
-            this.selectCell(secIndex, cellIndex, rowIndex, extraIndex, currentfilling?.id ?? key);
-
-            if (currentfilling?.isProfile?.isBottomHiTechProfile) {
-                this.scope.callAlert("info", `Г-образный профиль нельзя перемещать`)
-                return;
-            }
-
-            const prevValue = currentfilling.position.y; //Предыдущее значение
-            const prevValueBottom = currentfilling.distances.bottom; //Предыдущее значение
-
-            let delta = +value - currentfilling.distances.bottom
-            const newValue = prevValue - delta
-
-
-            let tmpSector = currentfilling.sector
-
-            let tmpFasade
-            if (currentfilling.fasade) {
-                tmpFasade = currentfilling.fasade
-                delete currentfilling.fasade
-            }
-
-            delete currentfilling.sector
-
-            const fillingData = JSON.parse(JSON.stringify(currentfilling));
-            fillingData.position.y = newValue;
-            fillingData.sector = tmpSector;
-
-            currentfilling.sector = tmpSector;
-            if (tmpFasade)
-                currentfilling.fasade = tmpFasade;
-
-            if (tmpFasade)
-                fillingData.fasade = tmpFasade;
-
-            const pixiSector = current.sector;
-
-            const isOuterDrawer = this.OUTER_DRAWER_IDS.includes(currentfilling?.productGroupID)
-
-            // Для внешних ящиков: исключаем внутренние ящики из проверки коллизии (как в setupDraggable)
-            let originalShapes = null
-            if (isOuterDrawer && pixiSector?.shapes) {
-                originalShapes = pixiSector.shapes
-                pixiSector.shapes = pixiSector.shapes.filter(
-                    s => !this.INNER_DRAWER_IDS.includes(s.data?.productGroupID)
-                )
-            }
-
-            // Проверяем коллизию
-            const check = this.scope.SHAPE_ADJUSTER.checkToCollision(pixiSector, false, fillingData);
-
-            if (originalShapes !== null) {
-                pixiSector.shapes = originalShapes
-            }
-
-            if (check) {
-                currentfilling.position.y = newValue;
-                currentfilling.distances.bottom = +value
-
-                // Для внешних ящиков: перемещаем только вложенные ящики этого конкретного внешнего
-                if (isOuterDrawer) {
-                    current.fillings.forEach(innerFilling => {
-                        if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID) &&
-                            innerFilling.innerDrawerConstraint?.outerDrawerGroupId === currentfilling.innerDrawerGroupId) {
-                            innerFilling.position.y = (innerFilling.position.y || 0) - delta
-                            if (innerFilling.distances) {
-                                innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + delta
-                            }
-                            if (innerFilling.innerDrawerConstraint) {
-                                innerFilling.innerDrawerConstraint.startY = newValue - innerFilling.innerDrawerConstraint.height
-                            }
-                        }
-                    })
-                }
-            } else {
-                let tmpPos = {
-                    x: fillingData.position.x,
-                    y: newValue,
-                }
-                fillingData.position.y = prevValue;
-                fillingData.distances.bottom = prevValueBottom;
-                let closestPos = this.scope.SHAPE_ADJUSTER.getClosestPosition(pixiSector, fillingData, tmpPos)
-
-                this.scope.callAlert("error", `Нельзя изменить позицию на ${+_value}`)
-                if (closestPos) {
-                    currentfilling.position.y = closestPos.y;
-                    currentfilling.distances.bottom = current.height - (currentfilling.position.y + currentfilling.height) + grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness)
-
-                    // Для внешних ящиков: перемещаем только вложенные ящики этого конкретного внешнего
-                    if (isOuterDrawer) {
-                        const actualDelta = prevValue - closestPos.y
-                        current.fillings.forEach(innerFilling => {
-                            if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID) &&
-                                innerFilling.innerDrawerConstraint?.outerDrawerGroupId === currentfilling.innerDrawerGroupId) {
-                                innerFilling.position.y = (innerFilling.position.y || 0) - actualDelta
-                                if (innerFilling.distances) {
-                                    innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + actualDelta
-                                }
-                                if (innerFilling.innerDrawerConstraint) {
-                                    innerFilling.innerDrawerConstraint.startY = closestPos.y - innerFilling.innerDrawerConstraint.height
-                                }
-                            }
-                        })
-                    }
-                } else {
-                    currentfilling.position.y = prevValue;
-                    currentfilling.distances.bottom = prevValueBottom;
-                }
-            }
-
-            if (currentfilling.fasade) {
-                currentfilling.fasade.position.y = grid.height - (currentfilling.position.y + currentfilling.height + currentfilling.fasade.manufacturerOffset)
-                let drawerInfoId = grid.sections[secIndex].fasadesDrawers.findIndex(item => (
-                    item.sec === fillingData.fasade.sec &&
-                    item.cell === fillingData.fasade.cell &&
-                    item.row === fillingData.fasade.row &&
-                    item.extra === fillingData.fasade.extra &&
-                    item.item === fillingData.fasade.item
-                ))
-                grid.sections[secIndex].fasadesDrawers[drawerInfoId] = currentfilling.fasade
-
-                this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
-            } else {
-                this.scope.LOOPS.checkLoopsCollision(secIndex, grid)
-            }
-
-            this.scope.reset(grid)
-        }, time)
-    };
-
-    changeDrawerFasade(
-        event: Event,
-        value: number,
-        key: number,
-        secIndex: number,
-        cellIndex: number | null = null,
-        rowIndex: number | null = null,
-    ) {
-        this.scope.debounce("changeDrawerFasade", () => {
-            // Берём актуальный grid внутри debounce, чтобы не работать с устаревшей ссылкой
-            const grid = this.scope.UM_STORE.getUMGrid()
-
-            this.selectCell(secIndex, cellIndex, rowIndex, null, key);
-
-            const sec = grid.sections[secIndex];
-            const currentColl = sec.cells?.[cellIndex];
-            const currentRow = currentColl?.cellsRows?.[rowIndex] || currentColl || sec;
-
-            const currentfilling = currentRow.fillings[key];
-
-            if (!currentfilling?.fasade) {
-                this.scope.callAlert("error", `У элемента нет фасада!`)
-                return
-            }
-
-            const prevValue = currentfilling.fasade.height;
-            const newValue = +value
-
-            // Проверяем по допустимым пределам фасада (minY/maxY).
-            // checkToCollision здесь неприменим: он проверяет позицию тела ящика внутри секции,
-            // а не высоту фасада, и возвращает false если суммарная высота с фасадом выходит
-            // за координаты секции — блокируя изменение без явной ошибки для пользователя.
-            const minY = currentfilling.fasade.minY ?? 0
-            const maxY = currentfilling.fasade.maxY ?? Infinity
-
-            if (newValue >= minY && newValue <= maxY) {
-                currentfilling.fasade.height = newValue;
-
-                // Пересчитываем пространство фасада и согласуем внутренние ящики
-                const newAvailableHeight = newValue
-                    - currentfilling.fasade.manufacturerOffset
-                    - currentfilling.height
-                    - ((currentfilling.moduleThickness || 16) - 2)
-                this.reconcileInnerDrawers(secIndex, currentfilling, newAvailableHeight, grid)
-            } else {
-                currentfilling.fasade.height = prevValue;
-                this.scope.callAlert('error', `Высота фасада должна быть в диапазоне ${minY}–${maxY} мм`)
-            }
-
-            // Передаём currentfilling, чтобы calcDrawersFasades обновил fasadesDrawers[k] = fasade
-            // и re-синхронизировал ссылку, которая разрывается после saveUMGrid в reset
-            this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, currentfilling, grid)
-            this.scope.reset(grid)
-        }, 1000)
-    };
-
-    private reconcileInnerDrawers(
-        secIndex: number,
-        outerDrawer: FillingObject,
-        newAvailableHeight: number,
-        grid: GridModule,
-    ): void {
-        const sec = grid.sections[secIndex]
-
-        // Восстанавливаем контейнер внешнего ящика по его координатам
-        const ci = outerDrawer.cell ?? null
-        const ri = outerDrawer.row ?? null
-        const ei = outerDrawer.extra ?? null
-        const cell = sec.cells?.[ci]
-        const row = cell?.cellsRows?.[ri]
-        const extra = row?.extras?.[ei]
-        const container = extra || row || cell || sec
-
-        const fillings = container.fillings
-        if (!fillings?.length) return
-
-        // Собираем индексы внутренних ящиков этого внешнего (снизу вверх = по возрастанию индекса)
-        const innerIndices: number[] = []
-        for (let idx = 0; idx < fillings.length; idx++) {
-            const f = fillings[idx]
-            if (!this.INNER_DRAWER_IDS.includes(f.productGroupID)) continue
-            if (outerDrawer.innerDrawerGroupId &&
-                f.innerDrawerConstraint?.outerDrawerGroupId !== outerDrawer.innerDrawerGroupId) continue
-            // Ящик слишком широкий — удаляем (независимо от высоты)
-            if (f.width > outerDrawer.width) {
-                innerIndices.push(-idx - 1)  // отмечаем для безусловного удаления через знак
-            } else {
-                innerIndices.push(idx)
-            }
-        }
-
-        if (!innerIndices.length) return
-
-        // Кумулятивная высота: стек снизу вверх.
-        // Ящики с высокими индексами — наверху стека, их удаляем первыми при нехватке места.
-        let totalHeight = 0
-        for (const raw of innerIndices) {
-            if (raw >= 0) totalHeight += fillings[raw].height
-        }
-
-        const toDelete: number[] = []
-
-        // Удаляем с верха стека (конец массива innerIndices) пока не влезет
-        let i = innerIndices.length - 1
-        while ((totalHeight > newAvailableHeight || innerIndices[i] < 0) && i >= 0) {
-            const raw = innerIndices[i]
-            const realIdx = raw < 0 ? -raw - 1 : raw
-            toDelete.push(realIdx)
-            if (raw >= 0) totalHeight -= fillings[raw].height
-            i--
-        }
-
-        // Удаляем в убывающем порядке, чтобы не сбивать индексы
-        toDelete.sort((a, b) => b - a)
-        for (const idx of toDelete) {
-            this.deleteFilling(secIndex, idx, ci, ri, ei, grid, false)
-        }
-
-        const removed = toDelete.length > 0
-
-        // Обновляем constraint и переукладываем оставшиеся ящики снизу вверх
-        const newStartY = outerDrawer.position.y - newAvailableHeight
-        let stackY = newStartY
-        const currentFillings = container.fillings
-        for (let idx = 0; idx < currentFillings.length; idx++) {
-            const f = currentFillings[idx]
-            if (!this.INNER_DRAWER_IDS.includes(f.productGroupID)) continue
-            if (outerDrawer.innerDrawerGroupId &&
-                f.innerDrawerConstraint?.outerDrawerGroupId !== outerDrawer.innerDrawerGroupId) continue
-
-            if (f.innerDrawerConstraint) {
-                f.innerDrawerConstraint.height = newAvailableHeight
-                f.innerDrawerConstraint.startY = newStartY
-            }
-            if (f.position) {
-                f.position.y = stackY
-                stackY += f.height
-            }
-        }
-
-        if (removed) {
-            this.scope.callAlert('warning', 'Встроенный ящик удалён: не помещается в новые параметры фасада')
-        }
+    changeUniversalHeight(...args: Parameters<DrawerFillingHandler["changeUniversalHeight"]>) {
+        return this.drawers.changeUniversalHeight(...args)
     }
 }

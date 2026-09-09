@@ -9,6 +9,7 @@ import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass
 import {onMounted, ref, toRefs, watch, computed, onBeforeMount} from "vue";
 import {TTotalProps} from "@/types/types.ts";
 import {useModelState} from "@/store/appliction/useModelState.ts";
+import {getWardrobeProfileMaxDepth} from "@/components/UMconstructor/utils/WardrobeSystem.ts";
 
 const props = defineProps({
   module: {
@@ -46,6 +47,23 @@ const fillingExist = computed(() => {
     return UMconstructor.value.FILLINGS.existFilling(module.value)
   else
     return false
+})
+
+// Гардеробная система — максимум "Глубины" НЕ общий каталожный диапазон
+// (productData.CONFIG.SIZE_EDIT, как у box-UM), а ДИНАМИЧЕСКОЕ значение,
+// зависящее от реально назначенных профилям грида креплений. Пользователь
+// явно попросил использовать ТУ ЖЕ формулу, что и для максимальной длины
+// полок (getWardrobeProfileMaxDepth — там же вся логика приоритета типов
+// креплений), а не более узкую getWardrobeMaxDepth — обе величины (глубина
+// корпуса и длина полки) теперь совпадают. Откат на обычный каталожный
+// максимум, если у профилей грида нет ни одного из трёх распознаваемых
+// типов крепления.
+const maxDepth = computed(() => {
+  if (module.value?.moduleKind === 'wardrobe') {
+    const wardrobeMax = getWardrobeProfileMaxDepth(module.value)
+    if (wardrobeMax != null) return wardrobeMax
+  }
+  return UMconstructor?.value?.getMinMaxModuleSize(productData.value, 'depth', 'max')
 })
 
 const updateTotalSize = (dimensions: string, value: number, event: Event) => {
@@ -156,6 +174,31 @@ watch(() => UMconstructor?.value?.UM_STORE.onSideProfile, () => {
   }
 })
 
+// Гардеробная система (временно, черновик) — UM_STORE.totalHeight теперь
+// может измениться НЕ из этого поля (см. UMconstructorClass.reset() —
+// высота модуля пересчитывается как максимум по wardrobeProfiles при
+// изменении высоты любого профиля в "Настройка профилей"). Раньше
+// totalHeight/totalWidth читались только один раз в onBeforeMount/onMounted
+// — этого хватало, пока источником изменения было только само это поле
+// (box-UM). Без watch поле "Высота" оставалось со старым значением, даже
+// когда канвас уже перерисован под новую высоту (см. скриншот пользователя).
+watch(() => UMconstructor?.value?.UM_STORE.totalHeight, () => {
+  if (UMconstructor?.value?.UM_STORE) {
+    totalHeight.value = UMconstructor.value.UM_STORE.totalHeight
+  }
+})
+
+// Тот же случай, что и totalHeight выше — UM_STORE.totalDepth тоже может
+// измениться НЕ из этого поля (reset() клампит глубину под динамический
+// максимум, зависящий от креплений профилей, см. WardrobeSystem.
+// getWardrobeMaxDepth) — без watch поле "Глубина" оставалось бы со старым
+// (некорректным) значением, даже когда grid.depth уже пересчитан.
+watch(() => UMconstructor?.value?.UM_STORE.totalDepth, () => {
+  if (UMconstructor?.value?.UM_STORE) {
+    totalDepth.value = UMconstructor.value.UM_STORE.totalDepth
+  }
+})
+
 onBeforeMount(() => {
   if(UMconstructor?.value?.UM_STORE) {
     totalHeight.value = UMconstructor.value.UM_STORE.totalHeight
@@ -249,7 +292,7 @@ onMounted(() => {
         Мин: {{ UMconstructor.getMinMaxModuleSize(productData, 'depth', 'min') ?? "н/о" }}
       </p>
       <p class="UM no-select item__label text-grey">
-        Макс: {{ UMconstructor.getMinMaxModuleSize(productData, 'depth', 'max') ?? "н/о" }}
+        Макс: {{ maxDepth ?? "н/о" }}
       </p>
       <div class="UM actions-input--container">
         <MainInput
@@ -258,7 +301,7 @@ onMounted(() => {
             :inputClass="'UM actions-input'"
             :modelValue="totalDepth"
             :min="UMconstructor.getMinMaxModuleSize(productData, 'depth', 'min')"
-            :max="UMconstructor.getMinMaxModuleSize(productData, 'depth', 'max')"
+            :max="maxDepth"
             :type="'number'"
             :isUM="true"
         />
@@ -266,7 +309,7 @@ onMounted(() => {
     </div>
 
     <div
-        v-if="!module.isRestrictedModule"
+        v-if="!module.isRestrictedModule && module.moduleKind !== 'wardrobe'"
         class="UM constructor2d-container--left--module-configs--module-size-item actions-inputs"
     >
       <p class="UM no-select actions-title">Цоколь

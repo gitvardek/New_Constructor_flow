@@ -14,6 +14,8 @@ const DEV_AUTH_BYPASS = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_BYP
 
 
 async function bootApp() {
+  console.log('STARTUEM')
+
   // await loadDependencies()
 
   const app = createApp(App)

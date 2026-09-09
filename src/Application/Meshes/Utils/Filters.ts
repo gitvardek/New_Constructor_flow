@@ -6,6 +6,7 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from "@/store/appliction/useModelState"
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons"
+import { useExpressions } from "@/utils/useExpressions"
 
 import { TFasadeProp, IProductFull, FasadeTextAlignAction } from "@/types/types"
 
@@ -18,6 +19,13 @@ export class Filters extends GlobalsData {
     private modelState = useModelState()
     private roomOptions = useRoomOptions()
     private readonly emptyHandleID = 69920
+    private readonly handlesGroupExceptions = {
+        freeFoldGroupIds: [2671102, 2671103, 2311134, 2311136],
+        overlayGroupIds: [63042],
+
+    }
+    private readonly handlesProductsExceptions = [2106690, 4133662, 5766303, 5766313, 10252945, 10252974, 11451643, 11451772];
+    private readonly nestandartFasade = [14831];
 
     constructor(root: THREETypes.TApplication) {
         super(root._appData);
@@ -53,6 +61,7 @@ export class Filters extends GlobalsData {
             FASADES: groupedFasades[groupId] || [],
         })).filter(group => group.FASADES.length > 0 && group.NAME !== 'Без фасада');
 
+        return result;
     }
 
     filteFasadeColor(items: THREETypes.TObject) {
@@ -60,7 +69,6 @@ export class Filters extends GlobalsData {
     }
 
     filterFasadePosition(params: THREETypes.TObject, product: THREETypes.TObject) {
-
         const roomOptions = this.roomOptions.getGlobalOptions;
 
         const { FASADE_PROPS, ELEMENT_TYPE, FASADE_SIZE, FILLING, MODELID, MODEL } = params
@@ -68,6 +76,7 @@ export class Filters extends GlobalsData {
         FASADE_PROPS.length = 0;
 
         let sortFasadePositionList = [];
+
         const fasadePositionList = product.FASADE_POSITION
 
         if (!fasadePositionList) return
@@ -80,16 +89,25 @@ export class Filters extends GlobalsData {
 
         params.FASADE_TYPE = fasadeTypeSorted
 
+        const handleExists = product.HANDLES[0] != null;
+        const handleIncluded = product.HANDLES.includes(roomOptions.handles.id);
+
+        // Используем выбранную ручку только если она есть в списке допустимых
+        const defaultHandleId = handleExists && handleIncluded
+            ? roomOptions.handles.id
+            : this.emptyHandleID;
+
         const hasDrower = fasadeSorted.some(el => {
             return this._FASADE_POSITION[el].drawer
         })
 
-        const handleExists = product.HANDLES[0] != null;
-        const handleIncluded = product.HANDLES.includes(roomOptions.handles.id);
-
-        const defaultHandleId = handleExists && !handleIncluded
-            ? this.emptyHandleID
-            : roomOptions.handles.id;
+        // Исключения по OPTIONSECTION_ID: определяем правила запрета ручек
+        const sectionIds: number[] = [product.OPTIONSECTION_ID].flat().filter(Boolean)
+        const isOverlay = sectionIds.some(id => this.handlesGroupExceptions.overlayGroupIds.includes(id))
+        // const isFreeFold    = sectionIds.some(id => this.handlesGroupExceptions.freeFoldGroupIds.includes(id))
+        const isFreeFold = product.NAME.toLowerCase().includes('фрифолд')
+        // const isProductExcept = this.handlesProductsExceptions.includes(product.ID)
+        const isProductExcept = product.NAME.toLowerCase().includes('туг') || product.NAME.toLowerCase().includes('шуг')
 
         if (Object.keys(FASADE_SIZE).length > 0) {
             Object.values(FASADE_SIZE).forEach((el, key) => {
@@ -100,8 +118,9 @@ export class Filters extends GlobalsData {
             sortFasadePositionList = fasadeSorted
         }
 
+
         //Фильтрация фасадов на принадлежность текущей компоновке
-        if (FILLING)
+        if (FILLING) {
             sortFasadePositionList = sortFasadePositionList.filter((value, index) => {
 
 
@@ -114,16 +133,23 @@ export class Filters extends GlobalsData {
                 else
                     return value
             })
+        }
+
 
         sortFasadePositionList.forEach((fasade: number, key: number) => {
 
             const curFasade = fasade.ID ? fasade.ID : fasade
+
             const fasadePosition = this._FASADE_POSITION[curFasade]
+
             const fasadePositionType = fasadePosition.fasade_type
+
             let handlerPosition = null
 
             const prodTypeData = this._FASADETYPE[params.FASADE_TYPE[key]]
+
             const fasTypeData = this._FASADETYPE[fasadePositionType[0]]
+
 
             const handleInDorPosition = () => {
 
@@ -133,17 +159,15 @@ export class Filters extends GlobalsData {
                     return FasadeTextAlignAction[fasTypeData.CODE]
                 }
 
-                if (hasDrower && key % 2 !== 0 && ELEMENT_TYPE.includes('up')) return 8
-                if (hasDrower && key % 2 === 0 && ELEMENT_TYPE.includes('up')) return 6
+                // Ручка ставится у внутреннего угла между фасадами:
+                // isLeft зависит от наличия ящика (инвертирует чётность)
+                const isLeft = hasDrower !== (key % 2 === 0)
 
-                if (!hasDrower && key % 2 === 0 && ELEMENT_TYPE.includes('up')) return 8
-                if (!hasDrower && key % 2 !== 0 && ELEMENT_TYPE.includes('up')) return 6
+                if (ELEMENT_TYPE.includes('up'))
+                    return isLeft ? FasadeTextAlignAction.left_down : FasadeTextAlignAction.right_down
 
-                if (hasDrower && key % 2 !== 0 && ELEMENT_TYPE.includes('down')) return 2
-                if (hasDrower && key % 2 === 0 && ELEMENT_TYPE.includes('down')) return 0
-
-                if (!hasDrower && key % 2 === 0 && ELEMENT_TYPE.includes('down')) return 2
-                if (!hasDrower && key % 2 !== 0 && ELEMENT_TYPE.includes('down')) return 0
+                if (ELEMENT_TYPE.includes('down'))
+                    return isLeft ? FasadeTextAlignAction.left_top : FasadeTextAlignAction.right_top
 
             }
 
@@ -177,17 +201,16 @@ export class Filters extends GlobalsData {
                 HANDLES: {
                     id: defaultHandleId,
                     position: handlerPosition,
-                    drawer: fasadePosition.drawer
+                    drawer: fasadePosition.drawer,
+                    noHandles: isOverlay || (isFreeFold && key === 0) || (isProductExcept && key === 1),
                 },
                 SIZES: {
                     id: sizes,
-                    params: (() => {
-                        return {
-                            FASADE_WIDTH: sizesData?.WIDTH ?? null,
-                            min: sizesData?.SIZE_EDIT_WIDTH_MIN ?? null,
-                            max: sizesData?.SIZE_EDIT_WIDTH_MAX ?? null
-                        }
-                    })()
+                    params: {
+                        FASADE_WIDTH: sizesData?.WIDTH ?? null,
+                        min: sizesData?.SIZE_EDIT_WIDTH_MIN ?? null,
+                        max: sizesData?.SIZE_EDIT_WIDTH_MAX ?? null,
+                    },
                 },
                 DRAWER: {
                     drawer: fasadePosition.drawer,
@@ -368,20 +391,24 @@ export class Filters extends GlobalsData {
 
     filterProductInfo(id) {
         let info = this._PRODUCTS[id]
+        console.log(info, 'info')
+        if (!info) return false
 
-        if (!info) {
-            info = this.disabledProducts[id]
+        // if (!info) {
+        //     info = this.disabledProducts[id]
 
-            if (info?.ALTERNATIVE_PRODUCT?.[0]) {
-                for (let i = 0; i < info.ALTERNATIVE_PRODUCT.length; i++) {
-                    if (this._PRODUCTS[info.ALTERNATIVE_PRODUCT[i]]) {
-                        info = this._PRODUCTS[info.ALTERNATIVE_PRODUCT[i]]
-                        break;
-                    }
-                }
-            }
+        //     console.log(info, 'info')
 
-        }
+        //     if (info?.ALTERNATIVE_PRODUCT?.[0]) {
+        //         for (let i = 0; i < info.ALTERNATIVE_PRODUCT.length; i++) {
+        //             if (this._PRODUCTS[info.ALTERNATIVE_PRODUCT[i]]) {
+        //                 info = this._PRODUCTS[info.ALTERNATIVE_PRODUCT[i]]
+        //                 break;
+        //             }
+        //         }
+        //     }
+
+        // }
 
         if (info)
             info = Object.assign({}, info)
@@ -389,4 +416,51 @@ export class Filters extends GlobalsData {
         return info;
     }
 
+    revalidateOptions(PROPS: THREETypes.TObject) {
+        const OPTIONS = PROPS?.CONFIG?.OPTIONS
+        const trueSize = PROPS?.BODY?.userData?.trueSize
+
+        if (!OPTIONS?.length || !trueSize) return false
+
+        const { expressionsReplace, calculateFromString } = useExpressions()
+        const { BODY_WIDTH, BODY_HEIGHT } = trueSize
+        const isNestandartFasade = this.nestandartFasade.includes(PROPS.PRODUCT)
+
+        const conditionsMet = (id: number | string) => {
+            const conditions = this._OPTION[id]?.CONDITIONS
+            if (!conditions) return true
+
+            const convert = expressionsReplace(conditions, {
+                "#X#": BODY_WIDTH,
+                "#Y#": BODY_HEIGHT,
+                "#FASADE_HEIGHT_MAX#": isNestandartFasade ? BODY_HEIGHT : 0,
+                "#FASADE_HEIGHT_MIN#": isNestandartFasade ? BODY_HEIGHT : 100000
+            })
+
+            return !!calculateFromString(convert)
+        }
+
+        let changed = false
+        let dropped = true
+
+        while (dropped) {
+            dropped = false
+            const activeIds = OPTIONS.filter(item => item.active).map(item => +item.id)
+
+            OPTIONS.forEach(item => {
+                if (!item.active) return
+
+                const required = this._OPTION[item.id]?.REQUIRED_OPTIONS ?? []
+                const requirementMet = !required.length || required.some(id => activeIds.includes(+id))
+
+                if (conditionsMet(item.id) && requirementMet) return
+
+                item.active = false
+                item.visible = false
+                dropped = changed = true
+            })
+        }
+
+        return changed
+    }
 } 

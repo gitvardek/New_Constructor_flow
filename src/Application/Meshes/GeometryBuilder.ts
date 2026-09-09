@@ -3,7 +3,9 @@
 import * as THREE from "three"
 import * as THREETypes from "@/types/types"
 
+
 import { BuildProduct } from "./BuildProduct";
+import { useToast } from "@/features/toaster/useToast"
 
 export class GeometryBuilder {
 
@@ -18,9 +20,16 @@ export class GeometryBuilder {
     async createModel(
         data: any,
         loadedProps?: any,
-        loaded_size?: any
-    ): Promise<THREE.Object3D> {
-        return this.buildProduct.getModel(data, loadedProps, loaded_size);
+        loaded_size?: any,
+        copy?: boolean
+    ): Promise<THREE.Object3D | null> {
+        try {
+            return await this.buildProduct.getModel(data, loadedProps, loaded_size);
+        } catch (error) {
+            console.error(`[GeometryBuilder] Ошибка построения объекта ID: ${data?.ID}:`, error);
+            useToast().error(`Объект с ID: ${data?.ID}, наименование: "${data?.NAME}" не может быть установлен`);
+            return null;
+        }
     }
 
     public isCopy(value: boolean) {

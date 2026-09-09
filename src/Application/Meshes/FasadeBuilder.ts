@@ -9,6 +9,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { OBB } from 'three/examples/jsm/math/OBB.js';
 import { useToast } from "@/features/toaster/useToast";
 import { SUBTRACTION, Brush, Evaluator } from 'three-bvh-csg';
+import { useConversationActions } from "@/components/right-menu/actions/useConversationActions";
 
 
 type TFasadePartPosition = {
@@ -31,6 +32,7 @@ interface IncomeOptionData {
 export class FasadeBuilder {
 
     modelState: ReturnType<typeof useModelState> = useModelState()
+    conversationActions: ReturnType<typeof useConversationActions> = useConversationActions();
     parent: THREETypes.TBuildProduct
     uniformeTextureStartData: TFasadePartPosition[] = []
     _APP: THREETypes.TObject
@@ -186,9 +188,10 @@ export class FasadeBuilder {
         // Ручки
         if (fasadeData.HANDLES.id && fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
             const handleId = fasadeData.HANDLES.id;
-            const handleModel = this._APP.CATALOG.PRODUCTS[handleId].models[0];
-
-            this.handlesBuilder.createHandle({ id: handleId, model: handleModel }, mesh, fasadeData);
+            const handleModel = this._APP.CATALOG.PRODUCTS[handleId]?.models[0];
+            if (handleModel) {
+                this.handlesBuilder.createHandle({ id: handleId, model: handleModel }, mesh, fasadeData);
+            }
         }
 
         // Видимость с учётом исключений
@@ -229,7 +232,7 @@ export class FasadeBuilder {
     }): THREE.Object3D {
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
-        const { deffShowcase } = defaultConfig;
+        const { deffShowcase, defPatina } = defaultConfig;
         const currentProduct = this.modelState._PRODUCTS[PRODUCT];
 
         const startPosition = this.parent.getStartPosition(SIZE);
@@ -275,6 +278,36 @@ export class FasadeBuilder {
             // Пост-создание: проверка и коррекция данных на основе trueSize
             const { trueSize } = result.userData;
 
+            const check = this.conversationActions.validateAndPurgeFasadeOnBuild(fasadeData.COLOR, key, trueSize, result)
+
+            if (!check) {
+                result.geometry = FASADE_DEFAULT[key].geometry.clone();
+
+                fasadeData.COLOR = 7397;
+                fasadeData.PALETTE = null;
+                fasadeData.SHOW = false;
+                fasadeData.GLASS = null;
+                fasadeData.PATINA = null;
+                fasadeData.SHOWCASE = null;
+                fasadeData.ALUM = null;
+                fasadeData.HANDLES = this.handlesBuilder.restoreDefaultHandleData(fasadeData);
+                fasadeData.MILLING_TYPE = null;
+                fasadeData.TYPE = null;
+                fasadeData.MILLING = null;
+
+                const canKeepException = result.userData.curBodyExceptions && result instanceof THREE.Mesh;
+                if (canKeepException) {
+                    result.material = result.userData.curBodyExceptionsMaterial.clone();
+                    result.material.needsUpdate = true;
+                    result.visible = true;
+                } else {
+                    result.visible = false;
+                }
+
+                this.uniformeTextureStartData = [];
+                continue;
+            }
+
             const millingList = this.parent.modelState.createCurrentMillingData({
                 fasadeId: fasadeData.COLOR,
                 productId: PRODUCT,
@@ -310,6 +343,14 @@ export class FasadeBuilder {
                 if (!fasadeData.MILLING_TYPE) {
                     const fType = FASADE_POSITIONS[key].FASADE_TYPE;
                     fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(milling, fType)[0] ?? null;
+                }
+                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1 ||
+                    this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)
+                ) {
+                    fasadeData.PATINA = null;
+                }
+                else {
+                    fasadeData.PATINA = defPatina ?? 475428
                 }
             }
 
@@ -350,7 +391,7 @@ export class FasadeBuilder {
     }): void {
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
-        const { deffShowcase } = defaultConfig;
+        const { deffShowcase, defPatina } = defaultConfig;
         const currentProduct = this.modelState._PRODUCTS[PRODUCT];
         const startPosition = this.parent.getStartPosition(SIZE);
         const modelType = this._APP.MODELS[CONFIG.MODELID]?.type ?? "left";
@@ -380,6 +421,7 @@ export class FasadeBuilder {
         curFasade.geometry = FASADE_DEFAULT[fasadeNdx].geometry.clone();
 
         if (remove) {
+            fasadeData.MANUAL_NO_FASADE = true;
             fasadeData.COLOR = 7397;
             fasadeData.PALETTE = null;
             fasadeData.SHOW = false;
@@ -457,7 +499,15 @@ export class FasadeBuilder {
                 const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
                 fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(fasadeData.MILLING, fType)[0] ?? null;
             }
-        } else {
+            if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1 ||
+                this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)
+            ) {
+                fasadeData.PATINA = null;
+            }
+            else {
+                fasadeData.PATINA = defPatina ?? 475428
+            }
+        } else if (!fasadeData.SHOW || !firstValueMilling) {
             fasadeData.MILLING = null;
             fasadeData.PATINA = null;
         }
@@ -655,7 +705,7 @@ export class FasadeBuilder {
                     parent_size: {
                         x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH ?? props.CONFIG.SIZE.width),
                         y: eval(fasade_position.FASADE_HEIGHT),
-                        z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH ?? 16 ),
+                        z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH ?? 16),
                         mX: props.CONFIG.SIZE.width,
                         mY: props.CONFIG.SIZE.height,
                         mZ: props.CONFIG.SIZE.depth

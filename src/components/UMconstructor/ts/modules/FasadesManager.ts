@@ -141,6 +141,9 @@ export default class FasadesManager {
                                     segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + ((segment.width + 4) * doorIndex);
                                 } else if (doorIndex > 0) {
                                     segment.position.x += deltaWidth;
+                                } else {
+                                    // secIndex=0, doorIndex=0: позиция привязана к левой стенке
+                                    segment.position.x = section.position.x - section.width / 2 - leftWidth + 2;
                                 }
 
                                 const checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
@@ -171,7 +174,10 @@ export default class FasadesManager {
                             let lastSegment = door[door.length - 1];
                             if (lastSegment && !lastSegment.manufacturerOffset) {
 
-                                if (lastSegment.height + deltaHeight <= 0) {
+                                const newHeight = lastSegment.height + deltaHeight;
+                                const isSplitFasade = !!lastSegment.splitGroup;
+
+                                if (newHeight <= 0 || (isSplitFasade && newHeight < (lastSegment.minY ?? 0))) {
                                     this.removeFasadeSegment(secIndex, doorIndex, door.length - 1, grid, false)
                                     needReset = true;
                                 }
@@ -592,6 +598,8 @@ export default class FasadesManager {
                 ? grid.fasades
                 : grid.sections[secIndex].fasades;
         let segment = fasades[doorIndex][segmentIndex];
+        segment.splitGroup = segment.splitGroup ?? Date.now()
+
         const halfHeight = Math.floor(
             (segment.height - (grid.isSlidingDoors ? 0 : 4)) / 2
         );
@@ -793,6 +801,12 @@ export default class FasadesManager {
             currentSection.splice(segmentIndex, 1);
         }
 
+        const groupId = currentSegment.splitGroup
+        if (groupId) {
+            const rest = currentSection.filter(item => item.splitGroup === groupId)
+            if (rest.length < 2) rest.forEach(item => delete item.splitGroup)
+        }
+
         // Обновляем текущий сектор
         this.selectCell(secIndex, 0, 0)
 
@@ -893,6 +907,21 @@ export default class FasadesManager {
     ) {
         fasade.loopsSide = typeof newSide === "string" ? parseInt(newSide) : newSide;
 
+        // Временно: сторона открывания едина для всей секции — меняем её сразу у всех фасадов.
+
+        const { NO_FASADE_ID } = this.scope.CONST
+
+        grid.sections[secIndex]?.fasades?.forEach(door => {
+            door?.forEach(item => {
+                const color = item?.material?.COLOR
+                const hasMaterial = !!color && +color !== NO_FASADE_ID
+
+                if (item.manufacturerOffset || (item.splitGroup && !hasMaterial)) return
+
+                item.loopsSide = fasade.loopsSide
+            })
+        })
+
         // if(!grid.sections[secIndex].loopsSides){
         //     grid.sections[secIndex].loopsSides = {}
         // }
@@ -927,10 +956,11 @@ export default class FasadesManager {
 
             const currSection = grid.sections[secIndex];
 
-            if (currSection.loopsSides?.[doorIndex])
-                tmp_list = tmp_list.filter(
-                    (item) => item.ID !== currSection.loopsSides[doorIndex]
-                );
+            // Фильтруем стороны, уже занятые существующими дверями (по реальному loopsSide фасада)
+            const usedSides = new Set(
+                currSection.fasades.flatMap(door => door.map(f => f.loopsSide))
+            );
+            tmp_list = tmp_list.filter(item => !usedSides.has(item.ID));
 
             return tmp_list.length > 0;
         }

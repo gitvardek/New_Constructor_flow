@@ -140,7 +140,7 @@ export class Camera {
             this.alignCameraToWidestWall()
             return
         }
-        
+
         this.instance.position.copy(this.cameraPositions[value].pos)
         this.controls.target.set(...this.cameraPositions[value].target)
         this.controls?.update()
@@ -209,7 +209,7 @@ export class Camera {
                 const box = new THREE.Box3().setFromObject(wall)
                 const size = new THREE.Vector3()
                 box.getSize(size)
-                
+
                 // Для стены ширина - это наибольший размер по X или Z (горизонтальные оси)
                 // Высота обычно по Y
                 width = Math.max(size.x, size.z)
@@ -230,7 +230,7 @@ export class Camera {
      */
     private alignCameraToWidestWall(): void {
         const widestWall = this.findWidestWall()
-        
+
         if (!widestWall) {
             console.warn('Не найдены стены в комнате')
             // Fallback на стандартную позицию для action 4
@@ -267,7 +267,7 @@ export class Camera {
         // Расстояние от стены до камеры зависит от размера стены
         // Используем формулу, чтобы стена хорошо помещалась в поле зрения
         const cameraDistance = Math.max(wallWidth * 1.5, wallHeight * 2, 6000)
-        
+
         // Высота камеры - на уровне центра стены
         const cameraHeight = wallCenter.y
 
@@ -277,7 +277,7 @@ export class Camera {
         const cameraPosition = new THREE.Vector3()
             .copy(wallCenter)
             .add(cameraOffset)
-        
+
         // Устанавливаем высоту камеры на уровне центра стены
         cameraPosition.y = cameraHeight
 
@@ -286,10 +286,10 @@ export class Camera {
 
         // Устанавливаем позицию камеры
         this.instance.position.copy(cameraPosition)
-        
+
         // Устанавливаем target для OrbitControls
         this.controls.target.copy(targetPosition)
-        
+
         // Обновляем контролы
         this.controls.update()
 
@@ -304,13 +304,46 @@ export class Camera {
         // })
     }
 
+    /**
+    * Перемещает камеру так, чтобы объект был в центре обзора.
+    * Направление взгляда сохраняется (XZ-угол от текущей позиции),
+    * дистанция вычисляется по размеру объекта и FOV камеры.
+    */
+    public focusOnObject(object: THREE.Object3D): void {
+        const box = new THREE.Box3().setFromObject(object)
+        const center = new THREE.Vector3()
+        box.getCenter(center)
+        const size = new THREE.Vector3()
+        box.getSize(size)
+
+        const maxDim = Math.max(size.x, size.y, size.z)
+        const fovRad = ((this.instance as THREE.PerspectiveCamera).fov * Math.PI) / 180
+        const idealDistance = (maxDim / 2 / Math.tan(fovRad / 2)) * 2.0
+        const distance = Math.max(idealDistance, this.controls.minDistance)
+
+        // Сохраняем горизонтальное направление взгляда
+        const dir = new THREE.Vector3()
+            .subVectors(this.instance.position, this.controls.target)
+            .normalize()
+
+        const cameraPos = center.clone().addScaledVector(dir, distance)
+        cameraPos.y = center.y + size.y * 0.5
+
+        this.instance.position.copy(cameraPos)
+        this.controls.target.copy(center)
+        this.controls.update()
+    }
+
     vueEvents() {
 
         this.onSetPosition = (value) => {
             this.setPosition(value)
         }
 
-        this.eventBuss.on('A:ChangeCameraPos', this.onSetPosition)
+        this.eventBuss.on('A:ChangeCameraPos', this.onSetPosition);
+        this.eventBuss.on('A:FocusOnObject', (object: THREE.Object3D) => {
+            this.focusOnObject(object)
+        });
 
     }
 

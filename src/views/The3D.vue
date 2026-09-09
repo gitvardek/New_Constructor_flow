@@ -29,6 +29,7 @@ import { useBascetEvents } from "@/components/Basket/helper/basketEvents";
 import { useTransformController } from "@/components/ui/transformController/useTransformController";
 
 import { useModelState } from "@/store/appliction/useModelState";
+import { getUMGridFromConfig } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
 
 import { Application } from "@/Application/Core/Application";
 
@@ -304,16 +305,21 @@ const selected = async (item: any) => {
     };
   }
 
-  if (CONFIG.MODULEGRID) {
+  // Гардеробная система (временно, черновик): её сетка хранится под
+  // CONFIG.WARDROBEGRID, не CONFIG.MODULEGRID (см. WardrobeSystem.ts) —
+  // getUMGridFromConfig берёт активную сетку под любым из двух ключей.
+  const { grid: activeUMGrid } = getUMGridFromConfig(CONFIG);
+
+  if (activeUMGrid) {
     universalModuleData.value = {
-      MODULEGRID: CONFIG.MODULEGRID || false,
+      MODULEGRID: activeUMGrid || false,
       PROPS: userData,
-      canvasHeight: CONFIG.MODULEGRID.canvasHeight,
-      canvasWidth: CONFIG.MODULEGRID.canvasWidth,
+      canvasHeight: activeUMGrid.canvasHeight,
+      canvasWidth: activeUMGrid.canvasWidth,
     };
   }
 
-  if (CONFIG.MODULEGRID && universalModule2DConstructor.value) {
+  if (activeUMGrid && universalModule2DConstructor.value) {
     universalModule2DConstructor.value.selectUMData(universalModuleData.value);
   }
 
@@ -371,7 +377,7 @@ const screenPrint = async () => {
     console.log(`Начинаем создание скриншотов для ${allRooms.length} комнат`);
 
     // Сохраняем текущую комнату, чтобы восстановить её после создания скриншотов
-    const currentRoomId = roomContantData.value?.roomId || null;
+    const currentRoomId = roomState.getRoomId || null;
 
     // Сохраняем текущий режим чертежа
     const currentDrawingMode = menuStore.getDrowModeValue;
@@ -471,8 +477,20 @@ const screenPrint = async () => {
 
     // Восстанавливаем исходную комнату, если она была
     if (currentRoomId) {
+      const restorePromise = waitForSceneLoad();
       eventBus.emit("A:Load", currentRoomId);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await restorePromise;
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Пересобираем mainConstructor с актуальными Three.js id текущей сцены,
+      // иначе basket UI покажет устаревшие BASKETID и удаление не найдёт объект в contant.
+      const currentSceneData = VerdekConstructor.value?.getAction?.()?.save?.();
+      if (currentSceneData && roomContantData.value) {
+        roomContantData.value.setRoomContantDataForBasket(currentSceneData);
+        basketStore.addFromScene();
+        await basketStore.syncBasket();
+      }
     }
 
     // Восстанавливаем исходный режим чертежа
@@ -799,6 +817,7 @@ watch(
   () => {
     checkLoadContent();
   },
+  { immediate: true }
 );
 
 // watch(

@@ -156,6 +156,7 @@ const jsonBlank = `{
     "default_milling_top": null,
     "default_palit_bottom": null,
     "default_palit_top": null,
+    "default_patina": 475428,
     "default_handles": 69920,
     "default_overlay_id": [
         63040,
@@ -260,7 +261,6 @@ export const loadBlankRoom = async (customProject?: typeof projectData) => {
 
   try {
     await sceneState.loadProjectFromData(data)
-    sceneState.updateProjectParams({})
     schemeTransition.setAppData(data.rooms)
 
     roomState.routConvertData('/3d')

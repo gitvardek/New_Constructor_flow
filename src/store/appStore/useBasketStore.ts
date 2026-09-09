@@ -17,20 +17,23 @@ const generateUniqueId = (): string =>
 
 // Формирования массива ручик фасадов
 const countHandles = (items: any[]): number[] => {
+
   const handles: number[] = []
 
   items.forEach(item => {
     if (item?.HANDLES) {
       item.HANDLES.forEach(handle => {
-        if (handle?.ID && handle.ID !== 69920) {
-          handles.push(handle.ID)
+        const hId = handle?.ID ?? handle?.id
+        if (hId && hId !== 69920) {
+          handles.push(hId)
         }
       })
     }
     else {
       item.PROPS?.FASADE?.forEach(facade => {
-        if (facade.HANDLES?.ID && facade.HANDLES?.ID !== 69920) {
-          handles.push(facade.HANDLES.ID)
+        const hId = facade.HANDLES?.ID ?? facade.HANDLES?.id
+        if (hId && hId !== 69920) {
+          handles.push(hId)
         }
       })
     }
@@ -233,14 +236,18 @@ export const useBasketStore = defineStore('basket', () => {
     return result
   }
 
-  const syncInvoce = async (technologistBasket: boolean | Object = false): Promise<IBasketResponse | null> => {
-    const currentHandlesData = countHandles(mainConstructor.value)
-    const data = currentHandlesData.length > 0
-      ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)]
-      : allBasketItems.value
+  const syncInvoce = async (technologistBasket: boolean | Object = false, dumpProjectId?: string | number, explicitItems?: any[]): Promise<IBasketResponse | null> => {
+    let data: any[]
+    if (explicitItems) {
+      data = explicitItems
+    } else {
+      const currentHandlesData = countHandles(mainConstructor.value)
+      data = currentHandlesData.length > 0
+        ? [...allBasketItems.value, ...transformCountHandles(currentHandlesData)]
+        : allBasketItems.value
+    }
 
-    // const result = await syncBasketWithServer(data)
-    const result = await syncInvoice(data, technologistBasket)
+    const result = await syncInvoice(data, technologistBasket, dumpProjectId)
     return result
   }
 

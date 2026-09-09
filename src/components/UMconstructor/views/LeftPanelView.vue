@@ -6,8 +6,9 @@ import "@/components/UMconstructor/styles/UM.scss";
 import RailsRightPage from "@/components/right-menu/customiser-pages/RailsRightPage/RailsRightPage.vue";
 import Options from "@/components/right-menu/customiser-pages/RailsRightPage/Options.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { toRefs, ref, onBeforeMount } from "vue";
+import { toRefs, ref, onBeforeMount, onBeforeUnmount } from "vue";
 import { TTotalProps } from "@/types/types.ts";
+import { useEventBus } from "@/store/appliction/useEventBus";
 import SidecolorsView from "@/components/UMconstructor/views/modules/SidecolorsView.vue";
 import ModuleSizeView from "@/components/UMconstructor/views/modules/ModuleSizeView.vue";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
@@ -30,6 +31,7 @@ const props = defineProps({
 const { module, mode, UMconstructor } = toRefs(props);
 const productData = ref<TTotalProps>(<TTotalProps>{});
 
+const eventBus = useEventBus();
 const railsKey = ref(0);
 
 const handleEccentricAction = () => {
@@ -38,41 +40,32 @@ const handleEccentricAction = () => {
 
 onBeforeMount(() => {
   productData.value = UMconstructor?.value?.UM_STORE.getUMData();
+  eventBus.on("A:OptionsUpdate", handleEccentricAction);
+});
+
+onBeforeUnmount(() => {
+  eventBus.off("A:OptionsUpdate", handleEccentricAction);
 });
 </script>
 
 <template>
   <div class="UM constructor2d-container--left--module-configs">
-    <ModuleSizeView
-      :product-data="productData"
-      :module="UMconstructor.UM_STORE.getUMGrid()"
-      :mode="mode"
-      :UMconstructor="UMconstructor"
-    />
+    <ModuleSizeView :product-data="productData" :module="UMconstructor.UM_STORE.getUMGrid()" :mode="mode"
+      :UMconstructor="UMconstructor" />
 
     <div class="UM no-select actions-sections-header">
       <h1>Параметры модуля</h1>
     </div>
     <div class="UM constructor2d-container--left--module-configs--module-color">
-      <SidecolorsView
-        ref="materialConfRef"
-        :visualizationRef="UMconstructor.RENDER_REF"
-        :module="UMconstructor.UM_STORE.getUMGrid()"
-        :objectData="productData"
-        :UMconstructor="UMconstructor"
-        @product-reset="UMconstructor.reset"
-        @eccentric-action="handleEccentricAction"
-      />
+      <SidecolorsView ref="materialConfRef" :visualizationRef="UMconstructor.RENDER_REF"
+        :module="UMconstructor.UM_STORE.getUMGrid()" :objectData="productData" :UMconstructor="UMconstructor"
+        @product-reset="UMconstructor.reset" @eccentric-action="handleEccentricAction" />
     </div>
 
     <div class="UM no-select actions-sections-header">
       <h1>Опции</h1>
     </div>
-    <Options
-      :key="railsKey"
-      class="UM no-select"
-      style="margin-top: 5px"
-    />
+    <Options :key="railsKey" class="UM no-select" style="margin-top: 5px" />
   </div>
 </template>
 

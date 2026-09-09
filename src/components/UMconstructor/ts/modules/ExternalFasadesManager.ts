@@ -8,10 +8,37 @@ import {
     GridModule,
     LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import {TFasadeProp} from "@/types/types.ts";
+import { TFasadeProp } from "@/types/types.ts";
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 
+
+type SplitGroup = {
+    id: number,
+    count: number,
+    from: number,
+    to: number,
+    segments: { material: TFasadeProp, loopsSide: number | boolean }[],
+} | null
+
+
+const splitOverlap = (fasade: FasadeObject, split: SplitGroup) => {
+    const top = Math.min(fasade.position.y + fasade.height, split.to)
+    const bottom = Math.max(fasade.position.y, split.from)
+
+    return Math.max(top - bottom, 0)
+}
+
+const isSplitContiguous = (group: FasadeObject[], gap: number) => {
+    const sorted = group.slice().sort((a, b) => a.position.y - b.position.y)
+
+    return sorted.every((fasade, index) => {
+        if (!index) return true
+
+        const prev = sorted[index - 1]
+        return fasade.position.y - (prev.position.y + prev.height) <= gap + 1
+    })
+}
 
 export default class ExternalFasadesManager {
     FASADES_MANAGER: FasadesManager
@@ -24,7 +51,7 @@ export default class ExternalFasadesManager {
     calcDrawersFasades(secIndex: number, fillingData: FillingObject = false, grid: GridModule = this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()) {
 
         if (fillingData) {
-            if(fillingData.fasade && grid.sections[secIndex].fasadesDrawers) {
+            if (fillingData.fasade && grid.sections[secIndex].fasadesDrawers) {
                 fillingData.fasade.position.y = grid.height - (fillingData.position.y + fillingData.height + fillingData.fasade.manufacturerOffset)
 
                 let drawerInfoId = grid.sections[secIndex].fasadesDrawers.findIndex(item => (
@@ -37,7 +64,7 @@ export default class ExternalFasadesManager {
 
                 grid.sections[secIndex].fasadesDrawers[drawerInfoId] = fillingData.fasade
             }
-            else if (fillingData.isProfile && grid.sections[secIndex].hiTechProfiles){
+            else if (fillingData.isProfile && grid.sections[secIndex].hiTechProfiles) {
                 let profileInfoId = grid.sections[secIndex].hiTechProfiles?.findIndex(item => (
                     item.sec === fillingData.sec &&
                     item.cell === fillingData.cell &&
@@ -61,7 +88,7 @@ export default class ExternalFasadesManager {
 
         let baseFasade = grid.sections[secIndex]?.fasades?.[0]?.find(item => !item.manufacturerOffset)
 
-        if(!baseFasade) {
+        if (!baseFasade) {
             const PROPS = this.FASADES_MANAGER.scope.UM_STORE.getUMData();
 
             let FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
@@ -95,13 +122,13 @@ export default class ExternalFasadesManager {
             baseFasade.loopsSide = LOOPSIDE['none']
         }
 
-        if(baseFasade.minY === undefined) {
+        if (baseFasade.minY === undefined) {
             let fasadeMinMax = this.FASADES_MANAGER.getFasadePositionMinMax(baseFasade);
             baseFasade = Object.assign(baseFasade, fasadeMinMax);
         }
 
         let baseFasade2 = grid.sections[secIndex].fasades[1]?.find(item => !item.manufacturerOffset)
-        if(baseFasade2 && baseFasade2.minY === undefined) {
+        if (baseFasade2 && baseFasade2.minY === undefined) {
             let fasadeMinMax = this.FASADES_MANAGER.getFasadePositionMinMax(baseFasade2);
             baseFasade2 = Object.assign(baseFasade2, fasadeMinMax);
         }
@@ -110,7 +137,56 @@ export default class ExternalFasadesManager {
         let fasadesDrawers = grid.sections[secIndex].fasadesDrawers || []
 
         let baseDrawerFasade = fasadesDrawers[0]
+
+        // Промежуточные фасады в двери появляются от внешних ящиков и от хай-тек профилей
+        const hasFasadeSplitters = !!(fasadesDrawers.length || grid.sections[secIndex].hiTechProfiles?.length)
+
+        const prevSegments = (grid.sections[secIndex].fasades ?? []).map(door => {
+            if (!door?.length) return []
+
+            // Пересборка создаёт фасады клонированием baseFasade
+            const describe = (group: FasadeObject[]) => {
+                const sorted = group.slice().sort((a, b) => a.position.y - b.position.y)
+                const last = sorted[sorted.length - 1]
+
+                return {
+                    count: sorted.length,
+                    from: sorted[0].position.y,
+                    to: last.position.y + last.height,
+                    segments: sorted.map(fasade => ({
+                        material: fasade.material,
+                        loopsSide: fasade.loopsSide,
+                    })),
+                }
+            }
+
+            const marked = door.filter(fasade => fasade?.splitGroup)
+
+            if (marked.length) {
+
+                const ids = [...new Set(marked.map(fasade => fasade.splitGroup))]
+
+                const groups = ids
+                    .map(id => marked.filter(fasade => fasade.splitGroup === id))
+                    .filter(group => group.length > 1)
+                    .map(group => ({ id: group[0].splitGroup, ...describe(group) }))
+
+                if (groups.length) return groups
+            }
+
+            if (marked.length === 0 && door.length > 1 && !hasFasadeSplitters) {
+                const id = Date.now()
+                door.forEach(fasade => { fasade.splitGroup = id })
+                return [{ id, ...describe(door) }]
+            }
+
+            return []
+        })
+
+        this.liftStackAboveBottom(secIndex, grid)
+
         let fasadesList = this.calcDrawersFasadesPositons(secIndex, grid) || []
+
 
         grid.sections[secIndex].fasades[0] = []
         if (grid.sections[secIndex].fasades[1])
@@ -141,17 +217,18 @@ export default class ExternalFasadesManager {
                     drawerFasade.width = correctSectionFasadeWidth
                     drawerFasade.position.x = baseFasade.position.x
 
-                    if(filling)
+                    if (filling)
                         filling.fasade = drawerFasade
 
                     drawerIndex += 1
                     break;
                 case "fasade":
                     let fasadeClone = Object.assign(<FasadeObject>{}, baseFasade)
+                    delete fasadeClone.splitGroup
                     fasadeClone.id = index + 1
                     fasadeClone.height = item.height
-                    fasadeClone.material = {...baseFasade.material}
-                    fasadeClone.material.HANDLES = {...fasadeClone.material.HANDLES}
+                    fasadeClone.material = { ...baseFasade.material }
+                    fasadeClone.material.HANDLES = { ...fasadeClone.material.HANDLES }
 
                     fasadeClone.position = new THREE.Vector2(baseFasade.position.x, item.y)
 
@@ -165,8 +242,8 @@ export default class ExternalFasadesManager {
                     if (baseFasade2) {
                         let fasadeClone2 = Object.assign(<FasadeObject>{}, fasadeClone)
                         fasadeClone2.position = new THREE.Vector2(baseFasade2.position.x, item.y)
-                        fasadeClone2.material = {...fasadeClone.material}
-                        fasadeClone2.material.HANDLES = {...fasadeClone2.material.HANDLES}
+                        fasadeClone2.material = { ...fasadeClone.material }
+                        fasadeClone2.material.HANDLES = { ...fasadeClone2.material.HANDLES }
                         fasadeClone2.loopsSide = baseFasade2.loopsSide
 
                         grid.sections[secIndex].fasades[1].push(Object.assign(<FasadeObject>{}, fasadeClone2))
@@ -176,17 +253,122 @@ export default class ExternalFasadesManager {
                     break;
             }
         })
-
+        this.restoreFasadeSegments(grid.sections[secIndex].fasades, prevSegments, grid)
         this.FASADES_MANAGER.scope.LOOPS.calcLoops(secIndex, grid)
     };
 
-    calcDrawersFasadesPositons(secIndex: number, _grid: GridModule){
+    static readonly MIN_SPLIT_HEIGHT = 784
+
+    // Возвращает ручное разделение фасада, потерянное при пересборке списка:
+    // делит самый высокий сегмент пополам, пока их число не совпадёт с прежним.
+    // Деление прекращается, если половина окажется ниже минимально допустимой высоты
+    restoreFasadeSegments(fasades: FasadeObject[][], prevSegments: SplitGroup[][], grid: GridModule) {
+        if (!fasades?.length) return
+
+        fasades.forEach((door, doorIndex) => {
+            const splits = prevSegments[doorIndex] ?? []
+            if (!door?.length || !splits.length) return
+
+            splits.forEach(split => this.restoreSplitGroup(door, split, grid))
+
+            door.forEach((fasade, i) => { fasade.id = i + 1 })
+        })
+    };
+
+    private restoreSplitGroup(door: FasadeObject[], split: SplitGroup, grid: GridModule) {
+        const gap = grid.isSlidingDoors ? 0 : 4
+
+        const minSplitHeight = ExternalFasadesManager.MIN_SPLIT_HEIGHT
+
+        // Пересборка сохранила часть сегментов группы — восстанавливаем остальные.
+        // Считаем каждый раз заново: сегменты группы могли не сохраниться совсем
+        const groupSegments = () => door.filter(fasade => fasade.splitGroup === split.id)
+
+        const separated = groupSegments()
+        if (separated.length > 1 && !isSplitContiguous(separated, gap)) {
+            separated.forEach(fasade => delete fasade.splitGroup)
+            return
+        }
+
+        while (groupSegments().length < split.count) {
+            const group = groupSegments()
+
+            // Пока сегменты группы есть — делим самый высокий из них. Если пересборка
+            // не сохранила ни одного, ищем область, на которой разделение было раньше
+            let segment = group.length ? group[0] : door[0]
+
+            if (group.length)
+                group.forEach(fasade => { if (fasade.height > segment.height) segment = fasade })
+            else
+                door.forEach(fasade => {
+                    if (splitOverlap(fasade, split) > splitOverlap(segment, split)) segment = fasade
+                })
+
+            const index = door.indexOf(segment)
+            const half = Math.floor((segment.height - gap) / 2)
+
+            // Делим, только если разделение поместится по суммарной высоте
+            if (segment.height < minSplitHeight) break
+            if (half < (segment.minY ?? 0)) break
+
+            segment.splitGroup = split.id
+
+            const delta = segment.height - half * 2 - gap
+            segment.height = half + delta
+
+            const nextY = segment.position.y + gap + segment.height
+
+            const clone = <FasadeObject>{
+                ...segment,
+                height: half,
+                position: grid.isSlidingDoors
+                    ? new THREE.Vector3(segment.position.x, nextY, segment.position.z)
+                    : new THREE.Vector2(segment.position.x, nextY),
+                material: { ...segment.material, HANDLES: { ...segment.material.HANDLES } },
+            }
+
+            door.splice(index + 1, 0, clone)
+        }
+
+        // Возвращаем сегментам их материал, ручки и сторону открывания. Петли при этом
+        // не назначаются вручную: calcLoops вызывается сразу после и сам отбросит
+        // сегмент, у которого материал сняли или поставили «без фасада»
+        groupSegments()
+            .sort((a, b) => a.position.y - b.position.y)
+            .forEach((fasade, index) => {
+                const saved = split.segments?.[index]
+                if (!saved) return
+
+                fasade.material = saved.material
+                fasade.loopsSide = saved.loopsSide
+            })
+
+        // Условия не сошлись: сегментов меньше пары или суммарная высота ниже
+        // допустимой — идентификатор снимается, дальше фасад ведёт себя как обычный.
+        // Обратно он не вернётся: в следующий раз группы в двери уже не будет
+        const group = groupSegments()
+        const totalHeight = group.reduce((sum, fasade) => sum + fasade.height, 0)
+            + gap * (group.length - 1)
+
+        if (group.length < 2 || totalHeight < minSplitHeight) {
+            const first = group[0]
+
+            if (first) {
+                first.height = totalHeight
+                group.slice(1).forEach(fasade => door.splice(door.indexOf(fasade), 1))
+            }
+
+            group.forEach(fasade => delete fasade.splitGroup)
+        }
+    };
+
+    calcDrawersFasadesPositons(secIndex: number, _grid: GridModule) {
         const fasadeList = []
-        const {CONFIG} = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
+        const { CONFIG } = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
         const grid = _grid || this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()
 
-        let moduleThickness = grid.moduleThickness || 18
-        moduleThickness = !grid.horizont ? -2 : moduleThickness - 2
+        // let moduleThickness = grid.moduleThickness || 18
+        // moduleThickness = !grid.horizont ? -2 : moduleThickness - 2
 
         //Ящики с фасадами
         const BOX_FASADE = grid.sections[secIndex].fasadesDrawers || []
@@ -240,11 +422,13 @@ export default class ExternalFasadesManager {
         if ((firstBox.position.y - (firstBox.isProfile ? 0 : otstup)) > bottomFasadePosition) {
             let firstFasadeSize = Math.abs(firstBox.position.y - (firstBox.isProfile ? 0 : otstup) - bottomFasadePosition)
 
-            fasadeList.push({
-                y: firstFasadePosition,
-                height: Math.floor(firstFasadeSize),
-                type: "fasade",
-            })
+            if (firstFasadeSize > 200) {
+                fasadeList.push({
+                    y: firstFasadePosition,
+                    height: Math.floor(firstFasadeSize),
+                    type: "fasade",
+                })
+            }
 
             fullFasadelSize = fullFasadelSize - firstFasadeSize - (firstBox.isProfile ? 0 : otstup)
             bottomFasadePosition = bottomFasadePosition + firstFasadeSize + (firstBox.isProfile ? 0 : otstup)
@@ -257,7 +441,9 @@ export default class ExternalFasadesManager {
                 box.position = new THREE.Vector3()
             }
 
-            const boxFasadeHeight = box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
+            const boxFasadeHeight = box.isProfile?.isBottomHiTechProfile
+                ? 0
+                : box.isProfile && box.isProfile.offsetFasades ? box.isProfile.offsetFasades : box.height
 
             fasadeList.push({
                 y: Math.floor(bottomFasadePosition),
@@ -310,4 +496,49 @@ export default class ExternalFasadesManager {
 
         return fasadeList
     }
+
+    liftStackAboveBottom(secIndex: number, grid: GridModule) {
+        const BOTTOM_FASADE_OFFSET = 2
+
+        const section = grid.sections?.[secIndex]
+        const drawerFasades = section?.fasadesDrawers ?? []
+        if (!drawerFasades.length) return
+
+        const lowest = Math.min(...drawerFasades.map(fasade => fasade.position?.y ?? 0))
+        const shift = BOTTOM_FASADE_OFFSET - lowest
+        if (shift <= 0) return
+
+        // После saveUMGrid fillings[].fasade, hiTechProfiles и fasadesDrawers могут быть
+        // как одним объектом, так и разными копиями — двигаем каждый объект ровно один раз
+        const moved = new Set()
+        const moveBody = (body) => {
+            if (!body?.position || moved.has(body)) return
+            moved.add(body)
+
+            // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
+            body.position.y -= shift
+            if (body.distances) {
+                body.distances.top -= shift
+                body.distances.bottom += shift
+            }
+        }
+
+        section.fillings?.forEach(filling => {
+            if (!filling?.fasade && !filling?.isProfile) return
+            moveBody(filling)
+        })
+        section.hiTechProfiles?.forEach(moveBody)
+
+        // Позицию фасада пересчитываем от тела — единственного источника истины
+        const placeFasade = (fasade, body) => {
+            if (!fasade?.position || !body?.position) return
+            fasade.position.y = grid.height - (body.position.y + body.height + fasade.manufacturerOffset)
+        }
+
+        section.fillings?.forEach(filling => placeFasade(filling.fasade, filling))
+        drawerFasades.forEach(fasade => {
+            const body = section.fillings?.find(filling => filling.id === fasade.item)
+            placeFasade(fasade, body)
+        })
+    };
 }

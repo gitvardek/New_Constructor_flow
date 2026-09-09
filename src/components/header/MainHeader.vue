@@ -44,6 +44,7 @@ import AddLightHeaderButton from "@/components/ui/buttons/header/AddLightHeaderB
 import BuyBasketButton from "@/components/ui/buttons/header/BuyBasketButton.vue";
 
 import { QuickActionsToolbar } from "@/features/quickActions";
+import RoomHeight from "../left-menu/option/roomOptions/RoomHeight.vue";
 import AddPhotoHelperButton from "@/components/ui/buttons/header/helpers/AddPhotoHelperButton.vue";
 import GetAppHelperButton from "@/components/ui/buttons/header/helpers/GetAppHelperButton.vue";
 import VisibilityHelperButton from "@/components/ui/buttons/header/helpers/VisibilityHelperButton.vue";
@@ -74,75 +75,12 @@ const constructor2DHistory = useConstructor2DHistory();
 const popupStore = usePopupStore();
 const { setTransformControlsValue } = useTransformController();
 
-// const _saveProject = async () => {
-//   eventBus.emit("A:Save");
-//   const project = sceneState.getCurrentProjectParams;
-//   const data = {
-//     user_hash: "08a57654db94bdcfe44a9ee10b2f0778",
-//     city: 17281,
-//     designer: "14240",
-//     page: 1,
-//     config: 43830,
-//     type: "user",
-//   };
+const clampHeight = computed(() => roomOptions.getHeightClamp);
 
-//   await postRequest(`${_GET_URL}`, data);
-
-//   // if (historyActions.value) eventBus.emit("A:Save");
-// };
-
-// const saveProject = async () => {
-//   eventBus.emit("A:Save");
-//   return;
-//   const project = sceneState.getCurrentProjectParams;
-//   const data = {
-//     data: {
-//       file: "data:image/jpeg;base64,",
-//       provider: "vardek",
-//       name: "test_new_constructor",
-//       user_hash: "08a57654db94bdcfe44a9ee10b2f0778",
-//       city: 17281,
-//       project: project,
-//       style: "689680",
-//       projectId: Date.now().toString(),
-//       user_id: "14240",
-//     },
-//   };
-
-//   await postRequest(`${_POST_URL}`, data);
-
-//   // if (historyActions.value) eventBus.emit("A:Save");
-// };
-
-// const drowMode = async () => {
-//   drowModeValue.value = !drowModeValue.value;
-//   menuStore.setDrowModeValue(drowModeValue.value);
-//   eventBus.emit("A:DrawingMode", drowModeValue.value);
-// };
-
-// const toggleRulerVisibility = async () => {
-//   rulerVisibility.value = !rulerVisibility.value;
-//   menuStore.setRulerVisibility(rulerVisibility.value);
-//   eventBus.emit("A:ToggleRulerVisibility", rulerVisibility.value);
-// };
-
-// const loadProject = async () => {
-//   // return;
-//   const data = {
-//     id: "11487677",
-//   };
-//   await postRequest(`${_GET_PROJECT}`, data);
-// };
-
-// const updateProject = async () => {
-//   const project = sceneState.getCurrentProjectParams;
-//   const data = {
-//     id: "11323197",
-//     project: project,
-//   };
-
-//   const resp = await postRequest(`${_UPDATE_PROJECT}`, data);
-// };
+const changeHeightClamp = (value: number | null) => {
+  roomOptions.setHeightClamp(value);
+  eventBus.emit("A:Height-clamp", value);
+};
 
 const createNewRoom = (value: string) => {
   // 2D: создаем новую комнату на основе шаблона blankroom
@@ -565,24 +503,15 @@ onBeforeUnmount(() => {
           <img class="header-link__logo" src="@/assets/img/logo.png" />
         </router-link> -->
         <div class="header-link">
-               <img class="header-link__logo" src="@/assets/img/logo.png" />
+          <img class="header-link__logo" src="@/assets/img/logo.png" />
         </div>
         <div class="header-main-ui">
-          <div
-            :class="['history', 'history__btns', getHistoruBtnsState]"
-            v-if="
-              historyActions && (route.path == '/3d' || route.path == '/2d')
-            "
-          >
+          <div :class="['history', 'history__btns', getHistoruBtnsState]" v-if="
+            historyActions && (route.path == '/3d' || route.path == '/2d')
+          ">
             <!-- {{ restorLength }}{{ curActionCount }} -->
-            <LeftLightHeaderButton
-              @click="prevAction"
-              :class="{ disabled: lessThenActions }"
-            />
-            <RightLightHeaderButton
-              @click="nextAction"
-              :class="{ disabled: moreThenActions }"
-            />
+            <LeftLightHeaderButton @click="prevAction" :class="{ disabled: lessThenActions }" />
+            <RightLightHeaderButton @click="nextAction" :class="{ disabled: moreThenActions }" />
           </div>
           <div class="header-ui-group">
             <S2DLightHeaderButton />
@@ -591,22 +520,15 @@ onBeforeUnmount(() => {
           <div class="header-ui-group">
             <Modal ref="inputDialogRef" v-if="route.path !== '/3d'">
               <template #modalBody="{ onModalClose }">
-                <InputDialog
-                  label="Назовите комнату"
-                  placeholder="Введите название"
-                  initialValue="Комната"
-                  confirmText="Создать"
-                  @confirm="createNewRoom"
-                >
+                <InputDialog label="Назовите комнату" placeholder="Введите название" initialValue="Комната"
+                  confirmText="Создать" @confirm="createNewRoom">
                   <template #confirmButton="{ onConfirm }">
-                    <MainButton
-                      @click="
-                        () => {
-                          onConfirm();
-                          onModalClose();
-                        }
-                      "
-                    >
+                    <MainButton @click="
+                      () => {
+                        onConfirm();
+                        onModalClose();
+                      }
+                    ">
                       Создать
                     </MainButton>
                   </template>
@@ -616,20 +538,21 @@ onBeforeUnmount(() => {
                 </InputDialog>
               </template>
               <template #modalOpen="{ onModalOpen }">
-                <button
-                  class="button__rounded"
-                  @click="
-                    () => {
-                      onModalOpen();
-                      customiserStore.hideCustomiserPopup();
-                    }
-                  "
-                >
+                <button class="button__rounded" @click="
+                  () => {
+                    onModalOpen();
+                    customiserStore.hideCustomiserPopup();
+                  }
+                ">
                   <span class="icon icon-add"></span>
                 </button>
               </template>
             </Modal>
           </div>
+        </div>
+        <div class="header-modheight" v-if="route.path === '/3d'">
+          <p class="header-modheight__label">Высота навесных модулей</p>
+          <RoomHeight :clampHeight="clampHeight" @apply="changeHeightClamp" />
         </div>
       </div>
       <div class="header-utilitys">
@@ -672,6 +595,20 @@ onBeforeUnmount(() => {
 
   &-basket {
     position: relative;
+  }
+}
+
+.header-modheight {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 1rem;
+
+  &__label {
+    font-size: 1.2rem;
+    color: $strong-grey;
+    white-space: nowrap;
   }
 }
 
@@ -740,8 +677,10 @@ onBeforeUnmount(() => {
     height: 100%;
   }
 }
+
 .history {
   position: relative;
+
   &__btns {
     display: flex;
     gap: 10px;
@@ -749,8 +688,7 @@ onBeforeUnmount(() => {
     &.disabled {
       pointer-events: none;
 
-      .light-radial__button {
-      }
+      .light-radial__button {}
     }
   }
 }

@@ -10,7 +10,7 @@ import { useHandlesAction } from "./useHandlesAction";
 
 import MaterialSelector from "@/components/right-menu/customiser-pages/ColorRightPage/MaterialSelector.vue";
 import ConfigurationOption from "../../ColorRightPage/ConfigurationOption.vue";
-import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
+import HandlePositionSelect from "@/components/ui/direction/HandlePositionSelect.vue";
 import defaultTab from "@/components/ui/tabs/defaultTab.vue";
 
 interface ITabChangeParams {
@@ -72,16 +72,15 @@ const handleList = ref<THandlesItem[]>();
 
 onBeforeMount(() => {
   const model = modelState.getCurrentModel;
-  const { FASADE_TYPE, FASADE_POSITIONS } = model?.userData.PROPS.CONFIG;
+  const config = model?.userData?.PROPS?.CONFIG;
+  const FASADE_TYPE: any[] = config?.FASADE_TYPE ?? [];
+  const FASADE_POSITIONS: any[] = config?.FASADE_POSITIONS ?? [];
 
-  const filtered = FASADE_TYPE.filter((el) => el !== null);
   const indexed = FASADE_TYPE.findIndex((item) => item !== null);
   let index;
 
-  if (
-    FASADE_POSITIONS[0].FASADE_TYPE.findIndex((item) => item !== null) == -1
-  ) {
-    const tempIndex = FASADE_TYPE.findIndex((item) => item !== null);
+  const firstPositionTypes: any[] = FASADE_POSITIONS[0]?.FASADE_TYPE ?? [];
+  if (firstPositionTypes.findIndex((item) => item !== null) == -1) {
     if (props.index) {
       index = props.index;
     } else if (indexed > -1) {
@@ -90,7 +89,7 @@ onBeforeMount(() => {
       index = 0;
     }
   } else {
-    index = FASADE_POSITIONS[0].FASADE_TYPE.findIndex((item) => item !== null);
+    index = firstPositionTypes.findIndex((item) => item !== null);
   }
 
   if (index === -1) {
@@ -178,19 +177,25 @@ const checkControllerVisible = computed(() => {
     // handlePos.value.length > 1
   );
 });
+
+const handlesDisabled = computed(() => {
+  return !!figureFasad.value.props.HANDLES?.noHandles;
+});
 </script>
 <template>
   <div class="handles__wraper">
     <defaultTab v-if="!props.is2Dconstructor" :tabs="props.data" :initialTab="figureFasad.name"
       @tab-change="handleTabChange" />
     <div class="handles__container">
-      <div class="handles__header">
-        <ConfigurationOption @delete-choise="onDeleteHandle" :type="'Handles'" :data="figureFasad.data" />
-        <DirectionControl v-if="controllerVisible && !props.disablePositionChanger" :handle-pos="handlePos"
-          :active-pos="props.activePos" @changeDirectionPos="onChangeHandlePos" :container="'card'" :scale="1" :gap="2"
-          :max-width="120" :size="20" :fontSize="10" />
-      </div>
-      <MaterialSelector @select="onHandleSelect" :materials="handleList" />
+      <template v-if="!handlesDisabled">
+        <div class="handles__header">
+          <ConfigurationOption @delete-choise="onDeleteHandle" :type="'Handles'" :data="figureFasad.data" />
+          <HandlePositionSelect v-if="controllerVisible && !props.disablePositionChanger"
+            :model-value="figureFasad.props.HANDLES.position" @update:model-value="onChangeHandlePos" />
+        </div>
+        <MaterialSelector @select="onHandleSelect" :materials="handleList" />
+      </template>
+      <div v-else class="handles__disabled">Ручки недоступны для данного фасада</div>
     </div>
   </div>
 </template>
@@ -221,7 +226,7 @@ const checkControllerVisible = computed(() => {
     font-size: 1.4rem;
 
     .redactor {
-      &__list { 
+      &__list {
         max-height: calc(50vh - 110px);
       }
     }
@@ -231,6 +236,13 @@ const checkControllerVisible = computed(() => {
     display: flex;
     align-items: center;
     gap: 15px;
+  }
+
+  &__disabled {
+    padding: 10px;
+    color: #999;
+    font-size: 1.2rem;
+    text-align: center;
   }
 }
 

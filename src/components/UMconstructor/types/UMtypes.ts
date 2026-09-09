@@ -55,6 +55,7 @@ export interface FasadeObject {
     minX?: number;
     maxX?: number;
     error?: boolean;
+    splitGroup?: number;
 }
 
 export const MANUFACTURER = {
@@ -118,6 +119,95 @@ export interface GridSection {
     loopsSides?: {};
     hiTechProfiles?: FillingObject[];
     fillings?: FillingObject[];
+    // Гардеробная система (см. GridModule.moduleKind) — сектор не использует
+    // cells/cellsRows/extras вовсе, содержимое сектора плоским списком здесь.
+    wardrobeShelves?: WardrobeShelfPlacement[];
+    // Тумбочки с ящиками (см. WardrobeCabinetPlacement) — отдельный от полок
+    // массив, т.к. у тумбочки есть собственное вложенное наполнение (ящики).
+    wardrobeCabinets?: WardrobeCabinetPlacement[];
+}
+
+// Профиль стоит на границе двух секторов (или на краю модуля), поэтому не
+// принадлежит сектору, а лежит в GridModule.wardrobeProfiles длиной
+// sections.length + 1.
+//
+// profileProductId — "Тип профиля": товар из
+// _WARDROBE_SYSTEM[wardrobeProductId].profile (getWardrobeProfileProducts).
+// У каждого свой список цветов (.colors), поэтому colorId зависит от него, а
+// не от крепления.
+//
+// fasteningId — "Крепление профиля": запись в
+// _WARDROBE_SYSTEM[wardrobeProductId].fastenings ({id, name, type,
+// height:{min,max}, depth:{min,max}}). type — машинный идентификатор
+// ("floor_ceiling"/"floor_wall"/"wall_wall"), name — подпись для UI. От type
+// зависят цветовая "семья" в 2D (getWardrobeFasteningColorFamily/
+// WardrobeColors.ts) и диапазон height (getWardrobeProfileHeightRange).
+//
+// colorId — цвет из _COLOR (как PROFILECOLOR у обычных УМ-профилей; НЕ
+// _FASADE, в отличие от WardrobeShelfPlacement.colorId), варианты зависят от
+// profileProductId (getWardrobeProfileMaterials).
+//
+// height — собственная высота профиля, мм; высота модуля (GridModule.height)
+// = максимум по всем профилям (UMconstructorClass.reset()), т.к. "Пол-стена"
+// обычно короче "Пол-потолок".
+export interface WardrobeProfile {
+    id: number;
+    profileProductId: number;
+    fasteningId: number;
+    colorId?: number;
+    height: number;
+}
+
+// Вид полки — ЛДСП (с выбором материала/цвета) или стекло (без выбора).
+// Отдельного productId под стекло нет — это флаг поверх той же полки-товара
+// (5975548): товара "полка-стекло" в каталоге не существует.
+export type WardrobeShelfMaterial = 'ldsp' | 'glass';
+
+// Полка — плоская или наклонная (обувная, см.
+// ShelfBuilder.buildWardrobeAngledShelf).
+//
+// productId — ссылка в _PRODUCTS (всегда 5975548, других полок в каталоге
+// нет). colorId — материал из _FASADE, только при material==='ldsp'
+// (варианты — _WARDROBE_SYSTEM[wardrobeProductId].shelf[productId].fasade);
+// _FASADE[colorId].DEPTH даёт толщину вместо захардкоженных 18мм.
+//
+// kind — 'shelf' (по умолчанию; undefined тоже полка) или 'rail' (штанга из
+// "Наполнение" -> "Вставка", группы
+// _PRODUCTS[wardrobeProductId].FILLING_SECTION — см.
+// getWardrobeFillingsGroups/RailsManager.addWardrobeRail). Штанга лежит в
+// ТОМ ЖЕ wardrobeShelves ради полноценной коллизии: getWardrobeShelfMinGap/
+// getWardrobeShelfFloorGap/findFreeWardrobeShelfPositionY/
+// getWardrobeShelfDragBounds и авто-удаление по потолку сектора уже дженерик
+// над {type, positionY, ...}. У штанги type всегда 'flat', material/colorId
+// не используются, толщина — из railHeight (см. getWardrobeShelfPixiHeight).
+export interface WardrobeShelfPlacement {
+    id: number;
+    productId: number;
+    type: 'flat' | 'angled';
+    material?: WardrobeShelfMaterial;
+    colorId?: number;
+    positionY: number;
+    kind?: 'shelf' | 'rail';
+    railHeight?: number;
+}
+
+// Универсальная тумбочка с ящиками (черновик — товара в каталоге пока нет,
+// см. чат: ширина всегда = ширине сектора, поэтому отдельного поля width
+// нет; высота фиксирована у товара (productId), но позиция по Y —
+// произвольная, как у полки, а не всегда от пола).
+export interface WardrobeDrawerPlacement {
+    id: number;
+    // productId/height и т.п. — пока не заведено, товара с ящиком в
+    // каталоге ещё нет; добавится вместе с самим товаром "Универсальная тумбочка".
+}
+
+export interface WardrobeCabinetPlacement {
+    id: number;
+    productId: number;
+    positionY: number;
+    // Настраивается пользователем ("Добавить ящик"/"Удалить"), не
+    // фиксировано у товара — см. чат.
+    drawers: WardrobeDrawerPlacement[];
 }
 
 export const ErrorsType = {
@@ -156,6 +246,27 @@ export interface ProfileData {
     COLOR: number;
 }
 
+export interface HiTechProfileData {
+    isVerticalItem: boolean;
+    product: number;
+    id: number;
+    name: string;
+    image: string;
+    type: string;
+    position: Position;
+    size: Size;
+    width: number;
+    height: number;
+    color: number;
+    sec: number;
+    cell: null | any; // или конкретный тип, если известен
+    row: null | any;  // или конкретный тип, если известен
+    extra: null | any; // или конкретный тип, если известен
+    productGroupID: number;
+    isProfile: ProfileData;
+    moduleThickness: number;
+}
+
 export interface GridModule {
     width: number;
     height: number;
@@ -176,6 +287,13 @@ export interface GridModule {
     noLoops?: boolean;
     errors?: Object;
     profilesConfig?: ProfilesConfig;
+    // Не задано (undefined) = обычный "коробочный" УМ, как и раньше.
+    // 'wardrobe' = гардеробная система — sections[] используются только для
+    // ширины/позиции секторов и resize-драга, cells/cellsRows/extras внутри
+    // них не используются вовсе (см. GridSection.wardrobeShelves,
+    // WardrobeProfile, вариант "C" в SESSION_CONTEXT.md).
+    moduleKind?: 'boxed' | 'wardrobe';
+    wardrobeProfiles?: WardrobeProfile[];
 }
 
 export interface canvasConfig {
@@ -189,6 +307,17 @@ export interface TSelectedCell {
     row?: number | null,
     extra?: number | null,
     item?: number | null
+}
+
+
+interface Position {
+    x: number;
+    y: number;
+}
+interface Size {
+    x: number;
+    y: number;
+    z: number;
 }
 
 export type constructorMode = 'module' | 'fasades' | 'fillings';

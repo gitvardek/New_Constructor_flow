@@ -102,11 +102,14 @@ export const useModelState = defineStore('ModelState', () => {
     const _HEM = computed(() => _APP.value.HEM || [])
     const _WALL = computed(() => _APP.value.WALL || [])
     const _FASADE_EXCEPTIONS = computed(() => _APP.value.FASADE_EXCEPTIONS || [])
+    const _WARDROBE_SYSTEM = computed(() => _APP.value.WARDROBE_SYSTEM || [])
+    const _SECTIONS = computed(() => _APP.value.CATALOG?.SECTIONS || [])
+
 
     // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 
 
-    const nestandartIDs = ref<number[]>([1814256, 971222, 1807360,])
+    const nestandartIDs = ref<number[]>([1814256, 971222, 1807360, 3954672])
 
     const currentModel = ref<THREE.Object3D | null>(null)
     const currentRaspilParent = ref<THREE.Object3D | null>(null)
@@ -830,7 +833,8 @@ export const useModelState = defineStore('ModelState', () => {
         _WALL,
         _FASADE_EXCEPTIONS,
         _COLOR,
-
+        _WARDROBE_SYSTEM,
+        _SECTIONS,
 
         getModels,
 

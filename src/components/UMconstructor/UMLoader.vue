@@ -15,7 +15,7 @@
   width: 100vw;
   height: 100vh;
   background-color: transparent; /* или другой цвет и прозрачность */
-  backdrop-filter: blur(15px); /* опционально: размытие фона */
+  // backdrop-filter: blur(15px); /* опционально: размытие фона */
   z-index: 998;
   display: flex;
   align-items: center;

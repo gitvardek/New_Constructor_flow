@@ -35,6 +35,40 @@ export const useUMStorage = defineStore('um-data', () => {
     const noLoops = ref<boolean>(false);
     const noBackwall = ref<boolean>(false);
 
+    // Гардеробная система — режим размерных линий полок/штанг на канвасе
+    // (SceneBuilder.ts::createWardrobeSector, переключатель в WardrobeRightPanelView.vue):
+    // 'floor' — расстояние от КАЖДОЙ полки до низа модуля (пола), накопительно
+    // (уточнение пользователя, новое поведение по умолчанию); 'gap' — прежний
+    // режим (зазор МЕЖДУ соседними полками). Не сбрасывается в clearStorage()
+    // ниже вместе с остальным состоянием модуля — это чисто визуальная
+    // настройка канваса, не часть данных изделия.
+    const wardrobeShelfDimensionMode = ref<'gap' | 'floor'>('floor');
+
+    // Гардеробная система — true во время активного драга полки/профиля на
+    // канвасе (DividerDragEngine.onWardrobeShelfDragStart/
+    // onWardrobeProfileDragStart..DragEnd). Зеркалит
+    // RenderContext.wardrobeDragActive: та копия для PIXI-стороны, эта —
+    // реактивная, для Vue. Нужна против фризов, которые оставались и после
+    // оптимизации самого PIXI-рендера: ту же реактивную grid-структуру живьём
+    // читает WardrobeFillingsView.vue "Конфигурация" (панель открывается по
+    // клику на полку), и мутация shelf.positionY на каждый pointermove
+    // заставляла Vue пересчитывать границы "Положение по Y"
+    // (getWardrobeShelfDragBounds) и перерисовывать ВСЕ карточки сектора —
+    // при большом их числе дороже PIXI-рендера. См. использование там же.
+    const wardrobeDragActive = ref<boolean>(false);
+
+    // Гардеробная система — id выбранного ПРОФИЛЯ (или null), двусторонняя
+    // синхронизация канвас <-> WardrobeProfilesView.vue "Настройка профилей"
+    // (уточнение пользователя, тот же принцип, что и у выбора полки —
+    // UM_STORE.selectedFilling — но профили не привязаны к сектору/типу
+    // TSelectedCell и не наполнение, поэтому отдельное простое поле, а не
+    // расширение generic-механизма setSelected/getSelected). Пишется из
+    // SelectionHighlighter.selectWardrobeProfile (канвас) и
+    // UMconstructorClass.selectWardrobeProfile (панель) — см. там же.
+    const selectedWardrobeProfileId = ref<number | null>(null);
+
+    const pendingOperations = ref<number>(0);
+
     const setUMGrid = (value: GridModule) => {
         if (value)
             UM_GRID.value = value
@@ -169,6 +203,7 @@ export const useUMStorage = defineStore('um-data', () => {
         onWallModule.value = false;
         noLoops.value = false;
         noBackwall.value = false;
+        pendingOperations.value = 0
     }
 
     return {
@@ -184,6 +219,10 @@ export const useUMStorage = defineStore('um-data', () => {
         noBottom,
         onWallModule,
         noLoops,
+        wardrobeShelfDimensionMode,
+        wardrobeDragActive,
+        selectedWardrobeProfileId,
+        pendingOperations,
         setUMGrid,
         setUMData,
         setUMCashConfig,

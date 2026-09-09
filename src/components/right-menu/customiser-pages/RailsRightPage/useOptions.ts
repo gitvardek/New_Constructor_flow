@@ -20,12 +20,18 @@ export const useOptions = () => {
     const { weightCalculation, createMeckhanizmList } = mechanism;
 
 
-    const UNIVERSALE_MODULES = [3954672, 6469966, 9028125, 5168676]
-    const NESTANDART_MODULES = [971222, 1814256]
+    const UNIVERSALE_MODULES = [3954672, 6469966, 9028125, 5168676];
+    const NESTANDART_MODULES = [971222, 1814256];
+    const NESTANDART_FASADE = [14831];
+    const NO_HORIZONT_OPTIONS = [4722965, 5738924];
     const cutOptionsId = [4722787, 4722786];
     const cutOptionsTempSize = 20;
 
     const mechanismList = createMeckhanizmList();
+
+    const syncHorizont = (options: any[]) => {
+        UM_STORE.onHorizont = !options.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id) && opt.active)
+    }
 
     const createOptionList = () => {
 
@@ -82,6 +88,7 @@ export const useOptions = () => {
 
         if (values) {
             OPTIONS.forEach(opt => {
+
                 const commonSection = hasCommonNumbers(opt.section, curOpt.section)
 
                 const checkAvailable =
@@ -107,15 +114,12 @@ export const useOptions = () => {
                                 break;
                             case 5738924:   //Без дна
                                 PROPS.CONFIG.BACKWALL = { COLOR: PROPS.CONFIG.MODULE_COLOR, SHOW: true };
-                                //PROPS.CONFIG.HORIZONT = 78
-                                UM_STORE.onHorizont = true
                                 UM_STORE.noBottom = false
                                 break;
                             case 1795067: //Опция без петель
                                 UM_STORE.noLoops = false
                                 break
                             case 4722965:   //Навесной
-                                UM_STORE.onHorizont = true
                                 UM_STORE.onWallModule = false
                                 modelState.createCurrentBackwallData(ID);
                                 break;
@@ -126,6 +130,19 @@ export const useOptions = () => {
                     opt.active = false;
                 }
             });
+        }
+
+
+        // Обязательная группа — не снимаем, если эта опция единственная активная
+        if (!values && curOpt.close === '1') {
+            const groupActives = OPTIONS.filter(opt =>
+                opt.close === '1' &&
+                opt.active &&
+                hasCommonNumbers(opt.section, curOpt.section)
+            );
+            if (groupActives.length <= 1) {
+                return curOpt.active;
+            }
         }
 
         curOpt.active = values;
@@ -169,14 +186,7 @@ export const useOptions = () => {
                     delete PROPS.CONFIG.TSARGA
                 break;
             case 4722965:   //Навесной
-                if (curOpt.active) {
-                    UM_STORE.onHorizont = false
-                    UM_STORE.onWallModule = true
-                }
-                else {
-                    UM_STORE.onHorizont = true
-                    UM_STORE.onWallModule = false
-                }
+                UM_STORE.onWallModule = curOpt.active
                 modelState.createCurrentBackwallData(ID);
                 let currentBackwallData = modelState.getCurrentBackwallData;
 
@@ -197,13 +207,9 @@ export const useOptions = () => {
             case 5738924:   //Без дна
                 if (curOpt.active) {
                     PROPS.CONFIG.BACKWALL = { COLOR: false, SHOW: false };
-                    //PROPS.CONFIG.HORIZONT = 0
-                    UM_STORE.onHorizont = false
                     UM_STORE.noBottom = true
                 } else {
                     PROPS.CONFIG.BACKWALL = { COLOR: PROPS.CONFIG.MODULE_COLOR, SHOW: true };
-                    //PROPS.CONFIG.HORIZONT = 78
-                    UM_STORE.onHorizont = true
                     UM_STORE.noBottom = false
                 }
                 break;
@@ -211,9 +217,21 @@ export const useOptions = () => {
                 break;
         }
 
-        eventBus.emit("A:SelectModelOption", { option, values, disabledOptions })
+        // Пересчитываем цоколь только если менялась опция, которая им управляет.
+        // Безусловный пересчёт затирал ручное переключение тумблера «Цоколь»
+        // при клике по любой другой опции
 
-        //  eventBus.emit("A:SelectModelOption")
+        const horizontAffected = NO_HORIZONT_OPTIONS.includes(+curOpt.id) ||
+            disabledOptions.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id))
+
+        if (horizontAffected) {
+            syncHorizont(OPTIONS)
+        }
+
+        const optionData = appData.getAppData.OPTION?.[id] ?? {}
+        const emittedOption = { ...optionData, ...(option && typeof option === 'object' ? option : {}) }
+
+        eventBus.emit("A:SelectModelOption", { option: emittedOption, values, disabledOptions })
 
         return curOpt.active;
     };
@@ -238,13 +256,17 @@ export const useOptions = () => {
         const curOptions = PROPS.CONFIG.OPTIONS
 
         let filtered = []
+
         const curOptionsList = curOptions
             .map(el => {
                 if (!options[el.id]) return
                 const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
                 const cutSize = getCutSizeOption(el, cloneOption)
+                const disabled = +el.id === 8390271
+                    ? !!(PROPS.CONFIG.LEFTSIDECOLOR?.COLOR || PROPS.CONFIG.RIGHTSIDECOLOR?.COLOR)
+                    : el.disabled;
 
-                return { ...cloneOption, active: el.active, visible: el.visible, cutSize: cutSize }
+                return { ...cloneOption, active: el.active, visible: el.visible, cutSize: cutSize, disabled }
             })
             .filter(Boolean);
 
@@ -268,16 +290,13 @@ export const useOptions = () => {
 
         })
 
-
-
         return filtered
     }
 
     const filterGroups = (groups, incomingIds, props) => {
         const idStrs = incomingIds.map(id => id.toString());
-        const tmp_active_options = props?.slice().filter(item => item.active === true).map(item => {
-            return +item.id
-        }) || []
+
+        const tmp_active_options = getActiveOptionIds(props)
 
         let result = groups.map(group => {
             const contant = group.CONTANT;
@@ -319,24 +338,16 @@ export const useOptions = () => {
                     const curOptionInConfig = props.find(el => el.id === item.ID)
 
                     if (curOptionInConfig) {
-                        curOptionInConfig.visible = shouldBeVisible
-                        if (!shouldBeVisible) {
-                            curOptionInConfig.active = false
+                        // Зависимость от другой опции: пересчитываем в обе стороны
+                        if (!isRequirementMet(item, tmp_active_options)) {
+                            shouldBeVisible = false
                         }
 
-                        if (item.REQUIRED_OPTIONS.length > 0) {
-                            let check = false
-                            for (let option of item.REQUIRED_OPTIONS) {
-                                if (tmp_active_options.includes(+option)) {
-                                    check = true
-                                    break;
-                                }
-                            }
-                            if (!check) {
-                                curOptionInConfig.active = item.active = false;
-                                curOptionInConfig.visible = shouldBeVisible = false
-                                eventBus.emit("A:SelectModelOption")
-                            }
+                        curOptionInConfig.visible = shouldBeVisible
+
+                        if (!shouldBeVisible && curOptionInConfig.active) {
+                            curOptionInConfig.active = item.active = false
+                            eventBus.emit("A:SelectModelOption")
                         }
 
 
@@ -352,7 +363,7 @@ export const useOptions = () => {
             });
 
 
-            let visible_contant = modifiedContant.filter(item => item.visible === true)
+            let visible_contant = modifiedContant.filter(item => item?.visible === true)
             if (visible_contant.length) {
                 checkNecessaryOptions(visible_contant, props)
                 return {
@@ -374,7 +385,8 @@ export const useOptions = () => {
 
                     contant.forEach(_item2 => {
                         if (_item2.CLOSE_OTHER_OPTIONS === '1' &&
-                            (_item2.IBLOCK_SECTION_ID?.[0] === optionCurrent.IBLOCK_SECTION_ID?.[0])) {
+                            optionCurrent.IBLOCK_SECTION_ID?.[0] !== undefined &&
+                            _item2.IBLOCK_SECTION_ID?.[0] === optionCurrent.IBLOCK_SECTION_ID?.[0]) {
                             closeOptions.push(_item2)
                         }
                     });
@@ -395,9 +407,9 @@ export const useOptions = () => {
                 if (optionCurrent.close === '1') {
                     let closeOptions = []
 
-                    global.forEach(_item2 => {
+                    props.forEach(_item2 => {
                         if (_item2.close === '1' &&
-                            (_item2.section === optionCurrent.section)) {
+                            hasCommonNumbers(_item2.section, optionCurrent.section)) {
                             closeOptions.push(_item2)
                         }
                     });
@@ -413,6 +425,7 @@ export const useOptions = () => {
 
     const processVisibility = (groups: any[], incomingIds: any[], global?: any[]) => {
         const idStrs = incomingIds.map(id => id.toString());
+        const activeIds = getActiveOptionIds(global);
         groups.forEach(group => {
             const contant = group.CONTANT;
             // Проверяем, есть ли в CONTANT хотя бы один элемент с хотя бы одним incomingId в SHOW_ON_FASADE
@@ -445,10 +458,17 @@ export const useOptions = () => {
                     }
                 }
 
+                // Зависимость от другой опции — тот же учёт, что и в filterGroups
+                if (!isRequirementMet(item, activeIds)) {
+                    shouldBeVisible = false
+                }
+
                 if (global) {
                     const curOptionInConfig = global.find(el => el.id === item.ID)
+                    if (!curOptionInConfig) return
+
                     curOptionInConfig.visible = shouldBeVisible
-                    if (!shouldBeVisible) {
+                    if (!shouldBeVisible && curOptionInConfig.active) {
                         curOptionInConfig.active = false
                         eventBus.emit("A:SelectModelOption")
                     }
@@ -496,14 +516,16 @@ export const useOptions = () => {
 
         const PROPS = modelState.getCurrentModel.userData.PROPS as TTotalProp;
         const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize
-
+        const isNestandartFasade = NESTANDART_FASADE.includes(PROPS.PRODUCT)
         const isConditions = options.CONDITIONS
-        if (UNIVERSALE_MODULES.includes(PROPS.PRODUCT)) return options.visible
-        if (!isConditions) return options.visible
+        if (UNIVERSALE_MODULES.includes(PROPS.PRODUCT)) return true
+        if (!isConditions) return true
 
         const convert = expressionsReplace(isConditions, {
             "#X#": BODY_WIDTH,
-            "#Y#": BODY_HEIGHT
+            "#Y#": BODY_HEIGHT,
+            "#FASADE_HEIGHT_MAX#": isNestandartFasade ? BODY_HEIGHT : 0,
+            "#FASADE_HEIGHT_MIN#": isNestandartFasade ? BODY_HEIGHT : 100000
         })
 
         const converted = calculateFromString(convert)
@@ -517,6 +539,19 @@ export const useOptions = () => {
         const setA = new Set(a);
         return b.some(num => setA.has(num));
     }
+
+    // Опция с REQUIRED_OPTIONS показывается, только если активна хотя бы одна из перечисленных.
+    // Без REQUIRED_OPTIONS ограничения нет
+    const isRequirementMet = (option, activeIds: number[]): boolean => {
+        if (!option.REQUIRED_OPTIONS?.length) return true
+        return option.REQUIRED_OPTIONS.some(id => activeIds.includes(+id))
+    }
+
+    // Активные опции из CONFIG.OPTIONS
+    const getActiveOptionIds = (props?: any[]): number[] => {
+        return props?.filter(item => item.active === true).map(item => +item.id) ?? []
+    }
+
 
     return { createOptionList, checkActive, resetGlobal }
 }

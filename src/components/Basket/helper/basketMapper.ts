@@ -6,7 +6,9 @@ import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoo
 import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 
-const appDataStore = useAppData()
+const appDataStore = useAppData();
+const emptyTableTopId = 69919
+const tableTopLengthDefault = 3000
 
 function createFacadeProps(objProps: any): IBasketFacade[] {
 
@@ -160,7 +162,7 @@ function generateDoorsSimple(moduleData) {
       section.fasades?.forEach(fasadeArray => {
         fasadeArray.forEach((fasade, index) => {
           const doorNum = fasade.door || 1;
-          const segmentNum = index; // номер сегмента = индекс в массиве
+          const segmentNum = fasade.id - 1;
           const color = fasade.material.COLOR;
 
           if (!DOORS[sectionNum][doorNum]) {
@@ -217,8 +219,8 @@ function transformLoops(sections, horizont, moduleThickness) {
       coordsResult[key] = {};
       sidesResult[key] = {};
       section.loops.forEach((loopArray, loopKey) => {
-        coordsResult[key][loopKey + 1] = loopArray[0].coords.map(coord => {
-          return coord - horizont - moduleThickness
+        coordsResult[key][loopKey + 1] = loopArray.flatMap(loop => {
+          return loop.coords.map(coord => coord - horizont - moduleThickness)
         });
         sidesResult[key][loopKey + 1] = loopArray[0].side;
 
@@ -283,14 +285,14 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
     }
   }
 
-  const item = arr.map(el => {
+  const item = arr.flatMap(el => {
 
-    const base = {
+    let base = {
       ID: el.product,
-      PATH: false,
-      MATERIAL_ID: el.material, // Материал полки
+      PATH: el.fasade ? (el.fasade.id - 1) : false,
+      MATERIAL_ID: el.material,
       PRODUCT_TYPE: el.type,
-      SIZE: { // Размеры
+      SIZE: {
         width: el.size?.x || 0,
         height: el.size?.y || 0,
         depth: el.size?.z || 0
@@ -299,31 +301,55 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
       basketRenderPosition: el.basketRenderPosition || false,
     }
 
+    let mainItem
     if (el.type === 'section_partition') {
-      return {
+      mainItem = {
         ...base,
         PARTITION_ID: el.product,
-        SECTION_ID: el.id, // ID товара полки
+        SECTION_ID: el.id,
         UP_POSITION: el.ADDITIVES?.top?.additive_position,
         DOWN_POSITION: el.ADDITIVES?.bottom?.additive_position,
       }
     } else if (el.type === 'profile') {
-      return {
+      mainItem = {
         ...base,
         VALUE: el.VALUE,
         MATERIAL_ID: el.isProfile.COLOR,
         SIZE: el.size?.x || 0
       }
-    }
-    else {
+    } else if (el.type === 'tsarga') {
+      mainItem = {
+        "ID": el.ID,
+        "PRODUCT_ID": el.PRODUCT_ID,
+        "MATERIAL_ID": el.MATERIAL_ID,
+        "WIDTH": el.WIDTH,
+        "PRODUCT_TYPE": el.type,
+      }
+    } else {
       const fasadeData = createFasadeData(el)
-      return fasadeData ? { ...base, FASADE: fasadeData, VALUE: el.VALUE } : { ...base, VALUE: el.VALUE };
+      mainItem = fasadeData
+        ? { ...base, FASADE: fasadeData, VALUE: el.VALUE }
+        : { ...base, VALUE: el.VALUE }
     }
 
+    // Если есть tsarga — возвращаем ДВА объекта
+    if (el.tsarga?.PRODUCT_ID) {
+      const tsargaData = {
+        "ID": el.tsarga.ID,
+        "PRODUCT_ID": el.tsarga.PRODUCT_ID,
+        "MATERIAL_ID": el.tsarga.MATERIAL_ID,
+        "WIDTH": el.tsarga.WIDTH,
+        "PRODUCT_TYPE": el.tsarga.type,
+      }
+      return [tsargaData, mainItem]
+    }
+
+    return [mainItem]
   })
 
   return item
 }
+
 function convertModuleToLegacyFormat(newModuleObject) {
   if (!newModuleObject?.CONFIG) {
     return {};
@@ -420,11 +446,15 @@ function convertModuleToLegacyFormat(newModuleObject) {
         doorGroup.forEach((fasade, index) => {
           const doorNumber = fasade.door;
 
+          const fasId = fasade.id - 1
+
           if (!result[fasadesSizeKey][doorNumber]) {
-            result[fasadesSizeKey][doorNumber] = [];
+            result[fasadesSizeKey][doorNumber] = {};
           }
 
-          result[fasadesSizeKey][doorNumber].push(fasade.height);
+          if (fasade.height) {
+            result[fasadesSizeKey][doorNumber][fasId] = fasade.height
+          }
 
           if (!result[fasadesWidthKey][doorNumber]) {
             result[fasadesWidthKey][doorNumber] = fasade.width;
@@ -623,16 +653,17 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
 
   if (!filteredData) return;
 
-  const emptyTableTopId = 69919
-  const tableTopLengthDefault = 3000
   const { getGlobalOptions } = useRoomOptions()
   const tableTopId = getGlobalOptions?.tableTop?.id
-
-  console.log(tableTopId, emptyTableTopId)
+  const _PRODUCTS = appDataStore.getAppData.CATALOG.PRODUCTS
 
   if (tableTopId === emptyTableTopId) return false
 
   const tableTop = filteredData.map((obj: TTotalProps, key: string) => {
+
+    const haveTable = obj.id && _PRODUCTS[obj.id]?.tabletop
+    if (!haveTable || (obj.type !== 'element_down' && haveTable !== 'Y')) return;
+
     const data = obj.data
     if (!data) return
     const { CONFIG: { SIZE } } = data
@@ -700,10 +731,10 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
           serviseData: el.serviseData.filter(el => el.value).map(el => {
 
             if (el.separated == '0') return
-            if (el.width) {
+            if (el.EURO_WIDTH) {
               return {
                 ID: el.ID,
-                width: el.width,
+                width: parseInt(el.EURO_WIDTH),
                 NAME: el.NAME
               }
             } else {

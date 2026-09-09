@@ -89,7 +89,7 @@ export function useBasketApi() {
     }
   }
 
-  const syncInvoice = async (basketItems: IBasket[], technologistBasket: boolean|Object = false): Promise<IBasketResponse | null> => {
+  const syncInvoice = async (basketItems: IBasket[], technologistBasket: boolean|Object = false, dumpProjectId?: string | number): Promise<IBasketResponse | null> => {
     loading.value = true
     error.value = null
 
@@ -105,6 +105,9 @@ export function useBasketApi() {
 
       if(technologistBasket)
         request.technologistBasket = technologistBasket
+
+      if (dumpProjectId != null)
+        request.dumpProjectId = dumpProjectId
 
       const response = await BasketService.invoceBasket(request)
       return response?.DATA?.type !== 'error' ? response.DATA : null

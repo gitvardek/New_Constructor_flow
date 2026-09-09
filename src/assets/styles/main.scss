@@ -429,6 +429,13 @@ p {
   }
 }
 
+.border{
+  height: 1px;
+  background-color: $dark-grey;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
 .right-menu__svg {
   display: flex;
   align-items: center;

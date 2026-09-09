@@ -37,7 +37,14 @@ import { LegBuilder } from './LegBuilder/LegBuilder.ts';
 import { DrowerBuilder } from './Drowers/DrowerBuilder.ts';
 import { ShelfBuilder } from './Shelf/ShelfBuilder.ts';
 import { MirrorBuilder } from './MirrorBuilder/MirrorBuilder.ts';
+import { TsargaBuilder } from './TsargaBuilder/TsargaBuilder.ts';
 import { UM_SAMPLE } from '../F-umModulesData.ts';
+
+//Временно
+import { isWardrobeSystemProduct } from '@/components/UMconstructor/utils/WardrobeSystem.ts';
+import { WardrobeGridParser } from './Wardrobe/WardrobeGridParser.ts';
+import { WardrobeFillingMeshBuilder } from './Wardrobe/WardrobeFillingMeshBuilder.ts';
+import { createWardrobeGrid } from '@/components/UMconstructor/ts/createWardrobeGrid.ts';
 
 export class BuildProduct extends BuildersHelper {
 
@@ -69,7 +76,13 @@ export class BuildProduct extends BuildersHelper {
     mirror_builder: MirrorBuilder
     uniform_texture_builder: UniformTextureBuilder
     useEdgeBuilder: THREETypes.TUseEdgeBuilder
-    private readonly _UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966];
+    tsarga_builder: TsargaBuilder
+    // Гардеробная система (WARDROBE) — Вариант B: пайплайн, параллельный
+    // BuildUniversalModule (см. SESSION_CONTEXT.md). Инъекция this — как у
+    // остальных *_builder здесь.
+    wardrobe_grid_parser: WardrobeGridParser
+    wardrobe_filling_mesh_builder: WardrobeFillingMeshBuilder
+    private readonly _UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966, 15342627];
     private readonly copy: boolean = false
 
 
@@ -99,6 +112,9 @@ export class BuildProduct extends BuildersHelper {
         this.leg_builder = new LegBuilder(this)
         this.shelf_builder = new ShelfBuilder(this)
         this.mirror_builder = new MirrorBuilder(this)
+        this.tsarga_builder = new TsargaBuilder(this)
+        this.wardrobe_grid_parser = new WardrobeGridParser()
+        this.wardrobe_filling_mesh_builder = new WardrobeFillingMeshBuilder(this)
     }
 
     get _currentProduct() {
@@ -113,50 +129,52 @@ export class BuildProduct extends BuildersHelper {
 
     getModel(
         product_data: THREETypes.TObject,
-        loaded_props?: THREETypes.TObject,
+        loaded_props?: THREETypes.TTotalProps,
         loaded_size?: THREETypes.TObject
     ): Promise<THREE.Object3D> {
-        return new Promise(async (resolve) => {
-            const type = this._MODELS[product_data.models[0]];
+        return new Promise(async (resolve, reject) => {
+            try {
+                const type = this._MODELS[product_data.models[0]];
 
-            if (type.DAE) {
-                const props = this.createStartProps(product_data, loaded_props);
-                let useContentSizeForDae = false;
-                // Размер из схемы (2D → content.size); иначе ModelsBuilder для DAE не применяет loaded_size
-                if (
-                    loaded_size
-                    && typeof loaded_size === 'object'
-                    && (Number(loaded_size.width) > 0
-                        || Number(loaded_size.height) > 0
-                        || Number(loaded_size.depth) > 0)
-                ) {
-                    props.CONFIG.SIZE = {
-                        width: Number(loaded_size.width),
-                        height: Number(loaded_size.height),
-                        depth: Number(loaded_size.depth),
-                    };
-                    // useContentSizeForDae = true;
+                if (type.DAE) {
+                    const props = this.createStartProps(product_data, loaded_props);
+                    let useContentSizeForDae = false;
+                    // Размер из схемы (2D → content.size); иначе ModelsBuilder для DAE не применяет loaded_size
+                    if (
+                        loaded_size
+                        && typeof loaded_size === 'object'
+                        && (Number(loaded_size.width) > 0
+                            || Number(loaded_size.height) > 0
+                            || Number(loaded_size.depth) > 0)
+                    ) {
+                        props.CONFIG.SIZE = {
+                            width: Number(loaded_size.width),
+                            height: Number(loaded_size.height),
+                            depth: Number(loaded_size.depth),
+                        };
+                    }
+                    return this.models_builder.create({
+                        props,
+                        forceContentSizeScale: useContentSizeForDae,
+                    })
+                        .then(model => this.finalizeModel(model, resolve, type))
+                        .catch(err => reject(err));
                 }
-                return this.models_builder.create({
-                    props,
-                    forceContentSizeScale: useContentSizeForDae,
-                })
-                    .then(model => this.finalizeModel(model, resolve, type))
-                    .catch(err => console.error('Ошибка загрузки DAE:', err));
+
+                const um_params = await this.um_sample.example(product_data.ID)
+                    .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
+                    .catch(() => null);
+
+                this.checkOptionsOldDataFormat(loaded_props)
+
+                const income_props = loaded_props ?? um_params
+
+                const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
+
+                return this.finalizeModel(parentGroup, resolve);
+            } catch (error) {
+                reject(error);
             }
-
-            // const um_params = this.um_sample.UM_LIST[product_data.ID] ? JSON.parse(JSON.stringify(this.um_sample.UM_LIST[product_data.ID])) : null
-            const um_params = await this.um_sample.example(product_data.ID)
-                .then(data => data ? JSON.parse(JSON.stringify(data)) : null)
-                .catch(() => null);
-
-            this.checkOptionsOldDataFormat(loaded_props)
-
-            const income_props = loaded_props ?? um_params;
-
-            const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
-
-            return this.finalizeModel(parentGroup, resolve);
         });
     }
 
@@ -445,6 +463,18 @@ export class BuildProduct extends BuildersHelper {
         PARAMS.SIZE = loadedProps ? loadedProps.CONFIG.SIZE : this.getProductSize(PARAMS, product_data);
         PARAMS.SIZE_EDIT = { ...this.getSizeEdit(product_data, PARAMS) };
         PARAMS.SIZE_OFFSET = loadedProps ? loadedProps.CONFIG.SIZE_OFFSET : { width: 0, height: 0, depth: 0 };
+        PARAMS.SIZE_BASE = loadedProps?.CONFIG?.SIZE_BASE;
+        // Гардеробная система: без CONFIG.WARDROBEGRID The3D.vue не откроет
+        // панель UM-конструктора (аналог CONFIG.MODULEGRID у обычного УМ).
+        // Раньше писалось пустое {}, и товар до первого сохранения 2D-
+        // редактора не показывал НИЧЕГО (createProductBody пропускает сборку
+        // при пустом sections). Сидируем дефолт ТОЙ ЖЕ createWardrobeGrid,
+        // что зовёт UMconstructorClass — единый источник, без повторной
+        // генерации.
+        if (isWardrobeSystemProduct(ID)) {
+            PARAMS.WARDROBEGRID = loadedProps?.CONFIG?.WARDROBEGRID
+                ?? createWardrobeGrid(ID, PARAMS.SIZE);
+        }
 
         return PARAMS;
     }
@@ -471,7 +501,18 @@ export class BuildProduct extends BuildersHelper {
         PROPS.BODY = [];
 
         const productId = CONFIG.ID;
-        const modelData = this._MODELS[CONFIG.MODELID];
+        // ВРЕМЕННО: гардеробная система опознаётся по MODELID==3954678.
+        // Риск: это общий шаблон "Новый нестандартный модуль", им могут
+        // пользоваться и другие товары — тогда они попадут в эту же ветку.
+        // Заменить на проверку по productId/CONFIG.ID, когда появится
+        // постоянное решение.
+        const isWardrobeSystemTemp = CONFIG.MODELID == 3954678;
+        // Модель НЕ подменяется на WARDROBE_MODEL_DATA (она описывала ровно 2
+        // хардкод-профиля): {} + isEmpty() ниже пропускают createBody целиком
+        // — штатный путь для товаров без "коробочного" тела, body/
+        // tempMaterial/move остаются null. Профили/полки/штанги строятся
+        // отдельно через wardrobe_grid_parser/wardrobe_filling_mesh_builder.
+        const modelData = isWardrobeSystemTemp ? {} : this._MODELS[CONFIG.MODELID];
         const modelSize = size ?? CONFIG.SIZE;
         const bodyExceptions = this.project.default_overlay_id;
         const legsHeight = this._PRODUCTS[productId]?.leg_length;
@@ -502,8 +543,40 @@ export class BuildProduct extends BuildersHelper {
                 ? this.shelf_builder.createShelfs(PROPS, this._SHELF_POSITION[productId], tempMaterial, move)
                 : null;
 
-        const legs = legsHeight ? this.leg_builder.buildLegs(PROPS, data, total) : null;
-        const plinth = legsHeight > 0 ? this.plinth_builder.buildPlinth(PROPS, legsHeight, defaultConfig) : null;
+        // Гардеробная система: явный отвод от "коробочных" legs/plinth — это
+        // и была причина проваливания модуля под пол. legsHeight
+        // (_PRODUCTS[productId]?.leg_length — каталог ТОВАРА) бывает truthy и
+        // здесь, а buildLegs упал бы на data.json.legs при data={} (см.
+        // modelData выше). Плюс baseY берёт длину ножки из ДРУГОГО источника
+        // (modelState.getModels[props.PRODUCT].leg_length) и может быть 0 —
+        // рассинхрон ломал позиционирование/bounds. У гардеробной системы
+        // свой механизм ножек (buildWardrobeLegs, по fasteningType профиля).
+        const legs = (!isWardrobeSystemTemp && legsHeight) ? this.leg_builder.buildLegs(PROPS, data, total) : null;
+        const plinth = (!isWardrobeSystemTemp && legsHeight > 0) ? this.plinth_builder.buildPlinth(PROPS, legsHeight, defaultConfig) : null;
+
+        // ==== Гардеробная система (WARDROBE) — Вариант B ====
+        // Сборка из 2D-данных (PROPS.CONFIG.WARDROBEGRID, см.
+        // WardrobeSystem.getUMGridFromConfig/UMconstructor.vue::saveUMData):
+        // N секторов -> N+1 профилей + полки/штанги каждого сектора. Раньше
+        // тут был черновик только для N=1 (2 профиля по краям, полок нет) —
+        // раскладку и исправленное расхождение с PROPS.CONFIG.SIZE.width см.
+        // в WardrobeGridParser.ts.
+        const wardrobeGrid = isWardrobeSystemTemp ? (PROPS.CONFIG.WARDROBEGRID ?? {}) : null;
+        const wardrobeParsed = wardrobeGrid?.sections?.length
+            ? this.wardrobe_grid_parser.parseWardrobeGrid(wardrobeGrid)
+            : null;
+
+        const wardrobeProfilesMesh = wardrobeParsed
+            ? this.wardrobe_filling_mesh_builder.buildProfiles(PROPS, wardrobeParsed)
+            : null;
+
+        const wardrobeFillings = wardrobeParsed
+            ? this.wardrobe_filling_mesh_builder.buildShelves(PROPS, wardrobeParsed)
+            : null;
+
+        const wardrobeLegs = wardrobeParsed
+            ? this.leg_builder.buildWardrobeLegs(PROPS, wardrobeParsed.profiles)
+            : null;
 
         const fasade = fasadeProps.length
             ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad, nstShalfs })
@@ -516,7 +589,14 @@ export class BuildProduct extends BuildersHelper {
         /** Добавляем столешницу если есть */
         const tableTop = CONFIG.HAVETABLETOP ? this.tabletop_builder.createTableTop({ props: PROPS }) : null;
 
-        const arrows = this.addArrowSize({ object: body, props: PROPS, group: total });
+        // Фолбэк для гардеробной системы: у неё body ВСЕГДА null (см.
+        // modelData выше), а Ruler.drawRullerObjects зовёт
+        // object.updateWorldMatrix() без проверки — падало с TypeError при
+        // вытаскивании товара на сцену. wardrobeProfilesMesh есть всегда,
+        // когда в сетке хотя бы 1 сектор (N+1 профилей строятся безусловно);
+        // total — крайний фолбэк для сетки вообще без секторов (Box3 на
+        // пустом total не крашится, даёт нулевой размер стрелок).
+        const arrows = this.addArrowSize({ object: body ?? wardrobeProfilesMesh ?? total, props: PROPS, group: total });
 
         // Позиционирование по Y
         const baseY = this.leg_builder.getLegLength(PROPS) * 0.5;
@@ -555,15 +635,40 @@ export class BuildProduct extends BuildersHelper {
 
         totalParts.filter(Boolean).forEach(part => total.add(part as THREE.Object3D));
 
+        // Гардеробная система: профили/ножки/полки-штанги собираются в ОДИН
+        // wardrobeGroup и центрируются по Y по ИЗМЕРЕННОМУ bounding box'у.
+        //
+        // Сборка несимметрична относительно floorY=-height/2: у профилей
+        // 'floor_wall' нижняя ножка (createWardrobeLeg) уходит на
+        // WARDROBE_LEG_HEIGHT (45мм) НИЖЕ профиля, а верхняя пластина
+        // (createWardrobeWallBracket) выше него не выступает — центр смещён
+        // вниз на ~WARDROBE_LEG_HEIGHT/2 = 22.5мм. Комнатное позиционирование
+        // (OBBCollider.getCorrectPosition ставит position.y = trueSizes.HEIGHT
+        // - 0.001) сажает объект на пол ТОЛЬКО при центре строго на 0, иначе
+        // он оседал на те же ~23мм ниже пола.
+        //
+        // Измерение вместо хардкода 22.5 работает для любой комбинации типов
+        // крепления, числа профилей и секторов.
+        const wardrobeGroup = wardrobeParsed ? new THREE.Object3D() : null;
+        if (wardrobeGroup) {
+            [wardrobeProfilesMesh, wardrobeLegs, wardrobeFillings].filter(Boolean).forEach(part => wardrobeGroup.add(part as THREE.Object3D));
+
+            const wardrobeBox = new THREE.Box3().setFromObject(wardrobeGroup);
+            const wardrobeCenter = wardrobeBox.getCenter(new THREE.Vector3());
+            wardrobeGroup.position.y -= wardrobeCenter.y;
+
+            total.add(wardrobeGroup);
+        }
+
         // Источник для вычисления коллизий
         const tempTotal = new THREE.Object3D();
         const exept = new THREE.Object3D();
 
-        [legs?.clone(), body?.clone(), shelf?.clone(), fasade?.clone()]
+        [legs?.clone(), body?.clone(), shelf?.clone(), fasade?.clone(), wardrobeGroup?.clone()]
             .filter(Boolean)
             .forEach(part => tempTotal.add(part));
 
-        [legs?.clone(), body?.clone(), plinth?.clone()]
+        [legs?.clone(), body?.clone(), plinth?.clone(), wardrobeGroup?.clone()]
             .filter(Boolean)
             .forEach(part => exept.add(part));
 
@@ -752,53 +857,7 @@ export class BuildProduct extends BuildersHelper {
         }
 
         if (TSARGA) {
-            const isMetalTsarga = TSARGA.TYPE === 'metal';
-            const backItem = isMetalTsarga
-                ? {
-                    id: "horizontallineback",
-                    type: "object",
-                    geometry: {
-                        type: "BoxGeometry",
-                        opt: { x: CONFIG.SIZE.width - moduleThickness * 2, y: 15, z: 15 },
-                    },
-                    rotation: { x: 0, y: 0, z: 0 },
-                    position: {
-                        x: 0,
-                        y: startPos.y + CONFIG.SIZE.height - 15 / 2,
-                        z: startPos.z + 15 / 2,
-                    },
-                }
-                : {
-                    id: "horizontallineback",
-                    type: "object",
-                    geometry: {
-                        type: "BoxGeometry",
-                        opt: { x: CONFIG.SIZE.width - moduleThickness * 2, y: 30, z: moduleThickness },
-                    },
-                    rotation: { x: 0, y: 0, z: 0 },
-                    position: {
-                        x: 0,
-                        y: startPos.y + CONFIG.SIZE.height - 15,
-                        z: startPos.z + moduleThickness / 2,
-                    },
-                };
-
-            const frontItem = {
-                id: "horizontallinefront",
-                type: "link",
-                link: "horizontallineback",
-                rotation: { x: 0, y: 0, z: 0 },
-                position: {
-                    x: 0,
-                    y: isMetalTsarga
-                        ? startPos.y + CONFIG.SIZE.height - 15 / 2
-                        : startPos.y + CONFIG.SIZE.height - 15,
-                    z: startPos.z + CONFIG.SIZE.depth - (isMetalTsarga ? 15 / 2 : moduleThickness / 2),
-                },
-            };
-
-            data.json.items.push(backItem, frontItem);
-            data.json.items = data.json.items.filter(item => item.id !== 'top');
+            this.tsarga_builder.applyModuleTsarga(data, TSARGA, moduleThickness, startPos, CONFIG.SIZE);
         }
 
         if (BACKWALL && !BACKWALL.SHOW) {

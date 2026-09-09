@@ -4,6 +4,7 @@ import * as THREEInterfases from "@/types/interfases"
 import * as THREETypes from "@/types/types"
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useBasketStore } from "@/store/appStore/useBasketStore";
+import { isWardrobeSystemProduct } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
 
 export class DragAndDropManager {
 
@@ -95,7 +96,14 @@ export class DragAndDropManager {
                 const surface = intersects[0].object;
                 // this.eventBus.emit('U:Drop')
 
-                if (this.UM_LIST.includes(productData.ID) || productData.moduleType) {
+                // Гардеробная система — ВСЕГДА geometryBuilder (BuildProduct),
+                // не universalGeometryBuilder. Отвод стоит ПЕРЕД проверкой
+                // moduleType: это поле приходит с бэкенда и не гарантированно
+                // falsy для гардеробного товара (тот же принцип, что в
+                // Events.ts::updateUMModel).
+                if (isWardrobeSystemProduct(productData.ID)) {
+                    object = await this.geometryBuilder.createModel(productData);
+                } else if (this.UM_LIST.includes(productData.ID) || productData.moduleType) {
                     object = await this.universalGeometryBuilder.createModel(productData)
                 } else {
                     object = await this.geometryBuilder.createModel(productData);

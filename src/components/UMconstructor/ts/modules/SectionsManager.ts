@@ -2,15 +2,20 @@
 
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA } from "@/components/UMconstructor/utils/Const.ts";
 import * as THREE from "three";
 import {
     GridModule,
-    GridCell,
-    GridCellsRow,
-    GridRowExtra,
     GridSection, TSelectedCell
 } from "@/components/UMconstructor/types/UMtypes.ts";
+import {
+    WARDROBE_SECTION_WIDTH_MIN,
+    WARDROBE_SECTION_WIDTH_MAX,
+    WARDROBE_SECTIONS_QUANTITY_MIN,
+    WARDROBE_SECTIONS_QUANTITY_MAX,
+    WARDROBE_PROFILE_WIDTH,
+} from "@/Application/F-wardrobeData.ts";
+import { getWardrobeProfileProducts, getWardrobeProfileFastenings, getWardrobeProfileMaterials } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
 
 
 export default class SectionsManager {
@@ -23,6 +28,167 @@ export default class SectionsManager {
     selectCell(sec: number | null = 0, cell: number | null = null, row: number | null = null, extra: number | null = null) {
         this.scope.selectCell("module", <TSelectedCell>{ sec, cell, row, extra });
     };
+
+    // ==== Гардеробная система (WARDROBE)  ====
+    // Полностью отдельно от addSection/deleteSection ниже: нет cells/loops/
+    // hiTechProfiles/царги, а ширина сектора НЕ делится с учётом
+    // moduleThickness — профиль добавляется ПОВЕРХ ширины секторов, а не
+    // "съедает" её изнутри, как стенка box-UM. Число секторов ограничено
+    // WARDROBE_SECTIONS_QUANTITY_MIN/MAX (каталог
+    // _WARDROBE_SYSTEM[productID].product.sections.quantity).
+    //
+    // count/reset — контракт как у addSection: count — на сколько
+    // ДОПОЛНИТЕЛЬНЫХ секторов разбить (UMconstructorClass.reset() зовёт для
+    // авто-разбиения, когда ввод "Ширины" толкает сектор шире
+    // WARDROBE_SECTION_WIDTH_MAX); reset=false по умолчанию, чтобы reset() не
+    // рекурсировал сам в себя — интерактивные вызовы передают reset=true.
+    addWardrobeSector(grid: GridModule, secIndex: number = 0, count: number = 1, reset: boolean = false) {
+        const maxAddable = WARDROBE_SECTIONS_QUANTITY_MAX - grid.sections.length
+        if (maxAddable <= 0) {
+            this.scope.callAlert("warning", `Максимальное количество секторов: ${WARDROBE_SECTIONS_QUANTITY_MAX}`)
+            return
+        }
+        count = Math.min(count, maxAddable)
+
+        const section = grid.sections[secIndex]
+
+        // count новых секторов = count новых профилей-границ (см. ниже) — это
+        // съедает count*WARDROBE_PROFILE_WIDTH бюджета ширины (UMconstructorClass.
+        // reset(): profileOverhead зависит от числа секторов). Вычитаем эту
+        // ширину ДО деления на партии, а не оставляем reset()'у "докидывать"/
+        // "отгрызать" её потом — иначе вся эта дельта уходила бы ОДНИМ куском в
+        // ПОСЛЕДНЮЮ из новых частей (reset() дельту всегда кладёт в последний
+        // сектор), и после разбиения секторы отличались бы ровно на
+        // WARDROBE_PROFILE_WIDTH (баг, показанный пользователем — 300 и 275мм
+        // вместо примерно равных). Так разница — не больше пары мм, обычный
+        // остаток от целочисленного деления.
+        const availableWidth = section.width - count * WARDROBE_PROFILE_WIDTH
+        const partWidth = Math.floor(availableWidth / (count + 1))
+
+        if (partWidth < WARDROBE_SECTION_WIDTH_MIN) {
+            this.scope.callAlert("warning", "Сектор слишком узкий, чтобы разделить его на несколько")
+            return
+        }
+
+        const deltaLastPart = availableWidth - partWidth * (count + 1)
+        section.width = partWidth
+
+        for (let i = 0; i < count; i++) {
+            const newSection: GridSection = {
+                number: section.number + 1 + i,
+                width: partWidth + (i === count - 1 ? deltaLastPart : 0),
+                height: section.height,
+                type: "section",
+                cells: [],
+                position: new THREE.Vector2(0, 0),
+                // Пусто по умолчанию — см. createWardrobeGrid.ts.
+                wardrobeShelves: [],
+            }
+
+            grid.sections.splice(secIndex + 1 + i, 0, newSection)
+
+            // Профилей всегда на 1 больше, чем секторов — добавляем один на
+            // новой границе. height — как у уже существующих (grid.height,
+            // максимум по всем профилям) — иначе добавление сектора могло бы
+            // неожиданно понизить высоту всего модуля (см. reset()).
+            // profileProductId/fasteningId — первые доступные из каталога,
+            // тот же принцип, что у createDefaultWardrobeProfiles.
+            const newProfileProductId = getWardrobeProfileProducts(grid.productID)[0]?.id
+            grid.wardrobeProfiles?.splice(secIndex + 1 + i, 0, {
+                id: (grid.wardrobeProfiles?.length || 0) + 1,
+                profileProductId: newProfileProductId,
+                fasteningId: getWardrobeProfileFastenings(grid.productID)[0]?.id,
+                colorId: newProfileProductId
+                    ? getWardrobeProfileMaterials(grid.productID, newProfileProductId)[0]?.ID
+                    : undefined,
+                height: grid.height,
+            })
+        }
+
+        if (reset) this.scope.reset(grid)
+    }
+
+    deleteWardrobeSector(grid: GridModule, secIndex: number, reset: boolean = false) {
+        if (grid.sections.length <= WARDROBE_SECTIONS_QUANTITY_MIN) {
+            this.scope.callAlert("warning", `Минимальное количество секторов: ${WARDROBE_SECTIONS_QUANTITY_MIN}`)
+            return
+        }
+
+        const current = grid.sections[secIndex]
+        const next = grid.sections[secIndex + 1]
+        const prev = grid.sections[secIndex - 1]
+
+        // Слияние убирает 1 профиль-границу — освобождает WARDROBE_PROFILE_WIDTH
+        // бюджета ширины (симметрично addWardrobeSector выше). Добавляем эту
+        // ширину сразу в объединённый сектор, а не оставляем reset()'у потом
+        // "докидывать" её отдельной дельтой в ПОСЛЕДНИЙ сектор ГРИДА (тот же
+        // класс бага — непредсказуемый скачок сектора, не имеющего отношения
+        // к самому слиянию).
+        const combinedWidth = (next
+            ? current.width + next.width
+            : current.width + prev.width) + WARDROBE_PROFILE_WIDTH
+
+        if (combinedWidth > WARDROBE_SECTION_WIDTH_MAX) {
+            this.scope.callAlert("warning", "Суммарная ширина соседнего сектора превысит допустимый предел")
+            return
+        }
+
+        if (next) next.width = combinedWidth
+        else prev.width = combinedWidth
+
+        grid.sections.splice(secIndex, 1)
+        grid.wardrobeProfiles?.splice(secIndex, 1)
+
+        if (reset) {
+            this.scope.reset(grid)
+            this.selectCell(0, null)
+        }
+    }
+
+    // Точный ввод ширины сектора числом (WardrobeSectionsView.vue через
+    // UMconstructorClass.updateWardrobeSectorWidth, там же debounce). Тот же
+    // принцип "меняем границу с соседом", что у box-UM
+    // addSection.updateSectionWidth выше и у драга профиля мышью: двигается
+    // ГРАНИЦА между этим и соседним сектором, поэтому суммарная ширина (и
+    // grid.width) от правки одного поля не меняется. Сосед — следующий сектор
+    // (двигаем его правую границу), у ПОСЛЕДНЕГО — предыдущий (левую).
+    //
+    // Дельта КЛАМПится к ближайшему допустимому значению, а не отклоняется с
+    // alert'ом, как в box-UM: MainInput сверяет ввод только со своими
+    // статичными :min/:max и считает, скажем, 900 валидным, хотя реальный
+    // диапазон зависит от ширины соседа (minDelta/maxDelta ниже). При отказе
+    // section.width не менялся -> не менялся :modelValue -> не срабатывал
+    // watch(props.modelValue) в MainInput, и поле зависало на введённом числе.
+    updateWardrobeSectorWidth(grid: GridModule, secIndex: number, value: number, reset: boolean = true) {
+        const sections = grid.sections
+        const section = sections[secIndex]
+        const neighborIndex = secIndex < sections.length - 1 ? secIndex + 1 : secIndex - 1
+        const neighbor = sections[neighborIndex]
+        if (!section || !neighbor || Number.isNaN(value)) return
+
+        const startWidth = section.width
+        const neighborStartWidth = neighbor.width
+        const requestedDelta = value - startWidth
+
+        const minDelta = Math.max(
+            WARDROBE_SECTION_WIDTH_MIN - startWidth,
+            neighborStartWidth - WARDROBE_SECTION_WIDTH_MAX,
+        )
+        const maxDelta = Math.min(
+            WARDROBE_SECTION_WIDTH_MAX - startWidth,
+            neighborStartWidth - WARDROBE_SECTION_WIDTH_MIN,
+        )
+        const clampedDelta = Math.max(minDelta, Math.min(maxDelta, requestedDelta))
+
+        if (clampedDelta !== requestedDelta) {
+            this.scope.callAlert("warning", `Ширина сектора ограничена соседним сектором — установлено ${Math.round(startWidth + clampedDelta)} мм`)
+        }
+
+        section.width = startWidth + clampedDelta
+        neighbor.width = neighborStartWidth - clampedDelta
+
+        if (reset) this.scope.reset(grid)
+    }
 
     addSection({ grid = this.scope.UM_STORE.getUMGrid(), secIndex = 0, count = 1, reset = false }: {
         grid: GridModule,
@@ -91,19 +257,6 @@ export default class SectionsManager {
             grid.sections[secIndex + 1].fasades.push(lastDoor);
         }
 
-        /**
-         *  Автоматическое добавление дверей при добавлении секции
-         */
-
-        // if (grid.productID === UM_PARAMS.RASPASHNOY_ID && !grid.isSlidingDoors && section?.fasades?.length > 0) {
-        //     for (let i = 0; i < count; i++) {
-        //         const newSecIndex = secIndex + 1 + i;
-        //         if (!grid.sections[newSecIndex].fasades?.length) {
-        //             this.scope.FASADES.addDoor(newSecIndex, grid, false);
-        //         }
-        //     }
-        // }
-
         if (!grid.isSlidingDoors && section?.fasades?.length > 0) {
             for (let i = 0; i < count; i++) {
                 const newSecIndex = secIndex + 1 + i;
@@ -113,249 +266,21 @@ export default class SectionsManager {
             }
         }
 
-        if (reset)
-            this.scope.reset(grid)
-    };
-
-    addCell(
-        {
-            grid = this.scope.UM_STORE.getUMGrid(),
-            secIndex = 0,
-            cellIndex = null,
-            count = 1
-        }:
-            {
-                grid: GridModule,
-                secIndex: number,
-                cellIndex: number | null,
-                count: number
-            }) {
-        this.selectCell(secIndex, cellIndex);
-
-        const { MIN_SECTION_HEIGHT } = this.scope.CONST
-        let section = grid.sections[secIndex];
-
-        let cell;
-        if (section.cells.length > 0) {
-            cell = section.cells[cellIndex]
-        } else {
-            cell = <GridCell>{
-                number: 1,
-                width: section.width,
-                height: section.height,
-                type: "cell",
-                position: new THREE.Vector2(section.position.x, section.position.y),
-            };
-
-            if (section.fillings?.length) {
-                this.scope.FILLINGS.clearFillings({ grid, secIndex });
-            }
-
-            section.cells.push(cell);
+        // Пересчёт царги для изменённых секций
+        for (let i = 0; i <= count; i++) {
+            this.scope.SHELVES.recalcSectionTsarga(grid.sections[secIndex + i]);
         }
 
-        if (cell.cellsRows)
-            delete cell.cellsRows
-
-        const halfHeight = Math.floor((cell.height - grid.moduleThickness * count) / (count + 1));
-
-        if (halfHeight < MIN_SECTION_HEIGHT) {
-            this.scope.callAlert("warning", `Расстояние между полками слишком мало! Пожалуйста, выберите меньшее количество полок!`)
-            return;
+        // Пересчёт петель для всех секций — смена топологии меняет соседство
+        for (let i = 0; i < grid.sections.length; i++) {
+            this.scope.LOOPS.calcLoops(i, grid);
         }
 
-        const deltaLastCell = cell.height - halfHeight * (count + 1) - grid.moduleThickness * count;
+        if (reset) { this.scope.reset(grid) }
 
-        // Обновляем высоту последней строки
-        cell.height = halfHeight;
+        this.selectCell(0, null)
+        this.scope.debounce("postResetSelect", () => this.selectCell(0, null), 150)
 
-        if (cell.fillings?.length) {
-            this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex });
-        }
-
-        // Добавляем новую строку в эту колонку
-        for (let i = 0; i < count; i++) {
-
-            let newCell = <GridCell>{
-                ...cell,
-                number: cell.number + 1 + i,
-                position: new THREE.Vector2(cell.position.x, cell.position.y + (halfHeight + grid.moduleThickness) * (i + 1)),
-                fillings: [],
-                //fillings: newFillings,
-            }
-
-            delete newCell.hiTechProfiles
-
-            if (deltaLastCell && i === count - 1) {
-                newCell.height += deltaLastCell;
-            }
-
-            section.cells.splice(cellIndex || 0, 0, newCell);
-        }
-
-        this.scope.reset(grid)
-    };
-
-    addRowCell({
-        grid = this.scope.UM_STORE.getUMGrid(),
-        secIndex,
-        cellIndex,
-        rowIndex = 0,
-        count = 1
-    }:
-        {
-            grid: GridModule,
-            secIndex: number,
-            cellIndex: number,
-            rowIndex: number,
-            count: number
-        }) {
-
-        this.selectCell(secIndex, cellIndex, rowIndex);
-        const { MIN_SECTION_WIDTH } = this.scope.CONST
-
-        const cell = grid.sections[secIndex].cells[cellIndex]
-
-        let row;
-        if (cell.cellsRows?.length > 0) {
-            row = cell.cellsRows[rowIndex];
-        } else {
-            cell.cellsRows = []
-            row = <GridCellsRow>{
-                number: 1,
-                width: cell.width,
-                height: cell.height,
-                type: "rowCell",
-                fillings: [],
-                position: new THREE.Vector2(cell.position.x, cell.position.y),
-            }
-            cell.cellsRows.push(row);
-
-            if (cell.fillings?.length) {
-                this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex });
-            }
-        }
-
-        const halfWidth = Math.floor((row.width - grid.moduleThickness * count) / (count + 1));
-
-        if (halfWidth < MIN_SECTION_WIDTH) {
-            this.scope.callAlert("warning", `Расстояние между разделителями слишком мало! Пожалуйста, выберите меньшее количество!`)
-            if (cell.cellsRows?.length === 1) {
-                delete cell.cellsRows
-            }
-            return;
-        }
-
-        const deltaLastRow = row.width - halfWidth * (count + 1) - grid.moduleThickness * count;
-
-        if (row.fillings?.length)
-            this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex, rowIndex });
-
-        // Обновляем высоту последней строки
-        row.position.x = row.position.x - (row.width / 2 - halfWidth / 2)
-        row.width = halfWidth;
-
-        // Добавляем новую строку в эту колонку
-        for (let i = 0; i < count; i++) {
-            let newRow = <GridCellsRow>{
-                ...row,
-                number: row.number + 1 + i,
-                position: new THREE.Vector2(row.position.x + (row.width / 2 + grid.moduleThickness + halfWidth / 2) * (i + 1), row.position.y),
-                fillings: [],
-            }
-
-            if (i === count - 1) {
-                newRow.width += deltaLastRow;
-            }
-
-            cell.cellsRows.splice(rowIndex + 1 + i, 0, newRow);
-        }
-
-        this.scope.reset(grid)
-    };
-
-    addRowExtra({
-        grid = this.scope.UM_STORE.getUMGrid(),
-        secIndex,
-        cellIndex,
-        rowIndex,
-        extraIndex = 0,
-        count = 1
-    }:
-        {
-            grid: GridModule,
-            secIndex: number,
-            cellIndex: number,
-            rowIndex: number,
-            extraIndex: number,
-            count: number
-        }) {
-        this.selectCell(secIndex, cellIndex, rowIndex);
-        const { MIN_SECTION_HEIGHT } = this.scope.CONST
-
-        let section = grid.sections[secIndex];
-        let cell = section.cells[cellIndex];
-        let row = cell.cellsRows[rowIndex]
-
-        let extra;
-        if (row.extras?.length > 0) {
-            extra = row.extras[extraIndex]
-        } else {
-            row.extras = <GridRowExtra>[];
-            extra = <GridRowExtra>{
-                number: 1,
-                width: row.width,
-                height: row.height,
-                type: "rowExtra",
-                position: new THREE.Vector2(row.position.x, row.position.y),
-            };
-
-            if (row.fillings?.length) {
-                this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex, rowIndex });
-            }
-
-            row.extras.push(extra);
-        }
-
-        const halfHeight = Math.floor((extra.height - grid.moduleThickness * count) / (count + 1));
-
-        if (halfHeight < MIN_SECTION_HEIGHT) {
-            this.scope.callAlert("warning", `Расстояние между полками слишком мало! Пожалуйста, выберите меньшее количество полок!`)
-            if (row.extras?.length === 1) {
-                delete row.extras
-            }
-            return;
-        }
-
-        const deltaLastCell = extra.height - halfHeight * (count + 1) - grid.moduleThickness * count;
-
-        // Обновляем высоту последней строки
-        extra.height = halfHeight;
-
-        if (extra.fillings?.length)
-            this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex, rowIndex, extraIndex });
-
-        // Добавляем новую строку в эту колонку
-        for (let i = 0; i < count; i++) {
-
-            let newExtra = <GridRowExtra>{
-                ...extra,
-                number: extra.number + 1 + i,
-                position: new THREE.Vector2(extra.position.x, extra.position.y + (halfHeight + grid.moduleThickness) * (i + 1)),
-                fillings: [],
-                //fillings: newFillings,
-            }
-
-            delete newExtra.hiTechProfiles
-
-            if (deltaLastCell && i === count - 1) {
-                newExtra.height += deltaLastCell;
-            }
-
-            row.extras.splice(extraIndex || 0, 0, newExtra);
-        }
-
-        this.scope.reset(grid)
     };
 
     updateSectionWidth({
@@ -368,11 +293,15 @@ export default class SectionsManager {
             secIndex: number,
             value: number,
         }) {
+
         this.scope.debounce("updateSectionWidth", () => {
 
             const newValue = value;
             let adjustedValue;
             const { MIN_SECTION_WIDTH } = this.scope.CONST
+            const MAX_SECTION_WIDTH = WITH_TSARGA.includes(grid.productID)
+                ? this.scope.CONST.MAX_SECTION_WIDTH_TSARGA
+                : this.scope.CONST.MAX_SECTION_WIDTH;
 
             // Обновляем выбранную секцию для визуального отображения
             this.selectCell(secIndex, null);
@@ -385,16 +314,30 @@ export default class SectionsManager {
                 });
             }
             // Обновляем значение в module для синхронизации
-            //const clone = Object.assign({}, grid);
             let section = grid.sections[secIndex]
 
             if (adjustedValue) {
+                if (adjustedValue > MAX_SECTION_WIDTH) {
+                    this.scope.callAlert("warning", `Ширина секции превышает допустимый предел! Уменьшите ширину секции!`)
+                    return;
+                }
+
                 let next = grid.sections[secIndex + 1]
                 let prev = grid.sections[secIndex - 1]
 
                 let nextSection = next || prev
 
                 let delta1 = section.width - adjustedValue
+                let newNeighbourWidth = nextSection.width + delta1
+                if (newNeighbourWidth < MIN_SECTION_WIDTH) {
+                    this.scope.callAlert("warning", `Ширина соседней секции станет меньше допустимого минимума! Уменьшите ширину секции!`)
+                    return;
+                }
+                if (newNeighbourWidth > MAX_SECTION_WIDTH) {
+                    this.scope.callAlert("warning", `Ширина соседней секции превысит допустимый предел! Увеличьте ширину секции!`)
+                    return;
+                }
+
                 let deltaPos1 = next ? -delta1 / 2 : delta1 / 2
                 section.width = adjustedValue;
                 section.position.x += deltaPos1
@@ -421,11 +364,10 @@ export default class SectionsManager {
                                         extra.fillings.forEach((filling) => {
                                             if (filling.isVerticalItem) {
                                                 filling.position.x += divideDeltaPos1;
-                                            }
-                                            {
+                                            } else {
                                                 filling.width = extra.width;
                                                 filling.size.x = filling.width;
-                                                filling.position.x += item.position.x - item.width / 2;
+                                                filling.position.x = item.position.x - item.width / 2;
                                             }
                                         })
                                     }
@@ -572,7 +514,7 @@ export default class SectionsManager {
                                             } else {
                                                 filling.width = extra.width;
                                                 filling.size.x = filling.width;
-                                                filling.position.x += deltaPos1;
+                                                filling.position.x = extra.position.x - extra.width / 2;
                                             }
                                         })
                                     }
@@ -586,7 +528,7 @@ export default class SectionsManager {
                                         } else {
                                             filling.width = item.width;
                                             filling.size.x = filling.width;
-                                            filling.position.x = deltaPos1;
+                                            filling.position.x = item.position.x - item.width / 2;
                                         }
                                     })
                                 }
@@ -690,470 +632,21 @@ export default class SectionsManager {
                         }
                     })
                 }
-            }
-            //grid = clone;
 
-            this.scope.reset(grid)
+                this.scope.SHELVES.recalcSectionTsarga(section);
+                if (nextSection) {
+                    this.scope.SHELVES.recalcSectionTsarga(nextSection);
+                }
+                this.scope.reset(grid)
+            }
         }, 1000)
 
-    };
-
-    updateCellHeight(
-        {
-            grid = this.scope.UM_STORE.getUMGrid(),
-            secIndex,
-            cellIndex,
-            value
-        }:
-            {
-                grid: GridModule,
-                secIndex: number,
-                cellIndex: number,
-                value: number,
-            }) {
-        this.scope.debounce("updateCellHeight", () => {
-            const newValue = value;
-            // Обновляем выбранную секцию для визуального отображения
-            this.selectCell(secIndex, cellIndex);
-            const { MIN_SECTION_HEIGHT } = this.scope.CONST;
-
-            let adjustedValue;
-            if (!isNaN(newValue) && this.scope.RENDER_REF) {
-                adjustedValue = this.scope.RENDER_REF.adjustSizeFromExternal({
-                    dimension: "height",
-                    value: newValue,
-                    sec: secIndex,
-                    cell: cellIndex,
-                });
-            }
-            // Обновляем значение в module для синхронизации
-            const clone = Object.assign({}, grid);
-            let curSection = clone.sections[secIndex]
-
-            if (adjustedValue) {
-                let cell = curSection.cells[cellIndex]
-                let prev = curSection.cells[cellIndex - 1];
-                let next = curSection.cells[cellIndex + 1]
-
-                let nextCell = next || prev
-                let nextIndex = next ? cellIndex + 1 : cellIndex - 1
-
-                let delta1 = cell.height - adjustedValue
-                cell.height = adjustedValue
-                cell.position.y += delta1;
-
-                if (cell.cellsRows?.length) {
-                    cell.cellsRows.forEach((row) => {
-                        row.height = cell.height;
-                        row.position.y = cell.position.y;
-
-                        if (row.fillings?.length) {
-                            row.fillings.forEach((filling) => {
-                                if (filling.isVerticalItem) {
-                                    filling.position.y = row.position.y;
-                                    filling.height = row.height;
-                                    filling.size.y = filling.height;
-                                    filling.distances.bottom = 0;
-                                    filling.distances.top = 0;
-                                }
-                            })
-                        }
-
-                        if (row.extras?.length) {
-                            let divideDelta = Math.floor(-delta1 / row.extras.length)
-                            let divideDeltaPos1 = divideDelta
-                            let extraSize = (row.extras.length - 1) * grid.moduleThickness
-
-                            row.extras.forEach(item => {
-                                if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
-                                    item.height += divideDelta
-
-                                    if (item.fillings?.length) {
-                                        item.fillings.forEach((filling) => {
-                                            if (filling.isVerticalItem) {
-                                                filling.position.y = item.position.y;
-                                                filling.height = item.height;
-                                                filling.size.y = filling.height;
-                                                filling.distances.bottom = 0;
-                                                filling.distances.top = 0;
-                                            } else {
-                                                filling.position.y += divideDeltaPos1;
-                                            }
-                                        })
-                                    }
-                                } else {
-                                    item.height = MIN_SECTION_HEIGHT
-                                }
-
-
-                                extraSize += item.height
-
-                                item.fillings?.filter((filling, index) => {
-                                    return filling.position.y + filling.height <= item.position.y + item.height;
-                                })
-                            })
-
-                            let lastRow = row.extras[row.extras.length - 1]
-                            if (lastRow.height + (adjustedValue - extraSize) >= MIN_SECTION_HEIGHT) {
-                                lastRow.height += (adjustedValue - extraSize)
-                                lastRow.position.y += (adjustedValue - extraSize) / 2
-
-                                if (lastRow.fillings?.length) {
-                                    lastRow.fillings.forEach((filling) => {
-                                        if (filling.isVerticalItem) {
-                                            filling.position.y = lastRow.position.y;
-                                            filling.height = lastRow.height;
-                                            filling.size.y = filling.height;
-                                            filling.distances.bottom = 0;
-                                            filling.distances.top = 0;
-                                        } else {
-                                            filling.position.y += (newTopHeight - extraSize) / 2;
-                                        }
-                                    })
-                                }
-                            } else {
-                                lastRow = row.extras.find((item) => {
-                                    return item.height + (adjustedValue - extraSize) >= MIN_SECTION_HEIGHT
-                                })
-
-                                if (lastRow) {
-                                    lastRow.height += (adjustedValue - extraSize)
-                                    lastRow.position.y += (adjustedValue - extraSize) / 2
-
-                                    if (lastRow.fillings?.length) {
-                                        lastRow.fillings.forEach((filling) => {
-                                            if (filling.isVerticalItem) {
-                                                filling.position.y = lastRow.position.y;
-                                                filling.height = lastRow.height;
-                                                filling.size.y = filling.height;
-                                                filling.distances.bottom = 0;
-                                                filling.distances.top = 0;
-                                            } else {
-                                                filling.position.y += (newTopHeight - extraSize) / 2;
-                                            }
-                                        })
-                                    }
-                                }
-
-                            }
-                        }
-
-                        row.fillings?.filter((filling, index) => {
-                            return filling.position.y + filling.height <= row.position.y + row.height;
-                        })
-                    })
-                }
-
-                if (cell.fillings?.length) {
-                    cell.fillings.forEach((filling) => {
-                        if (filling.isVerticalItem) {
-                            filling.position.y = cell.position.y;
-                            filling.height = cell.height;
-                            filling.size.y = filling.height;
-                            filling.distances.bottom = 0;
-                            filling.distances.top = 0;
-                        }
-                    })
-                }
-
-                let newBottomHeight = nextCell.height - (-delta1)
-                let delta2 = nextCell.height - newBottomHeight
-                nextCell.height = newBottomHeight;
-
-                if (nextCell.cellsRows) {
-                    nextCell.cellsRows.forEach((row) => {
-                        row.height = nextCell.height;
-                        row.position.y = nextCell.position.y;
-
-                        if (row.fillings?.length) {
-                            row.fillings.forEach((filling) => {
-                                if (filling.isVerticalItem) {
-                                    filling.position.y = row.position.y;
-                                    filling.height = row.height;
-                                    filling.size.y = filling.height;
-                                    filling.distances.bottom = 0;
-                                    filling.distances.top = 0;
-                                }
-                            })
-                        }
-
-                        if (row.extras?.length) {
-                            let divideDelta = Math.floor(-delta2 / row.extras.length)
-                            let divideDeltaPos2 = -divideDelta
-                            let extraSize = (row.extras.length - 1) * grid.moduleThickness
-
-                            row.extras.forEach(item => {
-                                if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
-                                    item.height += divideDelta
-                                    item.position.y += divideDelta;
-
-                                    if (item.fillings?.length) {
-                                        item.fillings.forEach((filling) => {
-                                            if (filling.isVerticalItem) {
-                                                filling.position.y = item.position.y;
-                                                filling.height = item.height;
-                                                filling.size.y = filling.height;
-                                                filling.distances.bottom = 0;
-                                                filling.distances.top = 0;
-                                            } else {
-                                                filling.position.y += divideDeltaPos2;
-                                            }
-                                        })
-                                    }
-                                } else {
-                                    item.height = MIN_SECTION_HEIGHT
-                                }
-
-                                extraSize += item.height
-
-                                item.fillings?.filter((filling, index) => {
-                                    return filling.position.y + filling.height <= item.position.y + item.height;
-                                })
-                            })
-
-                            let lastRow = row.extras[0]
-                            if (lastRow.height + (newBottomHeight - extraSize) >= MIN_SECTION_HEIGHT) {
-                                lastRow.height += (newBottomHeight - extraSize)
-                                lastRow.position.y += (newBottomHeight - extraSize) / 2
-
-                                if (lastRow.fillings?.length) {
-                                    lastRow.fillings.forEach((filling) => {
-                                        if (filling.isVerticalItem) {
-                                            filling.position.y = lastRow.position.y;
-                                            filling.height = lastRow.height;
-                                            filling.size.y = filling.height;
-                                            filling.distances.bottom = 0;
-                                            filling.distances.top = 0;
-                                        } else {
-                                            filling.position.y += (newBottomHeight - extraSize) / 2;
-                                        }
-                                    })
-                                }
-                            } else {
-                                lastRow = row.extras.find((item) => {
-                                    return item.height + (newBottomHeight - extraSize) >= MIN_SECTION_HEIGHT
-                                })
-
-                                if (lastRow) {
-                                    lastRow.height += (newBottomHeight - extraSize)
-                                    lastRow.position.y += (newBottomHeight - extraSize) / 2
-
-                                    if (lastRow.fillings?.length) {
-                                        lastRow.fillings.forEach((filling) => {
-                                            if (filling.isVerticalItem) {
-                                                filling.position.y = lastRow.position.y;
-                                                filling.height = lastRow.height;
-                                                filling.size.y = filling.height;
-                                                filling.distances.bottom = 0;
-                                                filling.distances.top = 0;
-                                            } else {
-                                                filling.position.y += (newBottomHeight - extraSize) / 2;
-                                            }
-                                        })
-                                    }
-                                }
-
-                            }
-                        }
-
-                        row.fillings?.filter((filling, index) => {
-                            return filling.position.y + filling.height <= row.position.y + row.height;
-                        })
-                    })
-                }
-
-                if (nextCell.fillings?.length) {
-                    nextCell.fillings.forEach((filling) => {
-                        if (filling.isVerticalItem) {
-                            filling.position.y = nextCell.position.y;
-                            filling.height = nextCell.height;
-                            filling.size.y = filling.height;
-                            filling.distances.bottom = 0;
-                            filling.distances.top = 0;
-                        }
-                    })
-                }
-            }
-            grid = clone;
-
-            this.scope.reset(grid)
-        }, 1000)
-    };
-
-    updateCellRowWidth(
-        {
-            grid = this.scope.UM_STORE.getUMGrid(),
-            secIndex,
-            cellIndex,
-            rowIndex,
-            value
-        }:
-            {
-                grid: GridModule,
-                secIndex: number,
-                cellIndex: number,
-                rowIndex: number,
-                value: number,
-            }) {
-
-        this.scope.debounce("updateCellRowWidth", () => {
-            const newValue = value;
-            let adjustedValue;
-
-            // Обновляем выбранную секцию для визуального отображения
-            this.selectCell(secIndex, cellIndex, rowIndex);
-
-            if (!isNaN(newValue) && this.scope.RENDER_REF) {
-                adjustedValue = this.scope.RENDER_REF.adjustSizeFromExternal({
-                    dimension: "width",
-                    value: newValue,
-                    sec: secIndex,
-                    cell: cellIndex,
-                    row: rowIndex,
-                });
-            }
-            // Обновляем значение в module для синхронизации
-            const clone = Object.assign({}, grid);
-            if (adjustedValue) {
-                let curRow = clone.sections[secIndex].cells[cellIndex].cellsRows[rowIndex]
-                let prevRow = clone.sections[secIndex].cells[cellIndex].cellsRows[rowIndex - 1];
-                let nextRow = clone.sections[secIndex].cells[cellIndex].cellsRows[rowIndex + 1];
-                let delta = curRow.width - adjustedValue
-
-                curRow.width = adjustedValue
-                curRow.position.x -= delta / 2
-
-                if (curRow.extras?.length) {
-                    curRow.extras.forEach(extra => {
-                        extra.width = curRow.width
-                        extra.position.x = curRow.position.x
-                    })
-                }
-
-                if (nextRow) {
-                    nextRow.width += delta
-                    nextRow.position.x -= delta / 2
-
-                    if (nextRow.extras?.length) {
-                        nextRow.extras.forEach(extra => {
-                            extra.width = nextRow.width
-                            extra.position.x = nextRow.position.x
-                        })
-                    }
-                } else if (prevRow) {
-                    prevRow.width += delta
-                    prevRow.position.x += delta / 2
-
-                    if (prevRow.extras?.length) {
-                        prevRow.extras.forEach(extra => {
-                            extra.width = prevRow.width
-                            extra.position.x = prevRow.position.x
-                        })
-                    }
-                }
-            }
-            grid = clone;
-
-            this.scope.reset(grid)
-        }, 1000)
-
-    };
-
-    updateExtraHeight(
-        {
-            grid = this.scope.UM_STORE.getUMGrid(),
-            secIndex,
-            cellIndex,
-            rowIndex,
-            extraIndex,
-            value
-        }:
-            {
-                grid: GridModule,
-                secIndex: number,
-                cellIndex: number,
-                rowIndex: number,
-                extraIndex: number,
-                value: number,
-            }) {
-        this.scope.debounce("updateExtraHeight", () => {
-            const newValue = value;
-            let adjustedValue;
-            // Обновляем выбранную секцию для визуального отображения
-            this.selectCell(secIndex, cellIndex, rowIndex, extraIndex);
-
-            if (!isNaN(newValue) && this.scope.RENDER_REF) {
-                adjustedValue = this.scope.RENDER_REF.adjustSizeFromExternal({
-                    dimension: "height",
-                    value: newValue,
-                    sec: secIndex,
-                    cell: cellIndex,
-                    row: rowIndex,
-                    extra: extraIndex,
-                });
-            }
-            // Обновляем значение в module для синхронизации
-            const clone = Object.assign({}, grid);
-            let curSection = clone.sections[secIndex]
-            let curCell = curSection.cells[cellIndex]
-            let curRow = curCell.cellsRows[rowIndex]
-
-            if (adjustedValue) {
-                let curExtra = curRow.extras[extraIndex]
-                let nextIndex = curRow.extras[extraIndex + 1] ? extraIndex + 1 : extraIndex - 1;
-                let nextExtra = curRow.extras[nextIndex]
-                let delta = curExtra.height - adjustedValue
-
-                curExtra.height = adjustedValue
-
-                if (nextExtra?.position?.y < curExtra.position.y)
-                    curExtra.position.y += delta
-
-                if (nextExtra) {
-                    nextExtra.height += delta
-
-                    if (nextExtra.position.y > curExtra.position.y)
-                        nextExtra.position.y -= delta
-
-                    nextExtra.fillings?.filter((filling, index) => {
-                        if (filling.position.y + filling.height <= nextExtra.position.y - grid.moduleThickness) {
-                            filling.extra = extraIndex
-                            curExtra.push(filling);
-                            return false
-                        } else if (filling.position.y >= nextExtra.position.y + nextExtra.height + grid.moduleThickness) {
-                            filling.extra = extraIndex
-                            curExtra.push(filling);
-                            return false
-                        } else
-                            return true
-                    })
-                }
-
-                curExtra.fillings?.filter((filling, index) => {
-                    if (filling.position.y + filling.height <= curExtra.position.y - grid.moduleThickness) {
-                        if (nextExtra) {
-                            filling.extra = nextIndex
-                            nextExtra.push(filling);
-                        }
-                        return false
-                    } else if (filling.position.y >= curExtra.position.y + curExtra.height + grid.moduleThickness) {
-                        if (nextExtra) {
-                            filling.extra = nextIndex
-                            nextExtra.push(filling);
-                        }
-                        return false
-                    } else
-                        return true
-                })
-            }
-            grid = clone;
-
-            this.scope.reset(grid)
-        }, 1000)
     };
 
     deleteSection(grid: GridModule = this.scope.UM_STORE.getUMGrid(), secIndex: number, reset: boolean = false) {
-        const { MAX_SECTION_WIDTH } = this.scope.CONST
+        const MAX_SECTION_WIDTH = WITH_TSARGA.includes(grid.productID)
+            ? this.scope.CONST.MAX_SECTION_WIDTH_TSARGA
+            : this.scope.CONST.MAX_SECTION_WIDTH;
         const current = grid.sections[secIndex];
         const next = grid.sections[secIndex + 1];
         const prev = grid.sections[secIndex - 1];
@@ -1191,139 +684,46 @@ export default class SectionsManager {
 
         if (grid.sections.length > 1) {
             grid.sections.splice(secIndex, 1);
+            this.scope.FILLINGS.updateSecAfterDelete(grid, secIndex);
         }
 
-        this.selectCell(0, 0)
+        //Проверка: петли не должны стоять с обеих сторон одной перегородки.
+        this.scope.LOOPS.resolvePartitionLoopsConflicts(grid);
 
-        if (reset)
+        // Пересчёт петель для всех секций — смена топологии меняет соседство
+        for (let i = 0; i < grid.sections.length; i++) {
+            this.scope.LOOPS.calcLoops(i, grid);
+        }
+
+        // Пересчёт царги для объединённой секции
+        this.scope.SHELVES.recalcSectionTsarga(next || prev);
+
+        if (reset) {
             this.scope.reset(grid)
+        }
+        this.selectCell(0, null)
+        this.scope.debounce("postResetSelect", () => this.selectCell(0, null), 150)
     };
 
-    deleteCell(grid: GridModule = this.scope.UM_STORE.getUMGrid(), secIndex: number, cellIndex: number) {
-        const clone = Object.assign({}, grid);
-        const currentSection = clone.sections[secIndex];
-        const currentCell = currentSection.cells[cellIndex];
+    autoSelectDeepest = (grid: GridModule = this.scope.UM_STORE.getUMGrid()) => {
 
-        const next = currentSection.cells[cellIndex + 1];
-        const prev = currentSection.cells[cellIndex - 1];
-        let needUpdateFasade = false;
+        const sec = 0;
+        const section = grid.sections[sec];
 
-        const combinedHeight = next
-            ? currentCell.height + next.height
-            : currentCell.height + prev.height;
+        let cell: number | null = null;
+        let row: number | null = null;
+        let extra: number | null = null;
 
-        next ? (next.height = combinedHeight) : (prev.height = combinedHeight);
-
-        if (currentCell.fillings?.length) {
-            let newFillings = next || prev
-            if (newFillings?.fillings?.length) {
-                this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex: next ? cellIndex + 1 : cellIndex - 1 });
+        if (section.cells?.length) {
+            cell = 0;
+            if (section.cells[0].cellsRows?.length) {
+                row = 0;
+                if (section.cells[0].cellsRows[0].extras?.length) {
+                    extra = 0;
+                }
             }
-
-            /*if (!newFillings.fillings)
-                newFillings.fillings = []
-
-            let startIndex = newFillings.fillings.length
-            currentCell.fillings.forEach((filling) => {
-                let profileId
-                if(filling.isProfile){
-                    profileId = currentSection.hiTechProfiles?.findIndex(item => (
-                        item.sec === filling.sec &&
-                        item.cell === filling.cell &&
-                        item.row === filling.row &&
-                        item.extra === filling.extra &&
-                        item.id === filling.id
-                    ))
-                }
-                filling.id = startIndex
-                filling.cell = prev ? filling.cell - 1 : filling.cell
-                startIndex += 1
-
-                if(profileId) {
-                    currentSection.hiTechProfiles?.splice(profileId, 1, filling)
-                    needUpdateFasade = true
-                }
-            })
-            newFillings.fillings.push(...currentCell.fillings)*/
-
-            this.scope.FILLINGS.clearFillings({ grid, secIndex, cellIndex });
         }
 
-        if (currentSection.cells.length > 1) {
-            currentSection.cells.splice(cellIndex, 1);
-        }
-
-        if (currentSection.cells.length <= 1)
-            currentSection.cells.length = 0
-
-        grid = clone;
-        this.selectCell(secIndex, 0)
-
-        if (needUpdateFasade)
-            this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
-
-        this.scope.reset(grid)
-    };
-
-    deleteRowCell(grid: GridModule = this.scope.UM_STORE.getUMGrid(), secIndex: number, cellIndex: number, rowIndex: number) {
-        const clone = Object.assign({}, grid);
-        const currentSection = clone.sections[secIndex];
-        const currentCell = currentSection.cells[cellIndex];
-        const currentRow = currentCell.cellsRows[rowIndex];
-
-        const next = currentCell.cellsRows[rowIndex + 1];
-        const prev = currentCell.cellsRows[rowIndex - 1];
-
-        const combinedWidth = next
-            ? currentCell.width + next.width
-            : currentCell.width + prev.width;
-
-
-        next ? (next.position.x = next.position.x - next.width / 2 + combinedWidth / 2) : (prev.position.x = prev.position.x - prev.width / 2 + combinedWidth / 2);
-        next ? (next.width = combinedWidth) : (prev.width = combinedWidth);
-
-        if (currentCell.cellsRows.length > 1) {
-            currentCell.cellsRows.splice(rowIndex, 1);
-        }
-
-        next ? (delete next.fillings) : (delete prev.fillings);
-
-        if (currentCell.cellsRows.length <= 1)
-            delete currentCell.cellsRows
-
-        grid = clone;
-        this.selectCell(secIndex, cellIndex)
-        this.scope.reset(grid)
-    }
-
-    deleteRowExtra(grid: GridModule = this.scope.UM_STORE.getUMGrid(), secIndex: number, cellIndex: number, rowIndex: number, extraIndex: number) {
-        const clone = Object.assign({}, grid);
-        const currentSection = clone.sections[secIndex];
-        const currentCell = currentSection.cells[cellIndex];
-        const currentRow = currentCell.cellsRows[rowIndex];
-        const currentExtra = currentRow.extras[extraIndex];
-
-        const next = currentRow.extras[extraIndex + 1];
-        const prev = currentRow.extras[extraIndex - 1];
-
-        const combinedHeight = next
-            ? currentExtra.height + next.height + grid.moduleThickness
-            : currentExtra.height + prev.height + grid.moduleThickness;
-
-        next ? (next.position.y = next.position.y - next.height / 2 + combinedHeight / 2) : (prev.position.y = prev.position.y - prev.height / 2 + combinedHeight / 2);
-        next ? (next.height = combinedHeight) : (prev.height = combinedHeight);
-
-        if (currentRow.extras.length > 1) {
-            currentRow.extras.splice(extraIndex, 1);
-        }
-
-        next ? (delete next.fillings) : (delete prev.fillings);
-
-        if (currentRow.extras.length <= 1)
-            delete currentRow.extras
-
-        grid = clone;
-        this.selectCell(secIndex, cellIndex, rowIndex)
-        this.scope.reset(grid)
+        this.selectCell(sec, cell, row, extra, null)
     };
 }

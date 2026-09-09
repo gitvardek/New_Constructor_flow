@@ -40,6 +40,7 @@ import ShowcaseRedactor from "./ShowcaseRedactor.vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
 import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
+import LoopPositionSelect from "@/components/ui/direction/LoopPositionSelect.vue";
 
 import { useOptions } from "../RailsRightPage/useOptions";
 import { useHandlesAction } from "../FigureRightPage/Handles/useHandlesAction";
@@ -146,7 +147,7 @@ const onSelectMaterial = (data) => {
   const dataOfFasadeType = _FASADE[data.id];
 
   productData.value.restrictData[props.tabIndex] = createFasadeConversations(
-    data.id,
+    data.id, FASADE[props.tabIndex]
   );
 
   isSurfaceSelected.value = true;
@@ -253,13 +254,28 @@ const onSelectMaterial = (data) => {
 
 const onSelectMilling = (data) => {
   currentMillingData.value = data;
+  console.log(data);
+
+  // Проверка на существование свойств productData.value.PROPS.CONFIG
+  if (!productData.value?.PROPS?.CONFIG) return;
 
   const { FASADE_PROPS, FASADE_POSITIONS } = productData.value.PROPS.CONFIG;
   const fasadeProps = FASADE_PROPS[props.tabIndex];
-  const isShowcase = FASADE_POSITIONS[props.tabIndex].SHOWCASE === 1;
-  const rootDataPatina = modelState._FASADE[fasadeProps.COLOR].PATINA;
 
-  // if (isShowcase) return;
+  // Проверка на существование fasadeProps
+  if (!fasadeProps) {
+    console.warn('FASADE_PROPS is undefined or null');
+    return;
+  }
+
+  const isShowcase = FASADE_POSITIONS?.[props.tabIndex]?.SHOWCASE === 1;
+  const rootDataPatina = _FASADE[fasadeProps.COLOR]?.PATINA;
+
+  // Проверка на существование rootDataPatina и его свойств
+  if (!rootDataPatina) {
+    console.warn('rootDataPatina is undefined or null');
+    return;
+  }
 
   if (!isShowcase) {
     isPatinaExist.value =
@@ -269,11 +285,19 @@ const onSelectMilling = (data) => {
       rootDataPatina[0] != 0;
 
     /** @Если у выбранной фрезы нет патина */
-
     try {
       if (!isPatinaExist.value && patinaList.value.length > 0) {
-        fasadeProps.PATINA = Object.values(modelState._PATINA)[0].ID;
-        const { NAME, PREVIEW_PICTURE } = Object.values(modelState._PATINA)[0];
+        fasadeProps.PATINA = null;
+      } else {
+        fasadeProps.PATINA = rootDataPatina[0];
+
+        const { NAME, PREVIEW_PICTURE } = _APP?.PATINA[rootDataPatina[0]];
+
+        if (!NAME || !PREVIEW_PICTURE) {
+          console.warn('Missing PATINA data');
+          return;
+        }
+
         currentPatinaData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
       }
     } catch (e) {
@@ -282,13 +306,18 @@ const onSelectMilling = (data) => {
   }
 
   /** @Отображение_положения_петель */
-
   if (data.fasade_type && data.fasade_type[0] !== null) {
     const typeList = getIntegratedHandleControllerData(
       data,
       props.tabIndex,
       "milling",
     );
+
+    // Проверка на существование typeList
+    if (!typeList) {
+      console.warn('typeList is undefined or null');
+      return;
+    }
 
     if (typeList.length > 0) {
       isFasadeHandleExist.value = true;
@@ -690,7 +719,7 @@ const changeFasadeSize = async (data: TFasadeSize) => {
 
   currentSize.value = data;
   const curData = productData.value;
-  const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
+  const { width, height, depth } = curData.PROPS.CONFIG.SIZE_BASE ?? _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
   const { FASADE_PROPS, FASADE_SIZE } = curData.PROPS.CONFIG;
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;
@@ -735,7 +764,7 @@ const changeFasadeSize = async (data: TFasadeSize) => {
 
 const updateFasadeSize = async (data) => {
   const curData = productData.value;
-  const { width, height, depth } = _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
+  const { width, height, depth } = curData.PROPS.CONFIG.SIZE_BASE ?? _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
   const { FASADE_PROPS } = curData.PROPS.CONFIG;
   const curFasade = FASADE_PROPS[props.tabIndex];
   const curSize = curFasade.SIZES;
@@ -804,7 +833,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="container" ref="mainContainer" >
+  <div class="container" ref="mainContainer">
     <div class="container__header">
       <h3>Конфигурация фасада {{ props.tabIndex + 1 }}</h3>
       <div class="container__header--params">
@@ -863,13 +892,9 @@ onBeforeUnmount(() => {
       <MainInput v-if="incomeSize.min && incomeSize.max" :inputClass="'input__search right-menu'" :type="'number'"
         :min="incomeSize.min" :max="incomeSize.max" @update:modelValue="updateFasadeSize" v-model="incomeSize.width" />
 
-      <DirectionControl v-if="isFasadeTypesExist" :handle-pos="fasadeTypesList"
-        @changeDirectionPos="onChangeIntegratedHandlePos" :container="'card'" :scale="1" :gap="2" :max-width="120"
-        :size="20" :fontSize="10" />
+      <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList" @change="onChangeIntegratedHandlePos" />
 
-      <DirectionControl v-if="isFasadeHandleExist" :handle-pos="fasadeHandleList"
-        @changeDirectionPos="onChangeMillingHandlePos" :container="'card'" :scale="1" :gap="2" :max-width="120"
-        :size="20" :fontSize="10" />
+      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList" @change="onChangeMillingHandlePos" />
     </div>
 
     <SurfaceRedactor v-if="currentEditableOption === 'surface'" :materialList="materialList" :tabIndex="props.tabIndex"

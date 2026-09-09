@@ -57,6 +57,8 @@ export class ModelsBuilder {
             "#Z#": depth,
         })
 
+        // const format = this.getFileFormat(model.file)
+
         return new Promise((resolve, reject) => {
 
             this.resources.startLoading(path, model.model_type || 'DAE', (file: any) => {
@@ -79,14 +81,14 @@ export class ModelsBuilder {
                     z: corr_z ? parseFloat(corr_z) : 0
                 }
 
-                if (model.model_type.length === 0) {
+                // if (model.model_type.length === 0) {
 
-                    normolized.traverse(child => {
-                        if (child instanceof THREE.Mesh) {
-                            child.rotation.x = -Math.PI * 0.5;
-                        }
-                    })
-                }
+                //     normolized.traverse(child => {
+                //         if (child instanceof THREE.Mesh) {
+                //             child.rotation.x = -Math.PI * 0.5;
+                //         }
+                //     })
+                // }
 
                 normolized.name = 'MODEL'
                 if (PROD) {
@@ -132,7 +134,39 @@ export class ModelsBuilder {
         })
     }
 
+    private bakeNodeTransforms = (root: THREE.Object3D): void => {
+        root.updateMatrixWorld(true)
+
+        const meshData: Array<{ geometry: THREE.BufferGeometry; worldMatrix: THREE.Matrix4 }> = []
+
+        root.traverse((child: THREE.Object3D) => {
+            const mesh = child as THREE.Mesh
+            if (mesh.isMesh && mesh.geometry) {
+                meshData.push({
+                    geometry: mesh.geometry,
+                    worldMatrix: child.matrixWorld.clone()
+                })
+            }
+        })
+
+        for (const { geometry, worldMatrix } of meshData) {
+            geometry.applyMatrix4(worldMatrix)
+        }
+
+        root.traverse((child: THREE.Object3D) => {
+            child.position.set(0, 0, 0)
+            child.quaternion.identity()
+            child.scale.set(1, 1, 1)
+            child.updateMatrix()
+        })
+
+        root.updateMatrixWorld(true)
+    }
+
     private normalizeUploadedModel = function (model, params, size) {
+        // Запекаем трансформации нод GLTF-иерархии в геометрию до нормализации.
+        this.bakeNodeTransforms(model)
+
         const center = new THREE.Vector3()
         const box = this.calculateUnionBoundingBox(model);
         box.getCenter(center)
@@ -301,6 +335,10 @@ export class ModelsBuilder {
         targetGroup.userData.obb = obb;
 
         targetGroup.updateMatrixWorld(true);
+    }
+
+    private getFileFormat(path) {
+        return path.split('.').pop().toLowerCase();
     }
 }
 

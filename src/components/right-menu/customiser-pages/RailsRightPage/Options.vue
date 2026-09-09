@@ -21,7 +21,7 @@ const optionList = ref([]);
 const createList = () => {
   if (!props.umMechanizm) {
     const { data } = createOptionList();
-  
+
 
     optionList.value = data;
     return;
@@ -34,7 +34,12 @@ const changeValue = (event: InputEvent, option: TRootOptionType) => {
 
   if (!props.umMechanizm) {
     const check = event.target!.checked;
-    checkActive(option, check);
+    const result = checkActive(option, check);
+    // Обязательная группа заблокировала снятие — возвращаем DOM-чекбокс в checked
+    if (!check && result) {
+      (event.target as HTMLInputElement).checked = true;
+      return;
+    }
     createList();
     return;
   }
@@ -87,27 +92,18 @@ onBeforeMount(() => {
 </script>
 <template>
   <div class="rails">
-    <div
-      class="rails__container"
-      v-for="(item, key) in optionList"
-      :key="item.NAME + key"
-    >
+    <div class="rails__container" v-for="(item, key) in optionList" :key="item.NAME + key">
       <h3 class="rails__title">{{ item.NAME }}</h3>
       <div class="option__checkbox" v-for="(option, key) in item.CONTANT">
         <label class="control control-checkbox" v-if="option.visible">
-          <input
-            type="checkbox"
-            :checked="option.active"
-            @change="changeValue($event, option)"
-            :disabled="option.disabled"
-          />
+          <input type="checkbox" :checked="option.active" @change="changeValue($event, option)"
+            :disabled="option.disabled" />
           <span class="control_indicator"></span>
           <span class="text-lg text-gray-800 font-medium">{{
             option.NAME
           }}</span>
-          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize"
-            >&emsp;{{ option.cutSize }} + {{ option.cutSize }}</span
-          >
+          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize">&emsp;{{ option.cutSize }} + {{
+            option.cutSize }}</span>
         </label>
       </div>
     </div>

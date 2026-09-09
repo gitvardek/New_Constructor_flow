@@ -135,6 +135,7 @@
         display: flex;
         align-items: end;
         justify-content: center;
+        flex-direction: row;
       }
 
       .actions-inputs {
@@ -1298,5 +1299,15 @@
     gap: 0.3rem;
     overflow-y: auto;
     min-height: 0;
+  }
+
+  .filling-width-warning {
+    padding: 0.6rem 1rem;
+    margin: 0.5rem 1rem;
+    background: $warning;
+    border: 1px solid $red;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    color: $black;
   }
 }

@@ -1,7 +1,7 @@
 //@ts-nocheck
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import {  ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
+import { ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
 import * as THREE from "three";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
@@ -21,10 +21,12 @@ type T2DLoopParams = {
 // если filling[prop] входит в values — объект пропускается.
 // collisionWith — тип(ы) объекта, с которым исключается коллизия (например 'loop').
 // Если не задан — исключается коллизия со всеми типами.
+// condition — дополнительное условие на уровне grid; если задано и возвращает false — правило не применяется.
 type TCollisionExclusionRule = {
     prop: string
     values: Set<any>
     collisionWith?: string | string[]
+    condition?: (grid: GridModule) => boolean
 }
 
 export default class LoopsManager {
@@ -48,19 +50,19 @@ export default class LoopsManager {
     }
 
     /**
-     * Зарегистрировать правила исключения объектов из проверки коллизий петель.
-     * Если filling[prop] входит в values — объект пропускается.
-     *
-     * Формы вызова:
-     *   addCollisionExclusionRule('productGroupID', 2166308, 5726092)
-     *   addCollisionExclusionRule([{ prop: 'productGroupID', values: [2166308, 5726092] }])
-     */
+      * Зарегистрировать правила исключения объектов из проверки коллизий петель.
+      * Если filling[prop] входит в values — объект пропускается.
+      *
+      * Формы вызова:
+      *   addCollisionExclusionRule('productGroupID', 2166308, 5726092)
+      *   addCollisionExclusionRule([{ prop: 'productGroupID', values: [2166308, 5726092] }])
+      */
     public addCollisionExclusionRule(
-        propOrRules: string | Array<{ prop: string; values: any[]; collisionWith?: string | string[] }>,
+        propOrRules: string | Array<{ prop: string; values: any[]; collisionWith?: string | string[]; condition?: (grid: GridModule) => boolean }>,
         ...values: any[]
     ) {
         if (Array.isArray(propOrRules)) {
-            propOrRules.forEach(rule => this._mergeExclusionRule(rule.prop, rule.values, rule.collisionWith))
+            propOrRules.forEach(rule => this._mergeExclusionRule(rule.prop, rule.values, rule.collisionWith, rule.condition))
         } else {
             this._mergeExclusionRule(propOrRules, values)
         }
@@ -74,22 +76,24 @@ export default class LoopsManager {
         }))
     }
 
-    private _mergeExclusionRule(prop: string, values: any[], collisionWith?: string | string[]) {
-        // Правила с одинаковым prop, но разным collisionWith — отдельные записи
+    private _mergeExclusionRule(prop: string, values: any[], collisionWith?: string | string[], condition?: (grid: GridModule) => boolean) {
+        // Правила с одинаковым prop/collisionWith/condition — объединяются; иначе — отдельные записи
         const existing = this.collisionExclusionRules.find(r =>
             r.prop === prop &&
-            JSON.stringify(r.collisionWith) === JSON.stringify(collisionWith)
+            JSON.stringify(r.collisionWith) === JSON.stringify(collisionWith) &&
+            r.condition === condition
         )
         if (existing) {
             values.forEach(v => existing.values.add(v))
         } else {
-            this.collisionExclusionRules.push({ prop, values: new Set(values), collisionWith })
+            this.collisionExclusionRules.push({ prop, values: new Set(values), collisionWith, condition })
         }
     }
 
-    private isFillingExcludedFromCollision(filling: any, targetType: string = 'loop'): boolean {
+    private isFillingExcludedFromCollision(filling: any, targetType: string = 'loop', grid?: GridModule): boolean {
         return this.collisionExclusionRules.some(rule => {
             if (filling[rule.prop] === undefined || !rule.values.has(filling[rule.prop])) return false
+            if (rule.condition && grid && !rule.condition(grid)) return false
             if (rule.collisionWith === undefined) return true
             const types = Array.isArray(rule.collisionWith) ? rule.collisionWith : [rule.collisionWith]
             return types.includes(targetType)
@@ -97,6 +101,36 @@ export default class LoopsManager {
     }
 
     // -----------------------------------------------------------------------------------------------
+
+    syncSplitLoopside(
+        secIndex: number,
+        doorIndex: number,
+        segmentIndex: number,
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
+    ) {
+        const section = grid.sections?.[secIndex]
+        const fasade = section?.fasades?.[doorIndex]?.[segmentIndex]
+
+        const hasMaterial = (item: any) => {
+            const color = item?.material?.COLOR
+            return !!color && +color !== UM_PARAMS.NO_FASADE_ID
+        }
+
+        if (!fasade?.splitGroup || !hasMaterial(fasade)) return
+
+        // Соседа ищем только в своей двери: сторона открывания принадлежит двери, а не секции.
+
+        const isUsableSide = (side: any) => !!side && +side !== LOOPSIDE.none
+        const neighbour = (section.fasades?.[doorIndex] ?? [])
+            .find(item => item !== fasade
+                && !item.manufacturerOffset
+                && hasMaterial(item)
+                && isUsableSide(item.loopsSide))
+
+        const side = neighbour?.loopsSide ?? section.loopsSides?.[doorIndex]
+
+        if (isUsableSide(side)) fasade.loopsSide = side
+    }
 
     calcLoops(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
         const { CONFIG, SECTIONS } = this.scope.UM_STORE.getUMData();
@@ -119,6 +153,21 @@ export default class LoopsManager {
             return;
         }
 
+        // Восстанавливаем loopsSide если ранее была активна опция "без петель"
+        FASADES.forEach((door, doorKey) => {
+            door.forEach((fasade) => {
+                if (fasade.loopsSide === LOOPSIDE.none) {
+                    fasade.loopsSide = doorKey === 0 ? LOOPSIDE.left : LOOPSIDE.right
+                }
+            })
+        })
+        if (!curSection.loopsSides) {
+            curSection.loopsSides = {}
+            FASADES.forEach((door, doorKey) => {
+                curSection.loopsSides[doorKey] = door[0]?.loopsSide ?? LOOPSIDE.left
+            })
+        }
+
         // Условие отрисовки петель если 1 секция одна дверь
 
         if (grid.sections.length === 1 && FASADES.length === 1 && grid.productID === UM_PARAMS.RASPASHNOY_ID) {
@@ -135,7 +184,22 @@ export default class LoopsManager {
         // Correct loopsSide: plain left/right ↔ _on_partition based on whether a neighbor section exists
         const sectionLeft = grid.sections[secIndex - 1] || null
         const sectionRight = grid.sections[secIndex + 1] || null
-        FASADES.forEach((door) => {
+
+        const isDoors = FASADES.length > 1
+
+        const rightLoopsList = [LOOPSIDE.right_on_partition, LOOPSIDE.right]
+        const leftLoopsList = [LOOPSIDE.left_on_partition, LOOPSIDE.left]
+
+        // Конфликт: правый сосед имеет петли на левой стороне той же перегородки
+        const rightNeighborConflicts = sectionRight?.fasades?.some(door =>
+            door.some(f => leftLoopsList.includes(f.loopsSide))
+        ) ?? false
+        // Конфликт: левый сосед имеет петли на правой стороне той же перегородки
+        const leftNeighborConflicts = sectionLeft?.fasades?.some(door =>
+            door.some(f => rightLoopsList.includes(f.loopsSide))
+        ) ?? false
+
+        FASADES.forEach((door, doorKey) => {
             door.forEach((fasade) => {
                 if (fasade.loopsSide === LOOPSIDE.right && sectionRight)
                     fasade.loopsSide = LOOPSIDE.right_on_partition
@@ -145,13 +209,32 @@ export default class LoopsManager {
                     fasade.loopsSide = LOOPSIDE.left_on_partition
                 else if (fasade.loopsSide === LOOPSIDE.left_on_partition && !sectionLeft)
                     fasade.loopsSide = LOOPSIDE.left
+                // Конфликт петель на одной перегородке: смещаем на противоположную сторону.
+                // 2-дверные секции приоритетны — они не уступают; уступает соседняя 1-дверная.
+                else if (!isDoors && fasade.loopsSide === LOOPSIDE.right_on_partition && rightNeighborConflicts)
+                    fasade.loopsSide = sectionLeft ? LOOPSIDE.left_on_partition : LOOPSIDE.left
+                else if (!isDoors && fasade.loopsSide === LOOPSIDE.left_on_partition && leftNeighborConflicts)
+                    fasade.loopsSide = sectionRight ? LOOPSIDE.right_on_partition : LOOPSIDE.right
             })
+            // Синхронизируем loopsSides с актуальным loopsSide первого фасада двери
+            if (curSection.loopsSides && door[0]) {
+                curSection.loopsSides[doorKey] = door[0].loopsSide
+            }
         })
+
+        // Материал не выбран или стоит «без фасада» — сегмента фактически нет
+        const hasFasadeMaterial = (fasade: any) => {
+            const color = fasade?.material?.COLOR
+            return !!color && +color !== UM_PARAMS.NO_FASADE_ID
+        }
 
         FASADES.forEach((door, doorKey) => {
             const additional_fasades = []
 
             door.forEach((fasade, key) => {
+                // Проверка только у сегментов с признаком разделения: у обычного фасада
+                // петли считаются как раньше, независимо от материала
+                if (fasade?.splitGroup && !hasFasadeMaterial(fasade)) return
                 additional_fasades.push(fasade)
             })
 
@@ -305,8 +388,6 @@ export default class LoopsManager {
 
     checkLoopsCollision(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
 
-        console.log('return')
-
         const CONFIG = this.scope.UM_STORE.getUMData()?.CONFIG;
 
         if (!CONFIG.LOOPS)
@@ -326,7 +407,7 @@ export default class LoopsManager {
         }
 
         let loopsSectors = {}
-        
+
         Object.entries(loops).forEach(([doorKey, doorLoops]) => {
             loopsSectors[doorKey] = {}
             doorLoops.forEach((_loops, fasadeKey) => {
@@ -357,20 +438,14 @@ export default class LoopsManager {
                 }
                 else if (cell.fillings?.length) {
                     cell.fillings.forEach((filling) => {
-                        if (this.isFillingExcludedFromCollision(filling)) {
-
-                            console.log('NON')
+                        if (this.isFillingExcludedFromCollision(filling, 'loop', grid)) {
 
                             return
                         }
 
                         let filling_pos = new THREE.Vector2(filling.position.x, grid.height - filling.position.y - filling.height)
                         if (
-                            (
-                                (loop.minY < (filling_pos.y + filling.height) && loop.maxY > (filling_pos.y + filling.height)) ||
-                                (loop.minY < filling_pos.y && loop.maxY > filling_pos.y) ||
-                                (loop.minY > filling_pos.y && loop.maxY < (filling_pos.y + filling.height))
-                            )
+                            (loop.minY <= (filling_pos.y + filling.height) && loop.maxY >= filling_pos.y)
                             &&
                             ((loop.minX <= (filling_pos.x + filling.width) && loop.maxX >= (filling_pos.x + filling.width)) ||
                                 (loop.minX <= (filling_pos.x) && loop.maxX >= (filling_pos.x)))
@@ -383,6 +458,27 @@ export default class LoopsManager {
             })
 
             return result;
+        }
+
+        // Проверка пересечения петли с царгой (верхние 18мм отсека)
+        const checkTsarga = (_loops, entity) => {
+            if (!entity.tsarga) return []
+            const result = []
+            const tsargaTop = entity.position.y + entity.height
+            const tsargaBottom = tsargaTop - moduleThickness
+            _loops.forEach(loop => {
+                if (
+                    loop.minY < tsargaTop && loop.maxY > tsargaBottom
+                    &&
+                    (
+                        (loop.minX <= (entity.position.x - entity.width / 2) && loop.maxX >= (entity.position.x - entity.width / 2)) ||
+                        (loop.minX <= (entity.position.x + entity.width / 2) && loop.maxX >= (entity.position.x + entity.width / 2))
+                    )
+                ) {
+                    result.push(loop.id)
+                }
+            })
+            return result
         }
 
         if (currentSection.cells?.length) {
@@ -400,6 +496,14 @@ export default class LoopsManager {
 
                         cell.cellsRows?.forEach((cellRow) => {
 
+                            // Проверка царги строки (когда нет extras)
+                            if (!cellRow.extras?.length) {
+                                checkTsarga(_loops, cellRow).forEach((id) => {
+                                    if (!loops[doorKey]?.[fasadeKey]?.errors.includes(id))
+                                        loops[doorKey][fasadeKey].errors.push(id)
+                                })
+                            }
+
                             if (cellRow.extras?.length) {
                                 cellRow.extras.forEach((extraRow) => {
                                     let check = checkLoop(_loops, extraRow)
@@ -407,10 +511,24 @@ export default class LoopsManager {
                                         if (!loops[doorKey]?.[fasadeKey]?.errors.includes(id))
                                             loops[doorKey][fasadeKey].errors.push(id)
                                     })
+
+                                    // Проверка царги экстра
+                                    checkTsarga(_loops, extraRow).forEach((id) => {
+                                        if (!loops[doorKey]?.[fasadeKey]?.errors.includes(id))
+                                            loops[doorKey][fasadeKey].errors.push(id)
+                                    })
                                 })
                             }
 
                         })
+
+                        // Проверка царги ячейки (когда нет cellsRows)
+                        if (!cell.cellsRows?.length) {
+                            checkTsarga(_loops, cell).forEach((id) => {
+                                if (!loops[doorKey]?.[fasadeKey]?.errors.includes(id))
+                                    loops[doorKey][fasadeKey].errors.push(id)
+                            })
+                        }
 
                     })
 
@@ -468,7 +586,48 @@ export default class LoopsManager {
         return loops;
     }
 
-    getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) { 
+    //Проверка: петли не должны стоять с обеих сторон одной перегородки.
+
+    resolvePartitionLoopsConflicts(grid: GridModule = this.scope.UM_STORE.getUMGrid()): boolean {
+        const sections = grid.sections ?? []
+        const usesSide = (section, side: number) =>
+            (section?.fasades ?? []).some(door => door?.some(fasade => fasade.loopsSide === side))
+
+        const doorsCount = (section) => section?.fasades?.length ?? 0
+
+        const dropDoors = (section) => {
+            section.fasades = []
+            section.loops = []
+            section.loopsSides = {}
+        }
+
+        let resolved = false
+
+        for (let i = 0; i < sections.length - 1; i++) {
+            const left = sections[i]
+            const right = sections[i + 1]
+
+            const conflict = usesSide(left, LOOPSIDE['right_on_partition']) &&
+                usesSide(right, LOOPSIDE['left_on_partition'])
+
+            if (!conflict) continue
+
+            // При равенстве убираем у правой секции — она получила петли последней
+            const target = doorsCount(left) < doorsCount(right) ? left : right
+
+            if (doorsCount(target) !== 1) {
+                this.scope.callAlert("warning", "Петли соседних секций встали на одну перегородку — измените сторону открывания")
+                continue
+            }
+
+            dropDoors(target)
+            resolved = true
+        }
+
+        return resolved
+    };
+
+    getLoopsideList(secIndex: number, doorIndex: number, grid: GridModule, segment: number) {
 
 
         const { row } = this.scope.UM_STORE.getSelected("fasades")
@@ -491,6 +650,12 @@ export default class LoopsManager {
         const loopsData = this.scope.APP.LOOPSIDE
         // const MokLoop = [...productInfo.LOOPSIDE, 14981055] /** ДЛЯ МАСТЕРА  */
         const MokLoop = [...productInfo.LOOPSIDE]
+
+        if (isDoors) {
+            const sideId = currSection.loopsSides?.[doorIndex];
+            const sideObj = sideId ? loopsData[sideId] : null;
+            return sideObj ? [sideObj] : [];
+        }
 
         const topPossibles = () => {
 

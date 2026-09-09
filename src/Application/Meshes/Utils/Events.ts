@@ -22,6 +22,7 @@ import { MILLINGS, additionalMillingKeys } from '@/Application/F-millings';
 // import { directionToColor } from 'three/webgpu';
 // import { VertexNormalsHelper } from "three/examples/jsm/Addons.js";
 import { BuildUniversalModule } from "@/Application/Meshes/UniversalModuleUtils/BuildUniversalModule.ts";
+import { getUMGridFromConfig, WARDROBE_GRID_CONFIG_KEY } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
 
 type TRotateActions = Record<number, number>
 export type TDataCreateHandle = { data: TCreateHandleParams; fasadeNdx: number }
@@ -853,15 +854,15 @@ export class MeshEvents extends BuildersHelper {
     public async processOptions(data) {
 
         if (!data) return
-        const { NAME, ID } = data.option
+        const { NAME, ID } = data.option ?? {}
         if (!this._currentMesh) return;
 
         const { FASADE, FASADE_DEFAULT, LEG, CONFIG } = this._currentMesh.userData.PROPS;
         const { width, height, depth } = CONFIG.SIZE;
 
-        if (NAME.includes('Опоры')) {
-            this.changeModelSize({ data: { width, height, depth } });
-            return;
+        if (NAME?.includes('Опоры')) {
+            this.changeModelSize({ data: { width, height, depth } })
+            return
         }
         this.buildProduct.fasade_builder.processOptions({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data });
 
@@ -886,8 +887,21 @@ export class MeshEvents extends BuildersHelper {
         this.dispose.clearParent(this._currentMesh as THREE.Object3D)
         let size = { width: data.width, height: data.height, depth: data.depth }
 
+        // Гардеробная система держит сетку под ОТДЕЛЬНЫМ ключом
+        // CONFIG.WARDROBEGRID (не MODULEGRID) именно чтобы не попадать в
+        // BuildUniversalModule — та понимает только box-UM-структуру
+        // sections->cells->cellsRows->extras (см. WardrobeSystem.ts).
+        // Раньше buildUMProduct звался здесь БЕЗУСЛОВНО на любой "A:UM-update"
+        // (его шлёт UMconstructor.vue::saveUMData при каждом сохранении 2D —
+        // и box-UM, и гардеробной), так что сохранение гардеробной сетки не
+        // доходило до ветки isWardrobeSystemTemp в BuildProduct — её задевало
+        // только первичное создание товара через drag&drop.
+        const isWardrobe = getUMGridFromConfig(CONFIG).key === WARDROBE_GRID_CONFIG_KEY;
+
         /** Пересоздаём по новым параметрам */
-        let body = this.buildUMProduct.createProductBody(this._currentMesh as THREE.Object3D, size, data);
+        let body = isWardrobe
+            ? this.buildProduct.createProductBody(this._currentMesh as THREE.Object3D, size, false, false, false)
+            : this.buildUMProduct.createProductBody(this._currentMesh as THREE.Object3D, size, data);
 
         /** Добавляем к родителю */
         this._currentMesh?.add(body as THREE.Object3D);
@@ -977,6 +991,8 @@ export class MeshEvents extends BuildersHelper {
         const { POSITION, UNIFORM_TEXTURE, SIZE, SIZE_OFFSET } = CONFIG as THREETypes.TConfig;
         const fasadeSize = type === 'resize';
 
+        if (!type) CONFIG.SIZE_BASE = { width: data.width, height: data.height, depth: data.depth }
+
         if (fillingId !== undefined) {
             const product = this._PRODUCTS[PRODUCT];
             CONFIG.FILLING = fillingId;
@@ -987,7 +1003,14 @@ export class MeshEvents extends BuildersHelper {
         this.dispose.clearParent(currentMesh as THREE.Object3D);
 
         // Пересоздаём по новым параметрам
-        const body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+        // Пересоздаём по новым параметрам
+        let body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+
+        if (this.buildProduct.filters.revalidateOptions(PROPS)) {
+            this.dispose.clearParent(currentMesh as THREE.Object3D);
+            body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
+        }
+        
         currentMesh.add(body as THREE.Object3D);
         currentMesh.position.set(POSITION.x, POSITION.y, POSITION.z);
         currentMesh.updateMatrixWorld(true);

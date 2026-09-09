@@ -1,14 +1,16 @@
 <script setup lang="ts">
 // @ts-nocheck
 import Modal from "@/components/ui/modals/Modal.vue";
-import {defineExpose, nextTick, onBeforeUnmount, ref} from "vue";
+import { computed, defineExpose, nextTick, onBeforeUnmount, ref } from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus.ts";
-import {saveUMGrid} from "@/components/UMconstructor/utils/PixiMethods.ts";
+import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import MainView from "@/components/UMconstructor/views/MainView.vue"
-import {useUMStorage} from "@/store/appStore/UniversalModule/useUMStorage.ts";
-import {useToast} from "@/features/toaster/useToast.ts";
+import WardrobeMainView from "@/components/UMconstructor/views/WardrobeMainView.vue"
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useToast } from "@/features/toaster/useToast.ts";
 import UMLoader from "@/components/UMconstructor/UMLoader.vue";
 import type { Application } from "@/Application/Core/Application";
+import { getUMGridFromConfig, isWardrobeSystemProduct } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
 
 type Props = {
   product: Record<any | any> | null;
@@ -25,6 +27,13 @@ const universalModuleData = ref({});
 const isUMModalOpen = ref(false);
 const gridUMSaved = ref(false);
 
+// Гардеробная система (вариант "B", см. чат/SESSION_CONTEXT.md) — отдельное
+// дерево Vue-компонентов (WardrobeMainView + внутри него), а не ветки внутри
+// box-UM MainView.vue. Определяем по товару, а не по CONFIG.WARDROBEGRID —
+// тот появляется только ПОСЛЕ createProductObject, а этот computed должен
+// быть верным сразу, до первого рендера.
+const isWardrobeProduct = computed(() => isWardrobeSystemProduct(props.product?.userData?.globalData));
+
 const selectUMData = (data) => {
   universalModuleData.value = data;
   UMstore.setUMData(data.PROPS.PROPS);
@@ -38,14 +47,18 @@ const saveUMData = ({ data, canvasHeight }) => {
     return;
 
   let saveData = universalModule2DConstructor.value.saveGrid()
-  if(!saveData)
+  if (!saveData)
     return;
 
   let tmp_result = saveUMGrid(saveData)
 
-  props.product.userData.PROPS.CONFIG.MODULEGRID = tmp_result;
+  const { PROPS } = props.product.userData
+  // Гардеробная система (временно, черновик) — пишем в тот же ключ, из
+  // которого сетка была прочитана (CONFIG.WARDROBEGRID, не CONFIG.MODULEGRID
+  // — см. WardrobeSystem.ts).
+  const { key: umGridKey } = getUMGridFromConfig(PROPS.CONFIG)
+  PROPS.CONFIG[umGridKey] = tmp_result;
   UMstore.setUMCashGrid(tmp_result)
-  const {PROPS} = props.product.userData
   saveConfigCash(PROPS, true)
 
   gridUMSaved.value = true;
@@ -56,9 +69,8 @@ const saveUMData = ({ data, canvasHeight }) => {
 };
 
 const saveConfigCash = (PROPS, skipGrid = false) => {
-  const {CONFIG} = PROPS
+  const { CONFIG } = PROPS
   const {
-    MODULEGRID,
     BACKWALL,
     RIGHTSIDECOLOR,
     LEFTSIDECOLOR,
@@ -70,34 +82,37 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
     EXPRESSIONS
   } = CONFIG
 
-  if (!skipGrid && MODULEGRID) {
-    UMstore.setUMCashGrid(saveUMGrid(MODULEGRID))
+  // Гардеробная система (временно, черновик) — активная сетка может лежать
+  // под CONFIG.WARDROBEGRID, не только CONFIG.MODULEGRID — см. WardrobeSystem.ts.
+  const { grid: activeUMGrid } = getUMGridFromConfig(CONFIG)
+  if (!skipGrid && activeUMGrid) {
+    UMstore.setUMCashGrid(saveUMGrid(activeUMGrid))
   }
 
   let universalModuleConfigCash = {
     HORIZONT,
     MODULE_COLOR,
-    EXPRESSIONS : {...EXPRESSIONS}
+    EXPRESSIONS: { ...EXPRESSIONS }
   };
 
-  if(BACKWALL)
-    universalModuleConfigCash.BACKWALL = {...CONFIG.BACKWALL};
+  if (BACKWALL)
+    universalModuleConfigCash.BACKWALL = { ...CONFIG.BACKWALL };
 
-  if(RIGHTSIDECOLOR)
-    universalModuleConfigCash.RIGHTSIDECOLOR = {...CONFIG.RIGHTSIDECOLOR};
+  if (RIGHTSIDECOLOR)
+    universalModuleConfigCash.RIGHTSIDECOLOR = { ...CONFIG.RIGHTSIDECOLOR };
 
-  if(LEFTSIDECOLOR)
-    universalModuleConfigCash.LEFTSIDECOLOR = {...CONFIG.LEFTSIDECOLOR};
+  if (LEFTSIDECOLOR)
+    universalModuleConfigCash.LEFTSIDECOLOR = { ...CONFIG.LEFTSIDECOLOR };
 
-  if(TSARGA)
-    universalModuleConfigCash.TSARGA = {...CONFIG.TSARGA};
+  if (TSARGA)
+    universalModuleConfigCash.TSARGA = { ...CONFIG.TSARGA };
 
-  if(TOPFASADECOLOR)
-    universalModuleConfigCash.TOPFASADECOLOR = {...CONFIG.TOPFASADECOLOR};
+  if (TOPFASADECOLOR)
+    universalModuleConfigCash.TOPFASADECOLOR = { ...CONFIG.TOPFASADECOLOR };
 
-  if(OPTIONS?.length) {
+  if (OPTIONS?.length) {
     universalModuleConfigCash.OPTIONS = [...CONFIG.OPTIONS.map(opt => {
-      return {...opt}
+      return { ...opt }
     })];
   }
 
@@ -105,14 +120,17 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
 }
 
 const openUMRedactor = () => {
-  const {PROPS} = props.product.userData
+  const { PROPS } = props.product.userData
   saveConfigCash(PROPS)
   isUMModalOpen.value = true;
 };
 
 const closeUMRedactor = () => {
   if (!gridUMSaved.value) {
-    props.product.userData.PROPS.CONFIG.MODULEGRID = UMstore.getUMCashGrid();
+    // Гардеробная система (временно, черновик) — писать обратно нужно в тот
+    // же ключ, из которого сетка была прочитана (см. WardrobeSystem.ts).
+    const { key: umGridKey } = getUMGridFromConfig(props.product.userData.PROPS.CONFIG)
+    props.product.userData.PROPS.CONFIG[umGridKey] = UMstore.getUMCashGrid();
     props.product.userData.PROPS.CONFIG = Object.assign(props.product.userData.PROPS.CONFIG, UMstore.getUMCashConfig());
   }
 
@@ -123,7 +141,7 @@ const closeUMRedactor = () => {
   UMstore.clearStorage()
 };
 
-onBeforeUnmount(()=>{
+onBeforeUnmount(() => {
   universalModuleData.value = false;
   isUMModalOpen.value = false;
   gridUMSaved.value = false;
@@ -137,42 +155,51 @@ defineExpose({
 </script>
 
 <template>
-  <Modal
-    v-if="universalModuleData && props.product"
-    :container="`modal--tableTop`"
-    @open-modal="openUMRedactor"
-    @close-modal="closeUMRedactor"
-  >
+  <Modal v-if="universalModuleData && props.product" :container="`modal--tableTop`" @open-modal="openUMRedactor"
+    @close-modal="closeUMRedactor">
     <template #modalBody="{ onModalClose }" class="modal--tableTop">
       <div class="um-modal-body-wrapper">
-        <MainView
-          v-if="isUMModalOpen"
-          ref="universalModule2DConstructor"
-          :productData="universalModuleData.PROPS"
-          :canvasHeight="universalModuleData.canvasHeight"
-          :canvasWidth="universalModuleData.canvasWidth"
-          :verdekConstructor="verdekConstructor"
-          @close-modal="closeUMRedactor"
-        >
+        <MainView v-if="isUMModalOpen && !isWardrobeProduct" ref="universalModule2DConstructor" :productData="universalModuleData.PROPS"
+          :canvasHeight="universalModuleData.canvasHeight" :canvasWidth="universalModuleData.canvasWidth"
+          :verdekConstructor="verdekConstructor" @close-modal="closeUMRedactor">
           <template #save>
-            <button class="no-select actions-btn actions-btn--footer" @click="saveUMData">
+            <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMData">
               Сохранить
             </button>
           </template>
 
           <template #close>
-            <button
-              @click="
-                () => {
-                  onModalClose();
-                }
-              "
-              class="no-select actions-btn actions-btn--footer"
-            >
+            <button @click="
+              () => {
+                onModalClose();
+              }
+            " class="no-select actions-btn actions-btn--footer">
               Закрыть
             </button>
           </template>
         </MainView>
+
+        <WardrobeMainView v-if="isUMModalOpen && isWardrobeProduct" ref="universalModule2DConstructor" :productData="universalModuleData.PROPS"
+          :canvasHeight="universalModuleData.canvasHeight" :canvasWidth="universalModuleData.canvasWidth"
+          :verdekConstructor="verdekConstructor" @close-modal="closeUMRedactor">
+          <template #save>
+            <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMData">
+              Сохранить
+            </button>
+          </template>
+
+          <template #close>
+            <button @click="
+              () => {
+                onModalClose();
+              }
+            " class="no-select actions-btn actions-btn--footer">
+              Закрыть
+            </button>
+          </template>
+        </WardrobeMainView>
 
         <div v-if="UMstore.getLoad" class="um-modal-loader-overlay">
           <UMLoader />
@@ -187,7 +214,13 @@ defineExpose({
   </Modal>
 </template>
 
-<style  lang="scss">
+<style lang="scss">
+.actions-btn--footer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .um-modal-body-wrapper {
   display: flex;
   gap: 1rem;
@@ -201,12 +234,12 @@ defineExpose({
 
 .um-modal-loader-overlay {
   position: absolute;
-  inset: 0;
+  // inset: 0;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.4);
+  // background: rgba(255, 255, 255, 0.4);
   pointer-events: all;
 }
 
@@ -222,9 +255,12 @@ defineExpose({
 }
 
 .no-select {
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none;     /* IE 10+ и Edge */
-  user-select: none;         /* Стандарт: Chrome, Firefox, Opera, Edge */
+  -webkit-user-select: none;
+  /* Safari */
+  -ms-user-select: none;
+  /* IE 10+ и Edge */
+  user-select: none;
+  /* Стандарт: Chrome, Firefox, Opera, Edge */
 }
 
 .cut {
@@ -248,6 +284,7 @@ defineExpose({
   &-icon {
     width: 25px;
     height: 25px;
+
     svg {
       g {
         path {

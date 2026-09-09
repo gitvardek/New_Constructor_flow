@@ -189,16 +189,8 @@ const deleteChoise = (event) => {
 
   &__name {
     font-size: 1.2rem;
-    // line-height: 14px;
     text-overflow: ellipsis;
     overflow: hidden;
-
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
   }
 }
 

@@ -235,7 +235,6 @@ const uploadProjectTech = async (id: string | number) => {
         schemeTransition.clearStore();
         // 1. Обновляем данные проекта в sceneState
         await sceneState.loadProjectFromData(projectData);
-        sceneState.updateProjectParams({});
 
         // 2. Устанавливаем данные в schemeTransition
         schemeTransition.setAppData(projectData.rooms);

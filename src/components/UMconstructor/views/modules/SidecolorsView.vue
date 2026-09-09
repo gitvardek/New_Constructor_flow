@@ -213,11 +213,23 @@ const getCurrentValue = computed(() => {
       elementSize.value = {
         FASADE_WIDTH: module.value.depth,
         FASADE_HEIGHT: module.value.height,
+        isPanel: true,
       };
-
       break;
+
+    case "TOPFASADECOLOR":
+      result = objectData.value.CONFIG[currentOption.value];
+
+      elementSize.value = {
+        FASADE_WIDTH: module.value.width,
+        FASADE_HEIGHT: module.value.depth,
+        isPanel: true,
+      };
+      break;
+
     default:
       result = objectData.value.CONFIG[currentOption.value];
+      elementSize.value = false;
       break;
   }
 
@@ -272,8 +284,10 @@ const createFacadeData = (fasadeIndex) => {
   });
 };
 
-const setEccentricOption = (props = { PROPS: false, side: false }) => {
-  let { PROPS, side } = props;
+const setEccentricOption = (
+  props = { PROPS: false, side: false, keepActive: false },
+) => {
+  let { PROPS, side, keepActive } = props;
 
   if (
     (side && PROPS.CONFIG[side]?.COLOR) ||
@@ -282,7 +296,13 @@ const setEccentricOption = (props = { PROPS: false, side: false }) => {
   ) {
     PROPS.CONFIG.eccentricOption = true;
   } else {
+    // Опция перестаёт быть обязательной — чекбокс разблокируется
     delete PROPS.CONFIG.eccentricOption;
+    // keepActive: стенка на месте (перешла на цвет корпуса) — галку не снимаем
+    if (!keepActive) {
+      const opt = PROPS.CONFIG.OPTIONS?.find((item) => +item.id === 8390271);
+      if (opt) opt.active = false;
+    }
   }
 
   let option = PROPS.CONFIG.OPTIONS.find((item) => +item.id === 8390271);
@@ -297,18 +317,34 @@ const selectOption = (
   palette: Object = false,
 ) => {
   switch (currentOption.value) {
-    case "MODULE_COLOR":
+    case "MODULE_COLOR": {
+      const oldModuleColor = objectData.value.CONFIG["MODULE_COLOR"];
       objectData.value.CONFIG[currentOption.value] = value.ID;
       module.value.moduleColor = value.ID;
       module.value.moduleThickness = value.DEPTH;
 
-      if (!objectData.value.CONFIG["LEFTSIDECOLOR"]?.COLOR)
-        module.value.leftWallThickness = value.DEPTH;
+      const updateSideWall = (side: "LEFTSIDECOLOR" | "RIGHTSIDECOLOR", wallKey: "leftWallThickness" | "rightWallThickness") => {
+        const cfg = objectData.value.CONFIG[side];
+        if (!cfg) return;
+        module.value[wallKey] = value.DEPTH;
+        // Сброс собственного цвета стенки при смене цвета корпуса (стенка следует корпусу)
+        if (cfg.COLOR) {
+          objectData.value.CONFIG[side] = { COLOR: false };
+        }
+      };
 
-      if (!objectData.value.CONFIG["RIGHTSIDECOLOR"]?.COLOR)
-        module.value.rightWallThickness = value.DEPTH;
+      updateSideWall("LEFTSIDECOLOR", "leftWallThickness");
+      updateSideWall("RIGHTSIDECOLOR", "rightWallThickness");
 
+      // Смена цвета корпуса не убирает стенки — галку эксцентриков сохраняем,
+      // пересчитываем только обязательность (блокировку) опции
+      setEccentricOption({
+        PROPS: objectData.value,
+        side: false,
+        keepActive: true,
+      });
       break;
+    }
     case "PROFILECOLOR":
       objectData.value.CONFIG["PROFILECOLOR"] = value
         ? value.ID || value
@@ -363,9 +399,13 @@ const selectOption = (
       if (type === "COLOR") {
         if (tmp_value === objectData.value.CONFIG.MODULE_COLOR) {
           objectData.value.CONFIG[currentOption.value] = { COLOR: false };
+
+          // Стенка перешла на цвет корпуса, но осталась на месте — галку эксцентриков
+          // сохраняем, пересчитываем только обязательность (блокировку) опции
           setEccentricOption({
             PROPS: objectData.value,
             side: currentOption.value,
+            keepActive: true,
           });
           break;
         }
@@ -551,7 +591,8 @@ onBeforeUnmount(() => {
         <div v-else>
           <AdvanceCorpusMaterialRedactor class="color--left-select-item" v-if="getCurrentRedactor" :key="currentOption"
             :element-data="getCurrentValue" :element-index="currentOption" :material-list="materialList"
-            :fasade-size="elementSize" @parent-callback="selectOption" />
+            :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR' || currentOption === 'TOPFASADECOLOR'"
+            :fasade-size="elementSize" @parent-callback="selectOption" @select_material="emit('eccentric-action')" />
           <CorpusMaterialRedactor v-else class="color--left-select-item" :is2Dconstructor="true"
             :material-list="materialList" :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
             @parent-callback="selectOption" />
@@ -584,8 +625,8 @@ onBeforeUnmount(() => {
     }
   }
 }
-.container{
+
+.container {
   max-height: calc(var(--modal-large-height) - 115px)
 }
-
 </style>

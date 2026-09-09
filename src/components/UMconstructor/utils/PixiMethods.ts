@@ -1,9 +1,9 @@
 // @ts-nocheck 31
+import { UM_PARAMS, UM_DRAWERS_IDS } from "./Const.ts";
 import { UM_PARAMS } from "./Const.ts";
 import { Container, Graphics, GraphicsPath, Text, TextStyle } from "pixi.js";
 import * as THREE from "three";
-import { MANUFACTURER } from "@/types/constructor2d/interfaсes.ts";
-import { TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
+import { MANUFACTURER, TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
@@ -417,17 +417,19 @@ class Shape extends Helpers {
 
             if (self.data.innerDrawerConstraint) {
                 // Внутренний ящик: движение ограничено пространством фасада внешнего ящика
+                // с отступами INNER_DRAWER_GAP от тела и INNER_DRAWER_FACADE_GAP от фасада
                 const c = self.data.innerDrawerConstraint
+                const facadeGapPx = self.getPixelHeight(UM_PARAMS.INNER_DRAWER_FACADE_GAP)
+                const innerGapPx = self.getPixelHeight(UM_PARAMS.INNER_DRAWER_GAP)
                 self.sectorBounds = {
                     x: self.getPixelWidth(c.x),
-                    y: self.getPixelHeight(c.startY),
+                    y: self.getPixelHeight(c.startY) + facadeGapPx,
                     width: self.getPixelWidth(c.width),
-                    height: self.getPixelHeight(c.height),
+                    height: self.getPixelHeight(c.height) - facadeGapPx - innerGapPx,
                 }
                 // Коллизия только с другими внутренними ящиками в том же пространстве
-                const INNER_DRAWER_IDS = [15222587, 2166308]
                 cachedShapes = self.sector.shapes.filter(
-                    s => s !== self && INNER_DRAWER_IDS.includes(s.data?.productGroupID)
+                    s => s !== self && UM_DRAWERS_IDS.INNER.includes(s.data?.productGroupID)
                 )
             } else {
                 self.sectorBounds = self.getSectorBounds(self.sector);
@@ -451,10 +453,8 @@ class Shape extends Helpers {
 
                 // Внешний ящик: внутренние ящики не участвуют в проверке коллизии
                 // (checkOverlap расширяет границы фасада и всегда видит overlap с внутренним ящиком)
-                const OUTER_DRAWER_IDS_PC = [5726092, 6560591]
-                if (cachedShapes && OUTER_DRAWER_IDS_PC.includes(self.data.productGroupID)) {
-                    const INNER_IDS_PC = [15222587, 2166308]
-                    cachedShapes = cachedShapes.filter(s => !INNER_IDS_PC.includes(s.data?.productGroupID))
+                if (cachedShapes && UM_DRAWERS_IDS.OUTER.includes(self.data.productGroupID)) {
+                    cachedShapes = cachedShapes.filter(s => !UM_DRAWERS_IDS.INNER.includes(s.data?.productGroupID))
                 }
             }
         }
@@ -502,17 +502,48 @@ class Shape extends Helpers {
                         self.highlightGraphics.position.x = currentX;
                     }
                 } else {
+                    if (self.data.innerDrawerConstraint && cachedShapes?.length) {
+                        const gapPx = self.getPixelHeight(UM_PARAMS.INNER_DRAWER_GAP)
+                        const selfCenter = currentY + self.height / 2
+                        let innerMinY = this.sectorBounds.y + this.paddingTop
+                        let innerMaxY = this.sectorBounds.y + this.sectorBounds.height - self.height - this.paddingBottom
+
+                        for (const other of cachedShapes) {
+                            const otherTop = other.graphic.position.y
+                            const otherBottom = otherTop + other.height
+                            if (otherTop + other.height / 2 < selfCenter) {
+                                innerMinY = Math.max(innerMinY, otherBottom + gapPx)
+                            } else {
+                                innerMaxY = Math.min(innerMaxY, otherTop - gapPx - self.height)
+                            }
+                        }
+
+                        adjustedY = Math.max(innerMinY, Math.min(adjustedY, innerMaxY))
+                    }
+
                     // Пробуем движение по Y
                     self.graphic.position.y = adjustedY;
                     self.highlightGraphics.position.y = adjustedY;
                     let hasCollisionY = false;
 
                     for (const otherShape of cachedShapes) {
+                        // Для внутренних ящиков — gap-aware коллизия с учётом отступа INNER_DRAWER_GAP
+                        const hasOverlap = (self.data.innerDrawerConstraint && otherShape.data?.innerDrawerConstraint)
+                            ? (() => {
+                                const gapPx = self.getPixelHeight(UM_PARAMS.INNER_DRAWER_GAP)
+                                const myTop = self.graphic.position.y
+                                const myBottom = myTop + self.height
+                                const otherTop = otherShape.graphic.position.y
+                                const otherBottom = otherTop + otherShape.height
+                                return myBottom + gapPx > otherTop && myTop < otherBottom + gapPx
+                            })()
+                            : self.checkOverlap(otherShape)
+
                         if ((self !== otherShape && self.data !== otherShape.data)
                             && self.containerShape !== otherShape
                             && !self.isExcludedFromCollision(self.data, otherShape.data)
                             && !self.isExcludedFromCollision(otherShape.data, self.data)
-                            && self.checkOverlap(otherShape)) {
+                            && hasOverlap) {
 
                             if ((self.data.fasade && otherShape.data.fasade) &&
                                 (self.data.fasade.fasadeDrawerId === otherShape.data.fasade.fasadeDrawerId))
@@ -569,13 +600,12 @@ class Shape extends Helpers {
                     }
 
                     // Внешний ящик: двигаем только вложенные ящики этого конкретного внешнего
-                    const OUTER_DRAWER_IDS = [5726092, 6560591]
-                    if (OUTER_DRAWER_IDS.includes(self.data.productGroupID)) {
+                    if (UM_DRAWERS_IDS.OUTER.includes(self.data.productGroupID)) {
                         const deltaY = self.graphic.position.y - currentY
                         if (deltaY !== 0) {
-                            const INNER_DRAWER_IDS = [15222587, 2166308]
+
                             for (const shape of self.sector.shapes) {
-                                if (INNER_DRAWER_IDS.includes(shape.data?.productGroupID) &&
+                                if (UM_DRAWERS_IDS.INNER.includes(shape.data?.productGroupID) &&
                                     shape.data?.innerDrawerConstraint?.outerDrawerGroupId === self.data.innerDrawerGroupId) {
                                     shape.graphic.position.y += deltaY
                                     shape.highlightGraphics.position.y += deltaY
@@ -611,12 +641,11 @@ class Shape extends Helpers {
                 }
 
                 // Внешний ящик: сохраняем позиции только вложенных ящиков этого конкретного внешнего
-                const OUTER_DRAWER_IDS_ED = [5726092, 6560591]
-                if (OUTER_DRAWER_IDS_ED.includes(this.data.productGroupID)) {
+                if (UM_DRAWERS_IDS.OUTER.includes(this.data.productGroupID)) {
                     const newOuterBodyYMm = this.getMmHeight(self.graphic.position.y)
-                    const INNER_DRAWER_IDS_ED = [15222587, 2166308]
+
                     for (const shape of this.sector.shapes) {
-                        if (INNER_DRAWER_IDS_ED.includes(shape.data?.productGroupID) &&
+                        if (UM_DRAWERS_IDS.INNER.includes(shape.data?.productGroupID) &&
                             shape.data?.innerDrawerConstraint?.outerDrawerGroupId === this.data.innerDrawerGroupId) {
                             if (shape.data.position) {
                                 shape.data.position.x = Math.round(this.getMmWidth(shape.graphic.position.x))
@@ -1108,6 +1137,7 @@ class Section extends Helpers {
         // Создаем пути для графики
         const cellPath = this.createPath();
         const highlightPath = this.createPath();
+
 
         if (cellPath.error) {
             defCellColor = '#f5caca';
