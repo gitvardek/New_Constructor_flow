@@ -41,9 +41,9 @@ export const useOptions = () => {
     // вручную уже нельзя
     const LOW_MODULE_MIN_HEIGHT = 150
     const LOW_MODULE_MAX_HEIGHT = 249
-    const LOW_MODULE_FORCED_OPTION = 4722965
+    const LOW_MODULE_FORCED_OPTION = [4722965, 3955910]
     const LOW_MODULE_HIDDEN_OPTIONS = [5738924]
-    const LOW_MODULE_HIDDEN_GROUPS = [548]
+    const LOW_MODULE_HIDDEN_GROUPS = [548, 549]
 
     const isLowModule = (props: TTotalProps) => {
         if (!UNIVERSALE_MODULES.includes(props?.PRODUCT)) return false
@@ -63,23 +63,25 @@ export const useOptions = () => {
         LOW_MODULE_HIDDEN_OPTIONS.includes(+(option?.id ?? option?.ID))
         || LOW_MODULE_HIDDEN_GROUPS.includes(+(option?.group ?? option?.GROUP))
 
-    // Заблокированы и скрытые опции, и сам «Навесной»: он включён принудительно и
-    // выключить его нельзя, но из списка он не убирается — пользователь должен видеть,
-    // что модуль навесной
-    const isLowModuleLocked = (option: any) =>
-        +(option?.id ?? option?.ID) === LOW_MODULE_FORCED_OPTION
+    // Заблокированы и скрытые опции, и принудительно включённые: выключить их нельзя,
+    // но из списка они не убираются — пользователь должен видеть, что к модулю применено
+    const isLowModuleLocked = (option: any) => LOW_MODULE_FORCED_OPTION.includes(+(option?.id ?? option?.ID))
         || isLowModuleRestricted(option)
 
     // Скрытые опции снимет filterGroups — она сама гасит active у невидимых.
-    // Здесь остаётся только принудительное включение «Навесного»
+    // Здесь остаётся только принудительное включение
     const applyLowModuleRules = (options: TOption[], props: TTotalProps) => {
         if (!isLowModule(props)) return
 
-        const forced = options?.find(option => +option.id === LOW_MODULE_FORCED_OPTION)
+        // Включаем все принудительные опции, а не первую подходящую: одна из них может
+        // быть уже активна, и на ней поиск останавливался, не дойдя до остальных
+        const forced = options?.filter(option =>
+            LOW_MODULE_FORCED_OPTION.includes(+option.id) && !option.active) ?? []
 
-        if (!forced || forced.active) return
+        if (!forced.length) return
 
-        forced.active = true
+        forced.forEach(option => { option.active = true })
+
         syncHorizont(options)
         eventBus.emit("A:SelectModelOption")
     }
@@ -135,9 +137,10 @@ export const useOptions = () => {
         if (!curOpt)
             return;
 
-        // Низкий модуль: «Навесной» выключить нельзя. Возвращаем текущее состояние —
-        // вызывающий по нему вернёт чекбокс обратно, как и для обязательных групп
-        if (!values && isLowModule(PROPS) && +curOpt.id === LOW_MODULE_FORCED_OPTION)
+        // Низкий модуль: принудительно включённую опцию выключить нельзя. Возвращаем
+        // текущее состояние — вызывающий по нему вернёт чекбокс обратно, как и для
+        // обязательных групп
+        if (!values && isLowModule(PROPS) && LOW_MODULE_FORCED_OPTION.includes(+curOpt.id))
             return curOpt.active;
 
         const disabledOptions: typeof OPTIONS = [];

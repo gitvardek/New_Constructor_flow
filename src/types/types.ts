@@ -279,6 +279,17 @@ type TSizeEdit = {
 
 }
 
+export type TFasadeSectionItem = {
+
+  ID: number | string | null,
+  NAME: number | string | null,
+  SORT: number | string | null,
+  UF_EN_NAME: number | string | null,
+  UF_GROUP: number | string | null,
+  UF_GROUP_CONSTRUCTOR: number | string | null,
+  UF_NAMEBYONEC: number | string | null,
+}
+
 type TRotationEuler = {
   isEuler: boolean,
   _x: number,

@@ -488,17 +488,21 @@ export class BuildUniversalModule extends BuildProduct {
                 }
             }
 
-            section.fillings?.forEach((filling) => {
-                let z_pos = filling.type !== "any" ? product_data.depth - filling.size.z / 2 - (isSlidingDoors || 0) : curSection.position.z - (isSlidingDoors || 0)
+            // Секция с ячейками собственного наполнения не имеет: и 2D-конструктор, и обход
+            // ячеек выше работают с содержимым ячеек. Записи, оставшиеся здесь после правок
+            // сетки, в 2D не видны и не редактируются, а в 3D давали дубль полки
+            const ownFillings = section.cells?.length ? [] : (section.fillings ?? [])
 
-                const bottom = filling.distances?.bottom
-                if (!bottom) {
-                    return
-                }
+            ownFillings.forEach((filling) => {
+                // distances рассчитывает 2D-слой при отрисовке. Без них разместить элемент
+                // нельзя, поэтому пропускаем запись, а не роняем сборку всего модуля
+                if (!filling.distances) return
+
+                let z_pos = filling.type !== "any" ? product_data.depth - filling.size.z / 2 - (isSlidingDoors || 0) : curSection.position.z - (isSlidingDoors || 0)
 
                 let fillingPos = new THREE.Vector3(
                     filling.isVerticalItem ? curSection.position.x - curSection.size.x / 2 + filling.distances.left + filling.width / 2 : curSection.position.x,
-                    curSection.position.y + bottom - full_horizont_height,
+                    curSection.position.y + filling.distances.bottom - full_horizont_height,
                     z_pos
                 )
 

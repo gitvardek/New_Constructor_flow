@@ -554,6 +554,11 @@ export default class FillingsManager {
             return;
         }
 
+        if (currentModuleSegment.height <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT) {
+            this.scope.callAlert("error", `Нельзя добавить наполнение: высота области (${currentModuleSegment.height} мм) менее ${UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT} мм`)
+            return;
+        }
+
         if (row === null && cell === null && sec === null && extra === null) {
             this.scope.callAlert("info", "Пожалуйста, выберите секцию для добавления наполнения")
             return;
@@ -1585,6 +1590,38 @@ export default class FillingsManager {
                 cell.cellsRows?.forEach(row => {
                     patchFillings(row.fillings)
                     row.extras?.forEach(extra => patchFillings(extra.fillings))
+                })
+            })
+        })
+    }
+
+    // Контейнер, у которого есть вложенные, собственного наполнения не хранит: 2D рисует
+    // содержимое вложенных, а оставшиеся записи становятся невидимыми и нередактируемыми.
+    // В 3D и в корзину они при этом попадали — отсюда «фантомные» полки. Чистим их,
+    // чтобы сетка вылечивалась при первом же пересчёте
+    cleanupOrphanFillings(grid: GridModule) {
+        const clear = (
+            segment: any,
+            secIndex: number,
+            cellIndex: number | null,
+            rowIndex: number | null,
+            extraIndex: number | null,
+        ) => {
+            if (!segment?.fillings?.length) return
+
+            for (let i = segment.fillings.length - 1; i >= 0; i--) {
+                this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false)
+            }
+        }
+
+        grid.sections?.forEach((section, secIndex) => {
+            if (section.cells?.length) clear(section, secIndex, null, null, null)
+
+            section.cells?.forEach((cell, cellIndex) => {
+                if (cell.cellsRows?.length) clear(cell, secIndex, cellIndex, null, null)
+
+                cell.cellsRows?.forEach((row, rowIndex) => {
+                    if (row.extras?.length) clear(row, secIndex, cellIndex, rowIndex, null)
                 })
             })
         })

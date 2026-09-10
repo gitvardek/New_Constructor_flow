@@ -356,7 +356,7 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** ------- Работа с фасадами -------- */
 
-    const createCurrentModelFasadesData = ({ data, def, fasadeNdx, fasadeCount, productId }: { data: number[], def?: boolean, fasadeNdx?: number, fasadeCount?: number | boolean, productId?: number | boolean }) => {
+    const createCurrentModelFasadesData = ({ data, def, fasadeNdx, fasadeCount, productId, umHeight }: { data: number[], def?: boolean, fasadeNdx?: number, fasadeCount?: number | boolean, productId?: number | boolean, umHeight?: number | boolean }) => {
         clearCurrentModelFasadesData();
 
         const defaultFasade = def ?? false
@@ -364,6 +364,9 @@ export const useModelState = defineStore('ModelState', () => {
         let nonFasades = !defaultFasade ? 'Без фасада' : ''
         const exception = _FASADE_EXCEPTIONS.value[productId]
         let haveShowCase = null;
+
+        const lowUm = umHeight ? umHeight <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT : false
+        console.log(lowUm, 'lowUmlowUm')
 
         if (fasadeNdx !== undefined && productId) {
 
@@ -420,7 +423,9 @@ export const useModelState = defineStore('ModelState', () => {
                 };
             }
 
-            if (!haveShowCase && hasGlass && !nestandartIDs.includes(productId)) return
+            if (!haveShowCase && hasGlass && !nestandartIDs.includes(productId) ||
+                !haveShowCase && hasGlass && nestandartIDs.includes(productId) && lowUm
+            ) return
 
             groupedFasades[groupId]['id'].push(facadeId)
 
@@ -436,6 +441,7 @@ export const useModelState = defineStore('ModelState', () => {
         // Формирование итогового массива
         const result = Object.entries(_FASADE_GROUPS.value).map(([groupId, group]) => {
             return {
+                GROUP_ID: groupId,
                 NAME: group.NAME,
                 FASADES: groupedFasades[groupId] ? groupedFasades[groupId].id : [],
                 SORT: group.SORT,

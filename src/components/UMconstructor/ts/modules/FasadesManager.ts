@@ -21,7 +21,7 @@ export default class FasadesManager {
 
     createFacadeData(fasadeIndex?: number, _productId?: number) {
         const { PROPS: { FASADE, PRODUCT } } = this.scope.MODEL_STATE.getCurrentModel.userData
-
+        const umHeight = this.scope.UM_STORE.totalHeight
         const productId = _productId || PRODUCT;
         const { FACADE } = this.scope.MODEL_STATE._PRODUCTS[productId];
         this.scope.MODEL_STATE.createCurrentModelFasadesData({
@@ -29,6 +29,7 @@ export default class FasadesManager {
             fasadeNdx: fasadeIndex,
             productId,
             fasadeCount: FASADE.length,
+            umHeight
         });
     };
 
@@ -477,6 +478,57 @@ export default class FasadesManager {
 
         this.selectCell(null, 0)
         this.scope.reset();
+    };
+
+    // Сброс материала в «без фасада» — тот же набор полей, что применяет
+    // deleteSelectedOptions(type: "surface") в AdvanceCorpusMaterialRedactor: цвет 7397,
+    // снятые отделки и признак ручного выбора «без фасада»
+    resetFasadeMaterial(material: TFasadeProp) {
+        if (!material) return
+
+        material.COLOR = this.scope.CONST.NO_FASADE_ID
+        material.ALUM = null
+        material.MILLING = null
+        material.PALETTE = null
+        material.PATINA = null
+        material.GLASS = null
+        material.MILLING_TYPE = null
+        material.TYPE = null
+        material.MANUAL_NO_FASADE = true
+    };
+
+    // У низкого УМ полотна отдельных разделов не выпускаются. Такие фасады не помечаем
+    // ошибкой, а сбрасываем в «без фасада»: материал просто перестаёт быть выбранным
+    resetRestrictedFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
+
+        let resetCount = 0
+
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    const color = fasade?.material?.COLOR
+
+                    if (!color || +color === NO_FASADE_ID) return
+                    if (!this.FASADES_CONVERSATION.isLowUmRestrictedFasade(+color)) return
+
+                    this.resetFasadeMaterial(fasade.material)
+                    resetCount += 1
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+
+        // Одно сообщение на весь проход, а не на каждый фасад. Метод вызывается при каждом
+        // пересчёте модуля, но повторно ничего не сбрасывает: уже сброшенные отсеиваются
+        // по цвету «без фасада», поэтому и предупреждение показывается только в момент сброса
+        if (resetCount)
+            this.scope.callAlert(
+                "warning",
+                `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: для модуля высотой менее ${this.scope.CONST.MIN_SECTION_TO_FILLINGS_HEIGHT} мм такое покрытие недоступно`
+            )
     };
 
     addDoor(

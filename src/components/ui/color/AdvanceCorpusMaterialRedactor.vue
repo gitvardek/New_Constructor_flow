@@ -645,7 +645,13 @@ const prepareData = () => {
     modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
   }
 
-  if (fasadeData.ATTACH_GLASS?.[0] /*&& product.GLASS[0]*/)
+  // Список стёкол хранится в сторе и перезаписывается только для материала со своим
+  // ATTACH_GLASS. Для материала без стёкол — «Без фасада», например — createCurrentGlassData
+  // не вызывается, и в сторе остаётся список от предыдущего фасада. Поэтому наличие стёкол
+  // определяем по самому материалу, а не по содержимому стора
+  const hasAttachGlass = !!fasadeData.ATTACH_GLASS?.[0];
+
+  if (hasAttachGlass /*&& product.GLASS[0]*/)
     modelState.createCurrentGlassData({ fasadeId: COLOR, productId: pid });
 
   // Кэш для предотвращения лишних обращений
@@ -728,9 +734,9 @@ const prepareData = () => {
   }
 
   /** @Стёкла */
-  if (!props.noGlass && (haveShowcase && glassData.length > 0 || glassData.length > 0 && ALUM !== null)) {
+  if (hasAttachGlass && !props.noGlass && glassData.length > 0 && (haveShowcase || ALUM !== null)) {
     glassList.value = glassData;
-    isGlassExist.value = glassData.length > 0;
+    isGlassExist.value = true;
   }
 
   // Текущие выбранные значения

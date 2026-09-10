@@ -778,6 +778,8 @@ export default class UMconstructorClass {
             }
 
             module = this.FASADES.updateFasades(module)
+            this.FASADES.resetRestrictedFasadeMaterials(module)
+            this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.cleanupUniversalDrawers(module)
         }
