@@ -90,13 +90,13 @@ export default class UMconstructorClass {
 
 
         const checks = [
-            { key: 'sec'   as const, message: 'Необходимо выбрать секцию' },
-            { key: 'cell'  as const, message: 'Необходимо выбрать ячейку' },
-            { key: 'row'   as const, message: 'Необходимо выбрать ряд' },
+            { key: 'sec' as const, message: 'Необходимо выбрать секцию' },
+            { key: 'cell' as const, message: 'Необходимо выбрать ячейку' },
+            { key: 'row' as const, message: 'Необходимо выбрать ряд' },
             { key: 'extra' as const, message: 'Необходимо выбрать уровень' },
         ];
         const maxIndex = checks.findIndex(c => c.key === level);
-        
+
         for (let i = 0; i <= maxIndex; i++) {
             const { key, message } = checks[i];
             if (source?.[key] === null || source?.[key] === undefined) {
@@ -318,6 +318,9 @@ export default class UMconstructorClass {
     getMinMaxModuleSize(productData: TTotalProps, _dimension: string, _minmax: string) {
         const dimension = _dimension.toUpperCase()
         const minmax = _minmax.toUpperCase()
+
+        if (dimension === 'HEIGHT' && minmax === 'MIN') return 150
+
 
         return +productData.CONFIG.SIZE_EDIT[`SIZE_EDIT_` + dimension + `_` + minmax];
     }
@@ -719,7 +722,7 @@ export default class UMconstructorClass {
 
             //moduleGrid.sections.length > 1
 
-            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID ) {
+            if (moduleGrid.productID === UM_PARAMS.RASPASHNOY_ID) {
                 const equalWidth = Math.floor(sectionsTotalWidth / moduleGrid.sections.length);
                 const remainder = sectionsTotalWidth - equalWidth * moduleGrid.sections.length;
                 moduleGrid.sections.forEach((section, i) => {

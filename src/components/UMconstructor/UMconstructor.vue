@@ -107,6 +107,8 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
 }
 
 const openUMRedactor = () => {
+  console.log('OPEN')
+
   const {PROPS} = props.product.userData
   saveConfigCash(PROPS)
   isUMModalOpen.value = true;

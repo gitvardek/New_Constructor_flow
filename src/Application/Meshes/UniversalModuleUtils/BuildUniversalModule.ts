@@ -491,9 +491,14 @@ export class BuildUniversalModule extends BuildProduct {
             section.fillings?.forEach((filling) => {
                 let z_pos = filling.type !== "any" ? product_data.depth - filling.size.z / 2 - (isSlidingDoors || 0) : curSection.position.z - (isSlidingDoors || 0)
 
+                const bottom = filling.distances?.bottom
+                if (!bottom) {
+                    return
+                }
+
                 let fillingPos = new THREE.Vector3(
                     filling.isVerticalItem ? curSection.position.x - curSection.size.x / 2 + filling.distances.left + filling.width / 2 : curSection.position.x,
-                    curSection.position.y + filling.distances.bottom - full_horizont_height,
+                    curSection.position.y + bottom - full_horizont_height,
                     z_pos
                 )
 

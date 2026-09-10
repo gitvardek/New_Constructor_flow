@@ -488,6 +488,8 @@ export class RoomManager extends Room {
         let counts = 0;
         const parse = typeof data === 'string' ? JSON.parse(data) : data;
 
+        console.log(parse, 'parse')
+
         const results = await Promise.all(
             parse.map(item => this.loadSingle(item))
         );

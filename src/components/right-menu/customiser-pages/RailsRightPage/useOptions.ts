@@ -36,6 +36,54 @@ export const useOptions = () => {
         UM_STORE.onHorizont = !options.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id) && opt.active)
     }
 
+    // Модуль ниже 250 мм: цоколь и опоры в него не помещаются. «Навесной» включается
+    // принудительно, «Без дна» и группа опор скрываются и блокируются — управлять ими
+    // вручную уже нельзя
+    const LOW_MODULE_MIN_HEIGHT = 150
+    const LOW_MODULE_MAX_HEIGHT = 249
+    const LOW_MODULE_FORCED_OPTION = 4722965
+    const LOW_MODULE_HIDDEN_OPTIONS = [5738924]
+    const LOW_MODULE_HIDDEN_GROUPS = [548]
+
+    const isLowModule = (props: TTotalProps) => {
+        if (!UNIVERSALE_MODULES.includes(props?.PRODUCT)) return false
+
+        // Пока открыт конструктор УМ, актуальная высота лежит в сторе: CONFIG.SIZE
+        // обновляется только при пересборке модели, то есть после применения изменений.
+        // Вне конструктора totalHeight равен нулю, и берётся размер из конфига
+        const height = Number(UM_STORE.totalHeight || props?.CONFIG?.SIZE?.height)
+
+        return Number.isFinite(height)
+            && height >= LOW_MODULE_MIN_HEIGHT
+            && height <= LOW_MODULE_MAX_HEIGHT
+    }
+
+    // Опция принимается и из CONFIG.OPTIONS (id/group), и из каталога (ID/GROUP)
+    const isLowModuleRestricted = (option: any) =>
+        LOW_MODULE_HIDDEN_OPTIONS.includes(+(option?.id ?? option?.ID))
+        || LOW_MODULE_HIDDEN_GROUPS.includes(+(option?.group ?? option?.GROUP))
+
+    // Заблокированы и скрытые опции, и сам «Навесной»: он включён принудительно и
+    // выключить его нельзя, но из списка он не убирается — пользователь должен видеть,
+    // что модуль навесной
+    const isLowModuleLocked = (option: any) =>
+        +(option?.id ?? option?.ID) === LOW_MODULE_FORCED_OPTION
+        || isLowModuleRestricted(option)
+
+    // Скрытые опции снимет filterGroups — она сама гасит active у невидимых.
+    // Здесь остаётся только принудительное включение «Навесного»
+    const applyLowModuleRules = (options: TOption[], props: TTotalProps) => {
+        if (!isLowModule(props)) return
+
+        const forced = options?.find(option => +option.id === LOW_MODULE_FORCED_OPTION)
+
+        if (!forced || forced.active) return
+
+        forced.active = true
+        syncHorizont(options)
+        eventBus.emit("A:SelectModelOption")
+    }
+
     const createOptionList = () => {
 
         const { PROPS } = modelState.getCurrentModel.userData;
@@ -86,6 +134,11 @@ export const useOptions = () => {
 
         if (!curOpt)
             return;
+
+        // Низкий модуль: «Навесной» выключить нельзя. Возвращаем текущее состояние —
+        // вызывающий по нему вернёт чекбокс обратно, как и для обязательных групп
+        if (!values && isLowModule(PROPS) && +curOpt.id === LOW_MODULE_FORCED_OPTION)
+            return curOpt.active;
 
         const disabledOptions: typeof OPTIONS = [];
 
@@ -259,7 +312,9 @@ export const useOptions = () => {
         const options = data.OPTION as Record<string | number, TRootOptionType>
         const optGroup = data.OPTIONS_GROUP
         const { PROPS } = modelState.getCurrentModel.userData;
-        const curOptions = PROPS.CONFIG.OPTIONS
+        const curOptions = PROPS.CONFIG.OPTIONS as TOption[]
+
+        applyLowModuleRules(curOptions, PROPS)
 
         let filtered = []
 
@@ -268,9 +323,7 @@ export const useOptions = () => {
                 if (!options[el.id]) return
                 const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
                 const cutSize = getCutSizeOption(el, cloneOption)
-                const disabled = +el.id === 8390271
-                    ? !!(PROPS.CONFIG.LEFTSIDECOLOR?.COLOR || PROPS.CONFIG.RIGHTSIDECOLOR?.COLOR)
-                    : el.disabled;
+                const disabled = checkDisabled(el, PROPS)
 
                 return { ...cloneOption, active: el.active, visible: el.visible, cutSize: cutSize, disabled }
             })
@@ -302,6 +355,7 @@ export const useOptions = () => {
     const filterGroups = (groups, incomingIds, props) => {
         const idStrs = incomingIds.map(id => id.toString());
         const tmp_active_options = getActiveOptionIds(props)
+        const lowModule = isLowModule(modelState.getCurrentModel?.userData?.PROPS)
 
         let result = groups.map(group => {
             const contant = group.CONTANT;
@@ -346,6 +400,11 @@ export const useOptions = () => {
                         // Зависимость от другой опции: пересчитываем в обе стороны, иначе
                         // сохранённый visible=false навсегда прячет опцию
                         if (!isRequirementMet(item, tmp_active_options)) {
+                            shouldBeVisible = false
+                        }
+
+                        // Низкий модуль: дно и опоры не настраиваются
+                        if (lowModule && isLowModuleRestricted(item)) {
                             shouldBeVisible = false
                         }
 
@@ -562,6 +621,14 @@ export const useOptions = () => {
     // Активные опции из CONFIG.OPTIONS
     const getActiveOptionIds = (props?: any[]): number[] =>
         props?.filter(item => item.active === true).map(item => +item.id) ?? []
+
+    const checkDisabled = (option: TOption, props: TTotalProps) => {
+        if (isLowModule(props) && isLowModuleLocked(option)) return true
+
+        return +option.id === 8390271
+            ? !!(props.CONFIG.LEFTSIDECOLOR?.COLOR || props.CONFIG.RIGHTSIDECOLOR?.COLOR)
+            : option.disabled;
+    }
 
     return { createOptionList, checkActive, resetGlobal }
 }
