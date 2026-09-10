@@ -488,7 +488,15 @@ export class BuildUniversalModule extends BuildProduct {
                 }
             }
 
-            section.fillings?.forEach((filling) => {
+            // Проверка на фантомное содержание (остаточные/некорректные/битые данные)
+
+            const ownFillings = section.cells?.length ? [] : (section.fillings ?? [])
+
+            ownFillings.forEach((filling) => {
+                // distances рассчитывает 2D-слой при отрисовке. Без них разместить элемент
+                // нельзя, поэтому пропускаем запись, а не роняем сборку всего модуля
+                if (!filling.distances) return
+
                 let z_pos = filling.type !== "any" ? product_data.depth - filling.size.z / 2 - (isSlidingDoors || 0) : curSection.position.z - (isSlidingDoors || 0)
 
                 let fillingPos = new THREE.Vector3(

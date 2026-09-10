@@ -1572,6 +1572,35 @@ export default class FillingsManager {
         })
     }
 
+    // Проверка на фантомное содержание (остаточные/некорректные/битые данные)
+    cleanupOrphanFillings(grid: GridModule) {
+        const clear = (
+            segment: any,
+            secIndex: number,
+            cellIndex: number | null,
+            rowIndex: number | null,
+            extraIndex: number | null,
+        ) => {
+            if (!segment?.fillings?.length) return
+
+            for (let i = segment.fillings.length - 1; i >= 0; i--) {
+                this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false)
+            }
+        }
+
+        grid.sections?.forEach((section, secIndex) => {
+            if (section.cells?.length) clear(section, secIndex, null, null, null)
+
+            section.cells?.forEach((cell, cellIndex) => {
+                if (cell.cellsRows?.length) clear(cell, secIndex, cellIndex, null, null)
+
+                cell.cellsRows?.forEach((row, rowIndex) => {
+                    if (row.extras?.length) clear(row, secIndex, cellIndex, rowIndex, null)
+                })
+            })
+        })
+    }
+
     cleanupOversizedFillings(grid: GridModule) {
         const maxWidth = UM_PARAMS.FILLINGS_MAX_WIDTH;
         const deleteOversized = (
