@@ -23,16 +23,33 @@ const openedFillingGroupKey = ref<string | number | null>(null);
 const filteredMaterialList = ref<Array<any>>([]);
 const isSearch = computed(() => filteredMaterialList.value.length > 0);
 
-const isFillingWidthRestricted = computed(() => {
+const getSelectSegment = () => {
   const { sec, cell, row, extra } = props.UMconstructor.UM_STORE.getSelected("module") ?? {};
   if (sec === null || sec === undefined) return false;
   const curSection = props.module.sections?.[sec];
   const curCell = curSection?.cells?.[cell];
   const curRow = curCell?.cellsRows?.[row];
   const curExtra = curRow?.extras?.[extra];
-  const segment = curExtra || curRow || curCell || curSection;
-  return (segment?.width ?? 0) > UM_PARAMS.FILLINGS_MAX_WIDTH;
+
+  return curExtra || curRow || curCell || curSection;
+
+
+}
+
+const isFillingWidthRestricted = computed(() => {
+  const segment = getSelectSegment();
+  return (segment?.width ?? 0) > UM_PARAMS.FILLINGS_MAX_WIDTH
 });
+
+const isFillingHeightRestricted = computed(() => {
+  const segment = getSelectSegment();
+  return (segment?.height ?? 0) <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT;
+});
+
+const isFillingsRestricted = computed(() => {
+  const segment = getSelectSegment();
+  return (segment?.width ?? 0) > UM_PARAMS.FILLINGS_MAX_WIDTH || (segment?.height ?? 0) <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT;
+})
 
 // Универсальный ящик, стенки не менее 18 мм
 const isUniversalDrawerBlocked = computed(
@@ -40,7 +57,7 @@ const isUniversalDrawerBlocked = computed(
 );
 
 const isFillingBlocked = (groupID: string | number) =>
-  isFillingWidthRestricted.value ||
+  isFillingsRestricted.value ||
   (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
 
 const toggleFillingGroup = (key: string | number, isOpen: boolean) => {
@@ -64,7 +81,11 @@ const onSearchChange = (e: Event, totalMaterialList: Array<any>) => {
 <template>
   <div class="UM splitter-container--product-data">
     <div v-if="isFillingWidthRestricted" class="UM filling-width-warning">
-      Добавление недоступно: ширина области превышает {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм
+      Добавление недоступно: ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм
+    </div>
+
+    <div v-if="isFillingHeightRestricted" class="UM filling-width-warning">
+      Добавление недоступно: высота области меньше {{ UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT }} мм
     </div>
     <div class="UM accordion-fillings_list" v-if="fillings">
       <div class="UM splitter-container--product-items" v-for="(fillingGroup, key) in fillings"

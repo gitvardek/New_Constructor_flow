@@ -316,6 +316,8 @@ export default class UMconstructorClass {
         const dimension = _dimension.toUpperCase()
         const minmax = _minmax.toUpperCase()
 
+        if (dimension === 'HEIGHT' && minmax === 'MIN') return 150
+
         return +productData.CONFIG.SIZE_EDIT[`SIZE_EDIT_` + dimension + `_` + minmax];
     }
 
@@ -772,6 +774,7 @@ export default class UMconstructorClass {
             }
 
             module = this.FASADES.updateFasades(module)
+            this.FASADES.resetRestrictedFasadeMaterials(module)
             this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.cleanupUniversalDrawers(module)

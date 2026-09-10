@@ -26,6 +26,12 @@ export const useOptions = () => {
     const NO_HORIZONT_OPTIONS = [4722965, 5738924];
     const cutOptionsId = [4722787, 4722786];
     const cutOptionsTempSize = 20;
+    const LOW_MODULE_MIN_HEIGHT = 150
+    const LOW_MODULE_MAX_HEIGHT = 249
+    const LOW_MODULE_FORCED_OPTION = [4722965, 3955910]
+    const LOW_MODULE_HIDDEN_OPTIONS = [5738924]
+    const LOW_MODULE_HIDDEN_GROUPS = [548, 549]
+    const NO_LOOPS_OPTION = 1795067
 
     const mechanismList = createMeckhanizmList();
 
@@ -33,11 +39,51 @@ export const useOptions = () => {
         UM_STORE.onHorizont = !options.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id) && opt.active)
     }
 
+    const isLowModule = (props: TTotalProps) => {
+        if (!UNIVERSALE_MODULES.includes(props?.PRODUCT)) return false
+
+        const height = Number(UM_STORE.totalHeight || props?.CONFIG?.SIZE?.height)
+
+        return Number.isFinite(height)
+            && height >= LOW_MODULE_MIN_HEIGHT
+            && height <= LOW_MODULE_MAX_HEIGHT
+    }
+
+    const isLowModuleRestricted = (option: any) =>
+        LOW_MODULE_HIDDEN_OPTIONS.includes(+(option?.id ?? option?.ID))
+        || LOW_MODULE_HIDDEN_GROUPS.includes(+(option?.group ?? option?.GROUP))
+
+    //  Опции Навесной/Корпус без присадки под петли 
+    const isLowModuleLocked = (option: any) => LOW_MODULE_FORCED_OPTION.includes(+(option?.id ?? option?.ID))
+        || isLowModuleRestricted(option)
+
+
+    // Принудительное включение опций Навесной/Корпус без присадки под петли
+    const applyLowModuleRules = (options: TOption[], props: TTotalProps) => {
+        if (!isLowModule(props)) return
+
+        const forced = options?.filter(option =>
+            LOW_MODULE_FORCED_OPTION.includes(+option.id) && !option.active) ?? []
+
+        if (!forced.length) return
+
+        forced.forEach(option => { option.active = true })
+
+        syncHorizont(options)
+        eventBus.emit("A:SelectModelOption")
+    }
+
+    const syncNoLoops = (options: any[]) => {
+        UM_STORE.noLoops = !!options?.some(opt => +opt.id === NO_LOOPS_OPTION && opt.active)
+    }
+
     const createOptionList = () => {
 
         const { PROPS } = modelState.getCurrentModel.userData;
         const filtered = filterOptions()
         let result = checkExeptionOptionForFasade(filtered, PROPS.CONFIG.OPTIONS)
+
+        syncNoLoops(PROPS.CONFIG.OPTIONS)
 
         if (mechanismList.length > 0 && !NESTANDART_MODULES.includes(PROPS.PRODUCT)) /** (&& !NESTANDART_MODULES.includes....)  ДЛЯ МАСТЕРА   */ {
 
@@ -84,9 +130,17 @@ export const useOptions = () => {
         if (!curOpt)
             return;
 
+
+        // Модуль 150: принудительно включённую опцию выключить нельзя
+
+        if (!values && isLowModule(PROPS) && LOW_MODULE_FORCED_OPTION.includes(+curOpt.id)) {
+            return curOpt.active;
+        }
+
         const disabledOptions: typeof OPTIONS = [];
 
         if (values) {
+
             OPTIONS.forEach(opt => {
 
                 const commonSection = hasCommonNumbers(opt.section, curOpt.section)
@@ -130,6 +184,7 @@ export const useOptions = () => {
                     opt.active = false;
                 }
             });
+
         }
 
 
@@ -258,6 +313,8 @@ export const useOptions = () => {
         const { PROPS } = modelState.getCurrentModel.userData;
         const curOptions = PROPS.CONFIG.OPTIONS
 
+        applyLowModuleRules(curOptions, PROPS)
+
         let filtered = []
 
         const curOptionsList = curOptions
@@ -265,9 +322,7 @@ export const useOptions = () => {
                 if (!options[el.id]) return
                 const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
                 const cutSize = getCutSizeOption(el, cloneOption)
-                const disabled = +el.id === 8390271
-                    ? !!(PROPS.CONFIG.LEFTSIDECOLOR?.COLOR || PROPS.CONFIG.RIGHTSIDECOLOR?.COLOR)
-                    : el.disabled;
+                const disabled = checkDisabled(el, PROPS)
 
                 return { ...cloneOption, active: el.active, visible: el.visible, cutSize: cutSize, disabled }
             })
@@ -298,8 +353,8 @@ export const useOptions = () => {
 
     const filterGroups = (groups, incomingIds, props) => {
         const idStrs = incomingIds.map(id => id.toString());
-
         const tmp_active_options = getActiveOptionIds(props)
+        const lowModule = isLowModule(modelState.getCurrentModel?.userData?.PROPS)
 
         let result = groups.map(group => {
             const contant = group.CONTANT;
@@ -343,6 +398,11 @@ export const useOptions = () => {
                     if (curOptionInConfig) {
                         // Зависимость от другой опции: пересчитываем в обе стороны
                         if (!isRequirementMet(item, tmp_active_options)) {
+                            shouldBeVisible = false
+                        }
+
+                        // Модуль 150: дно и опоры не настраиваются
+                        if (lowModule && isLowModuleRestricted(item)) {
                             shouldBeVisible = false
                         }
 
@@ -553,6 +613,15 @@ export const useOptions = () => {
     // Активные опции из CONFIG.OPTIONS
     const getActiveOptionIds = (props?: any[]): number[] => {
         return props?.filter(item => item.active === true).map(item => +item.id) ?? []
+    }
+
+    // Проверка на принудительно отключённые опции
+    const checkDisabled = (option: TOption, props: TTotalProps) => {
+        if (isLowModule(props) && isLowModuleLocked(option)) return true
+
+        return +option.id === 8390271
+            ? !!(props.CONFIG.LEFTSIDECOLOR?.COLOR || props.CONFIG.RIGHTSIDECOLOR?.COLOR)
+            : option.disabled;
     }
 
 

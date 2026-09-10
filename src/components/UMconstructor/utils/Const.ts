@@ -6,11 +6,12 @@ export const UM_PARAMS = {
     MIN_SECTION_WIDTH: 114, // Минимальная ширина секции
 
     MIN_SECTION_HEIGHT: 100, // Минимальная высота секции
+    MIN_SECTION_TO_FILLINGS_HEIGHT: 250,// Минимальная высота секции c наполнением
     MAX_SECTION_WIDTH: 900, // Максимальная ширина секции без царги
 
     MAX_SECTION_WIDTH_TSARGA: 1200,  // Максимальная ширина секции с царгой
 
-    MIN_FASADE_HEIGHT: 360,
+    MIN_FASADE_HEIGHT: 145,
     MIN_FASADE_WIDTH: 126,
     MAX_FASADE_WIDTH: 600,
     MIN_SLIDE_DOOR_WIDTH: 600,

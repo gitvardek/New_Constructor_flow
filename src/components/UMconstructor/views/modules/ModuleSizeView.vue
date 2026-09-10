@@ -9,6 +9,7 @@ import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass
 import {onMounted, ref, toRefs, watch, computed, onBeforeMount} from "vue";
 import {TTotalProps} from "@/types/types.ts";
 import {useModelState} from "@/store/appliction/useModelState.ts";
+import {UM_PARAMS} from "@/components/UMconstructor/utils/Const.ts";
 
 const props = defineProps({
   module: {
@@ -40,6 +41,8 @@ const onWallModule = ref<boolean>(false);
 const noLoops = ref<boolean>(false);
 const noBackwall = ref<boolean>(false);
 const modelState = useModelState();
+
+const isLowModule = computed(() => Number(totalHeight.value) < UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT);
 
 const fillingExist = computed(() => {
   if(UMconstructor?.value && module.value)
@@ -266,7 +269,7 @@ onMounted(() => {
     </div>
 
     <div
-        v-if="!module.isRestrictedModule"
+        v-if="!module.isRestrictedModule && !isLowModule"
         class="UM constructor2d-container--left--module-configs--module-size-item actions-inputs"
     >
       <p class="UM no-select actions-title">Цоколь

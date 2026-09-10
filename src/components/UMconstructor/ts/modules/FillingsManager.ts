@@ -536,6 +536,11 @@ export default class FillingsManager {
             return;
         }
 
+        if (currentModuleSegment.height <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT) {
+            this.scope.callAlert("error", `Нельзя добавить наполнение: высота области (${currentModuleSegment.height} мм) менее ${UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT} мм`)
+            return;
+        }
+
         if (row === null && cell === null && sec === null && extra === null) {
             this.scope.callAlert("info", "Пожалуйста, выберите секцию для добавления наполнения")
             return;

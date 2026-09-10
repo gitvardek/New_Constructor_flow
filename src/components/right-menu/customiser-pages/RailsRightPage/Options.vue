@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 //@ts-nocheck
-import { onBeforeMount, computed, ref, defineProps, withDefaults } from "vue";
+import { onBeforeMount, onBeforeUnmount, computed, ref, defineProps, withDefaults, nextTick, watch } from "vue";
 import { useOptions } from "./useOptions";
 import { TRootOptionType } from "@/types/types";
+import { useEventBus } from "@/store/appliction/useEventBus";
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
 interface IProps {
   mechanizmList?: [];
@@ -16,12 +18,14 @@ const props = withDefaults(defineProps<IProps>(), {
 });
 
 const { createOptionList, checkActive } = useOptions();
+const eventBus = useEventBus();
+const UM_STORE = useUMStorage();
 const optionList = ref([]);
 
 const createList = () => {
   if (!props.umMechanizm) {
     const { data } = createOptionList();
-  
+
 
     optionList.value = data;
     return;
@@ -86,33 +90,39 @@ const activateMechanismAndDeactivateOthers = (data, targetId) => {
   return true;
 };
 
-onBeforeMount(() => {
+// Состав опций зависит от размера модуля: у низкого УМ прячутся дно и опоры. 
+const rebuildList = () => nextTick(() => {
+  if (props.umMechanizm) return;
+
   createList();
 });
+
+onBeforeMount(() => {
+  createList();
+  eventBus.on("U:Model-resize", rebuildList);
+});
+
+watch(() => UM_STORE.totalHeight, rebuildList);
+
+onBeforeUnmount(() => {
+  eventBus.off("U:Model-resize", rebuildList);
+});
+
 </script>
 <template>
   <div class="rails">
-    <div
-      class="rails__container"
-      v-for="(item, key) in optionList"
-      :key="item.NAME + key"
-    >
+    <div class="rails__container" v-for="(item, key) in optionList" :key="item.NAME + key">
       <h3 class="rails__title">{{ item.NAME }}</h3>
       <div class="option__checkbox" v-for="(option, key) in item.CONTANT">
         <label class="control control-checkbox" v-if="option.visible">
-          <input
-            type="checkbox"
-            :checked="option.active"
-            @change="changeValue($event, option)"
-            :disabled="option.disabled"
-          />
+          <input type="checkbox" :checked="option.active" @change="changeValue($event, option)"
+            :disabled="option.disabled" />
           <span class="control_indicator"></span>
           <span class="text-lg text-gray-800 font-medium">{{
             option.NAME
           }}</span>
-          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize"
-            >&emsp;{{ option.cutSize }} + {{ option.cutSize }}</span
-          >
+          <span class="text-lg text-gray-800 font-medium" v-if="option.cutSize">&emsp;{{ option.cutSize }} + {{
+            option.cutSize }}</span>
         </label>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { TFasadeGroupSize } from "@/store/appliction/useModelState";
 import type { Object3D } from 'three'
 /**//@ts-nocheck */
 
-import { TTotalProps, TFasadeItem, TFasadeTrueSizes, TFasadeConversation, TMillingRestrictItem, TConfig } from "@/types/types";
+import { TTotalProps, TFasadeItem, TFasadeTrueSizes, TFasadeConversation, TMillingRestrictItem, TConfig, TFasadeSectionItem } from "@/types/types";
 
 type TsizeData = {
     width: number
@@ -13,12 +13,40 @@ type TsizeData = {
     depth: number
 }
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
 export const useConversationActions = () => {
 
     const modelState = useModelState();
+    const UM_STORE = useUMStorage();
     const eventBus = useEventBus();
     const toaster = useToast();
+
+    // Разделы каталога фасадов, недоступные низкому УМ
+    const LOW_UM_PRODUCT = [3954672]
+    const LOW_UM_RESTRICTED_SECTIONS = [2364160, 7535000, 7535002, 1444781]
+
+    // fasadeId здесь — id материала фасада, как и в createFasadeConversations.
+    // Высоту берём из стора УМ: пока открыт конструктор, CONFIG.SIZE хранит размер до
+    // применения изменений. Вне конструктора totalHeight равен нулю, и берётся конфиг
+    const isLowUmRestrictedFasade = (fasadeId: number, curModel: Object3D | null = modelState.getCurrentModel) => {
+        const PROPS = curModel?.userData?.PROPS as TTotalProps
+
+        if (!LOW_UM_PRODUCT.includes(+PROPS?.PRODUCT)) return false
+
+        const height = Number(UM_STORE.totalHeight || PROPS?.CONFIG?.SIZE?.height)
+
+        if (!(height < UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT)) return false
+
+        const fasadeData = (modelState._FASADE as TFasadeItem[])[fasadeId]
+        const fasadeGroup = (modelState._FASADE_SECTION as TFasadeSectionItem[])[fasadeData?.IBLOCK_SECTION_ID]?.['UF_GROUP']
+
+        console.log(fasadeGroup, 'fasadeGroupfasadeGroup')
+        console.log(fasadeData?.IBLOCK_SECTION_ID, 'fasadeData?.IBLOCK_SECTION_ID')
+        console.log(LOW_UM_RESTRICTED_SECTIONS.includes(Number(fasadeData?.IBLOCK_SECTION_ID)), 'INNNNN')
+
+        return fasadeGroup ? LOW_UM_RESTRICTED_SECTIONS.includes(Number(fasadeGroup)) : false
+    }
 
     const onRsizeConversations = async (size: TsizeData) => {
         const curModel = modelState.getCurrentModel
@@ -244,6 +272,7 @@ export const useConversationActions = () => {
     return {
         onRsizeConversations,
         createFasadeConversations,
+        isLowUmRestrictedFasade,
         validateAndPurgeFasadeOnBuild,
         checkFasadeConversations,
         filterFasadeConversations,

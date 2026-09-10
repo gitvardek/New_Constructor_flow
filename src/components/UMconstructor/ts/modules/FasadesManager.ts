@@ -21,7 +21,7 @@ export default class FasadesManager {
 
     createFacadeData(fasadeIndex?: number, _productId?: number) {
         const { PROPS: { FASADE, PRODUCT } } = this.scope.MODEL_STATE.getCurrentModel.userData
-
+        const umHeight = this.scope.UM_STORE.totalHeight
         const productId = _productId || PRODUCT;
         const { FACADE } = this.scope.MODEL_STATE._PRODUCTS[productId];
         this.scope.MODEL_STATE.createCurrentModelFasadesData({
@@ -29,6 +29,7 @@ export default class FasadesManager {
             fasadeNdx: fasadeIndex,
             productId,
             fasadeCount: FASADE.length,
+            umHeight
         });
     };
 
@@ -475,6 +476,52 @@ export default class FasadesManager {
         this.selectCell(null, 0)
         this.scope.reset();
     };
+
+    //==== УМ 150 ====
+    resetFasadeMaterial(material: TFasadeProp) {
+        if (!material) return
+
+        material.COLOR = this.scope.CONST.NO_FASADE_ID
+        material.ALUM = null
+        material.MILLING = null
+        material.PALETTE = null
+        material.PATINA = null
+        material.GLASS = null
+        material.MILLING_TYPE = null
+        material.TYPE = null
+        material.MANUAL_NO_FASADE = true
+    };
+
+    resetRestrictedFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
+        let resetCount = 0
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    const color = fasade?.material?.COLOR
+
+                    if (!color || +color === NO_FASADE_ID) return
+                    if (!this.FASADES_CONVERSATION.isLowUmRestrictedFasade(+color)) return
+
+                    this.resetFasadeMaterial(fasade.material)
+                    resetCount += 1
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+
+        if (resetCount) {
+            this.scope.callAlert(
+                "warning",
+                `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: для модуля высотой менее ${this.scope.CONST.MIN_SECTION_TO_FILLINGS_HEIGHT} мм такое покрытие недоступно`
+            )
+        }
+
+    };
+
+    // -----------------------------------------------------------
 
     addDoor(
         secIndex: number,
