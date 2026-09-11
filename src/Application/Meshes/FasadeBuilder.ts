@@ -110,6 +110,20 @@ export class FasadeBuilder {
         }
     }
 
+    private getDefaultPatina(fasadeData: THREETypes.TFasadeProp, defPatina: number | null) {
+        const materialPatina = (this._FASADE[fasadeData.COLOR]?.PATINA ?? []).filter(id => id != null)
+
+        if (!materialPatina.length) {
+            return null
+        }
+
+        if (defPatina && materialPatina.includes(defPatina)) {
+            return defPatina
+        }
+
+        return null
+    }
+
     private applyDecorations(
         mesh: THREETypes.TObject,
         fasadeData: THREETypes.TFasadeProp,
@@ -324,11 +338,18 @@ export class FasadeBuilder {
                 fasadeId: fasadeData.COLOR, productId: PRODUCT
             })[0] as any;
 
-            console.log(millingList[0], millingList, '<<<< millingList >>>>')
+            if (millingList.length > 0) {
 
-            if (!checkCurrentMilling && fasadeData.MILLING != null && fasadeData.MILLING != millingList[0]?.ID || !millingList.length > 0) {
-                fasadeData.MILLING = millingList[0]?.ID ?? null;
-                this.toaster.error(`Не корректный размер фасада. Фрезеровка фасада №${key + 1} была изменена`);
+                if (!checkCurrentMilling && fasadeData.MILLING != null && fasadeData.MILLING != millingList[0].ID) {
+                    fasadeData.MILLING = millingList[0].ID;
+                    this.toaster.error(`Не корректный размер фасада. Фрезеровка фасада №${key + 1} была изменена`);
+                }
+
+            }
+            else {
+                fasadeData.MILLING = null;
+                fasadeData.MILLING_CONVERSATION = null;
+                fasadeData.MILLING_TYPE = null;
             }
 
             if (fasadeData.SHOW && pallite && fasadeData.PALETTE === null) {
@@ -352,7 +373,7 @@ export class FasadeBuilder {
                     fasadeData.PATINA = null;
                 }
                 else {
-                    fasadeData.PATINA = defPatina ?? 475428
+                    fasadeData.PATINA = this.getDefaultPatina(fasadeData, defPatina)
                 }
             }
 
@@ -507,7 +528,7 @@ export class FasadeBuilder {
                 fasadeData.PATINA = null;
             }
             else {
-                fasadeData.PATINA = defPatina ?? 475428
+                fasadeData.PATINA = this.getDefaultPatina(fasadeData, defPatina)
             }
         } else if (!fasadeData.SHOW || !firstValueMilling) {
             fasadeData.MILLING = null;
@@ -581,9 +602,24 @@ export class FasadeBuilder {
         CONFIG: any,
     }): void {
         this._tryApplyShowcaseChange(CONFIG, fasadeProp, fasadeNdx, incomingModel, fasade, fasadeDefault);
-        if (this._tryApplyPalette(data, fasadeProp, fasade)) return;
-        if (this._tryApplyTexture(data, fasade, fasadeProp)) return;
+        if (!data.PALETTE?.[0]) {
+            this.clearPaletteCache(fasade);
+        }
+        if (this._tryApplyPalette(data, fasadeProp, fasade)) {
+            return;
+        }
+        if (this._tryApplyTexture(data, fasade, fasadeProp)) {
+            return;
+        }
         this._tryApplyAlumColor(data, fasade, fasadeProp);
+    }
+
+    private clearPaletteCache(fasade: THREE.Object3D): void {
+        fasade.traverse((child: any) => {
+            if (child.userData?.millingMaterial) {
+                delete child.userData.millingMaterial;
+            }
+        });
     }
 
     private _tryApplyShowcaseChange(

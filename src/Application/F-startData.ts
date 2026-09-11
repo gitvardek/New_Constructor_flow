@@ -140,7 +140,7 @@ const START_PROJECT_PARAMS = {
     default_plinth_color: null,
     default_showcase: 1013628,
     default_milling: 2462671,
-    default_patina: 475428,
+    default_patina: null, //475428
     mirror_type: 10336730
     // 2462671 - фрезф
 }

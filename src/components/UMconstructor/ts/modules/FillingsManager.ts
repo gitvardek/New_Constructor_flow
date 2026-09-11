@@ -42,6 +42,7 @@ export default class FillingsManager {
     ]
     private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
     private readonly INNER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.INNER
+    private readonly UNIVERSAL_DROWER: number[] = UM_DRAWERS_IDS.UNIVERSAL
     static readonly UNIVERSAL_DRAWER_MIN_THICKNESS = 18
 
     constructor(scope: UMconstructorClass) {
@@ -378,7 +379,8 @@ export default class FillingsManager {
             return;
         }
 
-        if (this.OUTER_DRAWER_IDS.includes(productGroupID) && cell !== null) {
+        const isOuterKindDrawer = this.OUTER_DRAWER_IDS.includes(productGroupID) || this.UNIVERSAL_DROWER.includes(productGroupID)
+        if (isOuterKindDrawer && cell !== null) {
             const currentCell = currentSection.cells?.[cell]
             const isNarrowCell = !currentCell || currentCell.width !== currentSection.width
             if (isNarrowCell || row !== null || extra !== null) {
