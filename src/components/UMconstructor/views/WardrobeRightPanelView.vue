@@ -7,9 +7,9 @@
 // Нет режима "fasades" вовсе (нет вкладки "Фасады" — см. WardrobeMainView.vue).
 // Режим "fillings" разбит на 2 подраздела (переключатель ниже, локальный
 // fillingsSubTab): "Вставка" (WardrobeInsertView — список наполнения,
-// доступного для установки в выбранный сектор) и "Конфигурация"
+// доступного для установки в выбранную секцию) и "Конфигурация"
 // (WardrobeFillingsView — настройка уже установленного наполнения).
-// Режим "module" аналогично разбит на "Секторы" (WardrobeSectionsView) и
+// Режим "module" аналогично разбит на "Секции" (WardrobeSectionsView) и
 // "Настройка профилей" (WardrobeProfilesView) — тот же паттерн переключателя.
 
 import "@/components/UMconstructor/styles/UM.scss"
@@ -41,7 +41,7 @@ const props = defineProps({
 // "Конфигурация" (настройки уже установленного) — см. чат/SESSION_CONTEXT.md.
 const fillingsSubTab = ref<"insert" | "configure">("insert");
 
-// Подраздел "Секторы" — сами секторы / "Настройка профилей" (высота/тип/цвет
+// Подраздел "Секции" — сами секции / "Настройка профилей" (высота/тип/цвет
 // каждого профиля модуля).
 const sectionsSubTab = ref<"sectors" | "profiles">("sectors");
 
@@ -49,7 +49,7 @@ const sectionsSubTab = ref<"sectors" | "profiles">("sectors");
 // на "Конфигурация" (уточнение пользователя) — та же UM_STORE.selectedFilling,
 // что и WardrobeMainView.vue слушает для переключения "Модуль"/"Наполнение"
 // (см. её комментарий там). Пустой .item (маунт/клик по пустому месту
-// сектора) НЕ переключает подвкладку.
+// секции) НЕ переключает подвкладку.
 watch(() => props.UMconstructor.UM_STORE.getSelected('fillings')?.item, (item) => {
   if (item != null) fillingsSubTab.value = 'configure';
 });
@@ -66,13 +66,13 @@ watch(() => props.UMconstructor.UM_STORE.selectedWardrobeProfileId, (profileId) 
 
 <template>
   <div v-if="mode === 'module'" class="right-panel">
-    <h1 class="UM no-select">Секторы</h1>
+    <h1 class="UM no-select">Секции</h1>
 
     <article class="UM actions-items actions-items--right wardrobe-fillings-subtabs">
       <div class="UM actions-items--right-items">
         <button :class="['UM no-select actions-btn actions-btn--default', { active: sectionsSubTab === 'sectors' }]"
           @click="sectionsSubTab = 'sectors'">
-          Секторы
+          Секции
         </button>
         <button :class="['UM no-select actions-btn actions-btn--default', { active: sectionsSubTab === 'profiles' }]"
           @click="sectionsSubTab = 'profiles'">

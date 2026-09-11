@@ -39,7 +39,7 @@ export const WARDROBE_SHELF_HIGHLIGHT_COLOR = '#56a55fe2';
 // live-обновления ТОЛЬКО линий, касающихся перетаскиваемой полки (уточнение
 // пользователя: "верни реактивность", "в режиме между наполнениями не
 // изменяется") — без полного пересчёта всей секции на каждый move (это
-// вернуло бы Text-объекты для ВСЕХ пар полок сектора на каждый кадр, тот же
+// вернуло бы Text-объекты для ВСЕХ пар полок секции на каждый кадр, тот же
 // баг фризов, который уже чинился отдельно). lower/upper — уже
 // ОТСОРТИРОВАННАЯ по positionY пара (lower ниже, upper выше). Возвращает
 // null, если зазор <= 0 (полки перекрываются/впритык — валидная линия
@@ -49,7 +49,7 @@ export function createWardrobeGapDimension(ctx, lower, upper, depthMm, wardrobeP
     const gapMm = upper.positionY - (lower.positionY + lowerHeightMm);
     if (gapMm <= 0) return null;
 
-    // Локальные координаты сектора — Y растёт ВНИЗ (PIXI), а positionY (мм
+    // Локальные координаты секции — Y растёт ВНИЗ (PIXI), а positionY (мм
     // от пола) растёт ВВЕРХ — тот же пересчёт, что и в createWardrobeShelf
     // (bottomPx = height - getPixelHeight(positionY)).
     const lowerTopPx = height - ctx.getPixelHeight(lower.positionY + lowerHeightMm)
@@ -182,10 +182,10 @@ export default class SceneBuilder {
 
         xOffset = ctx.getPixelWidth(moduleGrid.leftWallThickness);
 
-        // Гардеробная система (временно, черновик) — секторы без стенок,
+        // Гардеробная система (временно, черновик) — секции без стенок,
         // весь box-UM-специфичный блок ниже (cells/fasades/loops/handles/
-        // тсарга) не применим (например section.fasades для гардеробного
-        // сектора не существует). Отдельная, изолированная отрисовка.
+        // тсарга) не применим (например section.fasades для гардеробной
+        // секции не существует). Отдельная, изолированная отрисовка.
         if (isWardrobe) {
             this.renderWardrobeGrid(moduleGrid, moduleSector);
             this.flushSceneContainers();
@@ -262,7 +262,7 @@ export default class SceneBuilder {
                                     // Sector row-а = первая extra, чтобы toggleSectionColor мог подсветить ряд при выборе без extra
                                     cellRow.sector = cellRow.extras[0]?.sector;
 
-                                    // Создаём ограничения для секторов по ширине
+                                    // Создаём ограничения для секций по ширине
                                     cellRow.shapesBond = colBond;
                                     cellRow.maxX = ctx.shapeAdjuster.convertToTen(
                                         ctx.getMmWidth(colBond.maxX),
@@ -331,7 +331,7 @@ export default class SceneBuilder {
                             //Добавляем отступ по вертикали
                             const colBond = ctx.shapeAdjuster.createColumnBounds(cell.cellsRows);
 
-                            // Создаём ограничения для секторов по ширине
+                            // Создаём ограничения для секций по ширине
                             cell.shapesBond = colBond;
                             cell.maxX = ctx.shapeAdjuster.convertToTen(ctx.getMmWidth(colBond.maxX));
                             cell.minX = ctx.shapeAdjuster.convertToTen(ctx.getMmWidth(colBond.minX));
@@ -384,7 +384,7 @@ export default class SceneBuilder {
 
                 const colBond = ctx.shapeAdjuster.createColumnBounds(section.cells);
 
-                // Создаём ограничения для секторов по ширине
+                // Создаём ограничения для секций по ширине
                 section.shapesBond = colBond;
                 section.maxX = ctx.shapeAdjuster.convertToTen(ctx.getMmWidth(colBond.maxX));
                 section.minX = ctx.shapeAdjuster.convertToTen(ctx.getMmWidth(colBond.minX));
@@ -797,7 +797,7 @@ export default class SceneBuilder {
 
         // Гардеробная система (временно, черновик) — у неё нет "коробки",
         // заливку общего контура модуля (обычно коричневая, type:"module")
-        // не показываем; секторы рисуются отдельно в createWardrobeSector.
+        // не показываем; секции рисуются отдельно в createWardrobeSector.
         // Bounds/bookkeeping ниже (getSectorBounds, moduleData.sector и т.д.)
         // всё равно нужны — оставляем как есть, скрываем только заливку.
         if (moduleData.moduleKind === 'wardrobe') {
@@ -808,7 +808,7 @@ export default class SceneBuilder {
 
         ctx.sections.push(sector);
 
-        // Создаём ограничения для секторов по высоте
+        // Создаём ограничения для секций по высоте
         const sectorBounds = ctx.shapeAdjuster.getSectorBounds(sector);
         sector.bound = sectorBounds;
 
@@ -823,8 +823,8 @@ export default class SceneBuilder {
     }
 
     // ==== Гардеробная система (WARDROBE) — временно, черновик ====
-    // Рисует секторы (без стенок/cells) и профили на их границах. N секторов
-    // -> N+1 профилей (профили — границы секторов, включая два крайних, левый
+    // Рисует секции (без стенок/cells) и профили на их границах. N секций
+    // -> N+1 профилей (профили — границы секций, включая два крайних, левый
     // и правый край модуля). Полностью отдельно от box-UM createSector/
     // createVerticalCut ниже — те завязаны на cells/rows/extras, которых у
     // гардеробной системы нет вовсе.
@@ -834,20 +834,20 @@ export default class SceneBuilder {
         const heightPx = ctx.getPixelHeight(moduleGrid.height)
         const profileWidthPx = ctx.getPixelWidth(WARDROBE_PROFILE_WIDTH)
 
-        // Отступ канваса (WARDROBE_CANVAS_PADDING_PX, см. renderGrid) сектора
+        // Отступ канваса (WARDROBE_CANVAS_PADDING_PX, см. renderGrid) секции
         // и полки наследуют автоматически — они дети moduleSector, чья позиция
         // уже включает отступ. Профили и подписи ниже — нет: профили идут в
         // ctx.deviders (sectionsContainer), подписи — в ctx.sectionLables
         // (lablesContainer), оба верхнеуровневые, сидят на app.stage в (0,0) и
         // трансформацию moduleSector не получают. Поэтому её приходится
         // прибавлять вручную к каждой абсолютной координате в этом методе —
-        // иначе сектора/полки съезжают на отступ, а профили остаются на месте.
+        // иначе секции/полки съезжают на отступ, а профили остаются на месте.
         const moduleOffsetX = moduleSector.position.x
         const moduleOffsetY = moduleSector.position.y
 
         // section.width — ВНУТРЕННЕЕ расстояние между профилями (как и в 3D).
-        // Перед каждым сектором резервируется WARDROBE_PROFILE_WIDTH (правый
-        // крайний профиль — после цикла), поэтому видимая ширина сектора ровно
+        // Перед каждой секцией резервируется WARDROBE_PROFILE_WIDTH (правый
+        // крайний профиль — после цикла), поэтому видимая ширина секции ровно
         // widthPx. Раньше профили рисовались ПОВЕРХ краёв заливки, и секция
         // визуально теряла 2×25мм при неизменном section.width.
         //
@@ -890,7 +890,7 @@ export default class SceneBuilder {
         //
         // Профиль[i] занимает СВОЁ место ровно перед sections[i]
         // (section.xOffset уже учитывает резерв), правый крайний — после
-        // последнего сектора; раньше внутренние центрировались НА границе,
+        // последней секции; раньше внутренние центрировались НА границе,
         // половиной в каждом соседе. Без наложения section.width честно равен
         // видимому промежутку. Драг внутреннего профиля
         // (DividerDragEngine.onWardrobeProfileDragMove) от этой геометрии не
@@ -966,7 +966,7 @@ export default class SceneBuilder {
             //
             // У КРАЙНЕГО ПРАВОГО профиля линия и подпись зеркалятся НАЛЕВО
             // (isLastProfile), иначе уходят за край канваса; у левого справа
-            // всегда есть минимум ширина сектора.
+            // всегда есть минимум ширина секции.
             //
             // ctx.wardrobeDragActive — во время драга пропускаем Text-объекты
             // (размерная линия + "Профиль N"), самую дорогую часть отрисовки;
@@ -983,7 +983,7 @@ export default class SceneBuilder {
                 // "Профиль N" (1-based) — ВЕРТИКАЛЬНЫЙ текст
                 // (createWardrobeNameLabel(vertical=true)) по центру ширины и
                 // видимой высоты САМОГО профиля. Сбоку подпись у левого
-                // крайнего перекрывалась с "Сектор N"/подписью полки, а у
+                // крайнего перекрывалась с "Секция N"/подписью полки, а у
                 // правого уходила за край канваса; внутри профиля она всегда в
                 // его границах, где бы он ни стоял.
                 ctx.sectionLables.push(createWardrobeNameLabel(
@@ -997,15 +997,15 @@ export default class SceneBuilder {
         }
     }
 
-    // Сектор гардеробной системы — просто прямоугольник (тот же Section/
+    // Секция гардеробной системы — просто прямоугольник (тот же Section/
     // cellGraphics, что и у обычных секций box-UM, для единого визуального
     // стиля), без cells/fasades/тсарги/наполнения.
     //
     // _sector (moduleSector из createModule) ОБЯЗАТЕЛЕН:
     // SelectionHighlighter.toggleSectionColor снимает подсветку через
-    // ctx.sections[0].children, т.е. секторы должны быть ДЕТЬМИ
+    // ctx.sections[0].children, т.е. секции должны быть ДЕТЬМИ
     // ctx.sections[0], а не соседями в ctx.sections (тот же контракт, что у
-    // box-UM createSector). С `ctx.sections.push(sector)` клик по сектору не
+    // box-UM createSector). С `ctx.sections.push(sector)` клик по секции не
     // подсвечивал его и не снимал подсветку с других.
     createWardrobeSector({ x, y, width, height, section, sectionIndex, _sector, depthMm, wardrobeProductId, moduleOffsetX = 0, moduleOffsetY = 0 }) {
         const ctx = this.ctx
@@ -1038,7 +1038,7 @@ export default class SceneBuilder {
 
         // Полки — ДЕТИ sector (а не отдельного shared-контейнера, как box-UM
         // createFilling/Shape), поэтому работают в локальных координатах
-        // сектора (0..width/0..height), см. createWardrobeShelf. shelfIndex —
+        // секции (0..width/0..height), см. createWardrobeShelf. shelfIndex —
         // порядок в МАССИВЕ, не сортировка по positionY: та же нумерация, что
         // в WardrobeFillingsView.vue ("Полка N"/"Штанга N"), чтобы канвас и
         // панель "Конфигурация" совпадали.
@@ -1053,12 +1053,12 @@ export default class SceneBuilder {
         // lablesContainer: он добавлен в app.stage последним и всегда на
         // переднем плане — как высота профиля в renderWardrobeGrid.
         // Локальные координаты (0..width/0..height) переводятся в абсолютные
-        // добавлением x/y сектора: lablesContainer сидит на app.stage в (0,0).
+        // добавлением x/y секции: lablesContainer сидит на app.stage в (0,0).
 
         // Режим размерных данных полок/штанг — переключатель "Наполнение"
         // (WardrobeRightPanelView.vue -> UM_STORE.wardrobeShelfDimensionMode).
         // 'gap' — зазор МЕЖДУ соседними полками, отдельная размерная линия у
-        // ПРАВОГО края сектора (контраст-фикс labelSide=-1 здесь НЕ
+        // ПРАВОГО края секции (контраст-фикс labelSide=-1 здесь НЕ
         // применяется — линия должна остаться справа).
         const dimensionMode = ctx.UMconstructor?.value?.UM_STORE.wardrobeShelfDimensionMode ?? 'floor'
 
@@ -1086,8 +1086,8 @@ export default class SceneBuilder {
             ctx.wardrobeGapLinesMap[sectionIndex] = gapLines;
         }
 
-        // Подписи полок/штанг — по центру сектора (x+width/2, anchor 0.5) и по
-        // центру своей PIXI-высоты; слева от сектора (x+4) они накладывались
+        // Подписи полок/штанг — по центру секции (x+width/2, anchor 0.5) и по
+        // центру своей PIXI-высоты; слева от секции (x+4) они накладывались
         // на подпись и размерную линию соседнего профиля.
         //
         // В режиме 'floor' расстояние до пола пишется ПРЯМО В подпись, а не
@@ -1143,11 +1143,11 @@ export default class SceneBuilder {
             });
         });
 
-        // Ширина секции и нейминг сектора вынесены НАД верхней границей
-        // модуля, в зону WARDROBE_CANVAS_PADDING_PX — внутри сектора они
-        // наезжали на его верхнюю границу. Обе подписи на одной строке Y:
-        // "Сектор N" слева (anchor 0,1 — текст растёт вверх от линии),
-        // размерная линия по центру сектора (её подпись тоже над линией).
+        // Ширина и нейминг секции вынесены НАД верхней границей
+        // модуля, в зону WARDROBE_CANVAS_PADDING_PX — внутри секции они
+        // наезжали на её верхнюю границу. Обе подписи на одной строке Y:
+        // "Секция N" слева (anchor 0,1 — текст растёт вверх от линии),
+        // размерная линия по центру секции (её подпись тоже над линией).
         //
         // -6, а не -10: при WARDROBE_CANVAS_PADDING_PX=20 линии нужно ~15px
         // над собой под текст и засечки, при -10 текст вылезал за верх.
@@ -1156,7 +1156,7 @@ export default class SceneBuilder {
         if (!ctx.wardrobeDragActive) {
             const sectorTopLabelsY = absY - 6;
             ctx.sectionLables.push(createHorizontalDimension(absX + 0, absX + width, sectorTopLabelsY, section.width));
-            ctx.sectionLables.push(createWardrobeNameLabel(`Сектор ${sectionIndex + 1}`, absX + 4, sectorTopLabelsY, 0, 1));
+            ctx.sectionLables.push(createWardrobeNameLabel(`Секция ${sectionIndex + 1}`, absX + 4, sectorTopLabelsY, 0, 1));
         }
 
         if (_sector) _sector.addChild(sector);
@@ -1166,7 +1166,7 @@ export default class SceneBuilder {
         return sector;
     }
 
-    // Полка сектора — плоская (обычная) или наклонная (обувная), ЛДСП или
+    // Полка секции — плоская (обычная) или наклонная (обувная), ЛДСП или
     // стекло. Перетаскивается мышью по вертикали (DividerDragEngine.
     // onWardrobeShelfDragStart/Move/End) — секции/shelfId записаны прямо на
     // graphic (тот же приём, что profile.profileIndex у createWardrobeProfile),
@@ -1179,7 +1179,7 @@ export default class SceneBuilder {
     // ShelfBuilder.buildWardrobeAngledShelf), поэтому наклонная занимает
     // больше — это её реальный силуэт, не искажение.
     //
-    // positionY — мм от низа сектора до НИЖНЕЙ грани полки (см.
+    // positionY — мм от низа секции до НИЖНЕЙ грани полки (см.
     // ShelvesManager.updateWardrobeShelfPositionY).
     createWardrobeShelf({ sectorWidthPx, sectorHeightPx, shelf, depthMm, sectionIndex, wardrobeProductId }) {
         const ctx = this.ctx
@@ -1210,9 +1210,9 @@ export default class SceneBuilder {
         return graphic;
     }
 
-    // Профиль — тонкая вертикальная планка на границе сектора(ов). Крайние
+    // Профиль — тонкая вертикальная планка на границе секции(й). Крайние
     // (draggable=false) статичны, внутренние — тянутся (см. DividerDragEngine.
-    // onWardrobeProfileDragStart), меняя ширину двух соседних секторов.
+    // onWardrobeProfileDragStart), меняя ширину двух соседних секций.
     // Ножки в 2D сознательно НЕ рисуются: в 3D они уходят ЗА пределы #Y#
     // (720 + 45 + 45 = 810мм, см. LegBuilder.buildWardrobeLegs), а здесь
     // планка идёт на всю moduleGrid.height — усечённые ножки поверх неё
@@ -1240,7 +1240,7 @@ export default class SceneBuilder {
         // см. renderGrid/renderWardrobeGrid) — профили НЕ дети moduleSector
         // (добавляются в ctx.deviders → отдельный верхнеуровневый
         // sectionsContainer), поэтому не наследуют его позицию автоматически
-        // через PIXI-трансформацию, как сектора/полки — нужно прибавлять
+        // через PIXI-трансформацию, как секции/полки — нужно прибавлять
         // вручную. По умолчанию 0 (box-UM/вызовы без явного отступа —
         // поведение не меняется).
         profile.position.set(x, y + totalHeightPx - heightPx);
@@ -1265,7 +1265,7 @@ export default class SceneBuilder {
         return profile;
     }
 
-    // Создаём сектора
+    // Создаём секции
     createSector({
         x,
         y,
@@ -1377,7 +1377,7 @@ export default class SceneBuilder {
             cell.cellGraphics.cursor = "pointer";
         }
 
-        // Создаём ограничения для секторов по высоте
+        // Создаём ограничения для секций по высоте
         if (gridType !== "fasades") {
             const sectorBounds = ctx.shapeAdjuster.getTotalBounds(sector, cellData);
             sector.bound = sectorBounds;
@@ -1388,7 +1388,7 @@ export default class SceneBuilder {
 
         cellData.sector = sector;
 
-        // Рендер линейки расстояний до границ сектора
+        // Рендер линейки расстояний до границ секции
         let tmpSectorBounds = ctx.shapeAdjuster.getSectorBounds(sector);
         let mmSectorBounds = {
             width: ctx.getMmWidth(tmpSectorBounds.width),
@@ -1403,7 +1403,7 @@ export default class SceneBuilder {
         });
 
         if (gridType === ctx.mode.value) {
-            // /** Создаём нумерацию сектора */
+            // /** Создаём нумерацию секции */
             this.createSectioNum({
                 x,
                 y,
@@ -1465,7 +1465,7 @@ export default class SceneBuilder {
 
         ctx.loops.push(sector);
 
-        // Создаём ограничения для секторов по высоте
+        // Создаём ограничения для секций по высоте
         const sectorBounds = ctx.shapeAdjuster.getSectorBounds(sector);
         sector.bound = sectorBounds;
 
@@ -1492,7 +1492,7 @@ export default class SceneBuilder {
 
         ctx.handles.push(sector);
 
-        // Создаём ограничения для секторов по высоте
+        // Создаём ограничения для секций по высоте
         const sectorBounds = ctx.shapeAdjuster.getSectorBounds(sector);
         sector.bound = sectorBounds;
 

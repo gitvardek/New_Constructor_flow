@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 // Начальный GridModule гардеробной системы.
-// Для продукта без стенок: sections[] используются только как секторы
+// Для продукта без стенок: sections[] используются только как секции
 // (ширина/позиция/resize-драг), cells/cellsRows/extras внутри не нужны —
 // вместо них GridSection.wardrobeShelves и GridModule.wardrobeProfiles
 // (см. UMtypes.ts).
@@ -24,8 +24,8 @@ import { getWardrobeProfileProducts, getWardrobeProfileFastenings, getWardrobePr
 // Тот же товар-полка, что уже используется в ShelfBuilder.buildWardrobeShelf
 export const WARDROBE_SHELF_PRODUCT_ID = 5975548;
 
-// N секторов -> N+1 профилей (профили — границы секторов); в стартовой сетке
-// сектор всегда один, все профили высотой с модуль. profileProductId/fasteningId/colorId 
+// N секций -> N+1 профилей (профили — границы секций); в стартовой сетке
+// секция всегда одна, все профили высотой с модуль. profileProductId/fasteningId/colorId 
 
 function createDefaultWardrobeProfiles(sectorsCount: number, wardrobeProductId: number, height: number): WardrobeProfile[] {
     const profileProductId = getWardrobeProfileProducts(wardrobeProductId)[0]?.id;

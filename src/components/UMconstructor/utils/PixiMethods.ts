@@ -758,7 +758,7 @@ class Shape extends Helpers {
         return horizontalCheck || verticalCheck
     }
 
-    // Проверка, находится ли указанная позиция внутри сектора
+    // Проверка, находится ли указанная позиция внутри секции
     isPositionInsideSector(position: { x: number, y: number }) {
         const pxPos = {
             x: this.getPixelWidth(position.x),
@@ -928,7 +928,7 @@ class Shape extends Helpers {
             });
             // Стрелка у объекта (у начала линии, указывает вправо, к объекту)
             this.drawArrowhead(graphics, startX, startY, 'right');
-            // Стрелка на краю сектора (внутри сектора, указывает влево, от фигуры)
+            // Стрелка на краю секции (внутри секции, указывает влево, от фигуры)
             this.drawArrowhead(graphics, endX, endY, 'left', 5);
 
             let distance = startX - endX
@@ -963,7 +963,7 @@ class Shape extends Helpers {
             });
             // Стрелка у объекта (у начала линии, указывает влево, к объекту)
             this.drawArrowhead(graphics, startX, startY, 'left');
-            // Стрелка на краю сектора (внутри сектора, указывает вправо, от фигуры)
+            // Стрелка на краю секции (внутри секции, указывает вправо, от фигуры)
             this.drawArrowhead(graphics, endX, endY, 'right', 5);
 
             let distance = endX - startX
@@ -998,7 +998,7 @@ class Shape extends Helpers {
             });
             // Стрелка у объекта (у начала линии, указывает вниз, к объекту)
             this.drawArrowhead(graphics, startX, startY, 'down');
-            // Стрелка на краю сектора (внутри сектора, указывает вверх, от фигуры)
+            // Стрелка на краю секции (внутри секции, указывает вверх, от фигуры)
             this.drawArrowhead(graphics, endX, endY, 'up', 5);
 
             let distance = startY - endY
@@ -1033,7 +1033,7 @@ class Shape extends Helpers {
             });
             // Стрелка у объекта (у начала линии, указывает вверх, к объекту), с небольшим смещением вниз
             this.drawArrowhead(graphics, startX, startY, 'up');
-            // Стрелка на краю сектора (внутри сектора, указывает вниз, от фигуры)
+            // Стрелка на краю секции (внутри секции, указывает вниз, от фигуры)
             this.drawArrowhead(graphics, endX, endY, 'down');
 
             let distance = endY - startY

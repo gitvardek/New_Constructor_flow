@@ -35,7 +35,7 @@ export default class DividerDragEngine {
     // Гардеробная система (временно, черновик) — состояние драга профиля,
     // изолировано от ctx.dragState выше (тот сделан под box-UM cells/rows/
     // extras и слишком сильно на него завязан, чтобы безопасно переиспользовать
-    // для плоских секторов гардеробной системы).
+    // для плоских секций гардеробной системы).
     private wardrobeDrag: {
         isDragging: boolean
         profileIndex: number | null
@@ -44,7 +44,7 @@ export default class DividerDragEngine {
         rightStartWidth: number
     } = { isDragging: false, profileIndex: null, startX: 0, leftStartWidth: 0, rightStartWidth: 0 }
 
-    // Драг полки внутри сектора, только по вертикали. Границы НЕ фиксируются
+    // Драг полки внутри секции, только по вертикали. Границы НЕ фиксируются
     // на старте: коллизии перерешаются на каждый move по текущим позициям
     // соседей (WardrobeSystem.resolveWardrobeShelfDragPositionY), поэтому за
     // один драг полка может "перепрыгнуть" через другую.
@@ -93,7 +93,7 @@ export default class DividerDragEngine {
     // Троттлинг renderGrid() до 1 раза за кадр (requestAnimationFrame) во
     // время живого драга: pointermove приходит чаще, чем экран рисует кадры
     // (высокочастотная мышь), а renderGrid() каждый раз ПОЛНОСТЬЮ
-    // перестраивает сцену — секторы/профили/полки/подписи/размерные линии, и
+    // перестраивает сцену — секции/профили/полки/подписи/размерные линии, и
     // на большом числе объектов это давало фризы. Клампинг и коллизии
     // по-прежнему считаются на КАЖДЫЙ move (позиция под курсором должна быть
     // актуальной) — троттлится только перерисовка, которая всё равно не
@@ -384,7 +384,7 @@ export default class DividerDragEngine {
         }
 
         // ==== Гардеробная система (WARDROBE) — временно, черновик ====
-        // Драг профиля между двумя секторами (изменяет их ширину навстречу
+        // Драг профиля между двумя секциями (изменяет их ширину навстречу
         // друг другу). this внутри === profile (PIXI Graphics), как и у
         // onVerticalDragStart выше — тот же паттерн (обычная function,
         // не стрелочная, доступ к ctx через замыкание engine.ctx).
@@ -405,7 +405,7 @@ export default class DividerDragEngine {
             // ctx.wardrobeDragActive здесь НЕ выставляется, в отличие от драга
             // полки: профиль рендерится через scheduleWardrobeRender(), т.е.
             // полным renderGrid() каждый кадр (резайз профиля меняет ширину и
-            // позицию сразу двух секторов и всех полок в них — инкрементально
+            // позицию сразу двух секций и всех полок в них — инкрементально
             // это куда сложнее, чем одну Y-позицию полки). Раз рендер полный,
             // Text пропускать не нужно — подписи и размерные линии живут сами.
             ctx.cursorCheck = true
@@ -422,7 +422,7 @@ export default class DividerDragEngine {
 
         // ==== Гардеробная система (WARDROBE) — временно, черновик ====
         // Клик по КРАЙНЕМУ профилю (draggable=false в
-        // SceneBuilder.createWardrobeProfile) — только выбор: ширину секторов
+        // SceneBuilder.createWardrobeProfile) — только выбор: ширину секций
         // они не двигают, но настраиваются в "Настройка профилей"
         // (высота/крепление/цвет). renderGrid() не нужен —
         // SelectionHighlighter.selectWardrobeProfile переключает .visible на
@@ -433,7 +433,7 @@ export default class DividerDragEngine {
         }
 
         // ==== Гардеробная система (WARDROBE) — временно, черновик ====
-        // Драг полки внутри сектора (только по вертикали). this внутри ===
+        // Драг полки внутри секции (только по вертикали). this внутри ===
         // graphic полки (PIXI Graphics), как и у onWardrobeProfileDragStart
         // выше — тот же паттерн (обычная function, доступ к ctx через
         // замыкание engine.ctx). secIndex/shelfId записаны прямо на graphic
@@ -500,7 +500,7 @@ export default class DividerDragEngine {
             // Режим 'gap' — размерные линии зазора живьём, см. комментарий у
             // поля wardrobeShelfDrag. absX/absY — та же формула, что в
             // renderWardrobeGrid/createWardrobeSector (section.xOffset —
-            // позиция сектора в модуле, WARDROBE_CANVAS_PADDING_PX — отступ
+            // позиция секции в модуле, WARDROBE_CANVAS_PADDING_PX — отступ
             // канваса).
             //
             // ИСХОДНЫЕ линии (из последнего renderGrid()) здесь НЕ убираются:
@@ -1352,8 +1352,8 @@ export default class DividerDragEngine {
     }
 
     // ==== Гардеробная система (WARDROBE) — временно, черновик ====
-    // Живое перетаскивание полки по вертикали внутри своего сектора.
-    // Коллизии с соседними полками/штангами и границы пола/потолка сектора
+    // Живое перетаскивание полки по вертикали внутри своей секции.
+    // Коллизии с соседними полками/штангами и границы пола/потолка секции
     // разрешаются ЗАНОВО на каждое движение мыши (см.
     // WardrobeSystem.resolveWardrobeShelfDragPositionY) — не статичный
     // клампинг к исходным соседям, а динамическое разрешение, позволяющее
@@ -1393,7 +1393,7 @@ export default class DividerDragEngine {
         // разница: перерисовка уже СУЩЕСТВУЮЩИХ объектов (.clear()+заново
         // для Graphics, прямое присвоение .position/.text для Text), а не
         // создание новых. Всё остальное на сцене (соседние полки/профили/
-        // подписи секторов и профилей) не трогается вовсе.
+        // подписи секций и профилей) не трогается вовсе.
         const shelfHeightMm = getWardrobeShelfPixiHeight(shelf, depthMm, module.productID)
         const heightPx = Math.max(ctx.getPixelHeight(shelfHeightMm), 2)
         const bottomPx = drag.sectorHeightPx - ctx.getPixelHeight(Math.max(shelf.positionY, 0))
@@ -1424,7 +1424,7 @@ export default class DividerDragEngine {
         // вместе с полкой; в режиме 'floor' в неё встроено ЗНАЧЕНИЕ
         // расстояния до пола (см. SceneBuilder.createWardrobeSector), его
         // тоже обновляем на каждый move. .position.x НЕ трогаем — не
-        // меняется в течение Y-драга (по центру той же ширины сектора).
+        // меняется в течение Y-драга (по центру той же ширины секции).
         if (drag.nameLabel) {
             drag.nameLabel.position.y = WARDROBE_CANVAS_PADDING_PX + topPx + heightPx / 2
             if (drag.dimensionMode === 'floor') {

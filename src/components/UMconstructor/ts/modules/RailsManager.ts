@@ -12,7 +12,7 @@ import {
 // Штанга (rail) — товар из динамических групп "Наполнение" -> "Вставка"
 // (WardrobeSystem.getWardrobeFillingsGroups, WardrobeInsertView.vue) Лежит в ТОМ ЖЕ section.wardrobeShelves, что
 // и полки (kind==='rail'), ради полноценной коллизии: поиск свободного места,
-// зазоры, драг и авто-удаление по потолку сектора
+// зазоры, драг и авто-удаление по потолку секции
 // (findFreeWardrobeShelfPositionY, getWardrobeShelfDragBounds,
 // UMconstructorClass.reset()) переиспользованы без правок — они уже дженерик
 // над {type, positionY, kind, railHeight}, см.

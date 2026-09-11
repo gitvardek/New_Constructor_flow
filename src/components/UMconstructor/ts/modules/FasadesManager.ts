@@ -807,7 +807,7 @@ export default class FasadesManager {
             if (rest.length < 2) rest.forEach(item => delete item.splitGroup)
         }
 
-        // Обновляем текущий сектор
+        // Обновляем текущую секцию
         this.selectCell(secIndex, 0, 0)
 
         if (reset)

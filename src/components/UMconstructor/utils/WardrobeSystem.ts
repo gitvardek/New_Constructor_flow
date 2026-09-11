@@ -266,7 +266,7 @@ export function getWardrobeFillingsGroups(wardrobeProductId: number): {
     return result
 }
 
-// "Монтажная высота" сектора — до какой высоты в нём вообще можно ставить
+// "Монтажная высота" секции — до какой высоты в ней вообще можно ставить
 // полки. Это МЕНЬШАЯ из высот двух ограничивающих профилей
 // (wardrobeProfiles[secIndex] и [secIndex+1]): полка висит на обоих, и выше
 // верха короткого держаться ей не на чем. GridModule.height здесь не
@@ -427,7 +427,7 @@ export function getWardrobeShelfPixiHeight(
     return getWardrobeAngledShelfProjection(thicknessMm, depthMm).totalHeight;
 }
 
-// Минимальный зазор (мм) между парой объектов сектора. ПОРЯДОК АРГУМЕНТОВ
+// Минимальный зазор (мм) между парой объектов секции. ПОРЯДОК АРГУМЕНТОВ
 // ЗНАЧИМ: below — снизу, above — сверху (пара НЕ взаимозаменяемая):
 // - обе ШТАНГИ — фиксированные WARDROBE_RAIL_MIN_GAP, направление не важно;
 // - штанга СНИЗУ, полка сверху — отступ полки (getWardrobeShelfFloorGap) ПЛЮС
@@ -490,8 +490,8 @@ export function getWardrobeShelfFloorGap(
 // Ищет свободную позицию по Y для новой полки, sweep'ом от пола вверх (тот
 // же принцип, что у ShapeAdjuster.getRandomPosition в box-UM, но с зазором
 // по типу пары полок, а не фиксированным шагом). Используется
-// ShelvesManager.addWardrobeShelf: новые секторы создаются БЕЗ полок.
-// ceilingHeight — "монтажная" высота сектора
+// ShelvesManager.addWardrobeShelf: новые секции создаются БЕЗ полок.
+// ceilingHeight — "монтажная" высота секции
 // (getWardrobeSectionInstallableHeight), НЕ grid.height. null, если места
 // не осталось.
 //
@@ -534,7 +534,7 @@ export function findFreeWardrobeShelfPositionY(
 // по Y" (WardrobeFillingsView.vue), которому нужен единый диапазон min/max.
 // Живой драг мышью работает иначе — см. resolveWardrobeShelfDragPositionY.
 // Зазоры и нижняя граница — те же getWardrobeShelfMinGap/FloorGap, что при
-// добавлении; ceilingHeight — монтажная высота сектора.
+// добавлении; ceilingHeight — монтажная высота секции.
 //
 // minY округляется ВВЕРХ, maxY — ВНИЗ: границы дробные (тригонометрия), а
 // потребитель клампит по ним и ПОТОМ округляет позицию до целых мм —

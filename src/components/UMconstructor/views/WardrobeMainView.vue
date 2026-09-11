@@ -76,7 +76,7 @@ const changeConstructorMode = (_mode: constructorMode) => {
 // текущего mode (тот же общий путь, что и клик по полке в самой панели —
 // см. WardrobeFillingsView.vue::selectShelf) — реагируем на ЛЮБОЕ появление
 // ненулевого .item здесь, не только на явные клики по канвасу. Пустой .item
-// (autoSelectDeepest на маунте ниже, клик по пустому месту сектора) НЕ
+// (autoSelectDeepest на маунте ниже, клик по пустому месту секции) НЕ
 // переключает режим — иначе открытие модуля само прыгало бы на "Наполнение".
 watch(() => UMstore.getSelected('fillings')?.item, (item) => {
   if (item != null && mode.value !== 'fillings') {
@@ -87,7 +87,7 @@ watch(() => UMstore.getSelected('fillings')?.item, (item) => {
 // Клик по ПРОФИЛЮ на канвасе автоматически переключает панель на "Модуль"
 // (уточнение пользователя) — тот же принцип, что и у выбора полки/штанги
 // выше, но отдельный канал (UM_STORE.selectedWardrobeProfileId, не
-// selectedFilling — профиль не привязан к сектору/типу TSelectedCell), см.
+// selectedFilling — профиль не привязан к секции/типу TSelectedCell), см.
 // SelectionHighlighter.selectWardrobeProfile. null (сброс выбора) не
 // переключает режим.
 watch(() => UMstore.selectedWardrobeProfileId, (profileId) => {

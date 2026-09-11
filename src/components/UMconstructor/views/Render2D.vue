@@ -256,7 +256,7 @@ const updateTotalSize = (value, dimension) => {
   // тогда grid.width (= TOTAL_WIDTH) был суммой section.width без профилей, и
   // раскладка выходила шире. Позже (UMconstructorClass.reset() —
   // applyWardrobeWidthDelta) grid.width стал ПОЛНОЙ шириной модуля — сумма
-  // секторов уже с вычтенным бюджетом под профили, — так что areaWidth
+  // секций уже с вычтенным бюджетом под профили, — так что areaWidth
   // (= TOTAL_WIDTH×scale) уже включает их. Резерв поверх стал двойным учётом
   // и давал большой пустой отступ справа от канваса.
   const canvasWidth = areaWidth.value + padding * 2;

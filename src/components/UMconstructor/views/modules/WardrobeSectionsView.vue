@@ -2,7 +2,7 @@
 // @ts-nocheck
 
 // ==== Гардеробная система (WARDROBE) — временно, черновик ====
-// Аналог SectionsView.vue, но сильно упрощённый: у сектора гардеробной
+// Аналог SectionsView.vue, но сильно упрощённый: у секции гардеробной
 // системы нет cells/cellsRows/extras/loops/hiTechProfiles — только список
 // добавить/удалить (см. SectionsManager.addWardrobeSector/deleteWardrobeSector).
 // Рендерится из RightPanelView.vue вместо SectionsView, когда
@@ -52,7 +52,7 @@ onMounted(() => {
             <div class="wardrobeSector-constainer">
 
               <h4 class="wardrobeSector-title ">
-                Сектор {{ secIndex + 1 }}
+                Секция {{ secIndex + 1 }}
               </h4>
 
 

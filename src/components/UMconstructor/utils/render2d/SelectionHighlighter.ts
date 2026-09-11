@@ -14,14 +14,14 @@ export default class SelectionHighlighter {
         this.ctx = ctx
     }
 
-    // Выбор сектора, передача в родительский компонент
+    // Выбор секции, передача в родительский компонент
     selectCell(type: string, newSelectedCell: TSelectedCell) {
         const ctx = this.ctx
 
-        // Гардеробная система — профиль и полка/сектор/наполнение
+        // Гардеробная система — профиль и полка/секция/наполнение
         // взаимоисключающие выделения (уточнение пользователя: "при клике
         // на наполнение выделение профиля не пропадает — ни на канвасе, ни
-        // в UX"). selectCell (любой type — клик по полке/сектору/фасаду)
+        // в UX"). selectCell (любой type — клик по полке/секции/фасаду)
         // снимает выделение профиля, если оно было; см. симметричную
         // очистку filling-выделения в selectWardrobeProfile ниже.
         if (ctx.UMconstructor?.value?.UM_STORE.selectedWardrobeProfileId != null) {
@@ -87,8 +87,8 @@ export default class SelectionHighlighter {
     // Гардеробная система — выбор ПРОФИЛЯ (уточнение пользователя: клик по
     // профилю на канвасе <-> выделение в WardrobeProfilesView.vue "Настройка
     // профилей", и наоборот). Отдельный вход (не через selectCell выше) —
-    // профиль не привязан к сектору/типу TSelectedCell (не наполнение
-    // сектора, самостоятельный объект модуля), поэтому свой простой канал:
+    // профиль не привязан к секции/типу TSelectedCell (не наполнение
+    // секции, самостоятельный объект модуля), поэтому свой простой канал:
     // UM_STORE.selectedWardrobeProfileId (id или null), см. useUMStorage.ts.
     // Тот же приём переключения .visible НАПРЯМУЮ на уже отрисованных
     // объектах, что и у selectCell("fillings",...)/ctx.wardrobeShelvesMap
@@ -269,7 +269,7 @@ export default class SelectionHighlighter {
         if (!ctx.wardrobeDragActive) {
             ctx.renderGrid();
 
-            // Фасады: после рендера сектор уже привязан к данным — подсвечиваем первый
+            // Фасады: после рендера секция уже привязана к данным — подсвечиваем первый
             if (_mode === 'fasades') {
                 const hasModuleFasades = grid?.fasades?.length > 0 && grid.fasades[0]?.length > 0;
                 const firstSecWithFasades = grid?.sections?.findIndex(s => s.fasades?.length > 0);

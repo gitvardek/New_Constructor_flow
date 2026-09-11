@@ -40,7 +40,7 @@ export default class RenderContext {
     // же приём, что fillingsMap у box-UM; отдельный массив, т.к. полки не
     // используют тяжёлый Shape (у них своя drag-система).
     wardrobeShelvesMap = []
-    // Карта "сектор -> [{lowerId, upperId, container}]" для размерных линий
+    // Карта "секция -> [{lowerId, upperId, container}]" для размерных линий
     // зазора (режим 'gap'). Ключ — ПАРА id соседних полок, а не индекс:
     // соседство по positionY меняется, когда полка "перепрыгивает" другую за
     // один драг. Нужна DividerDragEngine.onWardrobeShelfDragMove, чтобы
@@ -49,14 +49,14 @@ export default class RenderContext {
     // Карта "профиль -> highlightGraphics" (canvas <-> WardrobeProfilesView.vue)
     // — как wardrobeShelvesMap, но выбор хранится в
     // UM_STORE.selectedWardrobeProfileId, а не в generic setSelected/
-    // getSelected: профиль не привязан к сектору и типу TSelectedCell.
+    // getSelected: профиль не привязан к секции и типу TSelectedCell.
     wardrobeProfilesMap = []
     // true во время активного драга ПОЛКИ (драг профиля флаг не ставит).
     // Полка во время драга не зовёт renderGrid() вовсе (прямая манипуляция
     // PIXI-объектами, см. DividerDragEngine.wardrobeShelfDrag), так что флаг
     // страхует лишь редкий случай, когда renderGrid() вызовет кто-то извне:
     // тогда SceneBuilder.createWardrobeSector пропустит Text-объекты для всех
-    // полок сектора. Полный рендер возвращается на dragEnd (resetModule()).
+    // полок секции. Полный рендер возвращается на dragEnd (resetModule()).
     wardrobeDragActive = false
     fasades = []
     loops = []
@@ -106,13 +106,13 @@ export default class RenderContext {
     onVerticalDragStart
     onHorizontalDragStart
     // Гардеробная система (временно, черновик) — драг профиля между двумя
-    // секторами, изолирован от dragState/onVerticalDragStart выше.
+    // секциями, изолирован от dragState/onVerticalDragStart выше.
     onWardrobeProfileDragStart
     // Клик по КРАЙНЕМУ (не тянущемуся мышью) профилю — только выбор, без
     // драга (см. SceneBuilder.createWardrobeProfile/DividerDragEngine.
     // onWardrobeProfileClick).
     onWardrobeProfileClick
-    // Драг полки внутри сектора по вертикали — своё изолированное состояние
+    // Драг полки внутри секции по вертикали — своё изолированное состояние
     // (wardrobeShelfDrag), см. DividerDragEngine.
     onWardrobeShelfDragStart
 

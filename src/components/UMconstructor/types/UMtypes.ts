@@ -119,16 +119,16 @@ export interface GridSection {
     loopsSides?: {};
     hiTechProfiles?: FillingObject[];
     fillings?: FillingObject[];
-    // Гардеробная система (см. GridModule.moduleKind) — сектор не использует
-    // cells/cellsRows/extras вовсе, содержимое сектора плоским списком здесь.
+    // Гардеробная система (см. GridModule.moduleKind) — секция не использует
+    // cells/cellsRows/extras вовсе, содержимое секции плоским списком здесь.
     wardrobeShelves?: WardrobeShelfPlacement[];
     // Тумбочки с ящиками (см. WardrobeCabinetPlacement) — отдельный от полок
     // массив, т.к. у тумбочки есть собственное вложенное наполнение (ящики).
     wardrobeCabinets?: WardrobeCabinetPlacement[];
 }
 
-// Профиль стоит на границе двух секторов (или на краю модуля), поэтому не
-// принадлежит сектору, а лежит в GridModule.wardrobeProfiles длиной
+// Профиль стоит на границе двух секций (или на краю модуля), поэтому не
+// принадлежит секции, а лежит в GridModule.wardrobeProfiles длиной
 // sections.length + 1.
 //
 // profileProductId — "Тип профиля": товар из
@@ -177,7 +177,7 @@ export type WardrobeShelfMaterial = 'ldsp' | 'glass';
 // getWardrobeFillingsGroups/RailsManager.addWardrobeRail). Штанга лежит в
 // ТОМ ЖЕ wardrobeShelves ради полноценной коллизии: getWardrobeShelfMinGap/
 // getWardrobeShelfFloorGap/findFreeWardrobeShelfPositionY/
-// getWardrobeShelfDragBounds и авто-удаление по потолку сектора уже дженерик
+// getWardrobeShelfDragBounds и авто-удаление по потолку секции уже дженерик
 // над {type, positionY, ...}. У штанги type всегда 'flat', material/colorId
 // не используются, толщина — из railHeight (см. getWardrobeShelfPixiHeight).
 export interface WardrobeShelfPlacement {
@@ -192,7 +192,7 @@ export interface WardrobeShelfPlacement {
 }
 
 // Универсальная тумбочка с ящиками (черновик — товара в каталоге пока нет,
-// см. чат: ширина всегда = ширине сектора, поэтому отдельного поля width
+// см. чат: ширина всегда = ширине секции, поэтому отдельного поля width
 // нет; высота фиксирована у товара (productId), но позиция по Y —
 // произвольная, как у полки, а не всегда от пола).
 export interface WardrobeDrawerPlacement {
@@ -289,7 +289,7 @@ export interface GridModule {
     profilesConfig?: ProfilesConfig;
     // Не задано (undefined) = обычный "коробочный" УМ, как и раньше.
     // 'wardrobe' = гардеробная система — sections[] используются только для
-    // ширины/позиции секторов и resize-драга, cells/cellsRows/extras внутри
+    // ширины/позиции секций и resize-драга, cells/cellsRows/extras внутри
     // них не используются вовсе (см. GridSection.wardrobeShelves,
     // WardrobeProfile, вариант "C" в SESSION_CONTEXT.md).
     moduleKind?: 'boxed' | 'wardrobe';

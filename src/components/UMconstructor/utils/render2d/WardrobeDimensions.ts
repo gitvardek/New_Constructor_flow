@@ -2,10 +2,10 @@
 // Вспомогательные PIXI-примитивы для "динамического обозначения расстояний"
 // на канвасе (уточнение пользователя): ширина секций (внутренняя часть),
 // расстояния между полками, высота профилей, плюс нейминги объектов
-// (Сектор N / Полка N / Штанга N / Профиль N). Отдельный файл (не внутри
+// (Секция N / Полка N / Штанга N / Профиль N). Отдельный файл (не внутри
 // SceneBuilder.ts) — чистые функции без состояния, переиспользуются из
 // нескольких мест SceneBuilder.ts (createWardrobeSector — размерные линии
-// секции/полок в ЛОКАЛЬНЫХ координатах сектора; renderWardrobeGrid — высота
+// секции/полок в ЛОКАЛЬНЫХ координатах секции; renderWardrobeGrid — высота
 // профиля в АБСОЛЮТНЫХ координатах канваса), не привязаны к this/ctx.
 //
 // Пересчитываются заново на КАЖДЫЙ renderGrid() (та же карусель, что и все
@@ -28,7 +28,7 @@ const DIMENSION_TEXT_STYLE = {
 // что находится под текстом (в отличие от getContrastTextColor ниже, тут не
 // нужно заранее знать точный цвет фона). Уточнение пользователя: подпись
 // зазора между полками (createWardrobeSector, режим 'gap') стоит у самого
-// края сектора, справа, где почти всегда перекрывает тёмный профиль
+// края секции, справа, где почти всегда перекрывает тёмный профиль
 // соседней границы — двигать саму позицию нельзя (пользователь явно попросил
 // оставить "как до этого — справа"), а профилей несколько цветовых семей
 // (WARDROBE_COLORS.profile), точный цвет здесь не известен без лишней связи
@@ -71,7 +71,7 @@ function getContrastTextColor(bgColorHex: string): string {
 
 // Горизонтальная размерная линия (для ширины секции) — засечки по концам,
 // подпись в мм по центру НАД линией. x1Px/x2Px/yPx — ЛОКАЛЬНЫЕ координаты
-// родительского контейнера (сектора), см. createWardrobeSector.
+// родительского контейнера (секции), см. createWardrobeSector.
 export function createHorizontalDimension(x1Px: number, x2Px: number, yPx: number, mmValue: number): Container {
     const container = new Container();
 
@@ -101,7 +101,7 @@ export function createHorizontalDimension(x1Px: number, x2Px: number, yPx: numbe
 // renderWardrobeGrid передаёт для него -1.
 //
 // haloText — DIMENSION_TEXT_STYLE_HALO вместо DIMENSION_TEXT_STYLE: зазор
-// между полками (режим 'gap') стоит у края сектора и почти всегда ложится на
+// между полками (режим 'gap') стоит у края секции и почти всегда ложится на
 // тёмный профиль, где обычный серый текст нечитаем.
 export function createVerticalDimension(y1Px: number, y2Px: number, xPx: number, mmValue: number, labelSide: 1 | -1 = 1, haloText = false): Container {
     const container = new Container();
@@ -122,14 +122,14 @@ export function createVerticalDimension(y1Px: number, y2Px: number, xPx: number,
     return container;
 }
 
-// Подпись-нейминг объекта (Сектор N / Полка N / Штанга N / Профиль N) —
+// Подпись-нейминг объекта (Секция N / Полка N / Штанга N / Профиль N) —
 // позиционированный Text, anchor задаёт вызывающий код (у разных типов
 // объектов оно разное). vertical=true поворачивает на -90° (как
 // createVerticalDimension выше), при повороте нужен anchor(0.5,0.5).
 //
 // bgColorHex (опционально) — цвет фона ПОД подписью (например
 // WARDROBE_COLORS.shelf[...].fill, когда она лежит прямо на заливке объекта,
-// а не на нейтральном фоне сектора): текст берётся тёмным на светлом и
+// а не на нейтральном фоне секции): текст берётся тёмным на светлом и
 // светлым на тёмном (getContrastTextColor выше). Без параметра —
 // фиксированный тёмный.
 export function createWardrobeNameLabel(text: string, xPx: number, yPx: number, anchorX = 0, anchorY = 0, vertical = false, bgColorHex?: string): Text {

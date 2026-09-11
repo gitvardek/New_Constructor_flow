@@ -2,8 +2,8 @@
 // @ts-nocheck
 
 // ==== Гардеробная система (WARDROBE) ====
-// "Конфигурация" — настройка уже УСТАНОВЛЕННОГО наполнения выбранного
-// сектора; рендерится из WardrobeRightPanelView.vue при mode==='fillings'.
+// "Конфигурация" — настройка уже УСТАНОВЛЕННОГО наполнения выбранной
+// секции; рендерится из WardrobeRightPanelView.vue при mode==='fillings'.
 // Полки (kind==='shelf'/undefined) и штанги (kind==='rail') лежат в одном
 // массиве wardrobeShelves и рендерятся разными карточками. У полки правятся
 // материал (для ЛДСП, каталог _WARDROBE_SYSTEM[...].shelf[...].fasade) и
@@ -93,7 +93,7 @@ const selectedSection = computed(() => {
 // штанги показывает name/превью товара из каталога + положение по Y.
 const configurableShelves = computed(() => selectedSection.value?.wardrobeShelves ?? []);
 
-// "Монтажная" высота сектора — минимум из высот двух ограничивающих его
+// "Монтажная" высота секции — минимум из высот двух ограничивающих её
 // профилей (не selectedSection.height/module.height, который равен максимуму
 // по ВСЕМ профилям модуля) — выше короткого профиля полке не на чём висеть,
 // см. WardrobeSystem.getWardrobeSectionInstallableHeight.
@@ -113,7 +113,7 @@ const materialsList = (shelfProductId: number) =>
 // пользователем) стала единым источником правды и в самом
 // ShelvesManager.updateWardrobeShelfPositionY. Раньше здесь были две ОТДЕЛЬНЫЕ
 // самодельные формулы (floorGap для низа, installableHeight-height для
-// верха) — ни одна не учитывала коллизии с ДРУГИМИ полками сектора, поле
+// верха) — ни одна не учитывала коллизии с ДРУГИМИ полками секции, поле
 // позволяло увести полку ниже/выше соседней вплотную (см. скриншоты в чате).
 const positionYBounds = (shelf: any) => {
   // ТЕКУЩАЯ module.depth (не потолок getWardrobeProfileMaxDepth, который не
@@ -134,7 +134,7 @@ const wardrobeDragActive = computed(() => UMconstructor?.value?.UM_STORE.wardrob
 // Зачем: module — та же реактивная grid-структура, которую мутирует PIXI при
 // драге (onWardrobeShelfDragMove: shelf.positionY) и читает эта панель (а она
 // открывается по клику на полку, т.е. при драге открыта почти всегда). На
-// каждый pointermove Vue перечитывал positionY ВСЕХ карточек сектора и звал
+// каждый pointermove Vue перечитывал positionY ВСЕХ карточек секции и звал
 // немемоизированные minPositionY/maxPositionY (каждый — проход по всем
 // полкам) — при большом их числе дороже самого PIXI-рендера, и в
 // PIXI-профилировании этого не видно, только по общей "подвисаемости".
@@ -204,12 +204,12 @@ const deleteShelf = (shelfId: number) => {
 <template>
   <div class="UM wardrobe-fillings">
     <p v-if="!selectedSection" class="UM no-select wardrobe-fillings__hint">
-      Выберите сектор на канвасе, чтобы увидеть его наполнение.
+        Выберите секция на канвасе, чтобы увидеть его наполнение.
     </p>
 
     <template v-else>
       <p class="UM no-select wardrobe-fillings__section-title">
-        Сектор {{ selectedSec + 1 }}
+        Секция {{ selectedSec + 1 }}
       </p>
 
       <div v-for="(card, shelfIndex) in cachedShelfCards" :key="card.id"
