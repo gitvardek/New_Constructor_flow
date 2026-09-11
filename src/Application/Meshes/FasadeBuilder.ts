@@ -324,7 +324,9 @@ export class FasadeBuilder {
                 fasadeId: fasadeData.COLOR, productId: PRODUCT
             })[0] as any;
 
-            if (!checkCurrentMilling && fasadeData.MILLING != null && fasadeData.MILLING != millingList[0].ID) {
+            console.log(millingList[0], '<<<< millingList >>>>')
+
+            if (!checkCurrentMilling && fasadeData.MILLING != null && fasadeData.MILLING != millingList[0]?.ID) {
                 fasadeData.MILLING = millingList[0].ID;
                 this.toaster.error(`Не корректный размер фасада. Фрезеровка фасада №${key + 1} была изменена`);
             }
