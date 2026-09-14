@@ -28,6 +28,22 @@ export class TsargaBuilder {
     }
 
     /**
+     * Материал деревянной царги на случай, когда текстуры для её цвета в справочнике нет.
+     * Без него царга собиралась по json.material и выглядела как некрашеный корпус.
+     * Параметры подобраны как у металлической в createFillingTsarga, но без металличности:
+     * тёплый древесный тон, матовая поверхность и едва заметный лак сверху
+     */
+    createWoodMaterial(): THREE.MeshPhysicalMaterial {
+        return new THREE.MeshPhysicalMaterial({
+            color: 0xa97d52,
+            metalness: 0,
+            roughness: 0.75,
+            clearcoat: 0.1,
+            clearcoatRoughness: 0.6,
+        })
+    }
+
+    /**
      * Добавляет царгу для обычного модуля через json.items (CONFIG.TSARGA).
      * Вызывается из applyBodyOverrides до json_builder.createMesh.
      */

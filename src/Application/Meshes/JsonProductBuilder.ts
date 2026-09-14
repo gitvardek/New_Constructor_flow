@@ -76,13 +76,28 @@ export class JsonBuilder {
         }
 
         if (tsarga) {
-            this.tsargaMaterial = tsarga.PALETTE
-                ? this.parent.palette_bulider.getPalette(tsarga.COLOR, tsarga.PALETTE)
-                : this.createMaterial(
-                    json.material,
-                    this.parent._COLOR[tsarga.COLOR].TEXTURE ?? this.parent._FASADE[tsarga.COLOR].TEXTURE
-                ) as THREE.Material
+
+            console.log(tsarga, 'tsarga')
+
+            const tsargaTexture = this.parent._COLOR[tsarga.COLOR]?.TEXTURE
+                ?? this.parent._FASADE[tsarga.COLOR]?.TEXTURE
+
+
+            if (tsarga.PALETTE) {
+                this.tsargaMaterial = this.parent.palette_bulider.getPalette(tsarga.COLOR, tsarga.PALETTE)
+            }
+            // else if (!tsargaTexture && tsarga.TYPE === 'wood') {
+            else if (tsarga.TYPE === 'wood') {
+
+                this.tsargaMaterial = this.parent.tsarga_builder.createWoodMaterial()
+            }
+            else {
+                this.tsargaMaterial = this.createMaterial(json.material, tsargaTexture) as THREE.Material
+            }
+
+            console.log(this.tsargaMaterial)
         }
+
 
         if (Array.isArray(json.items)) {
             json.items.forEach((item: THREETypes.TObject, _: number, array: THREETypes.TObject[]) => {
@@ -251,11 +266,15 @@ export class JsonBuilder {
 
         const id: string = data.id ?? ''
 
+        // Царга проверяется первой: её задняя планка называется horizontallineback и
+        // попадает под общее правило 'back', из-за чего забирала материал задней стенки
+        // и оставалась серой. Передняя планка — link на заднюю и наследовала тот же материал
+        if (id.includes('horizontalline') && this.tsargaMaterial) return this.tsargaMaterial
+
         if (id.includes('left') && this.leftMaterial) return this.leftMaterial
         if (id.includes('right') && this.rightMaterial) return this.rightMaterial
         if (id.includes('back') && this.backMaterial) return this.backMaterial
         if (id.includes('top_fasade') && this.topMaterial) return this.topMaterial
-        if (id.includes('horizontalline') && this.tsargaMaterial) return this.tsargaMaterial
 
         return this.material!
     }
