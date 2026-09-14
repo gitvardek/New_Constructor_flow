@@ -824,7 +824,11 @@ export default class ShelvesManager {
 
             if (adjustedValue) {
                 let curExtra = curRow.extras[extraIndex]
-                let nextIndex = curRow.extras[extraIndex + 1] ? extraIndex + 1 : extraIndex - 1;
+                // Компенсирует сосед сверху (prev): именно по паре с ним adjustSectionSize
+                // в Render2D зажимает введённое значение. Когда сетка отдавала дельту соседу
+                // снизу, зажим защищал не ту ячейку, и она уходила в минус — 105 превращалось
+                // в -13 при росте текущей со 100 до 218
+                let nextIndex = curRow.extras[extraIndex - 1] ? extraIndex - 1 : extraIndex + 1;
                 let nextExtra = curRow.extras[nextIndex]
                 let delta = curExtra.height - adjustedValue
 

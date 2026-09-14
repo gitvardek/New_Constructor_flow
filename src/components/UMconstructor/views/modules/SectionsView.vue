@@ -41,14 +41,25 @@ const showCurrentCol = (secIndex: number | null = 0, cellIndex: number | null = 
   UMconstructor?.value?.SECTIONS.selectCell(secIndex, cellIndex, rowIndex, extraIndex);
 };
 
-// Панель добавления закреплена сверху и перекрывает элемент, к которому прокручиваем.
-// scroll-margin-top отводит под неё место: берём фактическую высоту, а не константу,
-// потому что на узкой панели кнопки переносятся на вторую строку
-const applyStickyOffset = (domElem: HTMLElement) => {
-  const scrollArea = domElem.closest(".actions-items--wrapper");
-  const panel = scrollArea?.querySelector(".actions-panel--sticky");
+// Прокручиваем только список секций. scrollIntoView двигает все прокручиваемые предки
+// сразу, из-за чего вместе со списком уезжал и холст конструктора.
+//
+// Отступ сверху — фактическая высота закреплённой панели: под ней элемент оказался бы
+// наполовину скрыт. Высоту меряем, а не задаём числом, потому что на узкой панели
+// кнопки переносятся на вторую строку
+const scrollToElement = (domElem: HTMLElement) => {
+  const scrollArea = domElem.closest(".actions-items--wrapper") as HTMLElement | null;
 
-  domElem.style.scrollMarginTop = `${panel?.getBoundingClientRect().height ?? 0}px`;
+  if (!scrollArea) {
+    return;
+  }
+
+  const panel = scrollArea.querySelector(".actions-panel--sticky");
+  const panelHeight = panel?.getBoundingClientRect().height ?? 0;
+
+  const shift = domElem.getBoundingClientRect().top - scrollArea.getBoundingClientRect().top;
+
+  scrollArea.scrollTo({ top: scrollArea.scrollTop + shift - panelHeight });
 };
 
 const handleCellSelect = () => {
@@ -76,8 +87,7 @@ const handleCellSelect = () => {
       return;
     }
 
-    applyStickyOffset(domElem);
-    domElem.scrollIntoView();
+    scrollToElement(domElem);
   }, 10)
 
 };
@@ -231,7 +241,7 @@ onMounted(() => {
               <SectionSizeInputs :module="module" :UMconstructor="UMconstructor" :step="step"
                 :target="{ sec: secIndex, cell: null, row: null, extra: null }" />
 
-              <article class="actions-items actions-items--right">
+              <article class="actions-items">
                 <div class="actions-items--right-items" v-if="secIndex == selectedCell.sec">
 
                   <div
