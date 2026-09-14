@@ -110,6 +110,29 @@ export class FasadeBuilder {
         }
     }
 
+    // Патина по умолчанию применима не ко всякому материалу: у фасада есть свой список
+    // патин, и null в нём означает «без патины». Раньше в обеих ветках ниже стояло
+    // `defPatina ?? 475428`, поэтому материал без патины получал жёстко зашитый id,
+    // а при defPatina = 0 — ноль вместо null
+    private getDefaultPatina(fasadeData: THREETypes.TFasadeProp, defPatina: number | null) {
+        const materialPatina = (this._FASADE[fasadeData.COLOR]?.PATINA ?? []).filter(id => id != null)
+
+        console.log(defPatina, 'defPatina')
+        console.log(materialPatina, 'materialPatina')
+
+        if (!materialPatina.length) {
+            return null
+        }
+
+        if (defPatina && materialPatina.includes(defPatina)) {
+
+
+            return defPatina
+        }
+
+        return null
+    }
+
     private applyDecorations(
         mesh: THREETypes.TObject,
         fasadeData: THREETypes.TFasadeProp,
@@ -334,8 +357,6 @@ export class FasadeBuilder {
                 continue;
             }
 
-            console.log(fasadeData.COLOR, PRODUCT, key, trueSize)
-
             const millingList = this.parent.modelState.createCurrentMillingData({
                 fasadeId: fasadeData.COLOR,
                 productId: PRODUCT,
@@ -345,6 +366,13 @@ export class FasadeBuilder {
 
             const checkCurrentMilling = millingList.findIndex(el => el.ID === fasadeData.MILLING) > -1;
             const firstValueMilling = millingList[0] as any;
+
+            console.log(firstValueMilling, 'firstValueMilling')
+            console.log(millingList, 'millingList')
+            console.log(fasadeData.COLOR, 'fasadeData')
+            console.log(trueSize, 'trueSize')
+
+
             const firstValuePall = Object.values(
                 this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR)
             )[0] as any;
@@ -352,9 +380,16 @@ export class FasadeBuilder {
                 fasadeId: fasadeData.COLOR, productId: PRODUCT
             })[0] as any;
 
-            if (!checkCurrentMilling && fasadeData.MILLING != null && fasadeData.MILLING != millingList[0].ID) {
-                fasadeData.MILLING = millingList[0].ID;
-                this.toaster.error(`Не корректный размер фасада. Фрезеровка фасада №${key + 1} была изменена`);
+            if (millingList.length > 0) {
+                if (!checkCurrentMilling && fasadeData.MILLING != null && fasadeData.MILLING != millingList[0].ID) {
+                    fasadeData.MILLING = millingList[0].ID;
+                    this.toaster.error(`Не корректный размер фасада. Фрезеровка фасада №${key + 1} была изменена`);
+                }
+            }
+            else {
+                fasadeData.MILLING = null;
+                fasadeData.MILLING_CONVERSATION = null;
+                fasadeData.MILLING_TYPE = null;
             }
 
             if (fasadeData.SHOW && pallite && fasadeData.PALETTE === null) {
@@ -379,7 +414,7 @@ export class FasadeBuilder {
                     fasadeData.PATINA = null;
                 }
                 else {
-                    fasadeData.PATINA = defPatina ?? 475428
+                    fasadeData.PATINA = this.getDefaultPatina(fasadeData, defPatina)
                 }
             }
 
@@ -558,7 +593,7 @@ export class FasadeBuilder {
                 fasadeData.PATINA = null;
             }
             else {
-                fasadeData.PATINA = defPatina ?? 475428
+                fasadeData.PATINA = this.getDefaultPatina(fasadeData, defPatina)
             }
         } else if (!fasadeData.SHOW || !firstValueMilling) {
             // Сбрасываем только у скрытого фасада. Пустой millingList у видимого фасада
@@ -637,9 +672,33 @@ export class FasadeBuilder {
         CONFIG: any,
     }): void {
         this._tryApplyShowcaseChange(CONFIG, fasadeProp, fasadeNdx, incomingModel, fasade, fasadeDefault);
-        if (this._tryApplyPalette(data, fasadeProp, fasade)) return;
-        if (this._tryApplyTexture(data, fasade, fasadeProp)) return;
+
+        // Новое покрытие без палитры: сбрасываем кэш прежней, иначе патина построится
+        // от материала предыдущего покрытия и перекрасит фасад в старый цвет
+        if (!data.PALETTE?.[0]) {
+            this.clearPaletteCache(fasade);
+        }
+
+        if (this._tryApplyPalette(data, fasadeProp, fasade)) {
+            return;
+        }
+
+        if (this._tryApplyTexture(data, fasade, fasadeProp)) {
+            return;
+        }
+
         this._tryApplyAlumColor(data, fasade, fasadeProp);
+    }
+
+    // PaletteBuilder кладёт материал палитры в userData.millingMaterial, а MillingBuilder
+    // и drawPatina строят от него патину. При смене покрытия этот кэш никто не чистил,
+    // поэтому он оставался от прежнего материала
+    private clearPaletteCache(fasade: THREE.Object3D): void {
+        fasade.traverse((child: any) => {
+            if (child.userData?.millingMaterial) {
+                delete child.userData.millingMaterial;
+            }
+        });
     }
 
     private _tryApplyShowcaseChange(

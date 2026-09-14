@@ -86,11 +86,22 @@ export const useOptions = () => {
         eventBus.emit("A:SelectModelOption")
     }
 
+    // «Без петель» задаёт grid.noLoops. Флаг ставится в checkActive, но опцию гасит ещё и
+    // filterGroups — когда та становится невидимой, — а checkActive при этом не вызывается.
+    // Поэтому считаем флаг от текущего состояния опции, как и onHorizont в syncHorizont
+    const NO_LOOPS_OPTION = 1795067
+    const syncNoLoops = (options: any[]) => {
+        UM_STORE.noLoops = !!options?.some(opt => +opt.id === NO_LOOPS_OPTION && opt.active)
+    }
+
     const createOptionList = () => {
 
         const { PROPS } = modelState.getCurrentModel.userData;
         const filtered = filterOptions()
         let result = checkExeptionOptionForFasade(filtered, PROPS.CONFIG.OPTIONS)
+
+        // После filterGroups: к этому моменту скрытые опции уже сняты
+        syncNoLoops(PROPS.CONFIG.OPTIONS)
 
         if (mechanismList.length > 0 && !NESTANDART_MODULES.includes(PROPS.PRODUCT)) /** (&& !NESTANDART_MODULES.includes....)  ДЛЯ МАСТЕРА   */ {
 
@@ -585,7 +596,6 @@ export const useOptions = () => {
 
         const PROPS = modelState.getCurrentModel.userData.PROPS as TTotalProp;
         const { BODY_WIDTH, BODY_HEIGHT, CONFIG } = PROPS.BODY.userData.trueSize
-        console.log(PROPS, 'PROPS')
         const isNestandartFasade = NESTANDART_FASADE.includes(PROPS.PRODUCT)
         const isConditions = options.CONDITIONS
         // Раньше здесь возвращался options.visible — ранее вычисленная видимость.
