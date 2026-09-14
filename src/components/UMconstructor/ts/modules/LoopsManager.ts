@@ -389,14 +389,11 @@ export default class LoopsManager {
                 allLoops.push(fasadeLoops)
         })
 
-        console.log(allLoops, 'allLoops')
-
         return allLoops
     }
 
     checkLoopsCollision(secIndex: number, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
 
-        console.log('return')
 
         const CONFIG = this.scope.UM_STORE.getUMData()?.CONFIG;
 

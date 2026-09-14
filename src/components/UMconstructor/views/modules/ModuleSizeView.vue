@@ -46,6 +46,11 @@ const modelState = useModelState();
 // Считаем от локального totalHeight — он обновляется сразу при вводе, до пересчёта модуля
 const isLowModule = computed(() => Number(totalHeight.value) < UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT);
 
+// Стор чистится при закрытии конструктора, и watch на его флаги успевает сработать,
+// когда сетки уже нет: module к этому моменту пустой объект или false. Ни править его,
+// ни пересчитывать модуль в такой момент нельзя
+const hasGrid = () => !!(UMconstructor?.value && module.value?.sections?.length)
+
 const fillingExist = computed(() => {
   if(UMconstructor?.value && module.value)
     return UMconstructor.value.FILLINGS.existFilling(module.value)
@@ -88,6 +93,11 @@ const horizontToggle = (value: boolean) => {
 watch(() => UMconstructor?.value?.UM_STORE.onHorizont, () => {
   if(onHorizont.value !== UMconstructor.value.UM_STORE.onHorizont) {
     onHorizont.value = UMconstructor.value.UM_STORE.onHorizont
+
+    if (!hasGrid()) {
+      return
+    }
+
     horizontToggle(onHorizont.value)
   }
 })
@@ -95,6 +105,10 @@ watch(() => UMconstructor?.value?.UM_STORE.onHorizont, () => {
 watch(() => UMconstructor?.value?.UM_STORE.noBottom, () => {
   if(noBottom.value !== UMconstructor.value.UM_STORE.noBottom) {
     noBottom.value = UMconstructor.value.UM_STORE.noBottom
+
+    if (!hasGrid()) {
+      return
+    }
 
     if(noBottom.value)
       module.value.noBottom = noBottom.value
@@ -112,6 +126,10 @@ watch(() => UMconstructor?.value?.UM_STORE.noBottom, () => {
 watch(() => UMconstructor?.value?.UM_STORE.onWallModule, () => {
   if(onWallModule.value !== UMconstructor.value.UM_STORE.onWallModule) {
     onWallModule.value = UMconstructor.value.UM_STORE.onWallModule
+
+    if (!hasGrid()) {
+      return
+    }
 
     if(onWallModule.value)
       module.value.onWallModule = onWallModule.value
@@ -132,6 +150,10 @@ watch(() => UMconstructor?.value?.UM_STORE.noLoops, () => {
   if(noLoops.value !== UMconstructor.value.UM_STORE.noLoops) {
     noLoops.value = UMconstructor.value.UM_STORE.noLoops
 
+    if (!hasGrid()) {
+      return
+    }
+
     if(noLoops.value)
       module.value.noLoops = noLoops.value
     else
@@ -145,6 +167,10 @@ watch(() => UMconstructor?.value?.UM_STORE.noBackwall, () => {
   if(noBackwall.value !== UMconstructor.value.UM_STORE.noBackwall) {
     noBackwall.value = UMconstructor.value.UM_STORE.noBackwall
 
+    if (!hasGrid()) {
+      return
+    }
+
     if(noBackwall.value)
       module.value.noBackwall = noBackwall.value
     else
@@ -157,6 +183,11 @@ watch(() => UMconstructor?.value?.UM_STORE.noBackwall, () => {
 watch(() => UMconstructor?.value?.UM_STORE.onSideProfile, () => {
   if(onSideProfile.value !== UMconstructor.value.UM_STORE.onSideProfile) {
     onSideProfile.value = UMconstructor.value.UM_STORE.onSideProfile
+
+    if (!hasGrid()) {
+      return
+    }
+
     UMconstructor.value.reset(module.value)
   }
 })

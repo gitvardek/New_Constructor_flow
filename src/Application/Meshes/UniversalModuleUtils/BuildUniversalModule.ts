@@ -158,8 +158,6 @@ export class BuildUniversalModule extends BuildProduct {
             })
             : null;
 
-        console.log(fasade, 'FFFFF')
-
         /** Добавляем стреки размеров */
         const arrows = this.addArrowSize({ object: body, props: PROPS })
 

@@ -42,15 +42,10 @@ export const useConversationActions = () => {
         const fasadeData = (modelState._FASADE as TFasadeItem[])[fasadeId]
         const fasadeGroup = (modelState._FASADE_SECTION as TFasadeSectionItem[])[fasadeData?.IBLOCK_SECTION_ID]?.['UF_GROUP']
 
-        console.log(fasadeGroup, 'fasadeGroupfasadeGroup')
-        console.log(fasadeData?.IBLOCK_SECTION_ID, 'fasadeData?.IBLOCK_SECTION_ID')
-        console.log(LOW_UM_RESTRICTED_SECTIONS.includes(Number(fasadeData?.IBLOCK_SECTION_ID)), 'INNNNN')
-
         return fasadeGroup ? LOW_UM_RESTRICTED_SECTIONS.includes(Number(fasadeGroup)) : false
     }
 
     const onRsizeConversations = async (size: TsizeData) => {
-        console.log('SSSSSSSSS')
 
         const curModel = modelState.getCurrentModel
         const restrictData = curModel?.userData.restrictData
@@ -68,8 +63,8 @@ export const useConversationActions = () => {
                 width <= MAX_WIDTH &&
                 width >= MIN_WIDTH;
 
-            console.log(`Полоно HEIGHT:${MAX_HEIGHT} - ${MIN_HEIGHT}, WIDTH: ${MAX_WIDTH} - ${MIN_WIDTH}`);
-            console.log(`Размер фасада: HEIGHT:${height}, WIDTH:${width}`)
+            // console.log(`Полоно HEIGHT:${MAX_HEIGHT} - ${MIN_HEIGHT}, WIDTH: ${MAX_WIDTH} - ${MIN_WIDTH}`);
+            // console.log(`Размер фасада: HEIGHT:${height}, WIDTH:${width}`)
 
             if (!check) {
                 eventBus.emit("A:Delite-Fasad", key);
@@ -83,8 +78,6 @@ export const useConversationActions = () => {
     // Для двери у УМ действуют константы MAX_FASADE_WIDTH/MIN_FASADE_WIDTH, для панели
     // предел задаёт размер листа из _FASADE_SIZE_RESTRICT
     const createFasadeConversations = (fasadeId: number, curModel: Object3D | null, isPanel: boolean = false): TFasadeGroupSize => {
-
-        console.log('ФФФФФФФФ')
 
         let restrict = {
             MAX_HEIGHT: Infinity,
@@ -141,7 +134,6 @@ export const useConversationActions = () => {
         curmodel: Object3D
     ): boolean => {
 
-        console.log('АААААААА')
         const curModel = curmodel;
         if (!curModel) return false;
 
@@ -163,7 +155,6 @@ export const useConversationActions = () => {
     }
 
     const checkFasadeConversations = (fasadeId: number, size: TFasadeTrueSizes) => {
-        console.log('ДДДДД')
 
         const curModel = modelState.getCurrentModel
         const { FASADE_WIDTH, FASADE_HEIGHT } = size
@@ -194,7 +185,6 @@ export const useConversationActions = () => {
     }
 
     const filterFasadeConversations = (fasadeNdx: number, fasadeSize: TFasadeTrueSizes) => {
-        console.log('ГГГГГГГГГГ')
         const sceneModel = modelState.getCurrentModel;
         const { FASADE } = sceneModel?.userData.PROPS;
         const { FASADE_WIDTH, FASADE_HEIGHT, isDrawer } = fasadeSize || FASADE[fasadeNdx]?.userData?.trueSize;
@@ -218,8 +208,6 @@ export const useConversationActions = () => {
     };
 
     const filterMaterialsConversations = (materialList: TFasadeConversation[], fasadeSize: TFasadeTrueSizes) => {
-        console.log('JJJJJJJ')
-
         const tempList = materialList.map((el) => {
             if (el.FASADES && Array.isArray(el.FASADES)) {
                 let tmp_fasades = el.FASADES.map(item => {

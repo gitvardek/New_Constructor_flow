@@ -347,6 +347,10 @@ export default class UMconstructorClass {
             const PROPS = this.UM_STORE.getUMData();
             const grid = this.UM_STORE.getUMGrid()
 
+            if (!grid?.sections?.length) {
+                return
+            }
+
             let delta = parseInt(value) - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]
             grid.sections.forEach((section, secIndex) => {
                 section.position.y += delta
@@ -355,6 +359,10 @@ export default class UMconstructorClass {
                         segment.position.y += delta;
                     })
                 })
+
+                // Ящики стоят на полу секции, а он двигается вместе с цоколем: без этого
+                // нижний ящик остаётся на месте и проваливается в цоколь
+                this.FASADES.EXTERNAL_FASADES.shiftStackWithHorizont(secIndex, delta, grid)
             })
 
             grid.horizont = PROPS.CONFIG.HORIZONT = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] = parseInt(value);
@@ -486,6 +494,13 @@ export default class UMconstructorClass {
     }
 
     reset(grid: GridModule = this.UM_STORE.getUMGrid()) {
+
+        // Сетки нет: конструктор ещё не построил её или уже закрылся, и стор отдаёт
+        // пустой объект. Пересчитывать нечего, а дальше по коду сразу идёт
+        // moduleGrid.sections.length. Флаг загрузки не поднимаем — снять его будет некому
+        if (!grid?.sections?.length) {
+            return false
+        }
 
         this.UM_STORE.setLoad(true)
 

@@ -115,7 +115,7 @@ export const useBasketStore = defineStore('basket', () => {
         createBasketItem(obj.data, mainConstructor.value.length, obj.basketId)
       )
 
-    console.log(filtered, 'filtered')
+    console.log(sceneItems, 'sceneItems')  
 
     const globalData = createGlobalData(filtered)
 

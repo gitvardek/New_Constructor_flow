@@ -282,6 +282,7 @@ export default class ExternalFasadesManager {
         })
 
         this.restoreFasadeSegments(grid.sections[secIndex].fasades, prevSegments, grid)
+        this.renumberSectionFasades(secIndex, grid)
 
         this.FASADES_MANAGER.scope.LOOPS.calcLoops(secIndex, grid)
     };
@@ -302,15 +303,13 @@ export default class ExternalFasadesManager {
             if (!door?.length || !splits.length) return
 
             splits.forEach(split => this.restoreSplitGroup(door, split, grid))
-
-            door.forEach((fasade, i) => { fasade.id = i + 1 })
         })
     };
 
     // Восстанавливает одно разделение внутри двери: доводит число сегментов группы до
     // прежнего, возвращает им материал и сторону открывания, а если разделение больше
-    // не помещается — снимает признак. Нумерацию сегментов выставляет вызывающий,
-    // когда разберётся со всеми группами двери
+    // не помещается — снимает признак. Нумерацию выставляет renumberSectionFasades:
+    // она общая у двери и фасадов ящиков, по одной двери её не посчитать
     private restoreSplitGroup(door: FasadeObject[], split: SplitGroup, grid: GridModule) {
         const gap = grid.isSlidingDoors ? 0 : 4
 
@@ -449,6 +448,206 @@ export default class ExternalFasadesManager {
         section.fillings?.forEach(filling => placeFasade(filling.fasade, filling))
         drawerFasades.forEach(fasade => {
             const body = section.fillings?.find(filling => filling.id === fasade.item)
+            placeFasade(fasade, body)
+        })
+    };
+
+    // Сквозная нумерация фасадов секции снизу вверх. Фасады ящиков и сегменты двери лежат
+    // в разных массивах, но в 2D показываются одним столбцом, и номер берётся из fasade.id —
+    // нумерация у них общая, такой её и выдаёт calcDrawersFasades по единому списку раскладки.
+    // Ручное разделение сбивало счёт: сегменты нумеровались заново с единицы, а фасады ящиков
+    // выше сохраняли прежние номера, не зная о появившемся сегменте. Считаем по позициям —
+    // единственному источнику порядка
+    renumberSectionFasades(secIndex: number, grid: GridModule) {
+        const section = grid.sections?.[secIndex]
+        if (!section) {
+            return
+        }
+
+        const drawerFasades = (section.fasadesDrawers ?? []).filter(fasade => fasade?.position)
+        const doors = (section.fasades ?? []).filter(door => door?.length)
+
+        if (!doors.length) {
+            drawerFasades.slice()
+                .sort((a, b) => a.position.y - b.position.y)
+                .forEach((fasade, index) => { fasade.id = index + 1 })
+        }
+        else {
+            doors.forEach((door, doorIndex) => {
+                // В старых сетках фасад ящика мог лежать и внутри двери — тот же объект
+                // не должен попасть в список дважды, иначе счёт уедет
+                const ordered = [...drawerFasades, ...door]
+                    .filter((fasade, index, list) => fasade?.position && list.indexOf(fasade) === index)
+                    .sort((a, b) => a.position.y - b.position.y)
+
+                ordered.forEach((fasade, index) => {
+                    // Фасады ящиков общие для всех дверей: их номера берём по первой двери,
+                    // иначе вторая переписала бы их своей раскладкой
+                    if (doorIndex > 0 && drawerFasades.includes(fasade)) {
+                        return
+                    }
+
+                    fasade.id = index + 1
+                })
+            })
+        }
+
+        // После saveUMGrid fillings[].fasade — уже копия, а не тот же объект, что лежит
+        // в fasadesDrawers (заново их связывает только calcDrawersFasades). В корзину
+        // номер фасада ящика уходит именно из копии — PATH в SECTIONSFILLING, — поэтому
+        // проставляем его и там, иначе PATH расходится с id фасада
+        drawerFasades.forEach(fasade => {
+            const filling = this.scope.FILLINGS.getFillingObject({
+                grid,
+                sec: fasade.sec ?? secIndex,
+                cell: fasade.cell,
+                row: fasade.row,
+                extra: fasade.extra,
+                item: fasade.item - 1,
+            })
+
+            if (filling?.fasade && filling.fasade !== fasade) {
+                filling.fasade.id = fasade.id
+            }
+        })
+    };
+
+    // Цоколь двигает пол секции, а тела ящиков живут в координатах модуля и сами за ним
+    // не идут: с появлением цоколя нижний ящик проваливается в него (distances.bottom
+    // уходит в минус), а calcDrawersFasadesPositons раскладывает фасады от пола и теряет
+    // эти миллиметры — проём двери считается короче, чем он есть, и разделение схлопывается.
+    // Поэтому вместе с полом двигаем нижнюю стопку: ящики и профили, стоящие вплотную друг
+    // к другу. Останавливаемся на первом промежутке, который сдвиг поглотит — всё, что выше
+    // него, остаётся на месте, потому что верх модуля от цоколя не зависит
+    shiftStackWithHorizont(secIndex: number, delta: number, grid: GridModule) {
+        if (!delta) {
+            return
+        }
+
+        const OTSTUP = 4
+
+        const section = grid.sections?.[secIndex]
+        const drawerFasades = section?.fasadesDrawers ?? []
+
+        // Тело ящика ищем так же, как calcDrawersFasades: фасад может принадлежать
+        // наполнению вложенной ячейки, а не самой секции
+        const bodies = []
+        drawerFasades.forEach(fasade => {
+            const body = this.scope.FILLINGS.getFillingObject({
+                grid,
+                sec: fasade.sec ?? secIndex,
+                cell: fasade.cell,
+                row: fasade.row,
+                extra: fasade.extra,
+                item: fasade.item - 1,
+            }) ?? section?.fillings?.find(filling => filling.id === fasade.item)
+
+            if (body?.position && !bodies.includes(body)) {
+                bodies.push(body)
+            }
+        })
+
+        section?.hiTechProfiles?.forEach(profile => {
+            if (profile?.position && !bodies.includes(profile)) {
+                bodies.push(profile)
+            }
+        })
+
+        if (!bodies.length) {
+            return
+        }
+
+        // Считаем в координатах фасадов — тех, что раскладывает calcDrawersFasadesPositons.
+        // В координатах тел те же промежутки выглядят иначе: фасад выше тела и свисает ниже
+        // него на manufacturerOffset, поэтому стоящие вплотную ящики разнесены там на полсотни
+        // миллиметров, и стопка ошибочно разрывается по первому же ящику
+        const fasadeBox = (body) => {
+            if (body.isProfile) {
+                return {
+                    y: grid.height - (body.position.y + body.height + (body.isProfile.manufacturerOffset || 0)),
+                    height: body.isProfile.isBottomHiTechProfile ? 0 : (body.isProfile.offsetFasades || body.height),
+                }
+            }
+
+            return {
+                y: body.fasade?.position?.y ?? grid.height - (body.position.y + body.height),
+                height: body.fasade?.height ?? body.height,
+            }
+        }
+
+        const sorted = bodies.slice().sort((a, b) => fasadeBox(a).y - fasadeBox(b).y)
+
+        // Чистый промежуток над деталью: без технологического зазора, который стопка
+        // занимает и без сдвига. Над верхней деталью — потолок фасадной зоны, он от цоколя
+        // не зависит, поэтому в него сдвиг и упирается
+        const gapTo = (index: number) => {
+            const current = fasadeBox(sorted[index])
+            const upper = sorted[index + 1]
+
+            if (!upper) {
+                return grid.height - 2 - (current.y + current.height)
+            }
+
+            return fasadeBox(upper).y - (current.y + current.height) - OTSTUP
+        }
+
+        // Промежуток разрывает стопку, только если он настоящий и сдвиг в нём помещается.
+        // Иначе деталь выше упрётся в ту, что двигаем, и её тоже берём в стопку
+        let last = 0
+        while (last < sorted.length - 1) {
+            const gap = gapTo(last)
+            if (gap > 0 && gap >= delta) {
+                break
+            }
+
+            last += 1
+        }
+
+        const shift = delta > 0 ? Math.min(delta, gapTo(last)) : delta
+        if (delta > 0 && shift <= 0) {
+            return
+        }
+
+        const run = sorted.slice(0, last + 1)
+
+        const moved = new Set()
+        const moveBody = (body) => {
+            if (!body?.position || moved.has(body)) {
+                return
+            }
+            moved.add(body)
+
+            // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
+            body.position.y -= shift
+            if (body.distances) {
+                // Потолок секции на месте, а пол ушёл на delta: до потолка стало ближе
+                // ровно на сдвиг, до пола — на разницу сдвига и цоколя
+                body.distances.top -= shift
+                body.distances.bottom += shift - delta
+            }
+        }
+
+        run.forEach(moveBody)
+
+        // На живой сетке профиль в hiTechProfiles и в fillings — один объект, после
+        // saveUMGrid это копии: догоняем по id, иначе списки разъедутся
+        section?.hiTechProfiles?.forEach(profile => {
+            if (run.some(body => body.isProfile && body.id === profile.id)) {
+                moveBody(profile)
+            }
+        })
+
+        // Позицию фасада пересчитываем от тела — единственного источника истины
+        const placeFasade = (fasade, body) => {
+            if (!fasade?.position || !body?.position) {
+                return
+            }
+            fasade.position.y = grid.height - (body.position.y + body.height + fasade.manufacturerOffset)
+        }
+
+        run.forEach(body => placeFasade(body.fasade, body))
+        drawerFasades.forEach(fasade => {
+            const body = run.find(item => item.id === fasade.item)
             placeFasade(fasade, body)
         })
     };

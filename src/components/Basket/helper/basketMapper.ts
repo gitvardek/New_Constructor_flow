@@ -109,11 +109,8 @@ function createOptionsProps(objProps: any) {
 }
 
 function createRaspilData(objProps: any) {
-  console.log('HMM')
 
   if (!objProps.RASPIL?.data) return {};
-
-  console.log(objProps.RASPIL, '<<RSPIL>>')
 
   const raspilData = objProps.RASPIL.data.flat().map((el: any) => ({
     height: el.height,
@@ -167,7 +164,6 @@ function generateDoorsSimple(moduleData) {
 
       section.fasades?.forEach(fasadeArray => {
         fasadeArray.forEach((fasade, index) => {
-          console.log(fasade, '<< fasade fasade  >>')
 
           const doorNum = fasade.door || 1;
           const segmentNum = fasade.id - 1; // номер сегмента = индекс в массиве
@@ -264,10 +260,25 @@ function transformLoops(sections, horizont, moduleThickness) {
   };
 }
 
-function creatSectionFilling(arr: any[] | null | undefined): any[] {
+function creatSectionFilling(arr: any[] | null | undefined, drawerFasades: any[] = []): any[] {
   if (!arr || !Array.isArray(arr)) {
     return [];
   }
+
+  // Номер фасада ящика. В fillings лежит копия фасада — связывает её с fasadesDrawers
+  // только calcDrawersFasades, поэтому между пересчётами копия может отстать по номеру,
+  // и PATH расходился с id фасада. Берём номер из fasadesDrawers: там он актуальный.
+  // Сопоставляем по fasadeDrawerId — он общий у копии и у оригинала и переиндексируется
+  // вместе с ящиками при удалении, в отличие от id фасада, который сквозной по секции
+  const fasadePath = (el) => {
+    if (!el.fasade) {
+      return false;
+    }
+
+    const actual = drawerFasades?.find(item => item?.fasadeDrawerId === el.fasade.fasadeDrawerId);
+
+    return (actual?.id ?? el.fasade.id) - 1;
+  };
 
   const createFasadeData = (data) => {
 
@@ -299,7 +310,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
     let base = {
       ID: el.product,
-      PATH: el.fasade ? (el.fasade.id - 1) : false,
+      PATH: fasadePath(el),
       MATERIAL_ID: el.material,
       PRODUCT_TYPE: el.type,
       SIZE: {
@@ -357,6 +368,8 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
     return [mainItem]
   })
+
+  console.log(item, 'ITEM')
 
   return item
 }
@@ -458,12 +471,9 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
       section.fasades?.forEach(doorGroup => {
         doorGroup.forEach((fasade, index) => {
-          console.log(index, 'indexindexindexindexindex')
-
           const doorNumber = fasade.door;
           const fasId = fasade.id - 1
 
-          console.log(fasId)
           // Объект, а не массив: id фасадов выдаются в calcDrawersFasades сквозным
           // счётчиком по списку, куда входят и ящики, поэтому у фасадов они идут с
           // пропусками (1, 4, ...). В массиве это давало дыры [751, empty x 2, 657]
@@ -528,8 +538,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
           }
         });
       });
-
-      console.log(result, 'result')
 
       legacyProps[`${sectionKey}`] = section.width;
       legacyProps[`${fasadesSizeKey}`] = result[fasadesSizeKey]
@@ -619,6 +627,20 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
     legacyProps[`LOOPS`] = transformLoops(CONFIG.MODULEGRID?.sections, CONFIG.MODULEGRID?.horizont, CONFIG.MODULEGRID?.moduleThickness).coords;
     legacyProps[`LOOPSSIDE`] = transformLoops(CONFIG.MODULEGRID?.sections).sides;
+
+    // Боковой профиль лежит в сетке одним объектом, а в легаси-формате это словарь —
+    // как LOOPS и остальные посекционные свойства, поэтому кладём под ключом «1».
+    // objId в выгрузку не идёт: он нужен только сцене
+    const sideProfile = CONFIG.MODULEGRID?.profilesConfig?.sideProfile;
+
+    if (sideProfile?.product) {
+      legacyProps[`SIDEPROFILE`] = {
+        1: {
+          PRODUCT_ID: sideProfile.product,
+          SIDE: sideProfile.side,
+        },
+      };
+    }
   }
 
   // Динамически добавляем заполнения секций
@@ -626,8 +648,10 @@ function convertModuleToLegacyFormat(newModuleObject) {
     Object.keys(CONFIG.SECTIONS).forEach(sectionKey => {
       const section = CONFIG.SECTIONS[sectionKey];
       if (section?.fillings && section.fillings.length) {
-        console.log(section, 'section')
-        legacyProps[`SECTIONSFILLING${sectionKey}`] = creatSectionFilling(section.fillings);
+        // fasadesDrawers лежат в сетке, а не в CONFIG.SECTIONS: ключи секций там 1-based
+        const gridSection = CONFIG.MODULEGRID?.sections?.[+sectionKey - 1];
+
+        legacyProps[`SECTIONSFILLING${sectionKey}`] = creatSectionFilling(section.fillings, gridSection?.fasadesDrawers);
       }
     });
   }
@@ -708,7 +732,7 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
   const tableTop = filteredData.map((obj: TTotalProps, key: string) => {
 
     const haveTable = obj.id && _PRODUCTS[obj.id]?.tabletop
-    console.log(haveTable, 'haveTable')
+
     if (!haveTable || (obj.type !== 'element_down' && haveTable !== 'Y')) return
 
     const data = obj.data
@@ -721,7 +745,6 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
 
   }).filter(Boolean)
 
-  console.log(tableTop, 'tableTop')
 
   const globalWidth = tableTop.reduce((total, amount) => total + amount, 0);
   const count = Math.ceil(globalWidth / tableTopLengthDefault)
@@ -741,7 +764,6 @@ function createDefaultTableTopData(filteredData: TTotalProps) {
 
 export function createBasketItem(objProps: TTotalProps, index: number, key: any = ''): IBasket {
 
-  console.log(objProps, objProps.CONFIG.KROMKA, 'objProps')
   const props: any = {};
 
   // Добавляем свойства только если они существуют и не пустые
@@ -772,12 +794,8 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
 
   if (objProps.RASPIL && objProps.RASPIL.length !== 0) {
 
-    console.log(props.RASPIL)
-
     props.RASPIL = {
       data: objProps.RASPIL.data.flat().map(el => {
-        console.log(el, 'RREE')
-
         return {
           height: el.height,
           width: el.width,
@@ -900,12 +918,10 @@ export function createGlobalData(filteredData: TTotalProps) {
   const plinthData = createPlinthData(filteredData)
   const tableTopData = createDefaultTableTopData(filteredData)
 
-  console.log(tableTopData)
 
   if (plinthData) totalData.push(plinthData)
   if (tableTopData) totalData.push(tableTopData)
 
-  console.log(totalData, 'totalData')
 
   return totalData
 
@@ -934,11 +950,6 @@ export function updateGlobalData() {
     const result = updatedData.filter(Boolean);
 
     mainConstructor.value = result
-
-    console.log(result, mainConstructor.value, 'SHHHHH')
-
-
-
 
   } catch (e) {
     console.warn(`Ошибка в методе updateGlobalData ${e}`)

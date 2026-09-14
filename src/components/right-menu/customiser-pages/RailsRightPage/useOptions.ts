@@ -456,8 +456,6 @@ export const useOptions = () => {
 
     //Обязательная установка хотя бы одной опции активной
     const checkNecessaryOptions = (contant: any[], props?: any[]) => {
-        console.log(props)
-
         if (contant.length > 0) {
             contant.forEach((optionCurrent) => {
                 if (optionCurrent.CLOSE_OTHER_OPTIONS === '1') {

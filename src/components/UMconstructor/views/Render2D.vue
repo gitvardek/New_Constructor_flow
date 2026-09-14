@@ -787,7 +787,7 @@ const renderGrid = (_moduleGrid) => {
             height: pxHeight,
             sectionIndex,
             cellIndex: colIndex,
-            rowIndex: row.id - 1,
+            rowIndex,
             cellData: row,
             section: col,
             _sector: moduleSector,
@@ -860,7 +860,7 @@ const renderGrid = (_moduleGrid) => {
           height: pxHeight,
           sectionIndex,
           cellIndex: 0,
-          rowIndex: row.id - 1,
+          rowIndex,
           cellData: row,
           section: col,
           _sector: moduleSector,
@@ -933,7 +933,7 @@ const renderGrid = (_moduleGrid) => {
           height: pxHeight,
           sectionIndex: null,
           cellIndex: colIndex,
-          rowIndex: column.length > 1 ? row.id - 1 : null,
+          rowIndex: column.length > 1 ? rowIndex : null,
           cellData: row,
           section: col,
           _sector: moduleSector,
@@ -1371,15 +1371,21 @@ const createSectioNum = ({
 
   let text;
 
+  // У фасадов номер показывается из id: он сквозной по секции — фасады ящиков и сегменты
+  // двери нумеруются вместе снизу вверх. rowIndex — это индекс в массиве, по нему сектор
+  // сопоставляется с выделением, и с появлением разделения он с номером разошёлся
+  const labelRow =
+    rowIndex !== null && cell.type === "fasade" && cell.id ? cell.id - 1 : rowIndex;
+
   if (sectionIndex === null) {
     text =
-      rowIndex !== null
-        ? `${cellIndex + 1}.${rowIndex + 1}`
+      labelRow !== null
+        ? `${cellIndex + 1}.${labelRow + 1}`
         : `${cellIndex + 1}`;
   } else {
     text =
-      rowIndex !== null
-        ? `${sectionIndex + 1}.${cellIndex + 1}.${rowIndex + 1}`
+      labelRow !== null
+        ? `${sectionIndex + 1}.${cellIndex + 1}.${labelRow + 1}`
         : `${sectionIndex + 1}.${cellIndex + 1}`;
   }
 

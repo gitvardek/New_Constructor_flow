@@ -84,8 +84,6 @@ export class FasadeBuilder {
         const { defFasadeTop, defFasadeBottom, fasadsTop, fasadsBottom } = defaultConfig;
         const isDefault = fasadeColor === this.parent.project.default_fasade_color;
 
-        console.log(nstShalfs, fasadeColor, '<<<< FC >>>>')
-
         if (nstShalfs && isDefault) return {
             color: fasadeColor,
             pallite: null,
@@ -117,9 +115,6 @@ export class FasadeBuilder {
     private getDefaultPatina(fasadeData: THREETypes.TFasadeProp, defPatina: number | null) {
         const materialPatina = (this._FASADE[fasadeData.COLOR]?.PATINA ?? []).filter(id => id != null)
 
-        console.log(defPatina, 'defPatina')
-        console.log(materialPatina, 'materialPatina')
-
         if (!materialPatina.length) {
             return null
         }
@@ -142,7 +137,6 @@ export class FasadeBuilder {
         FASADE_PROPS: any[],
         mode: 'update' | 'build'
     ): void {
-        console.log('FASADE BUILD', fasadeData)
 
         // Палитра
         if (fasadeData.PALETTE != null) {
@@ -188,8 +182,6 @@ export class FasadeBuilder {
         // Алюм. профиль
         if (fasadeData.ALUM != null && FASADE_PROPS[key].COLOR != null) {
 
-            console.log('ALUM')
-
             const alumData = this.parent._FASADE[FASADE_PROPS[key].COLOR];
             this.parent.alum_builder.createAlum({ fasade: mesh, data: alumData });
 
@@ -214,7 +206,6 @@ export class FasadeBuilder {
         }
 
         // Ручки
-        console.log(fasadeData.HANDLES.id, 'ID')
 
         if (fasadeData.HANDLES.id && fasadeData.HANDLES.id !== this.handlesBuilder.CLEAR_HANDLE_ID) {
             const handleId = fasadeData.HANDLES.id;
@@ -282,21 +273,6 @@ export class FasadeBuilder {
             const { color, pallite, milling } = this.resolveColorId(
                 fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad, nstShalfs
             );
-
-            // ВРЕМЕННЫЙ ЗОНД — удалить после диагностики
-            if (color !== fasadeData.COLOR) console.log('[NO_FASADE_PROBE]', {
-                source: 'createFasade',
-                fasade: key,
-                ELEMENT_TYPE,
-                colorWas: fasadeData.COLOR,
-                colorNow: color,
-                MANUAL_NO_FASADE: fasadeData.MANUAL_NO_FASADE,
-                defFasadeTop: defaultConfig.defFasadeTop,
-                defFasadeBottom: defaultConfig.defFasadeBottom,
-                globalTop: defaultConfig.fasadsTop?.global,
-                globalBottom: defaultConfig.fasadsBottom?.global,
-                isLoad,
-            })
 
             // Подготовка данных до создания меша
             const curFasadeList = this.parent.modelState.createFlatFasadeData({
@@ -366,12 +342,6 @@ export class FasadeBuilder {
 
             const checkCurrentMilling = millingList.findIndex(el => el.ID === fasadeData.MILLING) > -1;
             const firstValueMilling = millingList[0] as any;
-
-            console.log(firstValueMilling, 'firstValueMilling')
-            console.log(millingList, 'millingList')
-            console.log(fasadeData.COLOR, 'fasadeData')
-            console.log(trueSize, 'trueSize')
-
 
             const firstValuePall = Object.values(
                 this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR)
@@ -479,20 +449,6 @@ export class FasadeBuilder {
             fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad
         );
 
-        // ВРЕМЕННЫЙ ЗОНД — удалить после диагностики
-        if (color !== fasadeData.COLOR) console.log('[NO_FASADE_PROBE]', {
-            source: 'updateFasade',
-            fasade: fasadeNdx,
-            ELEMENT_TYPE,
-            colorWas: fasadeData.COLOR,
-            colorNow: color,
-            MANUAL_NO_FASADE: fasadeData.MANUAL_NO_FASADE,
-            defFasadeTop: defaultConfig.defFasadeTop,
-            defFasadeBottom: defaultConfig.defFasadeBottom,
-            globalTop: defaultConfig.fasadsTop?.global,
-            globalBottom: defaultConfig.fasadsBottom?.global,
-            isLoad,
-        })
         const haveShowcase = FASADE_POSITIONS[fasadeNdx].SHOWCASE === 1;
 
         let curFasade = FASADE[fasadeNdx];
@@ -566,11 +522,7 @@ export class FasadeBuilder {
             fasadeSize: trueSize,
         });
 
-        console.log(millingList, 'UPDATE')
-
         const firstValueMilling = millingList[0] as any;
-
-        console.log(firstValueMilling)
 
         if (fasadeData.SHOW && pallite && firstValuePall && fasadeData.PALETTE === null) {
             fasadeData.PALETTE = pallite;
@@ -612,8 +564,6 @@ export class FasadeBuilder {
         const fasadeList = FASADE_PROPS[fasadeNdx].POSITION ?? props[0]?.POSITION;
         const rawFasadePosition = this.parent._FASADE_POSITION[fasadeList];
         const fasDepthTocheck = rawFasadePosition?.FASADE_DEPTH;
-
-        console.log(fasadePositionData, '<<<<<fasadePositionData>>>>>')
 
         if (!fasDepthTocheck) {
             const { result } = this.processFasadeCreation({
@@ -926,7 +876,6 @@ export class FasadeBuilder {
             }
         }
 
-        console.log(fasade_position, 'NONE MODEL')
         // Если нет готовой модели — создаём стандартный фасад
         const geometryConfig = {
             x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH),
@@ -1016,8 +965,6 @@ export class FasadeBuilder {
         modelType: string,
         income?: boolean
     }): THREE.Object3D {
-        console.log(fasadePositionData, 'fasadePositionData')
-
         // Создание фасада
         let { fasade, fasadeEdge, defaultEdge } = this.createFasade({
             fasade_position: fasadePositionData,
@@ -1079,8 +1026,6 @@ export class FasadeBuilder {
         isUMmodule: boolean = false
     ) {
 
-        console.log('AUF');
-
         if (isUMmodule) return props.FASADE_POSITIONS[key];
 
         const { SIZE, EXPRESSIONS, FASADE_PROPS, FASADE_POSITIONS, FASADE_SIZE } = props;
@@ -1097,8 +1042,6 @@ export class FasadeBuilder {
         });
 
         const curFasadeDepth = this.checkFasadeDepth(FASADE_PROPS, key) ?? replacedExpressions.FASADE_DEPTH
-
-        // console.log(curFasadeDepth)
 
         const fasadePositionsData: THREETypes.TFasadePositionItem = {
 
@@ -1584,8 +1527,6 @@ export class FasadeBuilder {
             const { BODY_WIDTH } = BODY.userData.trueSize
             const { FASADE_WIDTH } = fasade_position
             const fasadeWidth = this.parent.calculateFromString(FASADE_WIDTH)
-
-            // console.log(fasade_position, 'fasade_position')
 
 
             const partPosition: TFasadePartPosition = {

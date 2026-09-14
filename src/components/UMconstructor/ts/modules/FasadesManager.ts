@@ -213,6 +213,10 @@ export default class FasadesManager {
                     this.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
                 }
 
+                // Ручное разделение и удаление сегмента правят номера только внутри двери,
+                // о фасадах ящиков они не знают — приводим нумерацию секции к общему счёту
+                this.EXTERNAL_FASADES.renumberSectionFasades(secIndex, grid)
+
                 this.scope.LOOPS.calcLoops(secIndex, grid)
             }
         else {

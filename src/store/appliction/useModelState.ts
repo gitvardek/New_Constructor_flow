@@ -186,8 +186,6 @@ export const useModelState = defineStore('ModelState', () => {
             return acc;
         }, {} as Record<string, number[]>);
 
-        console.log(groupedFasades)
-
         const result = Object.values(_FASADE_GROUPS.value)
             .map(group => ({
                 NAME: group.NAME,
@@ -197,7 +195,6 @@ export const useModelState = defineStore('ModelState', () => {
             .filter(group => group.FASADES.length > 0)
             .sort((a, b) => a.SORT - b.SORT);
 
-        console.log(def)
 
         if (def) return result;
 
@@ -265,8 +262,6 @@ export const useModelState = defineStore('ModelState', () => {
 
         const productInfo = _PRODUCTS.value[productId]
 
-        console.log('888888')
-
         if (productInfo.SIDEWALL?.length && productInfo.SIDEWALL[0]) {
             const groupedFasades = productInfo.SIDEWALL.reduce((acc, facadeId) => {
                 const facade = _FASADE.value[facadeId];
@@ -291,8 +286,6 @@ export const useModelState = defineStore('ModelState', () => {
                 }))
                 .filter(group => group.FASADES.length > 0)
                 .sort((a, b) => a.SORT - b.SORT);
-
-            console.log(result, '<<<<<<<<<<<<<result>>>>>>>>>>>>>')
 
             currentSidewallData.value = result;
         }
@@ -366,7 +359,6 @@ export const useModelState = defineStore('ModelState', () => {
         let haveShowCase = null;
 
         const lowUm = umHeight ? umHeight <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT : false
-        console.log(lowUm, 'lowUmlowUm')
 
         if (fasadeNdx !== undefined && productId) {
 
@@ -475,8 +467,6 @@ export const useModelState = defineStore('ModelState', () => {
             currentModelFasadesData.value = isFiltered
             return isFiltered
         }
-
-        console.log(result, 'result')
 
         if (defaultFasade) {
             return result
