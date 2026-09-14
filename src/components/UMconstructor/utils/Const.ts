@@ -40,4 +40,5 @@ export const UM_DRAWERS_IDS = {
 }
 
 export const WITH_TSARGA = [3954672];
+export const MODULE_TSARGA_OPTIONS = [7250589, 7250452];
 // export const WITH_TSARGA = [];

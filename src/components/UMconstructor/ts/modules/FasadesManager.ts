@@ -207,6 +207,7 @@ export default class FasadesManager {
                 }
 
                 if ((deltaWidth !== 0 || deltaHeight !== 0) && (section.fasadesDrawers?.length || section.hiTechProfiles?.length)) {
+                    this.EXTERNAL_FASADES.renumberSectionFasades(secIndex, grid)
                     this.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
                 }
 

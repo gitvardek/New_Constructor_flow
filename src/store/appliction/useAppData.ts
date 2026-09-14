@@ -218,7 +218,7 @@ export const useAppData = defineStore('AppData', () => {
       let localData = await getFromIndexedDB(indexedDataBase.value)
 
       if (localData) {
-        console.log('Загружено из IndexedDB', localData)
+        // console.log('Загружено из IndexedDB', localData)
         setAppData(localData)
         isLoaded.value = true
         return

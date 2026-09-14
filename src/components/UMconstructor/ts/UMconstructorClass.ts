@@ -343,6 +343,10 @@ export default class UMconstructorClass {
             const PROPS = this.UM_STORE.getUMData();
             const grid = this.UM_STORE.getUMGrid()
 
+            if (!grid?.sections?.length) {
+                return
+            }
+
             let delta = parseInt(value) - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]
             grid.sections.forEach((section, secIndex) => {
                 section.position.y += delta
@@ -351,6 +355,8 @@ export default class UMconstructorClass {
                         segment.position.y += delta;
                     })
                 })
+
+                this.FASADES.EXTERNAL_FASADES.shiftStackWithHorizont(secIndex, delta, grid)
             })
 
             grid.horizont = PROPS.CONFIG.HORIZONT = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] = parseInt(value);
@@ -482,6 +488,10 @@ export default class UMconstructorClass {
     }
 
     reset(grid: GridModule = this.UM_STORE.getUMGrid()) {
+        
+        if (!grid?.sections?.length) {
+            return false
+        }
 
         this.UM_STORE.setLoad(true)
 

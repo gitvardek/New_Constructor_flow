@@ -27,6 +27,16 @@ export class TsargaBuilder {
         this.parent = parent
     }
 
+    createWoodMaterial(): THREE.MeshPhysicalMaterial {
+        return new THREE.MeshPhysicalMaterial({
+            color: 0xa97d52,
+            metalness: 0,
+            roughness: 0.75,
+            clearcoat: 0.1,
+            clearcoatRoughness: 0.6,
+        })
+    }
+
     /**
      * Добавляет царгу для обычного модуля через json.items (CONFIG.TSARGA).
      * Вызывается из applyBodyOverrides до json_builder.createMesh.

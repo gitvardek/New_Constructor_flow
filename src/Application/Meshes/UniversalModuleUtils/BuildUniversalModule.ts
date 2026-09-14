@@ -11,6 +11,7 @@ import {
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from '@/store/appliction/useModelState';
 
+import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from '@/components/UMconstructor/utils/Const';
 import { UM_PARAMS, WITH_TSARGA } from '@/components/UMconstructor/utils/Const';
 import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
@@ -158,8 +159,6 @@ export class BuildUniversalModule extends BuildProduct {
             })
             : null;
 
-        console.log(fasade, 'FFFFF')
-
         /** Добавляем стреки размеров */
         const arrows = this.addArrowSize({ object: body, props: PROPS })
 
@@ -300,8 +299,8 @@ export class BuildUniversalModule extends BuildProduct {
         }
 
         const isSlidingDoors = product_data.fasades ? 100 : 0
-        const hasMetalTsarga = WITH_TSARGA.includes(product_data.productID) &&
-            PROPS.CONFIG.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active)
+        const hasModuleTsarga = WITH_TSARGA.includes(product_data.productID) &&
+            PROPS.CONFIG.OPTIONS?.some(opt => MODULE_TSARGA_OPTIONS.includes(+opt.id) && opt.active)
 
         product_data.sections.forEach((section, secIndex) => {
 
@@ -470,7 +469,7 @@ export class BuildUniversalModule extends BuildProduct {
                 })
             })
 
-            if (!hasMetalTsarga) {
+            if (!hasModuleTsarga) {
                 if (cells.length > 0) {
                     const topCellTsarga = getCellTopTsarga(cells[cells.length - 1]);
                     if (topCellTsarga) {

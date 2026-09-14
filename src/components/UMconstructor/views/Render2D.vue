@@ -13,7 +13,7 @@ import {
 } from "vue";
 import { Application, Container, Graphics, Text } from "pixi.js";
 import { Shape, ShapeAdjuster, Section } from "./../utils/PixiMethods.ts";
-import { UM_PARAMS, UM_DRAWERS_IDS, WITH_TSARGA } from "./../utils/Const.ts";
+import { UM_PARAMS, UM_DRAWERS_IDS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from "./../utils/Const.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import * as THREE from "three";
 import { LOOPSIDE, TSelectedCell } from "./../types/UMtypes.ts";
@@ -74,9 +74,10 @@ const effectiveMaxSectionWidth = computed(() =>
   hasTsargaProduct.value ? UM_PARAMS.MAX_SECTION_WIDTH_TSARGA : UM_PARAMS.MAX_SECTION_WIDTH
 );
 
-const hasMetalTsarga = computed(() =>
+const hasModuleTsarga = computed(() =>
   hasTsargaProduct.value &&
-  (UMconstructor.value?.UM_STORE.getUMData()?.CONFIG?.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active) ?? false)
+  (UMconstructor.value?.UM_STORE.getUMData()?.CONFIG?.OPTIONS
+    ?.some(opt => MODULE_TSARGA_OPTIONS.includes(+opt.id) && opt.active) ?? false)
 );
 
 let appReady = false;
@@ -627,7 +628,7 @@ const renderGrid = (_moduleGrid) => {
       const pxHeight = getPixelHeight(section.height);
       // Отрисовываем секцию
 
-      if (hasTsargaProduct.value && !hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
+      if (hasTsargaProduct.value && !hasModuleTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
         section.tsarga = { PRODUCT_ID: 15335121, ID: 15335121, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
       } else {
         delete section.tsarga;
@@ -785,7 +786,7 @@ const renderGrid = (_moduleGrid) => {
             height: pxHeight,
             sectionIndex,
             cellIndex: colIndex,
-            rowIndex: row.id - 1,
+            rowIndex,
             cellData: row,
             section: col,
             _sector: moduleSector,
@@ -858,7 +859,7 @@ const renderGrid = (_moduleGrid) => {
           height: pxHeight,
           sectionIndex,
           cellIndex: 0,
-          rowIndex: row.id - 1,
+          rowIndex,
           cellData: row,
           section: col,
           _sector: moduleSector,
@@ -931,7 +932,7 @@ const renderGrid = (_moduleGrid) => {
           height: pxHeight,
           sectionIndex: null,
           cellIndex: colIndex,
-          rowIndex: column.length > 1 ? row.id - 1 : null,
+          rowIndex: column.length > 1 ? rowIndex : null,
           cellData: row,
           section: col,
           _sector: moduleSector,
@@ -1369,15 +1370,18 @@ const createSectioNum = ({
 
   let text;
 
+  const labelRow =
+    rowIndex !== null && cell.type === "fasade" && cell.id ? cell.id - 1 : rowIndex;
+
   if (sectionIndex === null) {
     text =
-      rowIndex !== null
-        ? `${cellIndex + 1}.${rowIndex + 1}`
+      labelRow !== null
+        ? `${cellIndex + 1}.${labelRow + 1}`
         : `${cellIndex + 1}`;
   } else {
     text =
-      rowIndex !== null
-        ? `${sectionIndex + 1}.${cellIndex + 1}.${rowIndex + 1}`
+      labelRow !== null
+        ? `${sectionIndex + 1}.${cellIndex + 1}.${labelRow + 1}`
         : `${sectionIndex + 1}.${cellIndex + 1}`;
   }
 
@@ -2087,7 +2091,7 @@ function updateRowTsarga(row, isCellRoof = false) {
   if (row.extras?.length > 0) {
     delete row.tsarga;
     row.extras.forEach((extra, key) => {
-      if (isCellRoof && key == 0 && hasMetalTsarga.value) {
+      if (isCellRoof && key == 0 && hasModuleTsarga.value) {
         delete extra.tsarga;
       }
       else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
@@ -2096,7 +2100,7 @@ function updateRowTsarga(row, isCellRoof = false) {
         delete extra.tsarga;
       }
     });
-  } else if (isCellRoof && hasMetalTsarga.value) {
+  } else if (isCellRoof && hasModuleTsarga.value) {
     delete row.tsarga;
   } else if (row.width >= MIN_TSARGA_WIDTH && row.width <= MAX_TSARGA_WIDTH) {
     row.tsarga = { PRODUCT_ID: 15335121, ID: 15335121, MATERIAL_ID: 15826, WIDTH: row.width, POSITION: row.position?.x ?? 0, type: 'tsarga' };
@@ -2375,7 +2379,7 @@ function dragMove(event) {
       });
 
       if (!section.cells.length) {
-        if (hasTsargaProduct.value && !hasMetalTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
+        if (hasTsargaProduct.value && !hasModuleTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
           section.tsarga = { PRODUCT_ID: 15335121, ID: 15335121, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
         } else {
           delete section.tsarga;
@@ -2545,7 +2549,7 @@ function dragMove(event) {
       });
 
       if (!nextSection.cells.length) {
-        if (hasTsargaProduct.value && !hasMetalTsarga.value && nextSection.width >= MIN_TSARGA_WIDTH && nextSection.width <= MAX_TSARGA_WIDTH) {
+        if (hasTsargaProduct.value && !hasModuleTsarga.value && nextSection.width >= MIN_TSARGA_WIDTH && nextSection.width <= MAX_TSARGA_WIDTH) {
           nextSection.tsarga = { PRODUCT_ID: 15335121, ID: 15335121, MATERIAL_ID: 15826, WIDTH: nextSection.width, POSITION: nextSection.position.x, type: 'tsarga' };
         } else {
           delete nextSection.tsarga;
@@ -3432,7 +3436,7 @@ watch(
   },
 );
 
-watch(hasMetalTsarga, () => {
+watch(hasModuleTsarga, () => {
   UMconstructor.value?.reset();
 });
 

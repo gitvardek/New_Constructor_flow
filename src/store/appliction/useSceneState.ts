@@ -128,8 +128,6 @@ export const useSceneState = defineStore('SceneState', () => {
 
     const loadProjectFromData = async (newProject: IProjectParams) => {
 
-        console.log(newProject, 'newProject')
-
         // Клонируем входящие данные чтобы startProjectParams и currentProjectParams
         // не делили ссылки с внешним объектом и друг с другом
         const data = JSON.parse(JSON.stringify(newProject))

@@ -340,8 +340,6 @@ export default class FillingsManager {
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
 
-        console.log(_product, '_product')
-
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
             if (!this.isUniversalDrawerAllowed(grid)) {
                 this.scope.callAlert("error", `Невозможно установить универсальный ящик: толщина корпуса или боковой стенки меньше ${FillingsManager.UNIVERSAL_DRAWER_MIN_THICKNESS} мм`)
@@ -702,8 +700,6 @@ export default class FillingsManager {
             currentFillingsArray.push(fillingObject);
 
         if (product.MIN_FASADE_SIZE) {
-
-            console.log(product.MIN_FASADE_SIZE, 'MIN_FASADE_SIZE')
 
             if (!currentSection.fasadesDrawers)
                 currentSection.fasadesDrawers = []

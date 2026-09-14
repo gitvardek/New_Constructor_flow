@@ -391,7 +391,6 @@ export class Filters extends GlobalsData {
 
     filterProductInfo(id) {
         let info = this._PRODUCTS[id]
-        console.log(info, 'info')
         if (!info) return false
 
         // if (!info) {

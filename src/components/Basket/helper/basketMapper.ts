@@ -253,10 +253,20 @@ function transformLoops(sections, horizont, moduleThickness) {
   };
 }
 
-function creatSectionFilling(arr: any[] | null | undefined): any[] {
+function creatSectionFilling(arr: any[] | null | undefined, drawerFasades: any[] = []): any[] {
   if (!arr || !Array.isArray(arr)) {
     return [];
   }
+
+  const getfasadePath = (el) => {
+    if (!el.fasade) {
+      return false;
+    }
+
+    const actual = drawerFasades?.find(item => item?.fasadeDrawerId === el.fasade.fasadeDrawerId);
+
+    return (actual?.id ?? el.fasade.id) - 1;
+  };
 
   const createFasadeData = (data) => {
 
@@ -289,7 +299,7 @@ function creatSectionFilling(arr: any[] | null | undefined): any[] {
 
     let base = {
       ID: el.product,
-      PATH: el.fasade ? (el.fasade.id - 1) : false,
+      PATH: getfasadePath(el),
       MATERIAL_ID: el.material,
       PRODUCT_TYPE: el.type,
       SIZE: {
@@ -596,6 +606,17 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
     legacyProps[`LOOPS`] = transformLoops(CONFIG.MODULEGRID?.sections, CONFIG.MODULEGRID?.horizont, CONFIG.MODULEGRID?.moduleThickness).coords;
     legacyProps[`LOOPSSIDE`] = transformLoops(CONFIG.MODULEGRID?.sections).sides;
+
+    const sideProfile = CONFIG.MODULEGRID?.profilesConfig?.sideProfile;
+
+    if (sideProfile?.product) {
+      legacyProps[`SIDEPROFILE`] = {
+        1: {
+          PRODUCT_ID: sideProfile.product,
+          SIDE: sideProfile.side,
+        },
+      };
+    }
   }
 
   // Динамически добавляем заполнения секций
@@ -603,7 +624,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
     Object.keys(CONFIG.SECTIONS).forEach(sectionKey => {
       const section = CONFIG.SECTIONS[sectionKey];
       if (section?.fillings && section.fillings.length) {
-        legacyProps[`SECTIONSFILLING${sectionKey}`] = creatSectionFilling(section.fillings);
+        const gridSection = CONFIG.MODULEGRID?.sections?.[+sectionKey - 1];
+        legacyProps[`SECTIONSFILLING${sectionKey}`] = creatSectionFilling(section.fillings, gridSection?.fasadesDrawers);
       }
     });
   }
