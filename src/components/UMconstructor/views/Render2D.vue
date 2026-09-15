@@ -2635,11 +2635,9 @@ function dragMove(event) {
           if (row.extras?.length) {
             let divideDelta = Math.floor(-delta1 / row.extras.length);
             let divideDeltaPos1 = divideDelta;
-            // Сумма полок внутри столбца: каждая субъячейка, кроме нижней, несёт полку
-            // под собой, и толщина у стеклянной своя. extras отсортированы сверху вниз
-            let extraSize = row.extras
-              .slice(0, -1)
-              .reduce((sum, item) => sum + getShelfThickness(item, currentModule.value), 0);
+
+            let extraSize =
+              (row.extras.length - 1) * currentModule.value.moduleThickness;
 
             row.extras.forEach((item) => {
               if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -2752,11 +2750,9 @@ function dragMove(event) {
           if (row.extras?.length) {
             let divideDelta = Math.floor(-delta2 / row.extras.length);
             let divideDeltaPos2 = -divideDelta;
-            // Сумма полок внутри столбца: каждая субъячейка, кроме нижней, несёт полку
-            // под собой, и толщина у стеклянной своя. extras отсортированы сверху вниз
-            let extraSize = row.extras
-              .slice(0, -1)
-              .reduce((sum, item) => sum + getShelfThickness(item, currentModule.value), 0);
+
+            let extraSize =
+              (row.extras.length - 1) * currentModule.value.moduleThickness;
 
             row.extras.forEach((item) => {
               if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -2998,9 +2994,9 @@ const adjustSectionSize = (
 
       if (nextRow) {
 
-      // По высоте компенсирует сосед сверху (prev), как и в ShelvesManager.updateCellHeight.
-      // Предел и общая высота должны считаться по той же ячейке, которая реально изменится
-      nextRow = prev || next;
+        // По высоте компенсирует сосед сверху (prev), как и в ShelvesManager.updateCellHeight.
+        // Предел и общая высота должны считаться по той же ячейке, которая реально изменится
+        nextRow = prev || next;
 
         const contentHeight = (entity) =>
           UMconstructor.value?.SHELVES.getCellMinHeight(entity, module) ?? MIN_SECTION_HEIGHT;
