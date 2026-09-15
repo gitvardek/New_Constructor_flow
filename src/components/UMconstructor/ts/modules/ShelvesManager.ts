@@ -107,6 +107,11 @@ export default class ShelvesManager {
         if (cell.cellsRows)
             delete cell.cellsRows
 
+        if (glass && !this.isGlassShelfWidthAllowed(cell.width)) {
+            this.scope.callAlert("error", this.glassShelfWidthMessage())
+            return;
+        }
+
         // Место под полку резервируется по её собственной толщине: у стекла зазора
         // в толщину корпуса быть не должно
         const shelfThickness = glass ? GLASS_SHELF_THICKNESS : grid.moduleThickness;
@@ -514,6 +519,75 @@ export default class ShelvesManager {
         this.autoSelectDeepest(grid)
     };
 
+    // Стеклянную полку шире предельной не изготавливают. Ширину берём у той области,
+    // которую полка перекрывает: у ячейки это ширина секции, у субъячейки — ширина столбца
+    isGlassShelfWidthAllowed(width: number): boolean {
+        return (width ?? 0) <= UM_PARAMS.GLASS_SHELF_MAX_WIDTH
+    };
+
+    glassShelfWidthMessage(count: number = 0): string {
+        const limit = `шире ${UM_PARAMS.GLASS_SHELF_MAX_WIDTH} мм`
+
+        if (!count) {
+            return `Стеклянная полка недоступна: область ${limit}`
+        }
+
+        return count === 1
+            ? `Стеклянная полка снята: область ${limit}`
+            : `Снято стеклянных полок: ${count} — область ${limit}`
+    };
+
+    // Область стала шире допустимого — стеклянная полка в ней больше не изготавливается,
+    // поэтому убираем саму полку, а не только её признак: соседние ячейки сливаются в одну.
+    // Идём снизу вверх, чтобы не сбивать индексы ещё не проверенным ячейкам.
+    // Возвращает признак того, что раскладку нужно пересчитать
+    cleanupOversizedGlassShelves(grid: GridModule): boolean {
+        let removed = 0
+
+        // Полка принадлежит ячейке, под которой стоит, поэтому у самой нижней её нет —
+        // с неё и не начинаем. Сливаем текущую с нижней: у нижней своя полка остаётся
+        const mergeDown = (list: any[], onEmpty: () => void) => {
+            for (let i = list.length - 2; i >= 0; i--) {
+                const current = list[i]
+
+                if (!current?.glassShelf || this.isGlassShelfWidthAllowed(current.width)) {
+                    continue
+                }
+
+                const below = list[i + 1]
+
+                below.height += current.height + GLASS_SHELF_THICKNESS
+                delete below.fillings
+                list.splice(i, 1)
+                removed += 1
+            }
+
+            if (list.length <= 1) {
+                onEmpty()
+            }
+        }
+
+        grid.sections?.forEach(section => {
+            if (section.cells?.length) {
+                mergeDown(section.cells, () => { section.cells.length = 0 })
+            }
+
+            section.cells?.forEach(cell => {
+                cell.cellsRows?.forEach(row => {
+                    if (row.extras?.length) {
+                        mergeDown(row.extras, () => { delete row.extras })
+                    }
+                })
+            })
+        })
+
+        if (removed) {
+            this.scope.callAlert("warning", this.glassShelfWidthMessage(removed))
+        }
+
+        return !!removed
+    };
+
     // Вертикальный разделитель опирается на полки снизу и сверху ячейки, а стеклянная
     // полка нагрузку не несёт. Признак принадлежит ячейке, под которой полка стоит:
     // нижнюю границу задаёт сама ячейка, верхнюю — соседняя сверху. Ячейки отсортированы
@@ -802,6 +876,14 @@ export default class ShelvesManager {
             }
 
             row.extras.push(extra);
+        }
+
+        if (glass && !this.isGlassShelfWidthAllowed(extra.width)) {
+            this.scope.callAlert("error", this.glassShelfWidthMessage())
+            if (row.extras?.length === 1) {
+                delete row.extras
+            }
+            return;
         }
 
         // Та же логика, что и у ячеек: зазор равен толщине самой полки

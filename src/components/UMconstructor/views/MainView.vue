@@ -29,7 +29,6 @@ const step = ref(1);
 const constructor2dContainer = ref(null);
 
 const productData = ref<TTotalProps|boolean>(false)
-const refFooter = ref(null);
 
 const visualizationRef = ref(null);
 const UMconstructor = ref<UMconstructorClass|null>(null);
@@ -72,13 +71,13 @@ const saveGrid = (_grid: GridModule) => {
   let grid = _grid || UMconstructor.value?.UM_STORE.getUMGrid();
   if(grid.errors && Object.keys(grid.errors).length > 0) {
     Object.values(grid.errors).forEach(item => {
-      toaster.error(item.message, refFooter.value)
+      toaster.error(item.message)
     })
 
     return false
   }
 
-  toaster.success('Модуль сохранен', refFooter.value)
+  toaster.success('Модуль сохранен')
 
   return Object.assign({}, grid);
 };
@@ -102,7 +101,7 @@ onBeforeMount(() => {
   });
 
   if(!module.value) {
-    toaster.error('Ошибка создания модуля!', refFooter)
+    toaster.error('Ошибка создания модуля!')
     closeModal()
   }
 })
@@ -144,14 +143,13 @@ onMounted(async () => {
     UMstore.onWallModule = module.value.onWallModule | false;
 
     UMconstructor.value?.setRenderRef(visualizationRef)
-    UMconstructor.value?.setAlertRef(refFooter)
     UMconstructor.value?.reset(UMstore.getUMGrid())
 
     await nextTick();
     autoSelectDeepest();
   }
   else {
-    toaster.error('Ошибка создания модуля!', refFooter)
+    toaster.error('Ошибка создания модуля!')
     closeModal()
   }
 });
@@ -251,7 +249,7 @@ defineExpose({
         />
       </div>
 
-      <section class="UM actions-footer" ref="refFooter">
+      <section class="UM actions-footer">
         <div class="UM actions-footer--save">
           <slot name="save"></slot>
           <slot name="close"></slot>

@@ -54,7 +54,6 @@ export default class UMconstructorClass {
     SHAPE_ADJUSTER: ShapeAdjuster
     OPTIONS: OptionsManager
     RENDER_REF: Ref<typeof Render2D | undefined> = ref<typeof Render2D>()
-    ALERT_FOOTER_REF: Ref = ref()
     DEBOUNCES: {}
 
     constructor(root: Application) {
@@ -329,13 +328,9 @@ export default class UMconstructorClass {
         this.RENDER_REF = ref
     }
 
-    setAlertRef(ref: Ref) {
-        this.ALERT_FOOTER_REF = ref
-    }
-
     callAlert(type: alertType, message: string) {
         if (type)
-            this.AlERT[type](message, this.ALERT_FOOTER_REF)
+            this.AlERT[type](message)
     }
 
     setShapeAdjuster(SHAPE_ADJUSTER: ShapeAdjuster) {
@@ -811,6 +806,13 @@ export default class UMconstructorClass {
             this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.cleanupUniversalDrawers(module)
+
+            // Стеклянные полки в областях, ставших слишком широкими, снимаются вместе
+            // с границей — ячейки сливаются, поэтому раскладку нужно построить заново.
+            // Второй проход уже ничего не находит: ширины уборка не меняет
+            if (this.SHELVES.cleanupOversizedGlassShelves(module)) {
+                return this.reset(module)
+            }
         }
         catch (error) {
             console.error(error)

@@ -20,52 +20,42 @@ toastr.options = {
   hideMethod: "fadeOut",
 }
 
+const CONTAINER_ID = "toast-container"
 
-// export const useToast = () => {
-//   const success = (message: string) => {
-//     toastr.success(message)
-//   }
-
-//   const error = (message: string) => {
-//     toastr.error(message)
-//   }
-
-//   const positions = {
-//     'top-right': 'toast-top-right',
-//     'top-left': 'toast-top-left',
-//     'top-center': 'toast-top-center',
-//     'bottom-right': 'toast-bottom-right',
-//     'bottom-left': 'toast-bottom-left',
-//     'bottom-center': 'toast-bottom-center'
-//   };
-
-//   toastr.options = {
-//   closeButton: true,
-//   progressBar: true,
-//   positionClass: positions['bottom-right'],
-//   timeOut: 2000,
-//   extendedTimeOut: 2000,
-//   tapToDismiss: false,
-//   preventDuplicates: false,
-//   newestOnTop: true
-// }
-
-//   return { success, error }
-// } 
+// Конструкторы открыты как dialog.showModal(): диалог уходит в верхний слой и перекрывает
+// всё, что висит в body, — сообщение оказывалось под его подложкой и размывалось ею.
+// Поэтому пока модалка открыта, контейнер держим внутри неё, а когда закрыта — в body.
+//
+// Решаем по состоянию страницы, а не по аргументу вызова: половина сообщений, всплывающих
+// при открытом конструкторе, приходит из мест, которые про модалку ничего не знают.
+// Берём саму модалку, а не элемент внутри неё: у панелей конструктора свои контексты
+// наложения, и сообщение уходит под них. Так же поступает Tooltip — телепортирует
+// подсказку в dialog[open]
+const toastHost = (): Element =>
+  [...document.querySelectorAll("dialog[open]")].pop() ?? document.body
 
 export const useToast = () => {
-  const show = (type: 'success' | 'error' | 'info' | 'warning', message: string, target?: string | HTMLElement) => {
-    const prev = toastr.options.target
-    if (target) toastr.options.target = target
+  const show = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
+    const host = toastHost()
+    const container = document.getElementById(CONTAINER_ID)
+
+    // toastr создаёт контейнер один раз и дальше находит его по id, а на options.target
+    // при повторных вызовах уже не смотрит. Поэтому оказавшийся не на месте контейнер
+    // сносим — toastr создаст новый там, где нужно. Сверяем прямого родителя: контейнер
+    // внутри закрытой модалки формально лежит и внутри body
+    if (container && container.parentElement !== host) {
+      container.remove()
+    }
+
+    toastr.options.target = host
     toastr[type](message)
-    toastr.options.target = prev
   }
 
   return {
-    success: (msg: string, target?: string | HTMLElement) => show('success', msg, target),
-    error: (msg: string, target?: string | HTMLElement) => show('error', msg, target),
-    info: (msg: string, target?: string | HTMLElement) => show('info', msg, target),
-    warning: (msg: string, target?: string | HTMLElement) => show('warning', msg, target),
+    success: (msg: string) => show('success', msg),
+    error: (msg: string) => show('error', msg),
+    info: (msg: string) => show('info', msg),
+    warning: (msg: string) => show('warning', msg),
     clear: () => toastr.clear()
   }
 }
