@@ -2,7 +2,7 @@
 
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
 import type { Application } from "@/Application/Core/Application.ts";
-import { UM_PARAMS, WITH_TSARGA } from "./../utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA, GLASS_SHELF_THICKNESS } from "./../utils/Const.ts";
 import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManager.ts";
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
 import SidecolorsManager from "@/components/UMconstructor/ts/modules/SidecolorsManager.ts";
@@ -54,7 +54,6 @@ export default class UMconstructorClass {
     SHAPE_ADJUSTER: ShapeAdjuster
     OPTIONS: OptionsManager
     RENDER_REF: Ref<typeof Render2D | undefined> = ref<typeof Render2D>()
-    ALERT_FOOTER_REF: Ref = ref()
     DEBOUNCES: {}
 
     constructor(root: Application) {
@@ -325,13 +324,13 @@ export default class UMconstructorClass {
         this.RENDER_REF = ref
     }
 
-    setAlertRef(ref: Ref) {
-        this.ALERT_FOOTER_REF = ref
-    }
+
 
     callAlert(type: alertType, message: string) {
-        if (type)
-            this.AlERT[type](message, this.ALERT_FOOTER_REF)
+        if (type) {
+            this.AlERT[type](message)
+        }
+
     }
 
     setShapeAdjuster(SHAPE_ADJUSTER: ShapeAdjuster) {
@@ -487,8 +486,15 @@ export default class UMconstructorClass {
         this.reset(grid)
     }
 
+    getShelfThickness(container: any, grid: any) {
+        if (container?.glassShelf) {
+            return GLASS_SHELF_THICKNESS;
+        }
+        return grid?.moduleThickness ?? 18;
+    };
+
     reset(grid: GridModule = this.UM_STORE.getUMGrid()) {
-        
+
         if (!grid?.sections?.length) {
             return false
         }
@@ -552,16 +558,19 @@ export default class UMconstructorClass {
 
                         lastCellHeight -= newCell.height
 
+
+                        const shelfAbove = this.getShelfThickness(tmpCells[i + 1], moduleGrid)
+
                         if (i === tmpCells.length - 1 || lastCellHeight <= 0) {
                             newCell.height += lastCellHeight
 
                             if (newCell.height < MIN_SECTION_HEIGHT) {
-                                newCellsArray[newCellsArray.length - 1].height += newCell.height + moduleGrid.moduleThickness
+                                newCellsArray[newCellsArray.length - 1].height += newCell.height + this.getShelfThickness(newCell, moduleGrid)
                                 break;
                             }
                         }
                         else {
-                            lastCellHeight -= moduleGrid.moduleThickness
+                            lastCellHeight -= shelfAbove
                         }
 
                         if (newCell.cellsRows?.length) {
@@ -612,16 +621,18 @@ export default class UMconstructorClass {
 
                                         lastExtraHeight -= newExtra.height
 
+                                        const shelfAbove = this.getShelfThickness(extras[j + 1], moduleGrid)
+
                                         if (j === extras.length - 1 || lastExtraHeight <= 0) {
                                             newExtra.height += lastExtraHeight
 
                                             if (newExtra.height < MIN_SECTION_HEIGHT) {
-                                                newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + moduleGrid.moduleThickness
+                                                newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + this.getShelfThickness(newExtra, moduleGrid)
                                                 break;
                                             }
                                         }
                                         else {
-                                            lastExtraHeight -= moduleGrid.moduleThickness
+                                            lastExtraHeight -= shelfAbove
                                         }
 
                                         if (newExtra.fillings?.length) {
@@ -641,7 +652,7 @@ export default class UMconstructorClass {
                                         }
 
                                         newRowExtrasArray.push(newExtra)
-                                        positionRowExtras.y += newExtra.height + moduleGrid.moduleThickness
+                                        positionRowExtras.y += newExtra.height + shelfAbove
                                     }
 
                                     newRow.extras = newRowExtrasArray.slice().sort((a, b) => b.position.y - a.position.y)
@@ -679,7 +690,7 @@ export default class UMconstructorClass {
                             newCell.cellsRows = newCellsRowArray.slice()
                         }
 
-                        positionCells.y += newCell.height + moduleGrid.moduleThickness
+                        positionCells.y += newCell.height + shelfAbove
 
                         if (newCell.fillings?.length) {
                             newCell.fillings = <FillingObject>[...newCell.fillings]
@@ -788,6 +799,10 @@ export default class UMconstructorClass {
             this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.cleanupUniversalDrawers(module)
+
+            if (this.SHELVES.cleanupOversizedGlassShelves(module)) {
+                return this.reset(module)
+            }
         }
         catch (error) {
             console.error(error)

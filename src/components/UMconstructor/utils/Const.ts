@@ -30,7 +30,8 @@ export const UM_PARAMS = {
     MAX_TSARGA_WIDTH: 1200,  // Максимальная ширина царги
     INNER_DRAWER_GAP: 30,        // Отступ от тела внешнего ящика и между внутренними ящиками (мм)
     INNER_DRAWER_FACADE_GAP: 45,  // Отступ от крайнего внутреннего ящика до фасада внешнего ящика (мм)
-    FILLINGS_MAX_WIDTH: 900//Максимальная ширина секции при которой можно добавить наполнение
+    FILLINGS_MAX_WIDTH: 900, //Максимальная ширина секции при которой можно добавить наполнение
+    GLASS_SHELF_MAX_WIDTH: 900//Максимальная ширина секции при которой можно добавить стеклянную полку
 }
 
 export const UM_DRAWERS_IDS = {
@@ -42,3 +43,11 @@ export const UM_DRAWERS_IDS = {
 export const WITH_TSARGA = [3954672];
 export const MODULE_TSARGA_OPTIONS = [7250589, 7250452];
 // export const WITH_TSARGA = [];
+
+export const SHELF_PRODUCTS = {
+    ldsp: 5975548,
+    glass: 3124181,
+};
+
+// Стекло тоньше корпуса и от его материала не зависит
+export const GLASS_SHELF_THICKNESS = 6;

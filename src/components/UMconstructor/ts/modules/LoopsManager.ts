@@ -50,13 +50,13 @@ export default class LoopsManager {
     }
 
     /**
-      * Зарегистрировать правила исключения объектов из проверки коллизий петель.
-      * Если filling[prop] входит в values — объект пропускается.
-      *
-      * Формы вызова:
-      *   addCollisionExclusionRule('productGroupID', 2166308, 5726092)
-      *   addCollisionExclusionRule([{ prop: 'productGroupID', values: [2166308, 5726092] }])
-      */
+     * Зарегистрировать правила исключения объектов из проверки коллизий петель.
+     * Если filling[prop] входит в values — объект пропускается.
+     *
+     * Формы вызова:
+     *   addCollisionExclusionRule('productGroupID', 2166308, 5726092)
+     *   addCollisionExclusionRule([{ prop: 'productGroupID', values: [2166308, 5726092] }])
+     */
     public addCollisionExclusionRule(
         propOrRules: string | Array<{ prop: string; values: any[]; collisionWith?: string | string[]; condition?: (grid: GridModule) => boolean }>,
         ...values: any[]
@@ -426,9 +426,12 @@ export default class LoopsManager {
 
         const checkLoop = (_loops, cell) => {
             let result = []
+
+            const shelfThickness = this.scope.getShelfThickness(cell, grid)
+
             _loops.forEach(loop => {
                 if (
-                    ((loop.minY < (cell.position.y - moduleThickness) && loop.maxY > (cell.position.y - moduleThickness)) ||
+                    ((loop.minY < (cell.position.y - shelfThickness) && loop.maxY > (cell.position.y - shelfThickness)) ||
                         (loop.minY < cell.position.y && loop.maxY > cell.position.y))
                     &&
                     ((loop.minX <= (cell.position.x - cell.width / 2) && loop.maxX >= (cell.position.x - cell.width / 2)) ||
@@ -445,6 +448,7 @@ export default class LoopsManager {
 
                         let filling_pos = new THREE.Vector2(filling.position.x, grid.height - filling.position.y - filling.height)
                         if (
+                            // Включённые границы: захватывает граничный случай когда петля точно касается края ящика
                             (loop.minY <= (filling_pos.y + filling.height) && loop.maxY >= filling_pos.y)
                             &&
                             ((loop.minX <= (filling_pos.x + filling.width) && loop.maxX >= (filling_pos.x + filling.width)) ||

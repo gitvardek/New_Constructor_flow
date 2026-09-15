@@ -2,8 +2,10 @@
 //@ts-nocheck
 
 import CounterInput from "@/components/ui/inputs/CounterInput.vue";
+import Accordion from "@/components/ui/accordion/Accordion.vue";
+import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 
 const props = defineProps({
   module: {
@@ -100,8 +102,7 @@ const canAddShelf = computed(() => {
   }
 });
 
-// Вертикальный разделитель в горизонтальную ячейку не ставится, а у ограниченного
-// модуля недоступен вовсе
+
 const canAddDivider = computed(() => {
   if (props.module?.isRestrictedModule) {
     return false;
@@ -111,15 +112,52 @@ const canAddDivider = computed(() => {
     return false;
   }
 
+  if (props.UMconstructor?.SHELVES.hasGlassShelfAround(section.value, coords.value.cell)) {
+    return false;
+  }
+
   return canAddShelf.value;
 });
 
-const shelfLabel = computed(() => {
-  // if (level.value === "row" || level.value === "extra") {
-  //   return "Полка";
-  // }
+const shelfType = ref<string>("ldsp");
 
+const targetWidth = computed(() => {
+  return (extra.value ?? row.value ?? cell.value ?? section.value)?.width ?? 0;
+});
+
+const canAddGlassShelf = computed(() => {
+  return !!props.UMconstructor?.SHELVES.isGlassShelfWidthAllowed(targetWidth.value);
+});
+
+watch(canAddGlassShelf, (allowed) => {
+  if (!allowed && shelfType.value === "glass") {
+    shelfType.value = "ldsp";
+  }
+});
+
+const SHELF_TYPE_NAMES = {
+  ldsp: "ЛДСП",
+  glass: "Стеклянная",
+};
+
+const shelfTypeName = computed(() => SHELF_TYPE_NAMES[shelfType.value] ?? "");
+
+const glassShelfHint = computed(() => {
+  return props.UMconstructor?.SHELVES.glassShelfWidthMessage() ?? "";
+});
+
+const selectShelfType = (value: string, onToggle: () => void) => {
+  if (value === "glass" && !canAddGlassShelf.value) {
+    return;
+  }
+
+  shelfType.value = value;
+  onToggle();
+};
+
+const shelfLabel = computed(() => {
   return "Добавить полку";
+
 });
 
 const addShelf = (count: number | string) => {
@@ -127,23 +165,24 @@ const addShelf = (count: number | string) => {
   const grid = props.module;
   const SHELVES = props.UMconstructor.SHELVES;
   const amount = parseInt(count);
+  const glass = shelfType.value === "glass";
 
   switch (level.value) {
     case "extra": {
-      SHELVES.addRowExtra({ grid, secIndex: sec, cellIndex, rowIndex, extraIndex, count: amount });
+      SHELVES.addRowExtra({ grid, secIndex: sec, cellIndex, rowIndex, extraIndex, count: amount, glass });
       break;
     }
     case "row": {
-      SHELVES.addRowExtra({ grid, secIndex: sec, cellIndex, rowIndex, extraIndex: 0, count: amount });
+      SHELVES.addRowExtra({ grid, secIndex: sec, cellIndex, rowIndex, extraIndex: 0, count: amount, glass });
       break;
     }
     case "cell": {
-      SHELVES.addCell({ grid, secIndex: sec, cellIndex, count: amount });
+      SHELVES.addCell({ grid, secIndex: sec, cellIndex, count: amount, glass });
       break;
     }
     case "section": {
       // У секции без ячеек addCell сам создаёт базовую ячейку из её размеров
-      SHELVES.addCell({ grid, secIndex: sec, cellIndex: null, count: amount });
+      SHELVES.addCell({ grid, secIndex: sec, cellIndex: null, count: amount, glass });
       break;
     }
     default: {
@@ -195,5 +234,89 @@ const addDivider = (count: number | string) => {
         button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button" type="number"
         @update:model-value="addDivider" />
     </div>
+
+    <div v-if="canAddShelf" class="um-shelf-type">
+      <Accordion>
+        <template #title>
+          <p class="um-shelf-type--title">Тип полки: {{ shelfTypeName }}</p>
+        </template>
+
+        <template #params="{ onToggle }">
+          <button type="button" class="um-shelf-type--item"
+            :class="{ 'um-shelf-type--item__active': shelfType === 'ldsp' }" @click="selectShelfType('ldsp', onToggle)">
+            ЛДСП
+          </button>
+
+          <!-- Подсказка объясняет только запрет, поэтому доступный пункт в неё не оборачиваем:
+               пустой тултип показал бы пустую плашку -->
+          <Tooltip v-if="!canAddGlassShelf" :content="glassShelfHint" position="bottom">
+            <template #trigger>
+              <button type="button" class="um-shelf-type--item" disabled>
+                Стеклянная
+              </button>
+            </template>
+          </Tooltip>
+
+          <button v-else type="button" class="um-shelf-type--item"
+            :class="{ 'um-shelf-type--item__active': shelfType === 'glass' }"
+            @click="selectShelfType('glass', onToggle)">
+            Стеклянная
+          </button>
+        </template>
+      </Accordion>
+    </div>
   </template>
 </template>
+
+<style scoped lang="scss">
+
+.um-shelf-type {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+
+
+  &--title {
+    width: auto;
+    margin-left: 0;
+    font-size: 1.1rem;
+    white-space: nowrap;
+
+  }
+
+  :deep(.accordion) {
+    max-width: 200px;
+    padding: 0.4rem 1rem;
+    border: 1px solid $light-grey;
+    gap: 0;
+  }
+
+  &--item {
+    display: block;
+    width: 100%;
+    padding: 0.4rem 0.2rem;
+    border: none;
+    background: none;
+    font-size: 1.2rem;
+    color: $dark-grey;
+    text-align: left;
+    cursor: pointer;
+
+    &:disabled {
+      color: rgba($dark-grey, 0.4);
+      cursor: not-allowed;
+    }
+
+    &__active {
+      color: $alter-gray;
+    }
+  }
+
+  :deep(.tooltip-wrapper) {
+    display: block;
+    width: 100%;
+  }
+}
+</style>

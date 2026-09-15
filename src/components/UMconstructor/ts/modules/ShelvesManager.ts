@@ -4,11 +4,12 @@ import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass
 import * as THREE from "three";
 import {
     GridModule,
+    GridSection,
     GridCell,
     GridCellsRow,
     GridRowExtra,
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from "@/components/UMconstructor/utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS, GLASS_SHELF_THICKNESS } from "@/components/UMconstructor/utils/Const.ts";
 
 export default class ShelvesManager {
     scope: UMconstructorClass
@@ -16,6 +17,7 @@ export default class ShelvesManager {
     constructor(scope: UMconstructorClass) {
         this.scope = scope
     }
+
 
     private get moduleTsargaActive(): boolean {
         return this.scope.UM_STORE.getUMData()?.CONFIG?.OPTIONS
@@ -65,13 +67,15 @@ export default class ShelvesManager {
             grid = this.scope.UM_STORE.getUMGrid(),
             secIndex = 0,
             cellIndex = null,
-            count = 1
+            count = 1,
+            glass = false
         }:
             {
                 grid: GridModule,
                 secIndex: number,
                 cellIndex: number | null,
-                count: number
+                count: number,
+                glass?: boolean
             }) {
 
 
@@ -99,17 +103,27 @@ export default class ShelvesManager {
             section.cells.push(cell);
         }
 
-        if (cell.cellsRows)
+        if (cell.cellsRows) {
             delete cell.cellsRows
+        }
 
-        const halfHeight = Math.floor((cell.height - grid.moduleThickness * count) / (count + 1));
+        if (glass && !this.isGlassShelfWidthAllowed(cell.width)) {
+            this.scope.callAlert("error", this.glassShelfWidthMessage())
+            return;
+        }
+
+        // Место под полку резервируется по её собственной толщине: у стекла зазора
+        // в толщину корпуса быть не должно
+        const shelfThickness = glass ? GLASS_SHELF_THICKNESS : grid.moduleThickness;
+
+        const halfHeight = Math.floor((cell.height - shelfThickness * count) / (count + 1));
 
         if (halfHeight < MIN_SECTION_HEIGHT) {
             this.scope.callAlert("warning", `Расстояние между полками слишком мало! Пожалуйста, выберите меньшее количество полок!`)
             return;
         }
 
-        const deltaLastCell = cell.height - halfHeight * (count + 1) - grid.moduleThickness * count;
+        const deltaLastCell = cell.height - halfHeight * (count + 1) - shelfThickness * count;
 
         // Обновляем высоту последней строки
         cell.height = halfHeight;
@@ -127,11 +141,20 @@ export default class ShelvesManager {
             let newCell = <GridCell>{
                 ...cell,
                 number: cell.number + 1 + i,
-                position: new THREE.Vector2(cell.position.x, cell.position.y + (halfHeight + grid.moduleThickness) * (i + 1)),
+                position: new THREE.Vector2(cell.position.x, cell.position.y + (halfHeight + shelfThickness) * (i + 1)),
                 fillings: [],
             }
 
             delete newCell.hiTechProfiles
+
+            // Тип полки принадлежит ячейке, под которой эта полка стоит. Клон базовой
+            // ячейки мог принести чужой признак, поэтому выставляем его в обе стороны
+            if (glass) {
+                newCell.glassShelf = true
+            }
+            else {
+                delete newCell.glassShelf
+            }
 
             if (deltaLastCell && i === count - 1) {
                 newCell.height += deltaLastCell;
@@ -139,7 +162,7 @@ export default class ShelvesManager {
 
             // Новые ячейки получают царгу по ширине (только для продуктов с царгой)
             if (this.hasTsargaProduct(grid) && newCell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && newCell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
-                newCell.tsarga = { PRODUCT_ID: 15335121, ID: 15335121, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x, type: 'tsarga' };
+                newCell.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: newCell.width, POSITION: newCell.position.x, type: 'tsarga' };
             }
 
             section.cells.splice(cellIndex || 0, 0, newCell);
@@ -147,7 +170,7 @@ export default class ShelvesManager {
 
         // Восстанавливаем tsarga базовой ячейки (только для продуктов с царгой)
         if (this.hasTsargaProduct(grid) && cell.width >= UM_PARAMS.MIN_TSARGA_WIDTH && cell.width <= UM_PARAMS.MAX_TSARGA_WIDTH) {
-            cell.tsarga = { PRODUCT_ID: 15335121, ID: 15335121, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x, type: 'tsarga' };
+            cell.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: cell.width, POSITION: cell.position.x, type: 'tsarga' };
         } else {
             delete cell.tsarga;
         }
@@ -192,11 +215,9 @@ export default class ShelvesManager {
                 let prev = curSection.cells[cellIndex - 1];
                 let next = curSection.cells[cellIndex + 1]
 
-                // Расчёт сверху вниз
-                // let nextCell = next || prev
-                // let nextIndex = next ? cellIndex + 1 : cellIndex - 1 
-
-                // Расчёт снизу вверх
+                // Индекс в массиве растёт сверху вниз, поэтому prev — ячейка над текущей.
+                // Компенсируем изменение высоты именно ей: при уменьшении ячейки растёт
+                // соседняя сверху, а не снизу
                 let nextCell = prev || next
                 let nextIndex = prev ? cellIndex - 1 : cellIndex + 1
 
@@ -224,7 +245,11 @@ export default class ShelvesManager {
                         if (row.extras?.length) {
                             let divideDelta = Math.floor(-delta1 / row.extras.length)
                             let divideDeltaPos1 = divideDelta
-                            let extraSize = (row.extras.length - 1) * grid.moduleThickness
+                            // Сумма полок внутри столбца: каждая субъячейка, кроме нижней,
+                            // несёт полку под собой, и у стеклянной толщина своя
+                            let extraSize = row.extras
+                                .slice(0, -1)
+                                .reduce((sum, item) => sum + this.scope.getShelfThickness(item, grid), 0)
 
                             row.extras.forEach(item => {
                                 if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -342,7 +367,11 @@ export default class ShelvesManager {
                         if (row.extras?.length) {
                             let divideDelta = Math.floor(-delta2 / row.extras.length)
                             let divideDeltaPos2 = -divideDelta
-                            let extraSize = (row.extras.length - 1) * grid.moduleThickness
+                            // Сумма полок внутри столбца: каждая субъячейка, кроме нижней,
+                            // несёт полку под собой, и у стеклянной толщина своя
+                            let extraSize = row.extras
+                                .slice(0, -1)
+                                .reduce((sum, item) => sum + this.scope.getShelfThickness(item, grid), 0)
 
                             row.extras.forEach(item => {
                                 if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -456,6 +485,11 @@ export default class ShelvesManager {
 
         next ? (next.height = combinedHeight) : (prev.height = combinedHeight);
 
+
+        if (!next && prev) {
+            delete prev.glassShelf
+        }
+
         // Очищаем филлинги соседней ячейки независимо от наличия филлингов у удаляемой
         const mergedCell = next || prev
         if (mergedCell?.fillings?.length) {
@@ -480,6 +514,83 @@ export default class ShelvesManager {
         this.autoSelectDeepest(grid)
     };
 
+
+    isGlassShelfWidthAllowed(width: number): boolean {
+        return (width ?? 0) <= UM_PARAMS.GLASS_SHELF_MAX_WIDTH
+    };
+
+    glassShelfWidthMessage(count: number = 0): string {
+        const limit = `шире ${UM_PARAMS.GLASS_SHELF_MAX_WIDTH} мм`
+
+        if (!count) {
+            return `Стеклянная полка недоступна: область ${limit}`
+        }
+
+        return count === 1
+            ? `Стеклянная полка снята: область ${limit}`
+            : `Снято стеклянных полок: ${count} — область ${limit}`
+    };
+
+    cleanupOversizedGlassShelves(grid: GridModule): boolean {
+        let removed = 0
+
+
+        const mergeDown = (list: any[], onEmpty: () => void) => {
+            for (let i = list.length - 2; i >= 0; i--) {
+                const current = list[i]
+
+                if (!current?.glassShelf || this.isGlassShelfWidthAllowed(current.width)) {
+                    continue
+                }
+
+                const below = list[i + 1]
+
+                below.height += current.height + GLASS_SHELF_THICKNESS
+                delete below.fillings
+                list.splice(i, 1)
+                removed += 1
+            }
+
+            if (list.length <= 1) {
+                onEmpty()
+            }
+        }
+
+        grid.sections?.forEach(section => {
+            if (section.cells?.length) {
+                mergeDown(section.cells, () => { section.cells.length = 0 })
+            }
+
+            section.cells?.forEach(cell => {
+                cell.cellsRows?.forEach(row => {
+                    if (row.extras?.length) {
+                        mergeDown(row.extras, () => { delete row.extras })
+                    }
+                })
+            })
+        })
+
+        if (removed) {
+            this.scope.callAlert("warning", this.glassShelfWidthMessage(removed))
+        }
+
+        return !!removed
+    };
+
+
+    hasGlassShelfAround(section: GridSection, cellIndex: number | null): boolean {
+        const cells = section?.cells ?? []
+
+        if (cellIndex === null || cellIndex === undefined || !cells.length) {
+            return false
+        }
+
+        const below = cellIndex < cells.length - 1 && cells[cellIndex]?.glassShelf
+        const above = cells[cellIndex - 1]?.glassShelf
+
+        return !!(below || above)
+    };
+
     addRowCell({
         grid = this.scope.UM_STORE.getUMGrid(),
         secIndex,
@@ -499,6 +610,11 @@ export default class ShelvesManager {
 
         const { MIN_SECTION_WIDTH } = this.scope.CONST
         const section = grid.sections[secIndex];
+
+        if (this.hasGlassShelfAround(section, cellIndex)) {
+            this.scope.callAlert("error", "Вертикальный разделитель нельзя установить к стеклянной полке")
+            return;
+        }
 
         // Если у секции ещё нет ячеек — создаём базовую из размеров секции
         if (section.cells.length === 0) {
@@ -701,7 +817,8 @@ export default class ShelvesManager {
         cellIndex,
         rowIndex,
         extraIndex = 0,
-        count = 1
+        count = 1,
+        glass = false
     }:
         {
             grid: GridModule,
@@ -709,7 +826,8 @@ export default class ShelvesManager {
             cellIndex: number,
             rowIndex: number,
             extraIndex: number,
-            count: number
+            count: number,
+            glass?: boolean
         }) {
 
         if (!this.scope.checkSelection('row', { sec: secIndex, cell: cellIndex, row: rowIndex })) return;
@@ -745,7 +863,18 @@ export default class ShelvesManager {
             row.extras.push(extra);
         }
 
-        const halfHeight = Math.floor((extra.height - grid.moduleThickness * count) / (count + 1));
+        if (glass && !this.isGlassShelfWidthAllowed(extra.width)) {
+            this.scope.callAlert("error", this.glassShelfWidthMessage())
+            if (row.extras?.length === 1) {
+                delete row.extras
+            }
+            return;
+        }
+
+        // Та же логика, что и у ячеек: зазор равен толщине самой полки
+        const shelfThickness = glass ? GLASS_SHELF_THICKNESS : grid.moduleThickness;
+
+        const halfHeight = Math.floor((extra.height - shelfThickness * count) / (count + 1));
 
         if (halfHeight < MIN_SECTION_HEIGHT) {
             this.scope.callAlert("warning", `Расстояние между полками слишком мало! Пожалуйста, выберите меньшее количество полок!`)
@@ -755,7 +884,7 @@ export default class ShelvesManager {
             return;
         }
 
-        const deltaLastCell = extra.height - halfHeight * (count + 1) - grid.moduleThickness * count;
+        const deltaLastCell = extra.height - halfHeight * (count + 1) - shelfThickness * count;
 
         // Обновляем высоту последней строки
         extra.height = halfHeight;
@@ -769,11 +898,19 @@ export default class ShelvesManager {
             let newExtra = <GridRowExtra>{
                 ...extra,
                 number: extra.number + 1 + i,
-                position: new THREE.Vector2(extra.position.x, extra.position.y + (halfHeight + grid.moduleThickness) * (i + 1)),
+                position: new THREE.Vector2(extra.position.x, extra.position.y + (halfHeight + shelfThickness) * (i + 1)),
                 fillings: [],
             }
 
             delete newExtra.hiTechProfiles
+
+            // Тот же признак, что и у ячеек: полка принадлежит той, под которой стоит
+            if (glass) {
+                newExtra.glassShelf = true
+            }
+            else {
+                delete newExtra.glassShelf
+            }
 
             if (deltaLastCell && i === count - 1) {
                 newExtra.height += deltaLastCell;
@@ -888,9 +1025,22 @@ export default class ShelvesManager {
         const next = currentRow.extras[extraIndex + 1];
         const prev = currentRow.extras[extraIndex - 1];
 
+        // Исчезает граница между удаляемой субъячейкой и соседней, а вместе с ней полка,
+        // которая на этой границе стояла. extras отсортированы сверху вниз: next лежит
+        // ниже, и тогда пропадает полка под текущей; prev выше — тогда полка под ним
+        const removedShelf = next
+            ? this.scope.getShelfThickness(currentExtra, grid)
+            : this.scope.getShelfThickness(prev, grid);
+
         const combinedHeight = next
-            ? currentExtra.height + next.height + grid.moduleThickness
-            : currentExtra.height + prev.height + grid.moduleThickness;
+            ? currentExtra.height + next.height + removedShelf
+            : currentExtra.height + prev.height + removedShelf;
+
+        // Слияние с нижней признак не меняет: своя полка у next остаётся. Если удалили
+        // нижнюю субъячейку, нижней становится prev — полки под ней больше нет
+        if (!next && prev) {
+            delete prev.glassShelf
+        }
 
         next ? (next.position.y = next.position.y - next.height / 2 + combinedHeight / 2) : (prev.position.y = prev.position.y - prev.height / 2 + combinedHeight / 2);
         next ? (next.height = combinedHeight) : (prev.height = combinedHeight);

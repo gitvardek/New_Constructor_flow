@@ -458,7 +458,7 @@ const renderGrid = (_moduleGrid) => {
 
                     //Добавляем отступ по вертикали
                     rowyOffset +=
-                      RowpxHeight + getPixelHeight(moduleGrid.moduleThickness);
+                      RowpxHeight + getPixelHeight(UMconstructor.value.getShelfThickness(extra, moduleGrid));
                   });
 
                 //Добавляем отступ по вертикали
@@ -585,8 +585,9 @@ const renderGrid = (_moduleGrid) => {
             tmp_array_sectors.push(sector);
           }
 
-          //Добавляем отступ по вертикали
-          yOffset += pxHeight + getPixelHeight(props.module.moduleThickness);
+          // Добавляем отступ по вертикали — промежуток под ячейкой занимает её полка
+          drawGlassShelf(cell, xOffset, yOffset + pxHeight, pxWidth);
+          yOffset += pxHeight + getPixelHeight(UMconstructor.value.getShelfThickness(cell, props.module));
         });
 
       const colBond = shapeAdjuster.createColumnBounds(section.cells);
@@ -629,7 +630,7 @@ const renderGrid = (_moduleGrid) => {
       // Отрисовываем секцию
 
       if (hasTsargaProduct.value && !hasModuleTsarga.value && section.width >= MIN_TSARGA_WIDTH && section.width <= MAX_TSARGA_WIDTH) {
-        section.tsarga = { PRODUCT_ID: 15335121, ID: 15335121, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
+        section.tsarga = { PRODUCT_ID: 4586184, ID: 4586184, MATERIAL_ID: 15826, WIDTH: section.width, POSITION: section.position.x, type: 'tsarga' };
       } else {
         delete section.tsarga;
       }
@@ -1188,6 +1189,26 @@ const createSector = ({
   }
 
   return sector;
+};
+
+
+const drawGlassShelf = (container, x, y, width) => {
+  if (!container?.glassShelf) {
+    return;
+  }
+
+  const glassShelf = new Graphics();
+
+  glassShelf.rect(
+    x,
+    y,
+    width,
+    getPixelHeight(UMconstructor.value.getShelfThickness(container, props.module)),
+  );
+  glassShelf.fill({ color: "#8ec9e8", alpha: 0.75 });
+  glassShelf.eventMode = "none";
+
+  deviders.push(glassShelf);
 };
 
 const createLoop = ({ x, y, width, height, loopData }) => {
@@ -2635,9 +2656,11 @@ function dragMove(event) {
           if (row.extras?.length) {
             let divideDelta = Math.floor(-delta1 / row.extras.length);
             let divideDeltaPos1 = divideDelta;
-
-            let extraSize =
-              (row.extras.length - 1) * currentModule.value.moduleThickness;
+            // Сумма полок внутри столбца: каждая субъячейка, кроме нижней, несёт полку
+            // под собой, и толщина у стеклянной своя. extras отсортированы сверху вниз
+            let extraSize = row.extras
+              .slice(0, -1)
+              .reduce((sum, item) => sum + UMconstructor.value.getShelfThickness(item, currentModule.value), 0);
 
             row.extras.forEach((item) => {
               if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -2750,9 +2773,11 @@ function dragMove(event) {
           if (row.extras?.length) {
             let divideDelta = Math.floor(-delta2 / row.extras.length);
             let divideDeltaPos2 = -divideDelta;
-
-            let extraSize =
-              (row.extras.length - 1) * currentModule.value.moduleThickness;
+            // Сумма полок внутри столбца: каждая субъячейка, кроме нижней, несёт полку
+            // под собой, и толщина у стеклянной своя. extras отсортированы сверху вниз
+            let extraSize = row.extras
+              .slice(0, -1)
+              .reduce((sum, item) => sum + UMconstructor.value.getShelfThickness(item, currentModule.value), 0);
 
             row.extras.forEach((item) => {
               if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -2994,9 +3019,9 @@ const adjustSectionSize = (
 
       if (nextRow) {
 
-        // По высоте компенсирует сосед сверху (prev), как и в ShelvesManager.updateCellHeight.
-        // Предел и общая высота должны считаться по той же ячейке, которая реально изменится
-        nextRow = prev || next;
+      // По высоте компенсирует сосед сверху (prev), как и в ShelvesManager.updateCellHeight.
+      // Предел и общая высота должны считаться по той же ячейке, которая реально изменится
+      nextRow = prev || next;
 
         const contentHeight = (entity) =>
           UMconstructor.value?.SHELVES.getCellMinHeight(entity, module) ?? MIN_SECTION_HEIGHT;

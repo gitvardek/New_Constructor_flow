@@ -377,7 +377,7 @@ export class FasadeBuilder {
                     const fType = FASADE_POSITIONS[key].FASADE_TYPE;
                     fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(milling, fType)[0] ?? null;
                 }
-
+                
                 const selectedPatina = this.getSelectedPatina(fasadeData)
 
                 if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1) {
