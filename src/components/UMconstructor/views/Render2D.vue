@@ -460,9 +460,12 @@ const renderGrid = (_moduleGrid) => {
 
                     tmp_array_sectors.push(sector);
 
-                    //Добавляем отступ по вертикали
+                    // Добавляем отступ по вертикали. Обход идёт сверху вниз, поэтому
+                    // промежуток после субъячейки — это полка под ней, и её толщина
+                    // зависит от типа: у стеклянной своя, от материала корпуса не зависит
+                    drawGlassShelf(extra, rowxOffset, rowyOffset + RowpxHeight, RowpxWidth);
                     rowyOffset +=
-                      RowpxHeight + getPixelHeight(moduleGrid.moduleThickness);
+                      RowpxHeight + getPixelHeight(UMconstructor.value.getShelfThickness(extra, moduleGrid));
                   });
 
                 //Добавляем отступ по вертикали
@@ -589,8 +592,9 @@ const renderGrid = (_moduleGrid) => {
             tmp_array_sectors.push(sector);
           }
 
-          //Добавляем отступ по вертикали
-          yOffset += pxHeight + getPixelHeight(props.module.moduleThickness);
+          // Добавляем отступ по вертикали — промежуток под ячейкой занимает её полка
+          drawGlassShelf(cell, xOffset, yOffset + pxHeight, pxWidth);
+          yOffset += pxHeight + getPixelHeight(UMconstructor.value.getShelfThickness(cell, props.module));
         });
 
       const colBond = shapeAdjuster.createColumnBounds(section.cells);
@@ -1192,6 +1196,33 @@ const createSector = ({
   }
 
   return sector;
+};
+
+// Стеклянную полку в 2D иначе не отличить: сама полка — это промежуток между ячейками,
+// через который просвечивает корпус. Признак лежит на ячейке, под которой полка стоит,
+// и на экране это её нижняя граница.
+//
+// Рисуем отдельно от ручек перетаскивания: те создаются только во вкладке «Модуль»,
+// а полка должна быть видна и в «Наполнении», и в «Фасадах». Промежуток зарезервирован
+// ровно по толщине полки, поэтому закрашиваем его целиком
+const drawGlassShelf = (container, x, y, width) => {
+  if (!container?.glassShelf) {
+    return;
+  }
+
+  const glassShelf = new Graphics();
+
+  glassShelf.rect(
+    x,
+    y,
+    width,
+    getPixelHeight(UMconstructor.value.getShelfThickness(container, props.module)),
+  );
+  glassShelf.fill({ color: "#8ec9e8", alpha: 0.75 });
+  // Ручку перетаскивания перекрывать нельзя — она добавляется позже
+  glassShelf.eventMode = "none";
+
+  deviders.push(glassShelf);
 };
 
 const createLoop = ({ x, y, width, height, loopData }) => {
@@ -2650,8 +2681,11 @@ function dragMove(event) {
           if (row.extras?.length) {
             let divideDelta = Math.floor(-delta1 / row.extras.length);
             let divideDeltaPos1 = divideDelta;
-            let extraSize =
-              (row.extras.length - 1) * currentModule.value.moduleThickness;
+            // Сумма полок внутри столбца: каждая субъячейка, кроме нижней, несёт полку
+            // под собой, и толщина у стеклянной своя. extras отсортированы сверху вниз
+            let extraSize = row.extras
+              .slice(0, -1)
+              .reduce((sum, item) => sum + UMconstructor.value.getShelfThickness(item, currentModule.value), 0);
 
             row.extras.forEach((item) => {
               if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {
@@ -2764,8 +2798,11 @@ function dragMove(event) {
           if (row.extras?.length) {
             let divideDelta = Math.floor(-delta2 / row.extras.length);
             let divideDeltaPos2 = -divideDelta;
-            let extraSize =
-              (row.extras.length - 1) * currentModule.value.moduleThickness;
+            // Сумма полок внутри столбца: каждая субъячейка, кроме нижней, несёт полку
+            // под собой, и толщина у стеклянной своя. extras отсортированы сверху вниз
+            let extraSize = row.extras
+              .slice(0, -1)
+              .reduce((sum, item) => sum + UMconstructor.value.getShelfThickness(item, currentModule.value), 0);
 
             row.extras.forEach((item) => {
               if (item.height + divideDelta >= MIN_SECTION_HEIGHT) {

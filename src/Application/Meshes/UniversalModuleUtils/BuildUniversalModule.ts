@@ -11,7 +11,7 @@ import {
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from '@/store/appliction/useModelState';
 
-import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from '@/components/UMconstructor/utils/Const';
+import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS, SHELF_PRODUCTS, GLASS_SHELF_THICKNESS } from '@/components/UMconstructor/utils/Const';
 import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";
@@ -357,14 +357,27 @@ export class BuildUniversalModule extends BuildProduct {
             cells?.forEach((cell, cellIndex) => {
                 if (cellIndex > 0) {
                     const cellTsarga = getCellTopTsarga(cells[cellIndex - 1]);
+
+                    // Признак типа лежит на ячейке, под которой стоит полка (см. ShelvesManager.addCell).
+                    // Стеклянная уходит как glass_shelf и материал корпуса не получает — цвет ей
+                    // задаёт собственная модель товара
+                    const isGlassShelf = !!cell.glassShelf
+
+                    // position.y — низ детали (выше к нему прибавляется size.y / 2), поэтому
+                    // вычитание толщины держит верх полки на нижней границе ячейки над ней:
+                    // у тонкого стекла зазор появляется снизу, а не съедает высоту ячейки
+                    const shelfThickness = isGlassShelf
+                        ? GLASS_SHELF_THICKNESS
+                        : PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"]
+
                     curSection.fillings.push({  //Добавляем полку, как товар наполнения
-                        position: new THREE.Vector3(cell.position.x, cell.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
+                        position: new THREE.Vector3(cell.position.x, cell.position.y - shelfThickness - full_horizont_height,
                             curSection.position.z - (isSlidingDoors / 2 || 0)),
-                        size: new THREE.Vector3(cell.width, PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"], product_data.depth - isSlidingDoors), // curSection.size.z
-                        product: 5975548,
+                        size: new THREE.Vector3(cell.width, shelfThickness, product_data.depth - isSlidingDoors), // curSection.size.z
+                        product: isGlassShelf ? SHELF_PRODUCTS.glass : SHELF_PRODUCTS.ldsp,
                         id: curSection.fillings.length + 1,
-                        material: PROPS.CONFIG.MODULE_COLOR,
-                        type: 'shelf',
+                        type: isGlassShelf ? 'glass_shelf' : 'shelf',
+                        ...(isGlassShelf ? {} : { material: PROPS.CONFIG.MODULE_COLOR }),
                         ...(cellTsarga ? { tsarga: cellTsarga } : {})
                     })
                     // if (cellTsarga) {
@@ -388,14 +401,19 @@ export class BuildUniversalModule extends BuildProduct {
                     row.extras?.slice().sort((a, b) => a.position.y - b.position.y).forEach((extra, extraIndex, sortedExtras) => {
                         if (extraIndex > 0) {
                             const extraTsarga = sortedExtras[extraIndex - 1]?.tsarga;
+                            const isGlassShelf = !!extra.glassShelf
+                            const shelfThickness = isGlassShelf
+                                ? GLASS_SHELF_THICKNESS
+                                : PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"]
+
                             curSection.fillings.push({  //Добавляем полку, как товар наполнения
-                                position: new THREE.Vector3(extra.position.x, extra.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
+                                position: new THREE.Vector3(extra.position.x, extra.position.y - shelfThickness - full_horizont_height,
                                     curSection.position.z - (isSlidingDoors / 2 || 0)),
-                                size: new THREE.Vector3(row.width, PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"], product_data.depth - isSlidingDoors), // curSection.size.z
-                                product: 5975548,
+                                size: new THREE.Vector3(row.width, shelfThickness, product_data.depth - isSlidingDoors), // curSection.size.z
+                                product: isGlassShelf ? SHELF_PRODUCTS.glass : SHELF_PRODUCTS.ldsp,
                                 id: curSection.fillings.length + 1,
-                                material: PROPS.CONFIG.MODULE_COLOR,
-                                type: 'shelf',
+                                type: isGlassShelf ? 'glass_shelf' : 'shelf',
+                                ...(isGlassShelf ? {} : { material: PROPS.CONFIG.MODULE_COLOR }),
                                 ...(extraTsarga ? { tsarga: extraTsarga } : {})
                             })
                             // if (extraTsarga) {

@@ -112,6 +112,20 @@ export class FasadeBuilder {
     // патин, и null в нём означает «без патины». Раньше в обеих ветках ниже стояло
     // `defPatina ?? 475428`, поэтому материал без патины получал жёстко зашитый id,
     // а при defPatina = 0 — ноль вместо null
+    // Патина, уже выбранная для этого фасада, если материал её допускает. Список тот же,
+    // из которого патины предлагаются в редакторе (createCurrentPatinaData), поэтому
+    // выбранное пользователем значение проверку проходит, а оставшееся от прежнего
+    // материала — нет
+    private getSelectedPatina(fasadeData: THREETypes.TFasadeProp) {
+        if (!fasadeData.PATINA) {
+            return null
+        }
+
+        const materialPatina = (this._FASADE[fasadeData.COLOR]?.PATINA ?? []).filter(id => id != null)
+
+        return materialPatina.includes(fasadeData.PATINA) ? fasadeData.PATINA : null
+    }
+
     private getDefaultPatina(fasadeData: THREETypes.TFasadeProp, defPatina: number | null) {
         const materialPatina = (this._FASADE[fasadeData.COLOR]?.PATINA ?? []).filter(id => id != null)
 
@@ -378,9 +392,20 @@ export class FasadeBuilder {
                     fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(milling, fType)[0] ?? null;
                 }
 
-                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1 ||
-                    this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)
-                ) {
+                // Выбранная патина переживает пересборку — так же, как фрезеровка выше.
+                // Раньше её затирало в обе стороны: проектной патиной по умолчанию либо
+                // null у материалов, чей список патин не содержит null. В УМ фасады
+                // пересобираются на каждое изменение, поэтому выбор там не доживал
+                // до следующего рендера. Запрет от фрезеровки остаётся сильнее выбора
+                const selectedPatina = this.getSelectedPatina(fasadeData)
+
+                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1) {
+                    fasadeData.PATINA = null;
+                }
+                else if (selectedPatina) {
+                    fasadeData.PATINA = selectedPatina;
+                }
+                else if (this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)) {
                     fasadeData.PATINA = null;
                 }
                 else {
@@ -541,8 +566,13 @@ export class FasadeBuilder {
                 const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
                 fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(fasadeData.MILLING, fType)[0] ?? null;
             }
+            const selectedPatina = this.getSelectedPatina(fasadeData)
+
             if (this._MILLING[fasadeData.MILLING].PATINAOFF == 1) {
                 fasadeData.PATINA = null;
+            }
+            else if (selectedPatina) {
+                fasadeData.PATINA = selectedPatina;
             }
             else {
                 fasadeData.PATINA = this.getDefaultPatina(fasadeData, defPatina)

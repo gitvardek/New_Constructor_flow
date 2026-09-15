@@ -141,6 +141,7 @@ onMounted(() => {
 
                 <!-- Без target: панель работает по текущему выделению — сектор, ячейка или субъячейка -->
                 <SectionElementAdder :module="module" :UMconstructor="UMconstructor" />
+
               </div>
 
               <div class="UM actions-header">
@@ -242,7 +243,7 @@ onMounted(() => {
                 :target="{ sec: secIndex, cell: null, row: null, extra: null }" />
 
               <article class="actions-items">
-                <div class="actions-items--right-items" v-if="secIndex == selectedCell.sec">
+                <div class="actions-items--container" v-if="secIndex == selectedCell.sec">
 
                   <div
                     v-if="!module.isHiTech && (!module.isRestrictedModule || (module.isRestrictedModule && module.sections.length < 2))"
@@ -295,7 +296,7 @@ onMounted(() => {
 
 .item-group--title {
   font-size: large;
-  padding:  0.75rem 0.75rem 0 0.75rem;
+  padding: 0.75rem 0.75rem 0 0.75rem;
 }
 
 // Аккордеонов больше нет, поэтому выбранный уровень обозначаем цветом: акцент слева
@@ -315,13 +316,13 @@ onMounted(() => {
   // }
 }
 
-// Панель добавления остаётся на виду при прокрутке списка ячеек. Скроллится
-// .actions-items--wrapper, поэтому липнем к его верхней границе; фон обязателен,
-// иначе содержимое просвечивает под панелью
 .actions-panel--sticky {
+  background-color: rgba($white, 1);
+  flex-direction: column;
+  align-items: flex-start;
   position: sticky;
   top: 0;
   z-index: 2;
-  background-color: rgba($white, 1);
+
 }
 </style>

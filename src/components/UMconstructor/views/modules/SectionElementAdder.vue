@@ -3,7 +3,7 @@
 
 import CounterInput from "@/components/ui/inputs/CounterInput.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 const props = defineProps({
   module: {
@@ -101,7 +101,9 @@ const canAddShelf = computed(() => {
 });
 
 // Вертикальный разделитель в горизонтальную ячейку не ставится, а у ограниченного
-// модуля недоступен вовсе
+// модуля недоступен вовсе. К стеклянной полке он тоже не крепится — проверку держит
+// ShelvesManager, здесь только прячем кнопку. На уровне столбца смотрим ту же ячейку:
+// разделитель добавляется внутрь неё
 const canAddDivider = computed(() => {
   if (props.module?.isRestrictedModule) {
     return false;
@@ -111,15 +113,25 @@ const canAddDivider = computed(() => {
     return false;
   }
 
+  if (props.UMconstructor?.SHELVES.hasGlassShelfAround(section.value, coords.value.cell)) {
+    return false;
+  }
+
   return canAddShelf.value;
 });
 
-const shelfLabel = computed(() => {
-  if (level.value === "row" || level.value === "extra") {
-    return "Полка";
-  }
+// Тип добавляемой полки. ЛДСП делит ячейку корпусной полкой, стеклянная — тем же
+// делением, но полка уходит в 3D и в корзину как glass_shelf (см. SHELF_PRODUCTS)
+const shelfType = ref<string>("ldsp");
 
+const shelfLabel = computed(() => {
   return "Добавить полку";
+
+  // if (level.value === "row" || level.value === "extra") {
+  //   return "Полка";
+  // }
+
+  // return "Добавить полку";
 });
 
 const addShelf = (count: number | string) => {
@@ -127,23 +139,24 @@ const addShelf = (count: number | string) => {
   const grid = props.module;
   const SHELVES = props.UMconstructor.SHELVES;
   const amount = parseInt(count);
+  const glass = shelfType.value === "glass";
 
   switch (level.value) {
     case "extra": {
-      SHELVES.addRowExtra({ grid, secIndex: sec, cellIndex, rowIndex, extraIndex, count: amount });
+      SHELVES.addRowExtra({ grid, secIndex: sec, cellIndex, rowIndex, extraIndex, count: amount, glass });
       break;
     }
     case "row": {
-      SHELVES.addRowExtra({ grid, secIndex: sec, cellIndex, rowIndex, extraIndex: 0, count: amount });
+      SHELVES.addRowExtra({ grid, secIndex: sec, cellIndex, rowIndex, extraIndex: 0, count: amount, glass });
       break;
     }
     case "cell": {
-      SHELVES.addCell({ grid, secIndex: sec, cellIndex, count: amount });
+      SHELVES.addCell({ grid, secIndex: sec, cellIndex, count: amount, glass });
       break;
     }
     case "section": {
       // У секции без ячеек addCell сам создаёт базовую ячейку из её размеров
-      SHELVES.addCell({ grid, secIndex: sec, cellIndex: null, count: amount });
+      SHELVES.addCell({ grid, secIndex: sec, cellIndex: null, count: amount, glass });
       break;
     }
     default: {
@@ -195,5 +208,41 @@ const addDivider = (count: number | string) => {
         button-class="actions-btn actions-btn--default actions-items--right-items-input-block-button" type="number"
         @update:model-value="addDivider" />
     </div>
+
+    <div v-if="canAddShelf" class="um-shelf-type">
+      <p class="um-shelf-type--title">Тип полки</p>
+      <select class="um-shelf-type--input" v-model="shelfType" title="Материал добавляемой полки">
+        <option value="ldsp">ЛДСП</option>
+        <option value="glass">Стеклянная</option>
+      </select>
+    </div>
   </template>
 </template>
+
+<style scoped lang="scss">
+// Компактный блок в одну строку: панель закреплена сверху и место в ней дорого
+.um-shelf-type {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+
+
+  &--title {
+    width: auto;
+    margin-left: 0;
+    font-size: 1.1rem;
+    white-space: nowrap;
+
+  }
+
+  &--input {
+    width: auto;
+    padding: 0.3rem 0.7rem;
+    border-radius: 10px;
+    background-color: $white;
+    font-size: 1.2rem;
+    color: $dark-grey;
+  }
+}
+</style>

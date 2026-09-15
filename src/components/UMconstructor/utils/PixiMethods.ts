@@ -7,7 +7,6 @@ import { TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
-
 type TDashedLine = {
     startX: number;
     startY: number;
@@ -53,7 +52,6 @@ const {
 } = UM_PARAMS;
 
 type TExtremum = { maxX: number, maxY: number, minX: number, minY: number }
-
 
 class Helpers {
 

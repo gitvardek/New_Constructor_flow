@@ -1077,34 +1077,40 @@ const renderDescription = computed(() => {
           key !== "RIGHTSIDECOLOR" &&
           key !== "TOPFASADECOLOR" &&
           key !== "BACKWALL" &&
-          key !== "DOORS"
+          key !== "DOORS" &&
+          getPropDefinition(key)?.type !== "GLASS"
         ) {
-          for (const [doorNumber, doorData] of Object.entries(value)) {
-            // Для каждой двери перебираем её части (обычно только часть "1")
-            for (const [partNumber, partData] of Object.entries(doorData)) {
+          // Фрезеровка, патина и палитра приходят по-дверно: MILLING1 = { дверь: { сегмент: id } },
+          // normalizeSegmentedProps выше уже свёл обе формы записи к объекту.
+          //
+          // Названия лежат в корне appData (appData.MILLING, appData.PATINA, appData.PALETTE),
+          // а не в CATALOG — там только PRODUCTS и разделы. Прежний разбор искал справочник
+          // в CATALOG и обеими проверками выходил из цикла на первом же шаге: "if (partData)
+          // continue" пропускал всё непустое, а "if (CATALOG[type]) continue" — всё, для чего
+          // справочник нашёлся. Из-за этого у УМ эти свойства в описание не попадали вовсе.
+          //
+          // Стекло разбирает своя ветка выше, поэтому сюда его не пускаем — иначе задвоится
+          const dictionary = appData.value[getPropDefinition(key)?.type];
 
-              if (partData) continue
+          if (dictionary) {
+            for (const [doorNumber, doorData] of Object.entries(value)) {
+              // Для каждой двери перебираем её части (обычно только часть "1")
+              if (!isObject(doorData) && !Array.isArray(doorData)) continue;
 
-              const { CATALOG } = appData.value
+              for (const [partNumber, partData] of Object.entries(doorData)) {
+                if (!partData) continue;
 
-              if (CATALOG[getPropDefinition(key)?.type]) continue
+                const description =
+                  dictionary[partData]?.NAME ||
+                  `Неизвестный материал (ID: ${partData})`;
 
-              const product = CATALOG[getPropDefinition(key)?.type][partData]
-
-
-              if (!product) continue
-
-              const description =
-                product.NAME ||
-                `Неизвестный материал (ID: ${partData})`;
-
-              result.push({
-                key: getPropDefinition(key)?.NAME,
-                value: `дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
-              });
+                result.push({
+                  key: getPropDefinition(key)?.NAME,
+                  value: `дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
+                });
+              }
             }
           }
-          //  result.push({key: getPropDefinition(key)?.NAME, value: `обхект ${value}`})
         }
 
         if (key === "LEFTSIDECOLOR") {

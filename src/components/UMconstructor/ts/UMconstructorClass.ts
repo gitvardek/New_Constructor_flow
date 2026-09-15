@@ -2,7 +2,7 @@
 
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
 import type { Application } from "@/Application/Core/Application.ts";
-import { UM_PARAMS, WITH_TSARGA } from "./../utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA, GLASS_SHELF_THICKNESS } from "./../utils/Const.ts";
 import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManager.ts";
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
 import SidecolorsManager from "@/components/UMconstructor/ts/modules/SidecolorsManager.ts";
@@ -493,6 +493,13 @@ export default class UMconstructorClass {
         this.reset(grid)
     }
 
+    getShelfThickness(container: any, grid: any) {
+        if (container?.glassShelf) {
+            return GLASS_SHELF_THICKNESS;
+        }
+        return grid?.moduleThickness ?? 18;
+    };
+
     reset(grid: GridModule = this.UM_STORE.getUMGrid()) {
 
         // Сетки нет: конструктор ещё не построил её или уже закрылся, и стор отдаёт
@@ -561,16 +568,20 @@ export default class UMconstructorClass {
 
                         lastCellHeight -= newCell.height
 
+                        // Ячейки идут снизу вверх, и промежуток над текущей — это полка
+                        // следующей: признак типа лежит на ячейке, под которой полка стоит
+                        const shelfAbove = this.getShelfThickness(tmpCells[i + 1], moduleGrid)
+
                         if (i === tmpCells.length - 1 || lastCellHeight <= 0) {
                             newCell.height += lastCellHeight
 
                             if (newCell.height < MIN_SECTION_HEIGHT) {
-                                newCellsArray[newCellsArray.length - 1].height += newCell.height + moduleGrid.moduleThickness
+                                newCellsArray[newCellsArray.length - 1].height += newCell.height + this.getShelfThickness(newCell, moduleGrid)
                                 break;
                             }
                         }
                         else {
-                            lastCellHeight -= moduleGrid.moduleThickness
+                            lastCellHeight -= shelfAbove
                         }
 
                         if (newCell.cellsRows?.length) {
@@ -621,16 +632,19 @@ export default class UMconstructorClass {
 
                                         lastExtraHeight -= newExtra.height
 
+                                        // Так же, как у ячеек: промежуток над текущей — полка следующей
+                                        const shelfAbove = this.getShelfThickness(extras[j + 1], moduleGrid)
+
                                         if (j === extras.length - 1 || lastExtraHeight <= 0) {
                                             newExtra.height += lastExtraHeight
 
                                             if (newExtra.height < MIN_SECTION_HEIGHT) {
-                                                newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + moduleGrid.moduleThickness
+                                                newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + this.getShelfThickness(newExtra, moduleGrid)
                                                 break;
                                             }
                                         }
                                         else {
-                                            lastExtraHeight -= moduleGrid.moduleThickness
+                                            lastExtraHeight -= shelfAbove
                                         }
 
                                         if (newExtra.fillings?.length) {
@@ -650,7 +664,7 @@ export default class UMconstructorClass {
                                         }
 
                                         newRowExtrasArray.push(newExtra)
-                                        positionRowExtras.y += newExtra.height + moduleGrid.moduleThickness
+                                        positionRowExtras.y += newExtra.height + shelfAbove
                                     }
 
                                     newRow.extras = newRowExtrasArray.slice().sort((a, b) => b.position.y - a.position.y)
@@ -688,7 +702,7 @@ export default class UMconstructorClass {
                             newCell.cellsRows = newCellsRowArray.slice()
                         }
 
-                        positionCells.y += newCell.height + moduleGrid.moduleThickness
+                        positionCells.y += newCell.height + shelfAbove
 
                         if (newCell.fillings?.length) {
                             newCell.fillings = <FillingObject>[...newCell.fillings]

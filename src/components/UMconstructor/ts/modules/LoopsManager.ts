@@ -433,9 +433,16 @@ export default class LoopsManager {
 
         const checkLoop = (_loops, cell) => {
             let result = []
+
+            // Полка под ячейкой занимает свою толщину, а не всегда толщину корпуса:
+            // у стеклянной это 6 мм. С жёстким moduleThickness нижняя граница зоны
+            // уходила на 10 мм ниже самой полки, и петля под стеклянной полкой
+            // попадала в пересечение, хотя полки там уже нет
+            const shelfThickness = this.scope.getShelfThickness(cell, grid)
+
             _loops.forEach(loop => {
                 if (
-                    ((loop.minY < (cell.position.y - moduleThickness) && loop.maxY > (cell.position.y - moduleThickness)) ||
+                    ((loop.minY < (cell.position.y - shelfThickness) && loop.maxY > (cell.position.y - shelfThickness)) ||
                         (loop.minY < cell.position.y && loop.maxY > cell.position.y))
                     &&
                     ((loop.minX <= (cell.position.x - cell.width / 2) && loop.maxX >= (cell.position.x - cell.width / 2)) ||
