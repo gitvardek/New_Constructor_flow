@@ -135,9 +135,6 @@ export default class FasadesManager {
                                 segment.width += deltaWidth;
 
                                 /** @Пересчёт_позиции_фасада */
-                                // const wallOverlap = secIndex === 0 ? leftWidth : grid.moduleThickness;
-                                // segment.position.x = section.position.x - section.width / 2 - wallOverlap + 2 + ((segment.width + 4) * doorIndex);
-
                                 if (secIndex !== 0) {
                                     segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + ((segment.width + 4) * doorIndex);
                                 } else if (doorIndex > 0) {
@@ -207,10 +204,10 @@ export default class FasadesManager {
                 }
 
                 if ((deltaWidth !== 0 || deltaHeight !== 0) && (section.fasadesDrawers?.length || section.hiTechProfiles?.length)) {
-                    this.EXTERNAL_FASADES.renumberSectionFasades(secIndex, grid)
                     this.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
                 }
 
+                this.EXTERNAL_FASADES.renumberSectionFasades(secIndex, grid)
                 this.scope.LOOPS.calcLoops(secIndex, grid)
             }
         else {
@@ -495,7 +492,9 @@ export default class FasadesManager {
 
     resetRestrictedFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
         const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
+
         let resetCount = 0
+
         const walk = (fasades: FasadeObject[][] = []) => {
             fasades?.forEach(door => {
                 door?.forEach(fasade => {
@@ -513,16 +512,12 @@ export default class FasadesManager {
         grid.sections?.forEach(section => walk(section.fasades))
         walk(grid.fasades)
 
-        if (resetCount) {
+        if (resetCount)
             this.scope.callAlert(
                 "warning",
                 `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: для модуля высотой менее ${this.scope.CONST.MIN_SECTION_TO_FILLINGS_HEIGHT} мм такое покрытие недоступно`
             )
-        }
-
     };
-
-    // -----------------------------------------------------------
 
     addDoor(
         secIndex: number,

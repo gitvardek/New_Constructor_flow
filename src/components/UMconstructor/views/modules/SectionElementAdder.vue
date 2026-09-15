@@ -115,9 +115,9 @@ const canAddDivider = computed(() => {
 });
 
 const shelfLabel = computed(() => {
-  if (level.value === "row" || level.value === "extra") {
-    return "Полка";
-  }
+  // if (level.value === "row" || level.value === "extra") {
+  //   return "Полка";
+  // }
 
   return "Добавить полку";
 });

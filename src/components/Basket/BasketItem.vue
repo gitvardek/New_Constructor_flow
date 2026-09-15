@@ -1051,34 +1051,30 @@ const renderDescription = computed(() => {
           key !== "RIGHTSIDECOLOR" &&
           key !== "TOPFASADECOLOR" &&
           key !== "BACKWALL" &&
-          key !== "DOORS"
+          key !== "DOORS" &&
+          getPropDefinition(key)?.type !== "GLASS"
         ) {
-          for (const [doorNumber, doorData] of Object.entries(value)) {
-            // Для каждой двери перебираем её части (обычно только часть "1")
-            for (const [partNumber, partData] of Object.entries(doorData)) {
+          const dictionary = appData.value[getPropDefinition(key)?.type];
 
-              if (partData) continue
+          if (dictionary) {
+            for (const [doorNumber, doorData] of Object.entries(value)) {
+              // Для каждой двери перебираем её части (обычно только часть "1")
+              if (!isObject(doorData) && !Array.isArray(doorData)) continue;
 
-              const { CATALOG } = appData.value
+              for (const [partNumber, partData] of Object.entries(doorData)) {
+                if (!partData) continue;
 
-              if (CATALOG[getPropDefinition(key)?.type]) continue
+                const description =
+                  dictionary[partData]?.NAME ||
+                  `Неизвестный материал (ID: ${partData})`;
 
-              const product = CATALOG[getPropDefinition(key)?.type][partData]
-
-
-              if (!product) continue
-
-              const description =
-                product.NAME ||
-                `Неизвестный материал (ID: ${partData})`;
-
-              result.push({
-                key: getPropDefinition(key)?.NAME,
-                value: `дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
-              });
+                result.push({
+                  key: getPropDefinition(key)?.NAME,
+                  value: `дверь ${doorNumber} часть ${+partNumber + 1} : ${description}`,
+                });
+              }
             }
           }
-          //  result.push({key: getPropDefinition(key)?.NAME, value: `обхект ${value}`})
         }
 
         if (key === "LEFTSIDECOLOR") {

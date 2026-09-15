@@ -110,6 +110,16 @@ export class FasadeBuilder {
         }
     }
 
+    private getSelectedPatina(fasadeData: THREETypes.TFasadeProp) {
+        if (!fasadeData.PATINA) {
+            return null
+        }
+
+        const materialPatina = (this._FASADE[fasadeData.COLOR]?.PATINA ?? []).filter(id => id != null)
+
+        return materialPatina.includes(fasadeData.PATINA) ? fasadeData.PATINA : null
+    }
+
     private getDefaultPatina(fasadeData: THREETypes.TFasadeProp, defPatina: number | null) {
         const materialPatina = (this._FASADE[fasadeData.COLOR]?.PATINA ?? []).filter(id => id != null)
 
@@ -367,9 +377,16 @@ export class FasadeBuilder {
                     const fType = FASADE_POSITIONS[key].FASADE_TYPE;
                     fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(milling, fType)[0] ?? null;
                 }
-                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1 ||
-                    this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)
-                ) {
+
+                const selectedPatina = this.getSelectedPatina(fasadeData)
+
+                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1) {
+                    fasadeData.PATINA = null;
+                }
+                else if (selectedPatina) {
+                    fasadeData.PATINA = selectedPatina;
+                }
+                else if (this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)) {
                     fasadeData.PATINA = null;
                 }
                 else {
@@ -522,10 +539,13 @@ export class FasadeBuilder {
                 const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
                 fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(fasadeData.MILLING, fType)[0] ?? null;
             }
-            if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1 ||
-                this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)
-            ) {
+            const selectedPatina = this.getSelectedPatina(fasadeData)
+
+            if (this._MILLING[fasadeData.MILLING].PATINAOFF == 1) {
                 fasadeData.PATINA = null;
+            }
+            else if (selectedPatina) {
+                fasadeData.PATINA = selectedPatina;
             }
             else {
                 fasadeData.PATINA = this.getDefaultPatina(fasadeData, defPatina)

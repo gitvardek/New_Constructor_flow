@@ -197,8 +197,8 @@ const updateExtraHeight = (event: Event) => {
       <div class="actions-inputs">
         <p class="actions-title">Ширина</p>
         <div class="actions-input--container">
-          <input type="number" class="actions-input" :step="step" :min="CONST.MIN_SECTION_WIDTH"
-            :max="maxSectionWidth" :value="section.width" :disabled="module.sections.length < 2"
+          <input type="number" class="actions-input" :step="step" :min="CONST.MIN_SECTION_WIDTH" :max="maxSectionWidth"
+            :value="section.width" :disabled="module.sections.length < 2"
             @input="updateSectionWidth($event?.target?.value)" />
         </div>
       </div>
@@ -252,8 +252,9 @@ const updateExtraHeight = (event: Event) => {
   }
 
   :deep(.actions-input--container)::before {
-    right: 8px;
+    // right: 8px;
     font-size: 1rem;
+    transform: translate(-10px, -50%);
   }
 }
 </style>
