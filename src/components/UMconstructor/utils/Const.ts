@@ -11,6 +11,7 @@ export const UM_PARAMS = {
 
     MAX_SECTION_WIDTH_TSARGA: 1200,  // Максимальная ширина секции с царгой
 
+    FASADES_MIN_GAP: 4, // Минимальный зазор между соседними фасадами по вертикали в мм
     MIN_FASADE_HEIGHT: 145,
     MIN_FASADE_WIDTH: 126,
     MAX_FASADE_WIDTH: 600,
