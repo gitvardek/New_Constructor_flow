@@ -290,6 +290,11 @@ export class MeshEvents extends BuildersHelper {
         );
 
         CONFIG.MODULE_COLOR = data.ID;
+        if (data.RESET) {
+            delete CONFIG.MANUAL_MODULE_COLOR;
+        } else {
+            CONFIG.MANUAL_MODULE_COLOR = true;
+        }
     }
 
     async changeModuleTexture(data: { [key: string]: any }) {

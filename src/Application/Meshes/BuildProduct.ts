@@ -431,7 +431,10 @@ export class BuildProduct extends BuildersHelper {
             }
 
             if (MODULECOLOR?.[0] != null) {
-                PARAMS.MODULE_COLOR = this.filters.filterModuleColor(MODULECOLOR)[0];
+                const moduleColors = this.filters.filterModuleColor(MODULECOLOR);
+                PARAMS.MODULE_COLOR = moduleColors.includes(this.project.default_module_color)
+                    ? this.project.default_module_color
+                    : moduleColors[0];
             }
 
             if (type_showcase?.[0] != null) {
@@ -608,7 +611,7 @@ export class BuildProduct extends BuildersHelper {
 
         const resolveColorId = (): string => {
             // const defaultColors = this.modelState.createFlatModuleData(product.MODULECOLOR);
-            const isDefault = MODULE_COLOR === this.project.default_module_color || MODULE_COLOR === defaultColors[0];
+            const isDefault = !CONFIG.MANUAL_MODULE_COLOR && MODULE_COLOR === this.project.default_module_color;
 
             const resolveForType = (defColor: string, globalFlag: boolean): string => {
                 const materislExist = defaultColors.includes(MODULE_COLOR);

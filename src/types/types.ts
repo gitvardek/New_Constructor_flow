@@ -494,6 +494,7 @@ export type TConfig = {
   MODELID: number,
   MODEL: number[],
   MODULE_COLOR: number,
+  MANUAL_MODULE_COLOR?: boolean,
   MECHANISM: NumStr | null,
   MECHANISM_TEMP: TMechanismData[] | [],
   SIZE: TSize,
