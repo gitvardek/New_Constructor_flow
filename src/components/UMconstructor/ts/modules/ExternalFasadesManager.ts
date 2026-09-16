@@ -9,6 +9,7 @@ import {
     LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import {TFasadeProp} from "@/types/types.ts";
+import {UM_PARAMS} from "@/components/UMconstructor/utils/Const.ts";
 
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 
@@ -290,7 +291,7 @@ export default class ExternalFasadesManager {
     // Ниже этой суммарной высоты разделение фасада не имеет смысла: сегмент 780
     // плюс технологический зазор 4. Разделение при этом не создаётся и снимается,
     // если область стала меньше
-    static readonly MIN_SPLIT_HEIGHT = 784
+    static readonly MIN_SPLIT_HEIGHT = 780 + UM_PARAMS.FASADES_MIN_GAP
 
     // Возвращает ручное разделение фасада, потерянное при пересборке списка:
     // делит самый высокий сегмент пополам, пока их число не совпадёт с прежним.
@@ -524,7 +525,7 @@ export default class ExternalFasadesManager {
             return
         }
 
-        const OTSTUP = 4
+        const OTSTUP = UM_PARAMS.FASADES_MIN_GAP
 
         const section = grid.sections?.[secIndex]
         const drawerFasades = section?.fasadesDrawers ?? []
@@ -576,43 +577,47 @@ export default class ExternalFasadesManager {
         }
 
         const sorted = bodies.slice().sort((a, b) => fasadeBox(a).y - fasadeBox(b).y)
+        const boxes = sorted.map(fasadeBox)
 
-        // Чистый промежуток над деталью: без технологического зазора, который стопка
-        // занимает и без сдвига. Над верхней деталью — потолок фасадной зоны, он от цоколя
-        // не зависит, поэтому в него сдвиг и упирается
-        const gapTo = (index: number) => {
-            const current = fasadeBox(sorted[index])
-            const upper = sorted[index + 1]
+        // Пол поднимается вместе с цоколем, потолок фасадной зоны от цоколя не зависит.
+        // grid.horizont на этот момент ещё старый — новый выставляется после сдвига
+        const floor = (grid.horizont ?? 0) + delta + 2
+        const ceiling = grid.height - 2
 
-            if (!upper) {
-                return grid.height - 2 - (current.y + current.height)
-            }
+        // Сначала уносим всю стопку за полом: расстояние до цоколя у каждого ящика
+        // сохраняется. Дальше двумя проходами загоняем её в фасадную зону
+        const target = boxes.map(box => box.y + delta)
 
-            return fasadeBox(upper).y - (current.y + current.height) - OTSTUP
+        // Сверху вниз: выше потолка подниматься некуда, и каждый нижний уступает соседу.
+        // Этот проход и забирает недостающие миллиметры из промежутков внутри стопки —
+        // раньше их никто не отдавал, и забитый под завязку модуль не двигался вовсе
+        for (let i = target.length - 1; i >= 0; i--) {
+            const limit = i === target.length - 1
+                ? ceiling - boxes[i].height
+                : target[i + 1] - OTSTUP - boxes[i].height
+
+            target[i] = Math.min(target[i], limit)
         }
 
-        // Промежуток разрывает стопку, только если он настоящий и сдвиг в нём помещается.
-        // Иначе деталь выше упрётся в ту, что двигаем, и её тоже берём в стопку
-        let last = 0
-        while (last < sorted.length - 1) {
-            const gap = gapTo(last)
-            if (gap > 0 && gap >= delta) {
-                break
-            }
+        // Снизу вверх: ниже пола опускаться некуда, и каждый верхний уступает соседу
+        for (let i = 0; i < target.length; i++) {
+            const limit = i === 0
+                ? floor
+                : target[i - 1] + boxes[i - 1].height + OTSTUP
 
-            last += 1
+            target[i] = Math.max(target[i], limit)
         }
 
-        const shift = delta > 0 ? Math.min(delta, gapTo(last)) : delta
-        if (delta > 0 && shift <= 0) {
-            return
-        }
-
-        const run = sorted.slice(0, last + 1)
+        // Сдвиг у каждой детали свой: у одних сохранилось расстояние до пола, у других
+        // его срезал потолок
+        const shiftOf = new Map()
+        sorted.forEach((body, index) => {
+            shiftOf.set(body, target[index] - boxes[index].y)
+        })
 
         const moved = new Set()
-        const moveBody = (body) => {
-            if (!body?.position || moved.has(body)) {
+        const moveBody = (body, shift) => {
+            if (!body?.position || !shift || moved.has(body)) {
                 return
             }
             moved.add(body)
@@ -627,13 +632,15 @@ export default class ExternalFasadesManager {
             }
         }
 
-        run.forEach(moveBody)
+        sorted.forEach(body => moveBody(body, shiftOf.get(body)))
 
         // На живой сетке профиль в hiTechProfiles и в fillings — один объект, после
         // saveUMGrid это копии: догоняем по id, иначе списки разъедутся
         section?.hiTechProfiles?.forEach(profile => {
-            if (run.some(body => body.isProfile && body.id === profile.id)) {
-                moveBody(profile)
+            const twin = sorted.find(body => body.isProfile && body.id === profile.id)
+
+            if (twin) {
+                moveBody(profile, shiftOf.get(twin))
             }
         })
 
@@ -645,9 +652,9 @@ export default class ExternalFasadesManager {
             fasade.position.y = grid.height - (body.position.y + body.height + fasade.manufacturerOffset)
         }
 
-        run.forEach(body => placeFasade(body.fasade, body))
+        sorted.forEach(body => placeFasade(body.fasade, body))
         drawerFasades.forEach(fasade => {
-            const body = run.find(item => item.id === fasade.item)
+            const body = sorted.find(item => item.id === fasade.item)
             placeFasade(fasade, body)
         })
     };
@@ -689,7 +696,7 @@ export default class ExternalFasadesManager {
         if (!fasadePosition)
             return
 
-        const otstup = 4
+        const otstup = UM_PARAMS.FASADES_MIN_GAP
 
         let fullFasadelSize = fasadePosition.FASADE_HEIGHT
         let bottomFasadePosition = grid.horizont + 2
@@ -757,11 +764,11 @@ export default class ExternalFasadesManager {
             if (topBox) {
                 upperFasadeSize = Math.abs(topBox.position.y - bottomFasadePosition)
 
-                if ((!box.isProfile && topBox.isProfile) && upperFasadeSize > 4) {
+                if ((!box.isProfile && topBox.isProfile) && upperFasadeSize > otstup) {
                     bottomFasadePosition += otstup
-                    upperFasadeSize -= 4
+                    upperFasadeSize -= otstup
                 } else if ((!box.isProfile && !topBox.isProfile) && upperFasadeSize > 0) {
-                    upperFasadeSize -= 4
+                    upperFasadeSize -= otstup
                 }
             } else {
                 upperFasadeSize = Math.abs(this.FASADES_MANAGER.scope.UM_STORE.totalHeight - 2 - bottomFasadePosition)
@@ -780,6 +787,15 @@ export default class ExternalFasadesManager {
             if (upperFasadeSize > 0) {
                 fullFasadelSize = fullFasadelSize - upperFasadeSize - (box.isProfile || topBox?.isProfile ? 0 : otstup)
                 bottomFasadePosition = bottomFasadePosition + upperFasadeSize + (box.isProfile || topBox?.isProfile ? 0 : otstup)
+            } else if (topBox) {
+                // Промежуток в зазор не помещается, фасада в нём нет — и курсор раньше
+                // оставался там, куда его довёл предыдущий ящик. Сами ящики при этом
+                // стоят на своих позициях, поэтому курсор копил отставание от стопки:
+                // к верхнему ящику оно дорастало до целого зазора, и дверь вставала
+                // на его фасад вплотную. Возвращаем курсор на реальную позицию
+                // следующего ящика, дальше отсчёт снова идёт от стопки
+                fullFasadelSize = fullFasadelSize - (topBox.position.y - bottomFasadePosition)
+                bottomFasadePosition = topBox.position.y
             }
         }
 

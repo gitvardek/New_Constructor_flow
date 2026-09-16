@@ -15,6 +15,7 @@ export const UM_PARAMS = {
     MIN_FASADE_HEIGHT: 145,
     MIN_FASADE_WIDTH: 126,
     MAX_FASADE_WIDTH: 600,
+    FASADES_MIN_GAP: 4, // Минимальный зазор между соседними фасадами по вертикали (мм)
     MIN_SLIDE_DOOR_WIDTH: 600,
     MAX_SLIDE_DOOR_WIDTH: 1300,
     MIN_HOLE_SIZE_MM: 100, // Минимальный размер отверстия в мм
