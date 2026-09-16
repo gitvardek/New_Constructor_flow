@@ -1390,19 +1390,25 @@ function CatalogApp() {
 
 	}
 
+	// Товары, у которых высота фасада совпадает с высотой изделия
+	this.NESTANDART_FASADE = [14831];
+
 	this.catalogControlConditions = function () {
 		$("[data-conditions]").each(function (i, el) {
 			if ($(el).data('conditions').length) {
 				var form = $(el).parents('form');
 				var size = self.getElementSize(form);
+				var isNestandartFasade = self.NESTANDART_FASADE.indexOf(parseInt($('[name=ID]', form).val(), 10)) !== -1;
 
 				var condition = {
 					"#X#": size.width,
 					"#Y#": size.height,
 					"#Z#": size.depth,
+					"#FASADE_HEIGHT_MAX#": isNestandartFasade ? size.height : 0,
+					"#FASADE_HEIGHT_MIN#": isNestandartFasade ? size.height : 100000,
 				}
 
-				if (!eval(self.expressionsReplace($(el).data('conditions'), condition))) {
+				if (!self.calculateCondition(self.expressionsReplace($(el).data('conditions'), condition))) {
 					$(el).prop('disabled', true);
 					$(el).prop("checked", false);
 					$(el).parents('li').hide();
@@ -1421,6 +1427,20 @@ function CatalogApp() {
 				}
 			}
 		});
+	}
+
+	// Плейсхолдер вида #NAME#, не попавший в подстановку, eval трактует как приватное поле
+	// класса и падает с SyntaxError, обрывая инициализацию товара. Гасим такие токены и
+	// не даём ошибке в одном условии сломать весь каталог.
+	this.calculateCondition = function (expression) {
+		var prepared = String(expression).replace(/#[A-Z0-9_]+#/gi, '0');
+
+		try {
+			return new Function("return " + prepared)();
+		} catch (e) {
+			console.error('Недопустимое условие:', expression, e);
+			return true;
+		}
 	}
 
 	this.getElementSize = function (form) {
