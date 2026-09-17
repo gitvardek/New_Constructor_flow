@@ -75,7 +75,7 @@ export default class RenderContext {
     selectedFasade
     selectedFilling
     hasTsargaProduct
-    hasMetalTsarga
+    hasModuleTsarga
     effectiveMaxSectionWidth
     pixelRatioWidth
     pixelRatioHeight

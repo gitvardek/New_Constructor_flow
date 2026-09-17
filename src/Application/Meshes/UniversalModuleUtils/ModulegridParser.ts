@@ -9,7 +9,7 @@
 
 import * as THREE from 'three'
 import * as THREETypes from "@/types/types"
-import { WITH_TSARGA } from '@/components/UMconstructor/utils/Const';
+import { WITH_TSARGA, MODULE_TSARGA_OPTIONS } from '@/components/UMconstructor/utils/Const';
 
 export class ModulegridParser {
     private builder: any
@@ -40,8 +40,8 @@ export class ModulegridParser {
         }
 
         const isSlidingDoors = product_data.fasades ? 100 : 0
-        const hasMetalTsarga = WITH_TSARGA.includes(product_data.productID) &&
-            PROPS.CONFIG.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active)
+        const hasModuleTsarga = WITH_TSARGA.includes(product_data.productID) &&
+            PROPS.CONFIG.OPTIONS?.some(opt => MODULE_TSARGA_OPTIONS.includes(+opt.id) && opt.active)
 
         product_data.sections.forEach((section, secIndex) => {
 
@@ -210,7 +210,7 @@ export class ModulegridParser {
                 })
             })
 
-            if (!hasMetalTsarga) {
+            if (!hasModuleTsarga) {
                 if (cells.length > 0) {
                     const topCellTsarga = getCellTopTsarga(cells[cells.length - 1]);
                     if (topCellTsarga) {
@@ -228,7 +228,16 @@ export class ModulegridParser {
                 }
             }
 
-            section.fillings?.forEach((filling) => {
+            // Проверка на фантомное содержание (остаточные/некорректные/битые данные)
+
+            const ownFillings = section.cells?.length ? [] : (section.fillings ?? [])
+
+            ownFillings.forEach((filling) => {
+                // distances рассчитывает 2D-слой при отрисовке. Без них разместить элемент
+                // нельзя, поэтому пропускаем запись, а не роняем сборку всего модуля
+
+                if (!filling.distances) return
+
                 let z_pos = filling.type !== "any" ? product_data.depth - filling.size.z / 2 - (isSlidingDoors || 0) : curSection.position.z - (isSlidingDoors || 0)
 
                 let fillingPos = new THREE.Vector3(

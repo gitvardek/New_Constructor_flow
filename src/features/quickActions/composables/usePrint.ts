@@ -62,6 +62,9 @@ export const usePrint = () => {
         }));
       };
 
+      // Сохраняем текущее состояние корзины до синха всех комнат
+      const savedBasketData = basketStore.basketData;
+
       if (mergedBasketItems.length > 0) {
         const handleIds = collectHandleIds(mergedBasketItems);
         const itemsToSync = handleIds.length > 0
@@ -70,7 +73,12 @@ export const usePrint = () => {
         await basketStore.syncBasketMulti(itemsToSync);
       }
 
+      // Снимаем данные для печати из объединённой корзины всех комнат
       const basketData = basketStore.basketData;
+
+      // Немедленно восстанавливаем корзину текущей комнаты —
+      // до открытия диалога печати, чтобы связь 3D-сцены и корзины не терялась
+      basketStore.updateBasket(savedBasketData as any);
 
       // Получаем данные приложения для доступа к названиям цветов
       const appDataStore = useAppData();
@@ -111,10 +119,32 @@ export const usePrint = () => {
             if (fasade.PALETTE) rows.push(`Палитра ${n}: ${appData?.PALETTE?.[fasade.PALETTE]?.NAME || fasade.PALETTE}`);
             if (fasade.GLASS) rows.push(`Стекло ${n}: ${appData?.GLASS?.[fasade.GLASS]?.NAME || fasade.GLASS}`);
             if (fasade.PATINA) rows.push(`Патина ${n}: ${appData?.PATINA?.[fasade.PATINA]?.NAME || fasade.PATINA}`);
+            if (fasade.HANDLES) {
+              console.log(fasade.HANDLES, '<<<<HANDLES>>>>')
+
+              const hId = fasade.HANDLES.ID ?? fasade.HANDLES.id;
+              if (hId && hId !== 69920) {
+                const name = appData?.CATALOG?.PRODUCTS?.[hId]?.NAME;
+                if (name) rows.push(`Ручка ${n}: ${name}`);
+              }
+            }
           });
         }
 
-        // BODY: размеры
+        // HANDLES для UM-продуктов (top-level, рядом с PROPS)
+        if (Array.isArray(product?.HANDLES) && product.HANDLES.length > 0) {
+          product.HANDLES.forEach((handle: any, i: number) => {
+            const hId = handle.id ?? handle.ID;
+            if (hId && hId !== 69920) {
+              const name = appData?.CATALOG?.PRODUCTS?.[hId]?.NAME;
+              if (name) rows.push(`Ручка ${i + 1}: ${name}`);
+            }
+          });
+        }
+
+        // Размеры. У обычных товаров они в BODY.SIZE, у УМ — плоскими ключами
+        // SIZEEDIT*: convertModuleToLegacyFormat возвращает собственный объект PROPS,
+        // в котором BODY отсутствует вовсе
         const size = props.BODY?.SIZE;
         const width = size?.WIDTH ?? props.SIZEEDITWIDTH;
         const height = size?.HEIGHT ?? props.SIZEEDITHEIGHT;
@@ -150,6 +180,39 @@ export const usePrint = () => {
           props.OPTION.forEach((optId: any) => {
             const name = appData?.OPTION?.[optId]?.NAME;
             if (name) rows.push(`Опции: ${name}`);
+          });
+        }
+
+        // Фрезеровка, палитра, патина и стекло секций. У обычных товаров они печатаются
+        // из props.FASADE, у УМ приходят посекционно: MILLING1, PALETTE1, PATINA1,
+        // GLASS1 — объекты вида { дверь: { индекс: id } }
+        const sectionMaterials: Array<[string, string, any]> = [
+          ['MILLING', 'Фрезеровка', appData?.MILLING],
+          ['PALETTE', 'Палитра', appData?.PALETTE],
+          ['PATINA', 'Патина', appData?.PATINA],
+          ['GLASS', 'Стекло', appData?.GLASS],
+        ];
+
+        for (let i = 1; i <= 10; i++) {
+          sectionMaterials.forEach(([key, label, dict]) => {
+            const byDoor = props[`${key}${i}`];
+            if (!byDoor || typeof byDoor !== 'object') return;
+
+            for (const [doorNum, byIndex] of Object.entries(byDoor as any)) {
+              // Вложенность бывает и массивом: сплошной ряд ключей 0,1,… бэкенд отдаёт
+              // массивом, а разреженный — объектом. Object.entries разбирает обе формы
+              if (byIndex && typeof byIndex === 'object') {
+                for (const [partNum, id] of Object.entries(byIndex as any)) {
+                  if (!id) continue;
+                  rows.push(`${label} секции ${i}: дверь ${doorNum} часть ${+partNum + 1}: ${dict?.[id as any]?.NAME || id}`);
+                }
+                continue;
+              }
+
+              // У дверей-купе индекс плоский: { сегмент: id } без уровня двери
+              if (!byIndex) continue;
+              rows.push(`${label} секции ${i}: часть ${+doorNum + 1}: ${dict?.[byIndex as any]?.NAME || byIndex}`);
+            }
           });
         }
 
@@ -622,6 +685,10 @@ export const usePrint = () => {
         document.head.removeChild(printStyles);
         document.body.removeChild(printDiv);
         window.removeEventListener('afterprint', cleanup);
+
+        // Восстанавливаем корзину текущей комнаты — syncBasketMulti перезаписал
+        // basketData объединёнными данными всех комнат, что рвёт связь с 3D-сценой
+        basketStore.syncBasket();
       });
 
     } catch (error) {

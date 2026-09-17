@@ -725,17 +725,18 @@ class Shape extends Helpers {
             let otherShapeHeight = otherShape.height
 
             if (!['loop', 'vertical_shelf'].includes(otherShape.data.type)) {
+                const halfGap = UM_PARAMS.FASADES_MIN_GAP / 2
                 thisPosY = this.data.fasade ? this.graphic.position.y
-                    - this.getPixelHeight(this.data.fasade.height - this.data.fasade.manufacturerOffset - this.data.height + 2)
+                    - this.getPixelHeight(this.data.fasade.height - this.data.fasade.manufacturerOffset - this.data.height + halfGap)
                     : thisPosY
 
-                thisHeight = this.data.fasade ? this.getPixelHeight(this.data.fasade.height + 4) : thisHeight
+                thisHeight = this.data.fasade ? this.getPixelHeight(this.data.fasade.height + UM_PARAMS.FASADES_MIN_GAP) : thisHeight
 
                 otherShapePosY = otherShape.data.fasade ? otherShape.graphic.position.y -
-                    otherShape.getPixelHeight(otherShape.data.fasade.height - otherShape.data.fasade.manufacturerOffset - otherShape.data.height + 2)
+                    otherShape.getPixelHeight(otherShape.data.fasade.height - otherShape.data.fasade.manufacturerOffset - otherShape.data.height + halfGap)
                     : otherShapePosY
 
-                otherShapeHeight = otherShape.data.fasade ? otherShape.getPixelHeight(otherShape.data.fasade.height + 4) : otherShapeHeight
+                otherShapeHeight = otherShape.data.fasade ? otherShape.getPixelHeight(otherShape.data.fasade.height + UM_PARAMS.FASADES_MIN_GAP) : otherShapeHeight
 
                 if (!(this.data.isProfile && otherShape.data.isProfile)) {
                     if (this.data.isProfile && otherShape.data.fasade) {
@@ -1338,6 +1339,7 @@ class ShapeAdjuster extends Helpers {
 
             const mmToPixel = this.getPixelHeight(1)
             const totalMax = this.getMmHeight(maxY - minY - height)
+            const bottomLimit = minY + (bounds.height - height)
             for (let i = 0; i < totalMax; i += this.step) {
                 const pixel_i = i * mmToPixel
                 const y = this.convertToTen(minY + (bounds.height - height) - pixel_i);
@@ -1350,9 +1352,20 @@ class ShapeAdjuster extends Helpers {
                         (other) => other !== shape && shape.checkOverlap(other)
                     )
                 ) {
+                    let settled = y
+                    while (settled < bottomLimit) {
+                        shape.graphic.position.y = settled + 1
+
+                        if (sector.shapes.some((other) => other !== shape && shape.checkOverlap(other))) {
+                            break
+                        }
+
+                        settled += 1
+                    }
+
                     shape.graphic.position.x = origX;
                     shape.graphic.position.y = origY;
-                    return { x, y };
+                    return { x, y: settled };
                 }
             }
         }

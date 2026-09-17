@@ -76,6 +76,7 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
     LEFTSIDECOLOR,
     HORIZONT,
     MODULE_COLOR,
+    MANUAL_MODULE_COLOR,
     TSARGA,
     TOPFASADECOLOR,
     OPTIONS,
@@ -92,6 +93,7 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
   let universalModuleConfigCash = {
     HORIZONT,
     MODULE_COLOR,
+    MANUAL_MODULE_COLOR,
     EXPRESSIONS: { ...EXPRESSIONS }
   };
 
@@ -159,9 +161,10 @@ defineExpose({
     @close-modal="closeUMRedactor">
     <template #modalBody="{ onModalClose }" class="modal--tableTop">
       <div class="um-modal-body-wrapper">
-        <MainView v-if="isUMModalOpen && !isWardrobeProduct" ref="universalModule2DConstructor" :productData="universalModuleData.PROPS"
-          :canvasHeight="universalModuleData.canvasHeight" :canvasWidth="universalModuleData.canvasWidth"
-          :verdekConstructor="verdekConstructor" @close-modal="closeUMRedactor">
+        <MainView v-if="isUMModalOpen && !isWardrobeProduct" ref="universalModule2DConstructor"
+          :productData="universalModuleData.PROPS" :canvasHeight="universalModuleData.canvasHeight"
+          :canvasWidth="universalModuleData.canvasWidth" :verdekConstructor="verdekConstructor"
+          @close-modal="closeUMRedactor">
           <template #save>
             <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
               @click="saveUMData">
@@ -180,9 +183,10 @@ defineExpose({
           </template>
         </MainView>
 
-        <WardrobeMainView v-if="isUMModalOpen && isWardrobeProduct" ref="universalModule2DConstructor" :productData="universalModuleData.PROPS"
-          :canvasHeight="universalModuleData.canvasHeight" :canvasWidth="universalModuleData.canvasWidth"
-          :verdekConstructor="verdekConstructor" @close-modal="closeUMRedactor">
+        <WardrobeMainView v-if="isUMModalOpen && isWardrobeProduct" ref="universalModule2DConstructor"
+          :productData="universalModuleData.PROPS" :canvasHeight="universalModuleData.canvasHeight"
+          :canvasWidth="universalModuleData.canvasWidth" :verdekConstructor="verdekConstructor"
+          @close-modal="closeUMRedactor">
           <template #save>
             <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
               @click="saveUMData">

@@ -11,7 +11,7 @@ import {
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from '@/store/appliction/useModelState';
 
-import { UM_PARAMS, WITH_TSARGA } from '@/components/UMconstructor/utils/Const';
+import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from '@/components/UMconstructor/utils/Const';
 import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";

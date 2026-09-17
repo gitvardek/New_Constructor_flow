@@ -104,7 +104,7 @@ export default class FillingsManager {
         return this.core.createFillingDataToCheck(...args)
     }
 
-    syncDrawerFasade(...args: Parameters<FillingsCore["syncDrawerFasade"]>){
+    syncDrawerFasade(...args: Parameters<FillingsCore["syncDrawerFasade"]>) {
         return this.core.syncDrawerFasade(...args)
     }
 
@@ -142,6 +142,10 @@ export default class FillingsManager {
 
     cleanupOversizedFillings(...args: Parameters<FillingsCore["cleanupOversizedFillings"]>) {
         return this.core.cleanupOversizedFillings(...args)
+    }
+
+    cleanupOrphanFillings(...args: Parameters<FillingsCore["cleanupOrphanFillings"]>) {
+        return this.core.cleanupOrphanFillings(...args)
     }
 
     // --- Оркестрация размещения/удаления наполнения: генерика вперемешку с
@@ -203,6 +207,11 @@ export default class FillingsManager {
 
         if (currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
             this.scope.callAlert("error", `Нельзя добавить наполнение: ширина области (${currentModuleSegment.width} мм) превышает ${UM_PARAMS.FILLINGS_MAX_WIDTH} мм`)
+            return;
+        }
+
+        if (currentModuleSegment.height <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT) {
+            this.scope.callAlert("error", `Нельзя добавить наполнение: высота области (${currentModuleSegment.height} мм) менее ${UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT} мм`)
             return;
         }
 
@@ -413,4 +422,5 @@ export default class FillingsManager {
     changeUniversalHeight(...args: Parameters<DrawerFillingHandler["changeUniversalHeight"]>) {
         return this.drawers.changeUniversalHeight(...args)
     }
+
 }

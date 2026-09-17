@@ -25,7 +25,7 @@ export default class DrawerFillingHandler {
     private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
     private readonly INNER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.INNER
     private readonly UNIVERSAL_DRAWER_IDS: number[] = UM_DRAWERS_IDS.UNIVERSAL
-    static readonly UNIVERSAL_DRAWER_MIN_THICKNESS = 18
+    private readonly UNIVERSAL_DRAWER_MIN_THICKNESS = 18
 
     constructor(scope: UMconstructorClass, core: FillingsCore) {
         this.scope = scope
@@ -64,7 +64,7 @@ export default class DrawerFillingHandler {
             for (let i = segment.fillings.length - 1; i >= 0; i--) {
                 if (!UM_DRAWERS_IDS.UNIVERSAL.includes(segment.fillings[i]?.productGroupID)) continue
 
-                this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false)
+                this.scope.FILLINGS.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false)
                 removed = true
             }
         }
@@ -88,12 +88,13 @@ export default class DrawerFillingHandler {
 
     // Проверка минимальной глубины для универсального ящика. true — можно продолжать размещение.
     validateUniversalDrawerDepth(_product: any, productGroupID: number, grid: GridModule): boolean {
+        // Обе проверки — только для универсальных ящиков, остальное наполнение пропускаем
+        if (!isUniversalDrawer(productGroupID, this.UNIVERSAL_DRAWER_IDS)) return true
+
         if (!this.isUniversalDrawerAllowed(grid)) {
             this.scope.callAlert("error", `Невозможно установить универсальный ящик: толщина корпуса или боковой стенки меньше ${this.UNIVERSAL_DRAWER_MIN_THICKNESS} мм`)
             return false;
         }
-
-        if (!UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) return true
 
         const minDepth = _product.SIZE_EDIT_DEPTH?.length
             ? Math.min(..._product.SIZE_EDIT_DEPTH) + 7

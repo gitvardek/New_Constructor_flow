@@ -6,11 +6,13 @@ export const UM_PARAMS = {
     MIN_SECTION_WIDTH: 114, // Минимальная ширина секции
 
     MIN_SECTION_HEIGHT: 100, // Минимальная высота секции
+    MIN_SECTION_TO_FILLINGS_HEIGHT: 250,// Минимальная высота секции c наполнением
     MAX_SECTION_WIDTH: 900, // Максимальная ширина секции без царги
 
     MAX_SECTION_WIDTH_TSARGA: 1200,  // Максимальная ширина секции с царгой
 
-    MIN_FASADE_HEIGHT: 360,
+    FASADES_MIN_GAP: 4, // Минимальный зазор между соседними фасадами по вертикали в мм
+    MIN_FASADE_HEIGHT: 145,
     MIN_FASADE_WIDTH: 126,
     MAX_FASADE_WIDTH: 600,
     MIN_SLIDE_DOOR_WIDTH: 600,
@@ -39,4 +41,5 @@ export const UM_DRAWERS_IDS = {
 }
 
 export const WITH_TSARGA = [3954672];
+export const MODULE_TSARGA_OPTIONS = [7250589, 7250452];
 // export const WITH_TSARGA = [];

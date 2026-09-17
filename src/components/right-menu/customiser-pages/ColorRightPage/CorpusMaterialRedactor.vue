@@ -11,6 +11,7 @@ import {
 } from "vue";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
+import { useSceneState } from "@/store/appliction/useSceneState";
 
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import MaterialSelector from "./MaterialSelector.vue";
@@ -19,6 +20,7 @@ import ConfigurationOption from "./ConfigurationOption.vue";
 
 const modelState = useModelState();
 const eventBus = useEventBus();
+const sceneState = useSceneState();
 interface IProps {
   materialList: [];
   is2Dconstructor?: boolean;
@@ -109,13 +111,20 @@ const deleteSelectedOptions = (type: string) => {
     };
     callback(false);
   } else {
-    const fallback = modelState._FASADE[materialList.value![0].FASADES[0]];
+    const available = (materialList.value ?? []).flatMap((group) => group.FASADES ?? []);
+    const projectColor = sceneState.getCurrentProjectParams?.default_module_color;
+    const resetId = available.includes(projectColor) ? projectColor : available[0];
+    const fallback = modelState._FASADE[resetId];
+
+    if (!fallback) {
+      return;
+    }
     currentSurfaceData.value = {
       name: fallback.NAME,
       imgSrc: fallback.PREVIEW_PICTURE,
     };
 
-    eventBus.emit("A:ChangeModuleTexture", fallback);
+    eventBus.emit("A:ChangeModuleTexture", { ...fallback, RESET: true });
   }
 };
 

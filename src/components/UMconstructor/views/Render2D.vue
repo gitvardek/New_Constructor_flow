@@ -13,7 +13,7 @@ import {
 } from "vue";
 import { Application, Container, Graphics, Text } from "pixi.js";
 import { Shape, ShapeAdjuster, Section } from "./../utils/PixiMethods.ts";
-import { UM_PARAMS, UM_DRAWERS_IDS, WITH_TSARGA } from "./../utils/Const.ts";
+import { UM_PARAMS, UM_DRAWERS_IDS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from "./../utils/Const.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import * as THREE from "three";
 import { LOOPSIDE, TSelectedCell } from "./../types/UMtypes.ts";
@@ -74,9 +74,10 @@ const effectiveMaxSectionWidth = computed(() =>
   hasTsargaProduct.value ? UM_PARAMS.MAX_SECTION_WIDTH_TSARGA : UM_PARAMS.MAX_SECTION_WIDTH
 );
 
-const hasMetalTsarga = computed(() =>
+const hasModuleTsarga = computed(() =>
   hasTsargaProduct.value &&
-  (UMconstructor.value?.UM_STORE.getUMData()?.CONFIG?.OPTIONS?.some(opt => +opt.id === 7250589 && opt.active) ?? false)
+  (UMconstructor.value?.UM_STORE.getUMData()?.CONFIG?.OPTIONS
+    ?.some(opt => MODULE_TSARGA_OPTIONS.includes(+opt.id) && opt.active) ?? false)
 );
 
 let app: Application,
@@ -289,7 +290,7 @@ ctx = new RenderContext({
   sections, sectionLables, deviders, dementions, fillings, fillingsMap, fasades, loops, handles,
   getPixelWidth, getPixelHeight, getMmWidth, getMmHeight,
   mode, currentModule, selectedCell, selectedFasade, selectedFilling,
-  hasTsargaProduct, hasMetalTsarga, effectiveMaxSectionWidth,
+  hasTsargaProduct, hasModuleTsarga, effectiveMaxSectionWidth,
   pixelRatioWidth, pixelRatioHeight,
   props, APP, UMconstructor, canvasContainer,
   dragState, lastDragEvent,
@@ -388,7 +389,7 @@ watch(
   },
 );
 
-watch(hasMetalTsarga, () => {
+watch(hasModuleTsarga, () => {
   UMconstructor.value?.reset();
 });
 

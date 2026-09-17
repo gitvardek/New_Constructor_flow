@@ -534,7 +534,7 @@ export default class DividerDragEngine {
             row.extras?.forEach(extra => delete extra.tsarga);
             return;
         }
-        applyTsargaToRow(row, isCellRoof, ctx.hasMetalTsarga.value);
+        applyTsargaToRow(row, isCellRoof, ctx.hasModuleTsarga.value);
     }
 
     dragMove(event) {
@@ -808,7 +808,7 @@ export default class DividerDragEngine {
                 });
 
                 if (!section.cells.length) {
-                    if (ctx.hasTsargaProduct.value && !ctx.hasMetalTsarga.value && isTsargaEligibleWidth(section.width)) {
+                    if (ctx.hasTsargaProduct.value && !ctx.hasModuleTsarga.value && isTsargaEligibleWidth(section.width)) {
                         section.tsarga = createTsargaData(section.width, section.position.x);
                     } else {
                         delete section.tsarga;
@@ -978,7 +978,7 @@ export default class DividerDragEngine {
                 });
 
                 if (!nextSection.cells.length) {
-                    if (ctx.hasTsargaProduct.value && !ctx.hasMetalTsarga.value && isTsargaEligibleWidth(nextSection.width)) {
+                    if (ctx.hasTsargaProduct.value && !ctx.hasModuleTsarga.value && isTsargaEligibleWidth(nextSection.width)) {
                         nextSection.tsarga = createTsargaData(nextSection.width, nextSection.position.x);
                     } else {
                         delete nextSection.tsarga;

@@ -95,7 +95,6 @@ const tempUslugi = ref(null);
 
 const isMounted = ref(false);
 const visualizationRef = ref(null);
-const refFooter = ref(null);
 const serviseData = ref([]);
 const grid = ref([]);
 const totalHeight = ref(0);
@@ -1118,7 +1117,7 @@ const saveGrid = () => {
 
   saveProfile();
 
-  toaster.success("Параметры столешницы сохранены", refFooter.value);
+  toaster.success("Параметры столешницы сохранены");
 
   return data;
 };
@@ -1392,7 +1391,7 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <section class="actions-footer" ref="refFooter">
+      <section class="actions-footer">
         <div class="actions-footer--delite">
           <!-- <button class="actions-btn actions-btn--footer" @click="reset(true)">
             Сбросить

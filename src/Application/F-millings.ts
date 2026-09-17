@@ -8003,7 +8003,7 @@ export const MILLINGS = {
         },
     ], // Леон
 
-    3077223: [
+    3077225: [
         {
             name: "Line",
             type: 'capsule',
@@ -8084,7 +8084,7 @@ export const MILLINGS = {
         },
     ], // Параллель Тип 1 фр.слев
 
-    3077225: [
+    3077223: [
         {
             name: "Line",
             type: 'capsule',

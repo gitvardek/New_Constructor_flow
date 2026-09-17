@@ -8,7 +8,7 @@ import {
     GridCellsRow,
     GridRowExtra,
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import { createTsargaData, isTsargaCapableProduct, isMetalTsargaOptionActive, isTsargaEligibleWidth, applyTsargaToRow } from "@/components/UMconstructor/utils/Tsarga.ts";
+import { createTsargaData, isTsargaCapableProduct, isModuleTsargaOptionActive, isTsargaEligibleWidth, applyTsargaToRow } from "@/components/UMconstructor/utils/Tsarga.ts";
 import { getWardrobeShelfColorOptions, findFreeWardrobeShelfPositionY, getWardrobeSectionInstallableHeight, getWardrobeShelfDepth, getWardrobeShelfDragBounds } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
 import { WARDROBE_SHELF_PRODUCT_ID } from "@/components/UMconstructor/ts/createWardrobeGrid.ts";
 
@@ -19,8 +19,9 @@ export default class ShelvesManager {
         this.scope = scope
     }
 
-    private get metalTsargaActive(): boolean {
-        return isMetalTsargaOptionActive(this.scope.UM_STORE.getUMData());
+
+    private get moduleTsargaActive(): boolean {
+        return isModuleTsargaOptionActive(this.scope.UM_STORE.getUMData());
     }
 
     private hasTsargaProduct(grid: GridModule): boolean {
@@ -972,7 +973,7 @@ export default class ShelvesManager {
 
             if (adjustedValue) {
                 let curExtra = curRow.extras[extraIndex]
-                let nextIndex = curRow.extras[extraIndex + 1] ? extraIndex + 1 : extraIndex - 1;
+                let nextIndex = curRow.extras[extraIndex - 1] ? extraIndex - 1 : extraIndex + 1;
                 let nextExtra = curRow.extras[nextIndex]
                 let delta = curExtra.height - adjustedValue
 
@@ -1069,7 +1070,7 @@ export default class ShelvesManager {
             });
             return;
         }
-        const metalTsarga = this.metalTsargaActive;
+        const moduleTsarga = this.moduleTsargaActive;
         // section.cells должен быть уже отсортирован по убыванию position.y (cells[0] = верхняя = крыша)
         section.cells.forEach((cell, cellIdx) => {
             const isCellRoof = cellIdx === 0;
@@ -1077,14 +1078,14 @@ export default class ShelvesManager {
             if (cell.cellsRows?.length > 0) {
                 delete cell.tsarga;
                 cell.cellsRows.forEach(row => {
-                    applyTsargaToRow(row, isCellRoof, metalTsarga);
+                    applyTsargaToRow(row, isCellRoof, moduleTsarga);
                 });
             } else {
-                applyTsargaToRow(cell, isCellRoof, metalTsarga);
+                applyTsargaToRow(cell, isCellRoof, moduleTsarga);
             }
         });
 
-        if (!metalTsarga && section.cells.length === 0) {
+        if (!moduleTsarga && section.cells.length === 0) {
             if (isTsargaEligibleWidth(section.width)) {
                 section.tsarga = createTsargaData(section.width, section.position.x);
             } else {

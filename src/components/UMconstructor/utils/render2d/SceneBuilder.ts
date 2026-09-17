@@ -421,7 +421,7 @@ export default class SceneBuilder {
                 const pxHeight = ctx.getPixelHeight(section.height);
                 // Отрисовываем секцию
 
-                if (ctx.hasTsargaProduct.value && !ctx.hasMetalTsarga.value && isTsargaEligibleWidth(section.width)) {
+                if (ctx.hasTsargaProduct.value && !ctx.hasModuleTsarga.value && isTsargaEligibleWidth(section.width)) {
                     section.tsarga = createTsargaData(section.width, section.position.x);
                 } else {
                     delete section.tsarga;

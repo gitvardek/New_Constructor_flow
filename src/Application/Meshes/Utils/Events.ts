@@ -291,6 +291,11 @@ export class MeshEvents extends BuildersHelper {
         );
 
         CONFIG.MODULE_COLOR = data.ID;
+        if (data.RESET) {
+            delete CONFIG.MANUAL_MODULE_COLOR;
+        } else {
+            CONFIG.MANUAL_MODULE_COLOR = true;
+        }
     }
 
     async changeModuleTexture(data: { [key: string]: any }) {
@@ -1010,7 +1015,7 @@ export class MeshEvents extends BuildersHelper {
             this.dispose.clearParent(currentMesh as THREE.Object3D);
             body = this.buildProduct.createProductBody(currentMesh as THREE.Object3D, data, fasadeSize, false, nstShalfs);
         }
-        
+
         currentMesh.add(body as THREE.Object3D);
         currentMesh.position.set(POSITION.x, POSITION.y, POSITION.z);
         currentMesh.updateMatrixWorld(true);

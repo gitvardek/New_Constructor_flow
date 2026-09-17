@@ -352,6 +352,8 @@ export default class UMconstructorClass {
         const dimension = _dimension.toUpperCase()
         const minmax = _minmax.toUpperCase()
 
+        if (dimension === 'HEIGHT' && minmax === 'MIN') return 150
+
         return +productData.CONFIG.SIZE_EDIT[`SIZE_EDIT_` + dimension + `_` + minmax];
     }
 
@@ -359,13 +361,10 @@ export default class UMconstructorClass {
         this.RENDER_REF = ref
     }
 
-    setAlertRef(ref: Ref) {
-        this.ALERT_FOOTER_REF = ref
-    }
 
     callAlert(type: alertType, message: string) {
         if (type)
-            this.AlERT[type](message, this.ALERT_FOOTER_REF)
+            this.AlERT[type](message)
     }
 
     setShapeAdjuster(SHAPE_ADJUSTER: ShapeAdjuster) {
@@ -377,6 +376,10 @@ export default class UMconstructorClass {
             const PROPS = this.UM_STORE.getUMData();
             const grid = this.UM_STORE.getUMGrid()
 
+            if (!grid?.sections?.length) {
+                return
+            }
+
             let delta = parseInt(value) - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]
             grid.sections.forEach((section, secIndex) => {
                 section.position.y += delta
@@ -385,6 +388,8 @@ export default class UMconstructorClass {
                         segment.position.y += delta;
                     })
                 })
+
+                this.FASADES.EXTERNAL_FASADES.shiftStackWithHorizont(secIndex, delta, grid)
             })
 
             grid.horizont = PROPS.CONFIG.HORIZONT = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] = parseInt(value);
@@ -542,6 +547,10 @@ export default class UMconstructorClass {
     }
 
     reset(grid: GridModule = this.UM_STORE.getUMGrid()) {
+
+        if (!grid?.sections?.length && grid.moduleKind !== 'wardrobe') {
+            return false
+        }
 
         this.UM_STORE.setLoad(true)
 
@@ -1042,6 +1051,9 @@ export default class UMconstructorClass {
             }
 
             module = this.FASADES.updateFasades(module)
+
+            // this.FILLINGS.cleanupOrphanFillings(module)
+            this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.drawers.cleanupUniversalDrawers(module)
         }

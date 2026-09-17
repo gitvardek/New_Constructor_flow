@@ -320,6 +320,7 @@ const selectOption = (
     case "MODULE_COLOR": {
       const oldModuleColor = objectData.value.CONFIG["MODULE_COLOR"];
       objectData.value.CONFIG[currentOption.value] = value.ID;
+      objectData.value.CONFIG["MANUAL_MODULE_COLOR"] = true;
       module.value.moduleColor = value.ID;
       module.value.moduleThickness = value.DEPTH;
 

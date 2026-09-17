@@ -12,7 +12,7 @@
 // уже посчитанные section.tsarga/cell.tsarga/row.tsarga/extra.tsarga,
 // не пересчитывает применимость заново.
 
-import { UM_PARAMS, WITH_TSARGA } from "./Const.ts";
+import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from "./Const.ts";
 
 export const TSARGA_PRODUCT_ID = 15335121
 export const TSARGA_MATERIAL_ID = 15826
@@ -34,8 +34,8 @@ export function isTsargaCapableProduct(productID: number): boolean {
 }
 
 // productData — объект с CONFIG.OPTIONS (то, что возвращает UM_STORE.getUMData()/PROPS)
-export function isMetalTsargaOptionActive(productData: any): boolean {
-    return productData?.CONFIG?.OPTIONS?.some(opt => +opt.id === METAL_TSARGA_OPTION_ID && opt.active) ?? false
+export function isModuleTsargaOptionActive(productData: any): boolean {
+    return productData?.CONFIG?.OPTIONS?.some(opt => MODULE_TSARGA_OPTIONS.includes(+opt.id) && opt.active) ?? false;
 }
 
 export function isTsargaEligibleWidth(width: number): boolean {
@@ -48,11 +48,11 @@ export function isTsargaEligibleWidth(width: number): boolean {
 // полном пересчёте секции (ShelvesManager.recalcSectionTsarga проходит по
 // всем cells/cellsRows), и при точечном обновлении одного row/cell во время
 // драга (DividerDragEngine.updateRowTsarga).
-export function applyTsargaToRow(row: any, isCellRoof: boolean, isMetalTsargaActive: boolean): void {
+export function applyTsargaToRow(row: any, isCellRoof: boolean, isModuleTsargaActive: boolean): void {
     if (row.extras?.length > 0) {
         delete row.tsarga
         row.extras.forEach((extra, extraIdx) => {
-            if (isCellRoof && extraIdx === 0 && isMetalTsargaActive) {
+            if (isCellRoof && extraIdx === 0 && isModuleTsargaActive) {
                 delete extra.tsarga
             } else if (isTsargaEligibleWidth(row.width)) {
                 extra.tsarga = createTsargaData(row.width, row.position?.x ?? 0)
@@ -60,7 +60,7 @@ export function applyTsargaToRow(row: any, isCellRoof: boolean, isMetalTsargaAct
                 delete extra.tsarga
             }
         })
-    } else if (isCellRoof && isMetalTsargaActive) {
+    } else if (isCellRoof && isModuleTsargaActive) {
         delete row.tsarga
     } else if (isTsargaEligibleWidth(row.width)) {
         row.tsarga = createTsargaData(row.width, row.position?.x ?? 0)

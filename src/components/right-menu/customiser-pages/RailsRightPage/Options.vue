@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 //@ts-nocheck
-import { onBeforeMount, computed, ref, defineProps, withDefaults } from "vue";
+import { onBeforeMount, onBeforeUnmount, computed, ref, defineProps, withDefaults, nextTick, watch } from "vue";
 import { useOptions } from "./useOptions";
 import { TRootOptionType } from "@/types/types";
+import { useEventBus } from "@/store/appliction/useEventBus";
+import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
 interface IProps {
   mechanizmList?: [];
@@ -16,6 +18,8 @@ const props = withDefaults(defineProps<IProps>(), {
 });
 
 const { createOptionList, checkActive } = useOptions();
+const eventBus = useEventBus();
+const UM_STORE = useUMStorage();
 const optionList = ref([]);
 
 const createList = () => {
@@ -86,9 +90,24 @@ const activateMechanismAndDeactivateOthers = (data, targetId) => {
   return true;
 };
 
-onBeforeMount(() => {
+// Состав опций зависит от размера модуля: у низкого УМ прячутся дно и опоры. 
+const rebuildList = () => nextTick(() => {
+  if (props.umMechanizm) return;
+
   createList();
 });
+
+onBeforeMount(() => {
+  createList();
+  eventBus.on("U:Model-resize", rebuildList);
+});
+
+watch(() => UM_STORE.totalHeight, rebuildList);
+
+onBeforeUnmount(() => {
+  eventBus.off("U:Model-resize", rebuildList);
+});
+
 </script>
 <template>
   <div class="rails">

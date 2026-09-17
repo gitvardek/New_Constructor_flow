@@ -638,8 +638,12 @@ const prepareData = () => {
     modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
   }
 
-  if (fasadeData.ATTACH_GLASS?.[0] /*&& product.GLASS[0]*/)
+  const hasAttachGlass = !!fasadeData.ATTACH_GLASS?.[0];
+
+  if (hasAttachGlass /*&& product.GLASS[0]*/) {
     modelState.createCurrentGlassData({ fasadeId: COLOR, productId: pid });
+  }
+
 
   // Кэш для предотвращения лишних обращений
   const millingData = modelState.getCurrentMillingData;
@@ -721,9 +725,9 @@ const prepareData = () => {
   }
 
   /** @Стёкла */
-  if (!props.noGlass && (haveShowcase && glassData.length > 0 || glassData.length > 0 && ALUM !== null)) {
+  if (hasAttachGlass && !props.noGlass && glassData.length > 0 && (haveShowcase || ALUM !== null)) {
     glassList.value = glassData;
-    isGlassExist.value = glassData.length > 0;
+    isGlassExist.value = true;
   }
 
   // Текущие выбранные значения
