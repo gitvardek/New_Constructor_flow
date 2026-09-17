@@ -302,7 +302,7 @@ export class FasadeBuilder {
             // Пост-создание: проверка и коррекция данных на основе trueSize
             const { trueSize } = result.userData;
 
-            const check = this.conversationActions.validateAndPurgeFasadeOnBuild(fasadeData.COLOR, key, trueSize, result)
+            const check = this.conversationActions.validateAndPurgeFasadeOnBuild(fasadeData.COLOR, key, trueSize, result, currentProduct)
 
             if (!check) {
                 result.geometry = FASADE_DEFAULT[key].geometry.clone();

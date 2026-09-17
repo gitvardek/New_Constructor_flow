@@ -5,7 +5,7 @@ import { TFasadeGroupSize } from "@/store/appliction/useModelState";
 import type { Object3D } from 'three'
 /**//@ts-nocheck */
 
-import { TTotalProps, TFasadeItem, TFasadeTrueSizes, TFasadeConversation, TMillingRestrictItem, TConfig, TFasadeSectionItem } from "@/types/types";
+import { IProductFull, TTotalProps, TFasadeItem, TFasadeTrueSizes, TFasadeConversation, TMillingRestrictItem, TConfig, TFasadeSectionItem } from "@/types/types";
 
 type TsizeData = {
     width: number
@@ -34,6 +34,11 @@ export const useConversationActions = () => {
 
         if (!LOW_UM_PRODUCT.includes(+PROPS?.PRODUCT)) return false
 
+
+        if (checkIgnore(curModel)) {
+            return false
+        }
+
         const height = Number(UM_STORE.totalHeight || PROPS?.CONFIG?.SIZE?.height)
 
         if (!(height < UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT)) return false
@@ -41,16 +46,21 @@ export const useConversationActions = () => {
         const fasadeData = (modelState._FASADE as TFasadeItem[])[fasadeId]
         const fasadeGroup = (modelState._FASADE_SECTION as TFasadeSectionItem[])[fasadeData?.IBLOCK_SECTION_ID]?.['UF_GROUP']
 
-        console.log(fasadeGroup, 'fasadeGroupfasadeGroup')
-        console.log(fasadeData?.IBLOCK_SECTION_ID, 'fasadeData?.IBLOCK_SECTION_ID')
-        console.log(LOW_UM_RESTRICTED_SECTIONS.includes(Number(fasadeData?.IBLOCK_SECTION_ID)), 'INNNNN')
-
         return fasadeGroup ? LOW_UM_RESTRICTED_SECTIONS.includes(Number(fasadeGroup)) : false
     }
 
     const onRsizeConversations = async (size: TsizeData) => {
-        const curModel = modelState.getCurrentModel
+
+        const curModel = modelState.getCurrentModel as Object3D
+        if (!curModel) return
+
+
+        if (checkIgnore(curModel)) {
+            return
+        }
+
         const restrictData = curModel?.userData.restrictData
+
         const { FASADE } = curModel?.userData.PROPS as TTotalProps;
 
         const { width, height } = size;
@@ -65,8 +75,8 @@ export const useConversationActions = () => {
                 width <= MAX_WIDTH &&
                 width >= MIN_WIDTH;
 
-            console.log(`Полоно HEIGHT:${MAX_HEIGHT} - ${MIN_HEIGHT}, WIDTH: ${MAX_WIDTH} - ${MIN_WIDTH}`);
-            console.log(`Размер фасада: HEIGHT:${height}, WIDTH:${width}`)
+            // console.log(`Полоно HEIGHT:${MAX_HEIGHT} - ${MIN_HEIGHT}, WIDTH: ${MAX_WIDTH} - ${MIN_WIDTH}`);
+            // console.log(`Размер фасада: HEIGHT:${height}, WIDTH:${width}`)
 
             if (!check) {
                 eventBus.emit("A:Delite-Fasad", key);
@@ -108,13 +118,15 @@ export const useConversationActions = () => {
         const fasadeData = (_FASADE as TFasadeItem[])[fasadeId]
         const section = _FASADE_SECTION[fasadeData?.IBLOCK_SECTION_ID];
         const groupId = section?.UF_GROUP ?? section;
+        const isIgnoreSize = checkIgnore(curModel)
 
-        if (!groupId) return temp
+        if (!groupId || isIgnoreSize) return temp
 
         const toCheck = modelState._FASADE_SIZE_RESTRICT[section.ID];
 
 
-        // Дверные лимиты УМ применимы только к дверям: боковая стенка и накладка ограничены размером листа
+        // Дверные лимиты УМ применимы только к дверям: боковая стенка и накладка
+        // ограничены размером листа, поэтому для них ветка isUM пропускается
         const useDoorLimits = isUM && !isPanel
 
         restrict = {
@@ -132,10 +144,20 @@ export const useConversationActions = () => {
         fasadeId: number,
         fasadeIndex: number,
         trueSize: TFasadeTrueSizes,
-        curmodel: Object3D
+        curmodel: Object3D,
+        currentProduct: IProductFull
     ): boolean => {
+
         const curModel = curmodel;
+
+        if (checkIgnore(null, currentProduct)) {
+            return true;
+        }
+
+
         if (!curModel) return false;
+
+
 
         const { FASADE_WIDTH, FASADE_HEIGHT } = trueSize;
         const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel);
@@ -155,7 +177,13 @@ export const useConversationActions = () => {
     }
 
     const checkFasadeConversations = (fasadeId: number, size: TFasadeTrueSizes) => {
-        const curModel = modelState.getCurrentModel
+
+        const curModel = modelState.getCurrentModel as Object3D
+
+        if (checkIgnore(curModel)) {
+            return true
+        }
+
         const { FASADE_WIDTH, FASADE_HEIGHT } = size
         // Признак панели приходит в объекте размера — так же, как isDrawer для ящиков
         const { MAX_HEIGHT, MIN_HEIGHT, MAX_WIDTH, MIN_WIDTH } = createFasadeConversations(fasadeId, curModel, !!size?.isPanel)
@@ -176,7 +204,7 @@ export const useConversationActions = () => {
         //         4:${FASADE_WIDTH >= MIN_WIDTH}`)
 
         if (!check) {
-            toaster.error(`Размер Фасада №${fasadeId + 1} не соответствует доступному размеру полотна`)
+            toaster.error(`Размер Фасада №${fasadeId + 1} не соответствует доступному размеру полотна 3`)
         }
 
         return check
@@ -184,9 +212,11 @@ export const useConversationActions = () => {
     }
 
     const filterFasadeConversations = (fasadeNdx: number, fasadeSize: TFasadeTrueSizes) => {
-        const sceneModel = modelState.getCurrentModel;
+        const sceneModel = modelState.getCurrentModel as Object3D;
         const { FASADE } = sceneModel?.userData.PROPS;
         const { FASADE_WIDTH, FASADE_HEIGHT, isDrawer } = fasadeSize || FASADE[fasadeNdx]?.userData?.trueSize;
+
+        const isSizeIgnore = checkIgnore(sceneModel)
 
         const tempList = modelState.getCurrentModelFasadesData
             .map((el) => {
@@ -196,7 +226,7 @@ export const useConversationActions = () => {
                         FASADE_HEIGHT >= el.GROUP_SIZE.MIN_HEIGHT &&
                         FASADE_WIDTH <= el.GROUP_SIZE.MAX_WIDTH &&
                         FASADE_WIDTH >= el.GROUP_SIZE.MIN_WIDTH
-                    );
+                    ) || isSizeIgnore;
                 if (check) return el;
             })
             .filter(Boolean);
@@ -207,10 +237,12 @@ export const useConversationActions = () => {
     };
 
     const filterMaterialsConversations = (materialList: TFasadeConversation[], fasadeSize: TFasadeTrueSizes) => {
+        const isSizeIgnore = checkIgnore(modelState.getCurrentModel as Object3D)
+
         const tempList = materialList.map((el) => {
             if (el.FASADES && Array.isArray(el.FASADES)) {
                 let tmp_fasades = el.FASADES.map(item => {
-                    if (checkFasadeConversations(item, fasadeSize)) {
+                    if (isSizeIgnore || checkFasadeConversations(item, fasadeSize)) {
                         return item;
                     }
                 }).filter(Boolean);
@@ -229,6 +261,10 @@ export const useConversationActions = () => {
 
         const { _MILLING_SIZE_RESTRICT } = modelState
         if (!fasadeId) return null
+
+        if (checkIgnore(modelState.getCurrentModel as Object3D)) {
+            return null
+        }
 
         const match = (_MILLING_SIZE_RESTRICT as TMillingRestrictItem[]).find(
             (item) => {
@@ -269,17 +305,33 @@ export const useConversationActions = () => {
         return isObject ? JSON.parse(replaced) : replaced as T;
     }
 
+    const checkIgnore = (curModel: Object3D | null, currentProduct?: IProductFull | null): boolean => {
+        const PROPS = curModel?.userData?.PROPS as TTotalProps
+
+        if (!PROPS && !currentProduct) {
+            return false
+        }
+
+
+        if (currentProduct) {
+            return Number(currentProduct.IGNORE_SIZE ?? 0) !== 0
+        }
+
+        return Number(modelState._PRODUCTS[+PROPS.PRODUCT]?.IGNORE_SIZE ?? 0) !== 0
+    }
+
     return {
         onRsizeConversations,
-        createFasadeConversations,
         isLowUmRestrictedFasade,
+        createFasadeConversations,
         validateAndPurgeFasadeOnBuild,
         checkFasadeConversations,
         filterFasadeConversations,
         filterMaterialsConversations,
         checkMillingConversations,
         onResizeMillingCheck,
-        expressionsReplace
+        expressionsReplace,
+        checkIgnore
     }
 
 }

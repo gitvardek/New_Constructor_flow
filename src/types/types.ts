@@ -659,6 +659,7 @@ export type IProductFull = {
   PREVIEW_PICTURE: string;
   FILLING_SECTION: boolean;
   FASADE_POSITION: number[];
+  IGNORE_SIZE: number;
 }
 
 export type TPalitte = {
