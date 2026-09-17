@@ -66,6 +66,7 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
     LEFTSIDECOLOR,
     HORIZONT,
     MODULE_COLOR,
+    MANUAL_MODULE_COLOR,
     TSARGA,
     TOPFASADECOLOR,
     OPTIONS,
@@ -79,6 +80,7 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
   let universalModuleConfigCash = {
     HORIZONT,
     MODULE_COLOR,
+    MANUAL_MODULE_COLOR,
     EXPRESSIONS : {...EXPRESSIONS}
   };
 
