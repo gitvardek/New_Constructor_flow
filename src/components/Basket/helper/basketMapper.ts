@@ -470,14 +470,12 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
 
       section.fasades?.forEach(doorGroup => {
-        doorGroup.forEach((fasade, index) => {
+   
+        doorGroup.forEach((fasade) => {
           const doorNumber = fasade.door;
           const fasId = fasade.id - 1
 
-          // Объект, а не массив: id фасадов выдаются в calcDrawersFasades сквозным
-          // счётчиком по списку, куда входят и ящики, поэтому у фасадов они идут с
-          // пропусками (1, 4, ...). В массиве это давало дыры [751, empty x 2, 657]
-          // и null в JSON; у объекта ключи просто разрежены: {0: 751, 3: 657}
+   
           if (!result[fasadesSizeKey][doorNumber]) {
             result[fasadesSizeKey][doorNumber] = {};
           }
@@ -507,7 +505,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
             if (!result[fasadesMillingKey][doorNumber]) {
               result[fasadesMillingKey][doorNumber] = {};
             }
-            result[fasadesMillingKey][doorNumber][index] = fasade.material.MILLING;
+            result[fasadesMillingKey][doorNumber][fasId] = fasade.material.MILLING;
           }
           if (fasade.material.PATINA) {
             if (!result[fasadesPattinaKey]) {
@@ -516,7 +514,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
             if (!result[fasadesPattinaKey][doorNumber]) {
               result[fasadesPattinaKey][doorNumber] = {};
             }
-            result[fasadesPattinaKey][doorNumber][index] = fasade.material.PATINA;
+            result[fasadesPattinaKey][doorNumber][fasId] = fasade.material.PATINA;
           }
           if (fasade.material.PALETTE) {
             if (!result[fasadesPaletteKey]) {
@@ -525,7 +523,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
             if (!result[fasadesPaletteKey][doorNumber]) {
               result[fasadesPaletteKey][doorNumber] = {};
             }
-            result[fasadesPaletteKey][doorNumber][index] = fasade.material.PALETTE;
+            result[fasadesPaletteKey][doorNumber][fasId] = fasade.material.PALETTE;
           }
           if (fasade.material.GLASS) {
             if (!result[fasadesGlassKey]) {
@@ -534,7 +532,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
             if (!result[fasadesGlassKey][doorNumber]) {
               result[fasadesGlassKey][doorNumber] = {};
             }
-            result[fasadesGlassKey][doorNumber][index] = fasade.material.GLASS;
+            result[fasadesGlassKey][doorNumber][fasId] = fasade.material.GLASS;
           }
         });
       });
@@ -655,6 +653,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       }
     });
   }
+
+  console.log(legacyProps, 'legacyProps')
 
   return legacyProps;
 }

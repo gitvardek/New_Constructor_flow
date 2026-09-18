@@ -423,6 +423,7 @@ export const useModelState = defineStore('ModelState', () => {
 
         });
 
+
         // if(groupedFasades[groupId]){
         //     groupedFasades.id.sort((a, b)=>{_FASADE.value[a].SORT - _FASADE.value[b].SORT})
         // }
