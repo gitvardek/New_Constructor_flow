@@ -486,7 +486,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
             if (!result[fasadesMillingKey][doorNumber]) {
               result[fasadesMillingKey][doorNumber] = {};
             }
-            result[fasadesMillingKey][doorNumber][index] = fasade.material.MILLING;
+            result[fasadesMillingKey][doorNumber][fasId] = fasade.material.MILLING;
           }
           if (fasade.material.PATINA) {
             if (!result[fasadesPattinaKey]) {
@@ -495,7 +495,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
             if (!result[fasadesPattinaKey][doorNumber]) {
               result[fasadesPattinaKey][doorNumber] = {};
             }
-            result[fasadesPattinaKey][doorNumber][index] = fasade.material.PATINA;
+            result[fasadesPattinaKey][doorNumber][fasId] = fasade.material.PATINA;
           }
           if (fasade.material.PALETTE) {
             if (!result[fasadesPaletteKey]) {
@@ -504,7 +504,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
             if (!result[fasadesPaletteKey][doorNumber]) {
               result[fasadesPaletteKey][doorNumber] = {};
             }
-            result[fasadesPaletteKey][doorNumber][index] = fasade.material.PALETTE;
+            result[fasadesPaletteKey][doorNumber][fasId] = fasade.material.PALETTE;
           }
           if (fasade.material.GLASS) {
             if (!result[fasadesGlassKey]) {
@@ -513,7 +513,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
             if (!result[fasadesGlassKey][doorNumber]) {
               result[fasadesGlassKey][doorNumber] = {};
             }
-            result[fasadesGlassKey][doorNumber][index] = fasade.material.GLASS;
+            result[fasadesGlassKey][doorNumber][fasId] = fasade.material.GLASS;
           }
         });
       });
