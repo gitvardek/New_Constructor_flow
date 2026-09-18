@@ -1077,7 +1077,7 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG } = PROPS
         const { POSITION, UNIFORM_TEXTURE, OPTIONS, FASADE_PROPS } = CONFIG
         const product = this._PRODUCTS[PROPS.PRODUCT]
-        const { width, height, depth } = CONFIG.SIZE;
+        const { width, height, depth } = CONFIG.SIZE_BASE ?? product;
         const clone = FASADE_PROPS.map(el => el)
 
 
@@ -1087,7 +1087,7 @@ export class MeshEvents extends BuildersHelper {
 
         CONFIG.FASADE_PROPS = clone
 
-        this.changeModelSize({ data: { width, height, depth } })
+        this.changeModelSize({ data: { width, height, depth }, type: 'resize' })
 
     }
 
@@ -1103,7 +1103,7 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG } = PROPS
         const { POSITION, UNIFORM_TEXTURE, OPTIONS, FASADE_PROPS } = CONFIG
         const product = this._PRODUCTS[PROPS.PRODUCT]
-        const { width, height, depth } = CONFIG.SIZE;
+        const { width, height, depth } = CONFIG.SIZE_BASE ?? product;
 
         // CONFIG.FASADE_PROPS = []
         CONFIG.FILLING = data
@@ -1111,7 +1111,7 @@ export class MeshEvents extends BuildersHelper {
         this.buildProduct.filters.filterFasadePosition(CONFIG, product)
         // this.buildProduct.filters.filterFasadeSizer(product.FASADE_SIZES, product)
 
-        this.changeModelSize({ data: { width, height, depth } })
+        this.changeModelSize({ data: { width, height, depth }, type: 'resize' })
 
     }
 
