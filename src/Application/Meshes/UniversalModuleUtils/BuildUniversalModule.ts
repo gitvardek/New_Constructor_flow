@@ -277,7 +277,119 @@ export class BuildUniversalModule extends BuildProduct {
         return CONFIG
     }
 
+    // Проверка сетки на соответствие входящим параметрам материала корпус/стенки
+
+    private validateGridWalls(grid: GridModule, CONFIG: THREETypes.TConfig): boolean {
+        if (!grid?.sections?.length) {
+            return false
+        }
+
+        const moduleThickness = grid.moduleThickness
+        const leftWidth = this._FASADE[CONFIG.LEFTSIDECOLOR?.COLOR]?.DEPTH || moduleThickness
+        const rightWidth = this._FASADE[CONFIG.RIGHTSIDECOLOR?.COLOR]?.DEPTH || moduleThickness
+        const oldLeft = grid.leftWallThickness ?? moduleThickness
+        const oldRight = grid.rightWallThickness ?? moduleThickness
+
+        if (leftWidth === oldLeft && rightWidth === oldRight) {
+            return false
+        }
+
+        // Формула та же, что в reset(): сумма секций против доступной ширины,
+        const sectionsTotalWidth = grid.width - leftWidth - rightWidth
+            - (grid.sections.length - 1) * grid.moduleThickness
+
+        let sectionsWidthSum = 0
+        grid.sections.forEach((section) => {
+            sectionsWidthSum += section.width
+        })
+
+        const deltaWidth = sectionsTotalWidth - sectionsWidthSum
+        const lastSection = grid.sections[grid.sections.length - 1]
+        const newLastWidth = lastSection.width + deltaWidth
+        const maxSectionWidth = WITH_TSARGA.includes(grid.productID)
+            ? this.UM_PARAMS.MAX_SECTION_WIDTH_TSARGA
+            : this.UM_PARAMS.MAX_SECTION_WIDTH
+
+        const needRebuild = newLastWidth < this.UM_PARAMS.MIN_SECTION_WIDTH
+            || newLastWidth > maxSectionWidth
+            || (deltaWidth !== 0 && (!!grid.profilesConfig
+                || lastSection.cells?.some((cell) => cell.cellsRows?.length)))
+
+        if (needRebuild) {
+            console.warn("Сетка модуля не соответствует материалам боковых стенок, "
+                + "поправить автоматически нельзя — нужен пересчёт в 2D-конструкторе", grid)
+            return false
+        }
+
+        grid.leftWallThickness = leftWidth
+        grid.rightWallThickness = rightWidth
+
+        const shiftX = leftWidth - oldLeft
+        if (shiftX !== 0) {
+            grid.sections.forEach((section) => {
+                this.shiftGridBranchX(section, shiftX)
+            })
+        }
+
+        if (deltaWidth !== 0) {
+            lastSection.width = newLastWidth
+            lastSection.position.x += deltaWidth / 2
+
+            lastSection.cells?.forEach((cell) => {
+                cell.width = lastSection.width
+                cell.position.x = lastSection.position.x
+                this.resizeGridFillingsX(cell)
+            })
+
+            this.resizeGridFillingsX(lastSection)
+        }
+
+        return true
+    }
+
+    // Сдвигает по X всю ветку сетки: саму область, её ячейки, ряды, уровни и наполнение 
+
+    private shiftGridBranchX(node: THREETypes.TObject, shiftX: number) {
+        if (!node) {
+            return
+        }
+
+        if (node.position) {
+            node.position.x += shiftX
+        }
+
+        node.fillings?.forEach((filling) => {
+            if (filling.position) {
+                filling.position.x += shiftX
+            }
+        })
+
+        const children = [...(node.cells ?? []), ...(node.cellsRows ?? []), ...(node.extras ?? [])]
+        children.forEach((child) => {
+            this.shiftGridBranchX(child, shiftX)
+        })
+    }
+
+    // Подгоняет наполнение под новую ширину родителя
+
+    private resizeGridFillingsX(parent: THREETypes.TObject) {
+        parent.fillings?.forEach((filling) => {
+            // Вертикальные элементы тянутся по высоте, профили — по ширине модуля:
+            // от ширины родителя они не зависят
+            if (filling.isVerticalItem || filling.isProfile) {
+                return
+            }
+
+            filling.width = parent.width
+            filling.size.x = parent.width
+            filling.position.x = parent.position.x - parent.width / 2
+        })
+    }
+
     parseModulegrid(product_data: THREETypes.TObject, PROPS: Object) {
+        // Проверка на корректность просчёта боковых стенок с учётом толщины материала
+        this.validateGridWalls(product_data, PROPS.CONFIG)
+        
         const OLD_SECTIONS = PROPS.CONFIG.SECTIONS
         const OLD_FASADES = PROPS.CONFIG.FASADE_POSITIONS
         PROPS.CONFIG.FASADE_POSITIONS = []
