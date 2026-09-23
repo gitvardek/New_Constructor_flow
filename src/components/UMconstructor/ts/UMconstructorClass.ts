@@ -162,14 +162,22 @@ export default class UMconstructorClass {
                 const isSlidingDoors = PROPS.CONFIG.isSlideDoor;
                 let fasades;
 
+                const moduleThickness = PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18;
+                const horizont = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] || 0;
+
+
+                const leftWallThickness = this.APP.FASADE[PROPS.CONFIG.LEFTSIDECOLOR?.COLOR]?.DEPTH || moduleThickness;
+                const rightWallThickness = this.APP.FASADE[PROPS.CONFIG.RIGHTSIDECOLOR?.COLOR]?.DEPTH || moduleThickness;
+                const sectionWidth = width - leftWallThickness - rightWallThickness;
+
                 let section: GridSection = {
                     number: 1,
-                    width: width - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] * 2,
-                    height: height - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] * 2 - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"],
+                    width: sectionWidth,
+                    height: height - moduleThickness * 2 - horizont,
                     cells: [],
                     type: "section",
-                    position: new THREE.Vector2(PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] + (width - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] * 2) / 2,
-                        PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] + PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]),
+                    position: new THREE.Vector2(leftWallThickness + sectionWidth / 2,
+                        moduleThickness + horizont),
                 }
 
                 let _module: GridModule = {
@@ -177,10 +185,10 @@ export default class UMconstructorClass {
                     height,
                     depth,
                     moduleColor: PROPS.CONFIG.MODULE_COLOR,
-                    moduleThickness: PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18,
-                    leftWallThickness: PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18,
-                    rightWallThickness: PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18,
-                    horizont: PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] || 0,
+                    moduleThickness,
+                    leftWallThickness,
+                    rightWallThickness,
+                    horizont,
                     sections: [section],
                     type: "module",
                     productID: productData.globalData,

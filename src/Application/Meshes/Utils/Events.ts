@@ -1098,7 +1098,8 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG } = PROPS
         const { POSITION, UNIFORM_TEXTURE, OPTIONS, FASADE_PROPS } = CONFIG
         const product = this._PRODUCTS[PROPS.PRODUCT]
-        const { width, height, depth } = CONFIG.SIZE;
+
+        const { width, height, depth } = CONFIG.SIZE_BASE ?? product;
         const clone = FASADE_PROPS.map(el => el)
 
 
@@ -1108,7 +1109,7 @@ export class MeshEvents extends BuildersHelper {
 
         CONFIG.FASADE_PROPS = clone
 
-        this.changeModelSize({ data: { width, height, depth } })
+        this.changeModelSize({ data: { width, height, depth }, type: 'resize' })
 
     }
 
@@ -1125,8 +1126,13 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG } = PROPS
 
         const product = this._PRODUCTS[PROPS.PRODUCT]
-        const { width, height, depth } = CONFIG.SIZE;
 
+        // Базовый размер — тот, что задал пользователь линейкой, а не пересчитанный SIZE:
+        // у моделей с выражениями ширины и глубины (#MWIDTH#, #MDEPTH#) SIZE хранит уже
+        // применённый результат, и класть его обратно в базу нельзя — выражение применится
+        // к собственному результату второй раз. type: 'resize' велит changeModelSize не трогать
+        // SIZE_BASE и пересчитать SIZE через getProductSize — так же делает changeFasadeSize
+        const { width, height, depth } = CONFIG.SIZE_BASE ?? product;
 
         CONFIG.FILLING = data;
         CONFIG.OPTIONS = this.buildProduct.filters.filterOption(product.OPTION);
@@ -1134,7 +1140,7 @@ export class MeshEvents extends BuildersHelper {
         this.buildProduct.filters.filterFasadePosition(CONFIG, product)
         // this.buildProduct.filters.filterFasadeSizer(product.FASADE_SIZES, product)
 
-        this.changeModelSize({ data: { width, height, depth } })
+        this.changeModelSize({ data: { width, height, depth }, type: 'resize' })
 
     }
 

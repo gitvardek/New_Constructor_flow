@@ -10,6 +10,8 @@ import { HiTechProfileData } from '@/components/UMconstructor/types/UMtypes'
 
 const appDataStore = useAppData();
 const emptyTableTopId = 69919
+
+const CORNER_CABINET_IDS = [2106690, 5766313, 10252974, 11451643, 11451679]
 const tableTopLengthDefault = 3000
 
 function createFacadeProps(objProps: any): IBasketFacade[] {
@@ -66,26 +68,35 @@ function createBodyProps(objProps: any) {
     HEIGHT: null,
     DEPTH: null,
   };
-  const isSizeEdit = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT;
-  const isSizeEditStepWidth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_WIDTH;
-  const isSizeEditStepHeight = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_HEIGHT;
-  const isSizeEditStepDepth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_DEPTH;
+  // У угловых тумб размер корпуса не пользовательский — все три остаются null
+  // if (!CORNER_CABINET_IDS.includes(+objProps.PRODUCT)) {
+    const isSizeEdit = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT;
+    const isSizeEditStepWidth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_WIDTH;
+    const isSizeEditStepHeight = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_HEIGHT;
+    const isSizeEditStepDepth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_DEPTH;
 
-  if (isSizeEdit === "obligatory") {
-    if (isSizeEditStepWidth) {
-      sizeObj.WIDTH = objProps.CONFIG.SIZE.width;
+    if (isSizeEdit === "obligatory") {
+      if (isSizeEditStepWidth) {
+        sizeObj.WIDTH = objProps.CONFIG.SIZE.width;
+      }
+      if (isSizeEditStepHeight) {
+        sizeObj.HEIGHT = objProps.CONFIG.SIZE.height;
+      }
+      if (isSizeEditStepDepth) {
+        sizeObj.DEPTH = objProps.CONFIG.SIZE.depth;
+      }
+    } else {
+      // sizeObj.WIDTH = objProps.CONFIG.EXPRESSIONS['#MWIDTH#'] !== objProps.CONFIG.SIZE.width ? objProps.CONFIG.SIZE.width : null;
+      // sizeObj.HEIGHT = objProps.CONFIG.EXPRESSIONS['#MHEIGHT#'] !== objProps.CONFIG.SIZE.height ? objProps.CONFIG.SIZE.height : null;
+      // sizeObj.DEPTH = objProps.CONFIG.EXPRESSIONS['#MDEPTH#'] !== objProps.CONFIG.SIZE.depth ? objProps.CONFIG.SIZE.depth : null;
+
+      // sizeObj.WIDTH = objProps.CONFIG.EXPRESSIONS['#MWIDTH#'] ?? null;
+      // sizeObj.HEIGHT = objProps.CONFIG.EXPRESSIONS['#MHEIGHT#'] ?? null;
+      // sizeObj.DEPTH = objProps.CONFIG.EXPRESSIONS['#MDEPTH#'] ?? null;
+
+
     }
-    if (isSizeEditStepHeight) {
-      sizeObj.HEIGHT = objProps.CONFIG.SIZE.height;
-    }
-    if (isSizeEditStepDepth) {
-      sizeObj.DEPTH = objProps.CONFIG.SIZE.depth;
-    }
-  } else {
-    sizeObj.WIDTH = objProps.CONFIG.EXPRESSIONS['#MWIDTH#'] !== objProps.CONFIG.SIZE.width ? objProps.CONFIG.SIZE.width : null;
-    sizeObj.HEIGHT = objProps.CONFIG.EXPRESSIONS['#MHEIGHT#'] !== objProps.CONFIG.SIZE.height ? objProps.CONFIG.SIZE.height : null;
-    sizeObj.DEPTH = objProps.CONFIG.EXPRESSIONS['#MDEPTH#'] !== objProps.CONFIG.SIZE.depth ? objProps.CONFIG.SIZE.depth : null;
-  }
+  // }
 
   return {
     COLOR: objProps.CONFIG.MODULE_COLOR ?? null,
@@ -470,12 +481,12 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
 
       section.fasades?.forEach(doorGroup => {
-   
+
         doorGroup.forEach((fasade) => {
           const doorNumber = fasade.door;
           const fasId = fasade.id - 1
 
-   
+
           if (!result[fasadesSizeKey][doorNumber]) {
             result[fasadesSizeKey][doorNumber] = {};
           }

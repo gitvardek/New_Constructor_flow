@@ -785,25 +785,63 @@ export class FasadeBuilder {
         props_array: THREETypes.TObject[],
         curBodyExceptions: boolean
     }) {
-        // const fasadeData = this.parent._FASADE[fasade_id];
         const { FASADE_PROPS, MODEL } = props.CONFIG;
         const currentFasadeColor = FASADE_PROPS[key]?.COLOR;
         const textureCheck = currentFasadeColor && currentFasadeColor != 7397
         const modelName = fasade_position.FASADE_MODEL;
 
+        console.log(fasade_position, 'fasade_position')
+
+        const curExceptionsMaterial = new THREE.MeshStandardMaterial({
+            transparent: true,
+            opacity: 0.5,
+            color: new THREE.Color('rgb(255, 0, 0)')
+        });
+
+  
+        const createFasadeMaterial = (normalizedUV: boolean = false, jsonColor: number | null = null) => {
+            const material = new THREE.MeshStandardMaterial();
+
+            // Ветки взаимоисключающие: textureCheck ложен ровно тогда, когда цвет 7397
+            if (curBodyExceptions && currentFasadeColor == 7397) {
+                material.transparent = true
+                material.opacity = 0.5
+                material.color = new THREE.Color('rgb(255, 0, 0)')
+
+                return material
+            }
+
+            const fasadeInfo = textureCheck ? this.parent._FASADE[currentFasadeColor] : null;
+
+            if (fasadeInfo?.TEXTURE) {
+                this.parent.getTexture({
+                    material,
+                    url: fasadeInfo.TEXTURE,
+                    texture_size: normalizedUV ? undefined : {
+                        width: fasadeInfo.TEXTURE_WIDTH,
+                        height: fasadeInfo.TEXTURE_HEIGHT,
+                    }
+                });
+
+                return material
+            }
+
+            if (jsonColor != null) {
+                material.color = new THREE.Color(jsonColor)
+            }
+
+            return material
+        }
+
         if (modelName) {
             const fasadeModel = this._APP.MODELS[modelName];
 
             if (fasadeModel) {
-
-
-                // Создание фасада из модели
-                let createdFasade
-                let fasade = this.parent.json_builder.createMesh({
+                const built = this.parent.json_builder.createMesh({
                     data: fasadeModel,
                     parent_size: {
                         x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH ?? props.CONFIG.SIZE.width),
-                        y: eval(fasade_position.FASADE_HEIGHT),
+                        y: this.parent.calculateFromString(fasade_position.FASADE_HEIGHT),
                         z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH),
                         mX: props.CONFIG.SIZE.width,
                         mY: props.CONFIG.SIZE.height,
@@ -811,157 +849,91 @@ export class FasadeBuilder {
                     }
                 });
 
-                if (fasade.isObject3D && fasade.children.length > 1) {
+                built.updateMatrixWorld(true);
 
-                    const geometries: THREE.BufferGeometry[] = [];
-                    fasade.children.forEach((el: THREE.Object3D, key: number) => { // Добавил key, если нужно
-                        const clone = el.geometry.clone();
-                        el.updateMatrixWorld();
-                        clone.applyMatrix4(el.matrixWorld); // Запекаем мировую трансформацию
+                const parts: THREE.BufferGeometry[] = [];
 
-                        // КЛЮЧЕВОЕ: Локальная UV для каждой части перед merge — это фиксит размазывание
-                        this.parent.normalizeUVsTo01(clone);
+                built.traverse((child: THREE.Object3D) => {
+                    if (!(child instanceof THREE.Mesh)) {
+                        return
+                    }
 
-                        geometries.push(clone);
-                    });
+                    const geometry = child.geometry.clone();
+                    geometry.applyMatrix4(child.matrixWorld);
 
-                    const material = new THREE.MeshPhongMaterial();
-                    const merged = BufferGeometry.mergeGeometries(geometries, true);
+                    parts.push(geometry);
+                });
+
+                const jsonColor = fasadeModel.json?.material?.opt?.color ?? null;
+
+
+                if (parts.length > 1) {
+  
+                    parts.forEach(part => this.parent.normalizeUVsTo01(part));
+
+                    const merged = BufferGeometry.mergeGeometries(parts, true);
                     this.parent.normalizeUVsTo01(merged);
 
-                    if (textureCheck) {
-                        const fasadeInfo = this.parent._FASADE[currentFasadeColor];
-                        if (fasadeInfo?.TEXTURE) {
-
-                            this.parent.getTexture({
-                                material,
-                                url: fasadeInfo.TEXTURE,
-                            });
-                        }
-                    }
-
-                    fasade = new THREE.Mesh(merged, material);
+                    const fasade = new THREE.Mesh(merged, createFasadeMaterial(true, jsonColor));
                     fasade.userData.mergedGeometry = true
 
+                    return this.finishFasade(fasade, key, curBodyExceptions, curExceptionsMaterial)
                 }
 
-                const material = new THREE.MeshPhongMaterial();
-                if (textureCheck && fasade.children.length == 1) {
-                    const fasadeInfo = this.parent._FASADE[currentFasadeColor];
-                    if (fasadeInfo?.TEXTURE) {
+                if (parts.length) {
 
-                        this.parent.getTexture({
-                            material,
-                            url: fasadeInfo.TEXTURE,
-                            texture_size: {
-                                width: fasadeInfo.TEXTURE_WIDTH,
-                                height: fasadeInfo.TEXTURE_HEIGHT,
-                            }
-                        });
-                    }
-                    fasade.traverse(child => {
-                        if (child instanceof THREE.Mesh) {
-                            child.material = material
-                            child.material.needsUpdate = true
-                        }
-                    })
+                    const fasade = new THREE.Mesh(parts[0], createFasadeMaterial(false, jsonColor));
+
+                    return this.finishFasade(fasade, key, curBodyExceptions, curExceptionsMaterial)
                 }
-
-                if (fasade.isObject3D && fasade.children.length == 1) {
-
-
-                    fasade.children[0].userData.partPosition = this.uniformeTextureStartData[key];
-                    if (curBodyExceptions) fasade.userData.curBodyExceptionsMaterial = curExceptionsMaterial.clone()
-
-                    const aabb = new THREE.Box3().setFromObject(fasade.children[0]);
-                    const obb = new OBB().fromBox3(aabb);
-                    fasade.children[0].userData.obb = obb
-                    fasade.children[0].userData.curBodyExceptions = curBodyExceptions
-                    fasade.children[0].name = 'fasade'
-                    fasade.children[0].receiveShadow = true;
-                    fasade.children[0].castShadow = true
-
-                    const fasadeEdge = this.edgeBuilder.createEdge(fasade, fasade);
-                    const defaultEdge = this.edgeBuilder.createVisibleEdge(fasade.children[0])
-
-                    return { fasade, fasadeEdge }
-
-                }
-
-                fasade.userData.partPosition = this.uniformeTextureStartData[key];
-                if (curBodyExceptions) fasade.userData.curBodyExceptionsMaterial = curExceptionsMaterial.clone()
-
-                const aabb = new THREE.Box3().setFromObject(fasade);
-                const obb = new OBB().fromBox3(aabb);
-                fasade.userData.obb = obb
-                fasade.userData.curBodyExceptions = curBodyExceptions
-                fasade.name = 'fasade'
-                fasade.receiveShadow = true;
-                fasade.castShadow = true
-
-                const fasadeEdge = this.edgeBuilder.createEdge(fasade, fasade);
-                const defaultEdge = this.edgeBuilder.createVisibleEdge(fasade)
-
-                return { fasade, fasadeEdge }
             }
         }
 
         // Если нет готовой модели — создаём стандартный фасад
-        const geometryConfig = {
+        const geometry = this.parent.createExtrudeBoxGeometry({
             x: this.parent.calculateFromString(fasade_position.FASADE_WIDTH),
             y: this.parent.calculateFromString(fasade_position.FASADE_HEIGHT),
             z: this.parent.calculateFromString(fasade_position.FASADE_DEPTH ?? 16),
-        };
-        const geometry = this.parent.createExtrudeBoxGeometry(geometryConfig);
-        const material = new THREE.MeshStandardMaterial();
-        const curExceptionsMaterial = new THREE.MeshStandardMaterial({
-            transparent: true,
-            opacity: 0.5,
-            color: new THREE.Color('rgb(255, 0, 0)')
         });
 
-        if (curBodyExceptions && currentFasadeColor == 7397) {
-            material.transparent = true
-            material.opacity = 0.5
-            material.color = new THREE.Color('rgb(255, 0, 0)')
-        }
-        // Применяем текстуру, если задан цвет фасада
-        if (textureCheck) {
-            const fasadeInfo = this.parent._FASADE[currentFasadeColor];
-            if (fasadeInfo?.TEXTURE) {
+        const fasade = new THREE.Mesh(geometry, createFasadeMaterial());
 
-                this.parent.getTexture({
-                    material,
-                    url: fasadeInfo.TEXTURE,
-                    texture_size: {
-                        width: fasadeInfo.TEXTURE_WIDTH,
-                        height: fasadeInfo.TEXTURE_HEIGHT,
-                    }
-                });
-            }
-        }
+        return this.finishFasade(fasade, key, curBodyExceptions, curExceptionsMaterial)
+    }
 
-        let fasade = new THREE.Mesh(geometry, material);
-
+    // Общая отделка фасада: одна для модели из JSON и для обычной коробки, чтобы наружу оба
+    // выходили одинаковым мешем — с рёбрами, obb и заполненным userData. Раньше модельная
+    // ветка раскладывала userData то на группу, то на её ребёнка, а видимый контур считала
+    // и выбрасывала: у фасадов из модели его просто не было
+    private finishFasade(
+        fasade: THREE.Mesh,
+        key: number,
+        curBodyExceptions: boolean,
+        curExceptionsMaterial: THREE.Material,
+    ) {
         fasade.geometry.computeBoundingBox();
-        fasade.userData.partPosition = this.uniformeTextureStartData[key];
         fasade.updateMatrixWorld();
-        if (curBodyExceptions) fasade.userData.curBodyExceptionsMaterial = curExceptionsMaterial.clone()
+
+        fasade.userData.partPosition = this.uniformeTextureStartData[key];
         fasade.userData.curBodyExceptions = curBodyExceptions
 
+        if (curBodyExceptions) {
+            fasade.userData.curBodyExceptionsMaterial = curExceptionsMaterial.clone()
+        }
+
         const aabb = new THREE.Box3().setFromObject(fasade);
-        const obb = new OBB().fromBox3(aabb);
-        fasade.userData.obb = obb
+        fasade.userData.obb = new OBB().fromBox3(aabb);
 
         fasade.name = 'fasade'
-        const fasadeEdge = this.edgeBuilder.createEdge(fasade);
-        const defaultEdge = this.edgeBuilder.createVisibleEdge(fasade)
         fasade.receiveShadow = true;
         fasade.castShadow = true
 
+        const fasadeEdge = this.edgeBuilder.createEdge(fasade);
+        const defaultEdge = this.edgeBuilder.createVisibleEdge(fasade)
+
         fasade.add(defaultEdge)
 
-        return { fasade, fasadeEdge }
+        return { fasade, fasadeEdge, defaultEdge }
     }
 
     private processFasadeCreation({
@@ -1129,21 +1101,8 @@ export class FasadeBuilder {
         fasadeEdge.rotation.set(rotation.x, rotation.y, rotation.z);
         fasadeEdge.position.set(position.x, position.y, position.z);
 
-        const cloned: THREE.Mesh = fasade.clone()
-        const modelName = fasade_position.FASADE_MODEL
-
-
-        if (modelName) {
-            if (cloned.isObject3D && cloned.children.length == 1) {
-                const copy = cloned.children[0].clone()
-                cloned.updateMatrixWorld(true);
-                const worldMatrix = cloned.matrixWorld;
-                copy.applyMatrix4(worldMatrix);
-
-                return copy
-            }
-        }
-
+        // Фасад из модели теперь приходит одним мешем, как и обычный, поэтому доставать
+        // ребёнка из группы и переносить на него мировую матрицу больше не нужно
         return fasade
     }
 
