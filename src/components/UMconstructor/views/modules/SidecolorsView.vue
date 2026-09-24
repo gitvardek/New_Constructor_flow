@@ -581,10 +581,10 @@ onBeforeUnmount(() => {
           <h1 :class="['color__switch__text', { active: !toptableMode }]">
             Накладка
           </h1>
-          <Toggle v-model="toptableMode" @change="changeTopMaterialsList(toptableMode)" />
+          <!-- <Toggle v-model="toptableMode" @change="changeTopMaterialsList(toptableMode)" />
           <h1 :class="['color__switch__text', { active: toptableMode }]">
             Столешница
-          </h1>
+          </h1> -->
         </div>
 
         <div v-if="currentOption === 'TOPFASADECOLOR' && toptableMode">
