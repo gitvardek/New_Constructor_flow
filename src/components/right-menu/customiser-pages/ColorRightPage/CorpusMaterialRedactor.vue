@@ -119,6 +119,7 @@ const deleteSelectedOptions = (type: string) => {
     if (!fallback) {
       return;
     }
+
     currentSurfaceData.value = {
       name: fallback.NAME,
       imgSrc: fallback.PREVIEW_PICTURE,

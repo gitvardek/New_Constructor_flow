@@ -372,22 +372,18 @@ export class FasadeBuilder {
             if (fasadeData.SHOW && typeof firstValueMilling == 'object') {
                 fasadeData.MILLING = fasadeData.MILLING
                     ? fasadeData.MILLING
-                    : this.containsValue(millingList, milling) ? milling : firstValueMilling.ID;
+                    : milling != null && millingList.some(item => item.ID == milling) ? milling : firstValueMilling.ID;
                 if (!fasadeData.MILLING_TYPE) {
                     const fType = FASADE_POSITIONS[key].FASADE_TYPE;
                     fasadeData.MILLING_TYPE = this.getIntegratedHandleTypeList(milling, fType)[0] ?? null;
                 }
-
                 const selectedPatina = this.getSelectedPatina(fasadeData)
 
-                if (this._MILLING[fasadeData.MILLING].PATINAOFF === 1) {
+                if (this._MILLING[fasadeData.MILLING]?.PATINAOFF == 1) {
                     fasadeData.PATINA = null;
                 }
                 else if (selectedPatina) {
                     fasadeData.PATINA = selectedPatina;
-                }
-                else if (this._FASADE[fasadeData.COLOR].PATINA.length > 0 && !this._FASADE[fasadeData.COLOR].PATINA.includes(null)) {
-                    fasadeData.PATINA = null;
                 }
                 else {
                     fasadeData.PATINA = this.getDefaultPatina(fasadeData, defPatina)
@@ -541,7 +537,7 @@ export class FasadeBuilder {
             }
             const selectedPatina = this.getSelectedPatina(fasadeData)
 
-            if (this._MILLING[fasadeData.MILLING].PATINAOFF == 1) {
+            if (this._MILLING[fasadeData.MILLING]?.PATINAOFF == 1) {
                 fasadeData.PATINA = null;
             }
             else if (selectedPatina) {
@@ -1148,14 +1144,6 @@ export class FasadeBuilder {
         })
 
         return prepare;
-    }
-
-    private containsValue = (array, searchValue) => {
-        return array.some(item =>
-            Object.values(item).some(value =>
-                String(value).includes(String(searchValue))
-            )
-        );
     }
 
     // ---------------------------------------------------------------------------

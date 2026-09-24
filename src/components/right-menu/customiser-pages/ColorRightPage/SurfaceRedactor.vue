@@ -7,39 +7,26 @@ import {
   computed,
   ref,
   onMounted,
-  onBeforeMount,
   withDefaults,
   nextTick,
 } from "vue";
-import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
-import { useEventBus } from "@/store/appliction/useEventBus";
 import { _URL } from "@/types/constants";
 
 
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
-import { TTotalProps } from "@/types/types";
 type TSurface = "fasade" | "module";
 
 interface IProps {
-  tabIndex?: number;
   materialList: number[];
-  tempWork?: boolean;
   type?: TSurface;
   selectedId?: number | null;
 }
 
+// Только выбор из списка: запись в конфиг и сцену делает родитель
 const props = withDefaults(defineProps<IProps>(), {
-  tempWork: false,
   type: "fasade",
-});
-
-
-onBeforeMount(() => {
-  if (modelState.getCurrentModel) {
-    productData.value = modelState.getCurrentModel.userData;
-  }
 });
 
 const emit = defineEmits<{
@@ -47,12 +34,6 @@ const emit = defineEmits<{
   (e: "select", value: any): void;
   (e: "select_material", value: any): void;
 }>();
-
-const modelState = useModelState();
-const eventBus = useEventBus();
-
-// console.log(modelState.getCurrentModel);
-const productData = ref(null);
 
 const _APP = useAppData().getAppData;
 const _FASADE = _APP.FASADE;
@@ -74,52 +55,16 @@ const isSearch = computed(() => {
   return filteredMaterialList.value.length > 0 ? true : false;
 });
 
-const changeFasadeTexture = (data: { [key: string]: any }, id, fasadeNdx) => {
-  if (props.tempWork) {
-    emit("select_material", data);
-    return;
-  }
+/** Выбор полотна: для корпуса (type="module") — select, для фасада — select_material */
+const changeFasadeTexture = (data: { [key: string]: any }) => {
+  console.log(data, 'data')
 
   if (props.type == "module") {
     emit("select", data);
     return;
   }
 
-  const { PRODUCT, CONFIG, FASADE } = productData.value.PROPS as TTotalProps;
-  const { FASADE_PROPS } = CONFIG;
-  const { MILLING_CONVERSATION } = FASADE_PROPS[fasadeNdx];
-  const { trueSize } = FASADE[fasadeNdx].userData;
-
-  let { ID, NAME, DETAIL_PICTURE, PREVIEW_PICTURE, MATERIAL, PATINA } = data;
-
-  modelState.createCurrentPaletteData(ID);
-  modelState.createCurrentMillingData({
-    fasadeId: ID,
-    productId: PRODUCT,
-    fasadeNdx,
-    fasadeSize: trueSize,
-  });
-  modelState.createCurrentShowcaseData({
-    fasadeId: ID,
-    productId: PRODUCT,
-    fasadeNdx,
-  });
-  modelState.createCurrentPatinaData({ fasadeId: ID, productId: PRODUCT });
-  modelState.createCurrentGlassData({ fasadeId: ID, productId: PRODUCT });
-  modelState.createCurrentFasadeTypesData({ fasadeId: ID, productId: PRODUCT });
-
-  const transitionT = checkTransitionTexture(data.ID);
-
-  emit("select_material", {
-    id: ID,
-    name: NAME,
-    imgSrc: PREVIEW_PICTURE,
-    transitionT,
-    material: MATERIAL,
-    patinaList: PATINA,
-  });
-
-  eventBus.emit("A:ChangeFasade", { data, fasadeNdx });
+  emit("select_material", data);
 };
 
 const onSearchChange = (e) => {
@@ -130,19 +75,6 @@ const onSearchChange = (e) => {
     const name = _FASADE[id].NAME.toLowerCase();
     return words.every((word) => name.includes(word));
   });
-};
-
-const checkTransitionTexture = (id: number) => {
-  const prepare = modelState.getCurrentModelFasadesData.filter(
-    (el) => el.NAME === "Шпон Вардек 19мм",
-  );
-
-  if (prepare.length == 0) return false;
-
-  const start = prepare[0].FASADES;
-
-  if (!start) return false;
-  return start.includes(id);
 };
 
 onMounted(() => {
@@ -167,11 +99,10 @@ onMounted(() => {
           <h3 class="material-config_title">{{ materials.NAME }}</h3>
         </div>
         <ul class="material-config_list__details_content">
-          <li class="material-config_item" :class="{ active: id === selectedId }"
-            v-for="(id, index) in materials.FASADES" :key="index">
+          <li class="material-config_item" :class="{ active: id === selectedId }" v-for="(id, index) in materials.FASADES" :key="index">
             <Tooltip :position="top" :theme="'dark'">
               <template #trigger>
-                <div @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)">
+                <div @click="changeFasadeTexture(_FASADE[id])">
                   <img class="material-config_item__img" :src="_URL + _FASADE[id].PREVIEW_PICTURE" alt="" />
                 </div>
               </template>
@@ -193,7 +124,7 @@ onMounted(() => {
       <Tooltip v-else v-for="(id, index) in filteredMaterialList" :key="index" :position="top" :theme="'dark'">
         <template #trigger>
           <li>
-            <div class="material-config_item" @click="changeFasadeTexture(_FASADE[id], id, props.tabIndex)">
+            <div class="material-config_item" @click="changeFasadeTexture(_FASADE[id])">
               <img class="material-config_item__img" :src="_URL + _FASADE[id].PREVIEW_PICTURE" alt="" />
 
             </div>

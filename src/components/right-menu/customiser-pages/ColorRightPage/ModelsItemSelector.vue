@@ -53,6 +53,7 @@ const prepareData = () => {
     ? Object.values(modelState._WALL)
     : modelState.getCurrentModuleData;
 
+
   fasadeList.value =
     modelState.getCurrentModel.userData.PROPS.CONFIG.FASADE_PROPS;
   tabsList.value = createTabList(fasadeList.value, materialList.value);
@@ -236,7 +237,6 @@ onUnmounted(() => {
   <MaterialRedactor
     v-if="tabName != 'Корпус' && !isGroupsManagerActive && !isNisha"
     :key="tabIndex"
-    :fasadeData="fasadeList[fasadeIndex]"
     :tabIndex="fasadeIndex"
     @select_material="checkTransition"
   />

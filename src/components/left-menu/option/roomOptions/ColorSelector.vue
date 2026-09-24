@@ -50,7 +50,6 @@ watch(
       v-if="props.getCurrentRedactor"
       :key="materialKey"
       :materialList="props.optionsData.data"
-      :tempWork="true"
       @select_material="
         (data) =>
           handleSelect(data, props.optionsData.type, props.optionsData.extras)

@@ -2,35 +2,23 @@
 // @ts-nocheck 31
 import { defineProps, ref, computed, defineEmits, onMounted, nextTick } from "vue";
 import { _URL } from "@/types/constants";
-import { useEventBus } from "@/store/appliction/useEventBus";
 import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 
+// Только выбор из списка: запись в конфиг и сцену делает родитель
 const props = defineProps({
   patinaList: Array,
-  tabIndex: Number,
   selectedId: {
     type: Number,
     default: null,
-  },
-  tempWork: {
-    type: Boolean,
-    default: false,
   },
 });
 
 const emit = defineEmits(["select_patina"]);
 
-const eventBus = useEventBus();
 const selectPatina = ref<any>(null);
 const listRef = ref<HTMLElement | null>(null);
 
 const changePatina = (patina) => {
-  if (!props.tempWork)
-    eventBus.emit("A:DrawPatina", {
-      data: patina.ID,
-      fasadeNdx: props.tabIndex,
-    });
-
   emit("select_patina", {
     name: patina.NAME,
     imgSrc: patina.DETAIL_PICTURE,
