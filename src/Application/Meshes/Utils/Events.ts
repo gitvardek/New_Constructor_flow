@@ -15,6 +15,7 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useUniformState } from "@/store/appliction/useUniformState";
 import { useMenuStore } from '@/store/appStore/useMenuStore';
 import { useRoomOptions } from '@/components/left-menu/option/roomOptions/useRoomOptons';
+import { getDefaultPatinaForMilling } from '@/components/right-menu/customiser-pages/ColorRightPage/domain/fasadeOptions';
 import { BuildersHelper } from '../BuildersHelper';
 
 
@@ -617,11 +618,28 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG, FASADE, PRODUCT, FASADE_DEFAULT } = PROPS
         const { FASADE_PROPS } = CONFIG
         const fasade = FASADE_PROPS[fasadeNdx]
-        const firstMilling = this.modelState.createCurrentMillingData({ fasadeId: fasade.COLOR, productId: PRODUCT, fasadeNdx })[0]
+        // Список с фильтром по размеру фасада — тот же, что показывает редактор. Без размера
+        // первой могла оказаться фрезеровка, недоступная для этого фасада, и в конфиг/3D
+        // попадала не та, что в карточке
+        const firstMilling = this.modelState.createCurrentMillingData({
+            fasadeId: fasade.COLOR,
+            productId: PRODUCT,
+            fasadeNdx,
+            fasadeSize: FASADE[fasadeNdx]?.userData?.trueSize,
+        })[0]
+
+        if (!firstMilling) {
+            return;
+        }
+
+        // Патина — по умолчанию для новой фрезеровки (при PATINAOFF == 0 первая патина полотна,
+        // иначе null) и до её перестроения: catchChangeMilling рисует фрезеровку с текущей PATINA.
+        // Список тот же, что в редакторе (createCurrentPatinaData): патины полотна, есть в справочнике
+        const materialPatina = (this.modelState._FASADE[fasade.COLOR]?.PATINA ?? [])
+            .filter(id => id != null && Object.prototype.hasOwnProperty.call(this.modelState._PATINA, id))
+        fasade.PATINA = getDefaultPatinaForMilling(firstMilling.PATINAOFF, materialPatina)
 
         await this.changeMilling({ data: firstMilling.ID, fasadeNdx })
-        fasade.PATINA = Object.values(this.modelState._PATINA)[0].ID
-        // fasade.MILLING = firstMilling.ID
         fasade.MILLING_TYPE = null
     }
 
@@ -765,8 +783,12 @@ export class MeshEvents extends BuildersHelper {
         const { FASADE_PROPS } = CONFIG
         const fasade = FASADE_PROPS[fasadeNdx]
 
-        this.changeMilling({ data: '1013628', fasadeNdx })
+        // Витрина по умолчанию рисуется построителем витрин. Раньше здесь был changeMilling:
+        // рамка витрины строится тем же построителем, но catchChangeMilling попутно записывал
+        // ID витрины в MILLING (фрезеровка и патина пропадали из корзины) и рисовал патину.
+        // Редактор теперь сбрасывает витрину через A:ChangeShowcase, обработчик оставлен исправным
         fasade.SHOWCASE = 1013628
+        this.changeShowcase({ data: 1013628, fasadeNdx })
 
     }
 

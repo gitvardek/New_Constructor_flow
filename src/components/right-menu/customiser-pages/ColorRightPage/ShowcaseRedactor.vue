@@ -2,47 +2,28 @@
 // @ts-nocheck 31
 import { defineProps, ref, computed, defineEmits, onMounted, nextTick } from "vue";
 import { _URL } from "@/types/constants";
-import { useEventBus } from "@/store/appliction/useEventBus";
-import { useModelState } from "@/store/appliction/useModelState";
 import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 
+// Только выбор из списка: запись в конфиг и сцену делает родитель
 const props = defineProps({
   showcaseList: Array,
-  tabIndex: Number,
   selectedId: {
     type: Number,
     default: null,
-  },
-  tempWork: {
-    type: Boolean,
-    default: false,
   },
 });
 
 const emit = defineEmits(["select_showcase"]);
 
-const eventBus = useEventBus();
-const modelState = useModelState();
 const selectPatina = ref<any>(null);
 const listRef = ref<HTMLElement | null>(null);
 
 const changeShowcase = (showcase) => {
-  const { FASADE_PROPS } = modelState.getCurrentModel?.userData.PROPS.CONFIG;
-
   emit("select_showcase", {
     name: showcase.NAME,
     imgSrc: showcase.PREVIEW_PICTURE,
     ID: showcase.ID,
   }); // отдает данные в родительский компонент для рендеринга в ConfiguraitonOption
-
-  if (!props.tempWork) {
-    FASADE_PROPS[props.tabIndex].SHOWCASE = showcase.ID;
-
-    eventBus.emit("A:ChangeShowcase", {
-      data: showcase.ID,
-      fasadeNdx: props.tabIndex,
-    });
-  }
 };
 
 onMounted(() => {
@@ -88,7 +69,7 @@ onMounted(() => {
 }
 
 .material-config_list__details_content {
-  max-height: 55vh;
+  // max-height: 55vh;
   overflow-y: auto;
 }
 </style>

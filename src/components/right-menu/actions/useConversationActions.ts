@@ -208,7 +208,7 @@ export const useConversationActions = () => {
         //         4:${FASADE_WIDTH >= MIN_WIDTH}`)
 
         if (!check) {
-            toaster.error(`Размер Фасада №${fasadeId + 1} не соответствует доступному размеру полотна 3`)
+            toaster.error(`Размер Фасада №${fasadeId + 1} не соответствует доступному размеру полотна`)
         }
 
         return check

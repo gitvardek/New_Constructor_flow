@@ -237,7 +237,6 @@ onUnmounted(() => {
   <MaterialRedactor
     v-if="tabName != 'Корпус' && !isGroupsManagerActive && !isNisha"
     :key="tabIndex"
-    :fasadeData="fasadeList[fasadeIndex]"
     :tabIndex="fasadeIndex"
     @select_material="checkTransition"
   />

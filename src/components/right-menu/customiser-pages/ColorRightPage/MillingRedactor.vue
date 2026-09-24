@@ -2,32 +2,20 @@
 // @ts-nocheck 31
 import { defineProps, ref, computed, defineEmits, onMounted, nextTick } from "vue";
 import { _URL } from "@/types/constants";
-import { useEventBus } from "@/store/appliction/useEventBus";
-import { useModelState } from "@/store/appliction/useModelState";
-import { useHandlesAction } from "../FigureRightPage/Handles/useHandlesAction";
-import { INTEGRATE_HANDE_EXEPTIONS } from "@/Application/F-millings";
-import { FasadeTextAlignAction } from "@/types/types";
 
 import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 
+// Только выбор из списка: запись в конфиг и сцену делает родитель
+// (MaterialRedactor — useFasadeCommands.selectMilling, УМ — AdvanceCorpusMaterialRedactor)
 const props = defineProps({
   millingList: Array,
-  tabIndex: Number,
   selectedId: {
     type: Number,
     default: null,
   },
-  tempWork: {
-    type: Boolean,
-    default: false,
-  },
 });
 
 const emit = defineEmits(["select_milling"]);
-
-const eventBus = useEventBus();
-const modelState = useModelState();
-const { getIntegratedHandleControllerData } = useHandlesAction();
 
 const selectMilling = ref<any>(null);
 const listRef = ref<HTMLElement | null>(null);
@@ -38,10 +26,7 @@ const isSearch = computed(() => {
 });
 
 const changeMilling = (milling) => {
-  const { FASADE_POSITIONS, FASADE_PROPS } =
-    modelState.getCurrentModel?.userData.PROPS.CONFIG;
-  const isShowcase = FASADE_POSITIONS[props.tabIndex]?.SHOWCASE;
-  const currentMilling = FASADE_PROPS[props.tabIndex]?.MILLING;
+  console.log(milling, 'milling')
 
   emit("select_milling", {
     name: milling.NAME,
@@ -50,29 +35,6 @@ const changeMilling = (milling) => {
     fasade_type: milling.fasade_type,
     patina: milling.PATINAOFF,
   }); // отдает данные в родительский компонент для рендеринга в ConfiguraitonOption
-
-  if (!props.tempWork) {
-    let action = null;
-    /** @Применение_типа_фасадов_с_инегрированной_ручкой */
-    const prepare = getIntegratedHandleControllerData(milling, props.tabIndex);
-
-    if (prepare.length > 0 && INTEGRATE_HANDE_EXEPTIONS.includes(milling.ID)) {
-      action = modelState.getCurrentMillingActionMap(prepare[0].id, milling.ID);
-    }
-
-    FASADE_PROPS[props.tabIndex].MILLING = milling.ID;
-
-    if (isShowcase === 1) {
-      eventBus.emit("A:ChangeShowcaseMilling");
-      return;
-    } // Если витрина пропускаем отрисовку фрезеровки
-
-    eventBus.emit("A:ChangeMilling", {
-      data: milling.ID,
-      fasadeNdx: props.tabIndex,
-      action: action,
-    });
-  }
 };
 
 const onSearchChange = (e) => {
@@ -145,7 +107,7 @@ onMounted(() => {
 }
 
 .material-config_list__details_content {
-  max-height: 55vh;
+  // max-height: 55vh;
   overflow-y: auto;
 }
 </style>

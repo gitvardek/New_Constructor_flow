@@ -137,9 +137,11 @@ export class MillingBuilder extends MillingsUtils {
         object.material = patinaResult.material;
       } else {
         object.geometry = newGeometry;
+        this.restoreMaterialWithoutPatina(object);
       }
     } else {
       object.geometry = newGeometry;
+      this.restoreMaterialWithoutPatina(object);
     }
 
     // Очистка памяти
@@ -150,6 +152,27 @@ export class MillingBuilder extends MillingsUtils {
     }
     startGeometry.geometry.dispose();
     startGeometry = null;
+  }
+
+  /**
+   * Возврат исходного материала после патины. Патина (PatinaBuilder.createPatinaColor) ставит
+   * массив [исходный, исходный, материал с vertexColors]. Если дальше фрезеровка строится без
+   * патины (PATINAOFF == 1, рамка витрины), меняется только геометрия — у неё нет атрибута color,
+   * и оставшийся материал патины даёт артефакты. Исходный материал — первый элемент массива
+   * (userData.millingMaterial для этого не годится: кэш палитры может быть устаревшим)
+   */
+  private restoreMaterialWithoutPatina(object: THREE.Mesh) {
+    const material = object.material;
+
+    if (!Array.isArray(material) || !material.some((item) => (item as THREE.Material)?.vertexColors)) {
+      return;
+    }
+
+    material
+      .filter((item) => (item as THREE.Material)?.vertexColors)
+      .forEach((item) => (item as THREE.Material).dispose());
+
+    object.material = material[0];
   }
 
   /**

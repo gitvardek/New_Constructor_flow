@@ -87,9 +87,6 @@ const useHandlesAction = () => {
         const key = additionalMillingKeys[currentMilling] ?? currentMilling
         const map = MILLING_HANDLE_KEYS[key]
 
-        console.log(map, '{{{{')
-        console.log(map[action], 'action')
-
         if (type === "milling") {
             if (!key || !map) return;
             eventBus.emit('A:ChangeMilling', { data: currentMilling, fasadeNdx, action: map[action] })

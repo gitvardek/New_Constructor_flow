@@ -783,11 +783,10 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** Патина */
 
+    // Список строится и для витрин: там патина хранится только в конфиге (для заказа и цены),
+    // без отрисовки. Раньше для продукта с type_showcase функция выходила, не обновив список,
+    // и редактор получал патины предыдущего фасада. productId оставлен ради единой сигнатуры createCurrent*
     const createCurrentPatinaData = ({ fasadeId, productId }) => {
-
-        if (_PRODUCTS.value[productId].type_showcase.length && _PRODUCTS.value[productId].type_showcase[0] !== null) {
-            return
-        }
 
         const incomePatina = _FASADE.value[fasadeId].PATINA
         const currentPataina = incomePatina.filter(key => _PATINA.value.hasOwnProperty(key)).map(key => _PATINA.value[key])

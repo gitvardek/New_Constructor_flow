@@ -1,34 +1,18 @@
 <script setup lang="ts">
 // @ts-nocheck 31
-// Интерфейс для табов
-interface Tab {
-  name: string;
-  label: string;
-}
-
-type TIncomeFasadeSize = {
-  value: number | null;
-  min: number | null;
-  max: number | null;
-};
 
 import {
   defineProps,
-  watch,
   ref,
   onMounted,
   computed,
-  reactive,
   onBeforeMount,
   onBeforeUnmount,
-  nextTick,
 } from "vue";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
-import { useEventBus } from "@/store/appliction/useEventBus";
 
-import { TFasadeProp, TFasadeSize, TTotalProps } from "@/types/types";
-import { THandleType } from "../FigureRightPage/Handles/useHandlesAction";
+import { TFasadeItem, TFasadeProp, TTotalProps } from "@/types/types";
 
 import ConfigurationOption from "./ConfigurationOption.vue";
 import SurfaceRedactor from "./SurfaceRedactor.vue";
@@ -37,34 +21,55 @@ import ColorRedactor from "./ColorRedactor.vue";
 import PatinaRedactor from "./PatinaRedactor.vue";
 import GlassRedactor from "./GlassRedactor.vue";
 import ShowcaseRedactor from "./ShowcaseRedactor.vue";
-import Accordion from "@/components/ui/accordion/Accordion.vue";
-import MainInput from "@/components/ui/inputs/MainInput.vue";
+import FasadeSizeSelector from "./FasadeSizeSelector.vue";
 import LoopPositionSelect from "@/components/ui/direction/LoopPositionSelect.vue";
 
-import { useOptions } from "../RailsRightPage/useOptions";
-import { useHandlesAction } from "../FigureRightPage/Handles/useHandlesAction";
 import { useConversationActions } from "../../actions/useConversationActions";
+import {
+  useFasadeMaterialActions,
+  TSurfaceSelection,
+} from "../../actions/useFasadeMaterialActions";
+import { useFasadeSize } from "./composables/useFasadeSize";
+import { useFasadeHandles } from "./composables/useFasadeHandles";
+import { useFasadeCommands } from "./composables/useFasadeCommands";
+import { useFasadeOptionsState } from "./composables/useFasadeOptionsState";
+import { scrollToActiveOption } from "./composables/scrollToActiveOption";
+import {
+  FASADE_OPTION_KEYS,
+  toImageView,
+  toColorView,
+  isPatinaAvailableForMilling,
+  getDefaultPatinaForMilling,
+  resolveMillingRepair,
+  resolveOptionsOnMaterialSelect,
+  resolveOptionsFromConfig,
+} from "./domain/fasadeOptions";
 
-const { resetGlobal } = useOptions();
-const { getIntegratedHandleControllerData, setIntegratedHandleAction } =
-  useHandlesAction();
-const {
-  createFasadeConversations,
-  checkConversations,
-  checkFasadeConversations,
-  filterFasadeConversations,
-  checkMillingConversations,
-} = useConversationActions();
+const { checkFasadeConversations, filterFasadeConversations } =
+  useConversationActions();
+const { buildCurrentFasadeData, createSurfaceSelection } =
+  useFasadeMaterialActions();
+
+/** ID полотна «Без фасада» */
+const NO_FASADE_ID = 7397;
 
 const props = defineProps({
   tabIndex: Number /** Индекс выбранного фасада в defaultTab.vue */,
-  fasadeData: Object,
 });
+
+const {
+  sizeList,
+  currentSize,
+  incomeSize,
+  initSize,
+  changeFasadeSize,
+  updateFasadeWidth,
+  resetSize,
+} = useFasadeSize(() => props.tabIndex);
 
 const _APP = useAppData().getAppData;
 const _FASADE = _APP.FASADE;
 
-const eventBus = useEventBus();
 const emit = defineEmits(["select_material"]);
 
 const modelState = useModelState();
@@ -77,190 +82,146 @@ const fasadeProps = computed(() =>
   productData.value?.PROPS?.CONFIG?.FASADE_PROPS?.[props.tabIndex]
 );
 
-let currentEditableOption = ref<String>("surface");
+const currentEditableOption = ref<string>("surface");
 const mainContainer = ref<HTMLElement | null>(null);
 
-const currentSurfaceData = ref<Object>({});
-const currentMillingData = ref<Object>({});
-const currentPaletteData = ref<Object>({});
-const currentPatinaData = ref<Object>({});
-const currentShowcaseData = ref<Object>({});
-const currentGlassData = ref<Object>({});
-const curretFasadeTypesData = ref<Object>({});
+const {
+  surface,
+  fasadeOptions,
+  applyOptionsPatch,
+  applySurfacePatch,
+  hideOptions,
+  resetOptionsState,
+} = useFasadeOptionsState();
+// Слоты опций: { list, exists, current }. Не заменяются при сбросе, поэтому деструктуризация безопасна
+const { milling, palette, patina, glass, showcase } = fasadeOptions;
 
-const isSurfaceSelected = ref<boolean>(false);
+const {
+  fasadeTypesList,
+  isFasadeTypesExist,
+  fasadeHandleList,
+  isFasadeHandleExist,
+  hideIntegratedTypes,
+  resetIntegratedTypes,
+  hideMillingHandles,
+  resetMillingHandles,
+  applyIntegratedTypes,
+  applyMillingHandles,
+  restoreHandles,
+  onChangeMillingHandlePos,
+  onChangeIntegratedHandlePos,
+} = useFasadeHandles(
+  () => props.tabIndex,
+  () => productData.value,
+);
 
-const millingList = ref<Array>([]);
-const isMillingExist = ref<boolean>(false);
+// Все записи в конфиг фасада и события сцены — через команды
+const commands = useFasadeCommands(
+  () => props.tabIndex,
+  () => productData.value,
+);
 
-const paletteList = ref<Object>({});
-const isPalleteExist = ref<boolean>(false);
+/**
+ * Выбор полотна. SurfaceRedactor только сообщает о выборе,
+ * а вся цепочка выполняется здесь: проверка размеров → списки опций → опции → сцена
+ */
+const onSelectMaterial = (rawData: TFasadeItem) => {
+  const fasadeNdx = props.tabIndex;
+  const { trueSize } = productData.value.PROPS.FASADE[fasadeNdx].userData;
 
-const patinaList = ref<Array>([]);
-const isPatinaExist = ref<boolean>(false);
+  // Проверка до любых изменений: при несоответствии размеров не трогаем ни стор, ни сцену
+  if (!checkFasadeConversations(rawData.ID, trueSize)) {
+    return;
+  }
 
-const glassList = ref<Array>([]);
-const isGlassExist = ref<boolean>(false);
+  buildCurrentFasadeData({
+    fasadeId: rawData.ID,
+    productId: productId.value,
+    fasadeNdx,
+    fasadeSize: trueSize,
+  });
 
-const showcaseList = ref<Array>([]);
-const isShowcaseExist = ref<boolean>(false);
+  applyMaterialOptions(createSurfaceSelection(rawData));
 
-const fasadeSizeList = ref<Array>([]);
-const fasadeSizeListExist = ref<boolean>(false);
+  // Сцена — последней: applyFasadeChange читает MILLING/TYPE/MILLING_TYPE из FASADE_PROPS
+  commands.changeMaterial(rawData);
+};
 
-const currentSize = ref<TFasadeSize | null>(null);
-const incomeSize = ref<TIncomeFasadeSize>({
-  width: null,
-  min: null,
-  max: null,
-});
+/** Пересчёт доступных опций и их значений по умолчанию под выбранное полотно */
+const applyMaterialOptions = (data: TSurfaceSelection) => {
+  const { FASADE_POSITIONS, FASADE_PROPS } = productData.value.PROPS.CONFIG;
+  const { RESET_COLOR } = FASADE_PROPS[props.tabIndex] as TFasadeProp;
 
-const fasadeTypesList = ref<Array>([]);
-const isFasadeTypesExist = ref<boolean>(false);
-
-const fasadeHandleList = ref<Array>([]);
-const isFasadeHandleExist = ref<boolean>(false);
-
-const onSelectMaterial = (data) => {
-  console.log(data, 'STANDART MMMODULE')
-
-  const { PROPS } = productData.value;
-  const { CONFIG, FASADE } = PROPS;
-  const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
-  const product = modelState._PRODUCTS[productId.value];
-  const curFasadeProps = FASADE_PROPS[props.tabIndex] as TFasadeProp;
-  let { COLOR, RESET_COLOR, ALUM, MILLING } = curFasadeProps;
-
-  const checkConversation = checkFasadeConversations(
-    data.id,
-    FASADE[props.tabIndex].userData.trueSize,
-  );
-
-  curFasadeProps.MILLING_CONVERSATION = checkMillingConversations(data.id);
-
-  if (!checkConversation) return;
+  commands.setMillingConversation(data.id);
 
   emit("select_material", data);
 
-  resetGlobal();
+  commands.resetGlobalOptions();
 
   const isShowcase = FASADE_POSITIONS[props.tabIndex].SHOWCASE === 1;
-  const dataOfFasadeType = _FASADE[data.id];
 
-  productData.value.restrictData[props.tabIndex] = createFasadeConversations(
-    data.id, FASADE[props.tabIndex]
-  );
+  commands.setMaterialRestrictions(data.id);
 
-  isSurfaceSelected.value = true;
-  currentSurfaceData.value = data;
+  surface.selected = true;
+  surface.current = data;
 
-  // ================================================================================================================
+  const { patch, defaultMilling, defaultPaletteColor } =
+    resolveOptionsOnMaterialSelect({
+      lists: getCurrentOptionLists(),
+      material: data,
+      isShowcase,
+      resetColor: RESET_COLOR,
+    });
 
-  /** @Фрезеровка */
-  millingList.value = modelState.getCurrentMillingData;
-  // isMillingExist.value = millingList.value.length > 0 && !product.GLASS[0];
-  isMillingExist.value = millingList.value.length > 0;
+  applyOptionsPatch(patch);
 
-  /** @Палитра */
-  paletteList.value = modelState.getCurrentPaletteData;
-  isPalleteExist.value = Object.keys(paletteList.value).length > 0;
+  // Запись значений по умолчанию в конфиг и сцену — порядок как до выноса правил:
+  // MILLING_TYPE → MILLING → палитра → TYPE
+  resetMillingHandles();
 
-  /** @Патина */
-  patinaList.value = modelState.getCurrentPatinaData;
-  // isPatinaExist.value = patinaList.value.length > 0 && isMillingExist.value;
+  if (defaultMilling) {
+    commands.setMilling(defaultMilling.ID);
+  }
 
-  /** @Витрины */
-  showcaseList.value = modelState.getCurrentShowcaseData;
-
-  // console.log(data, "==== ❌ Параметры выбранного фасада ❌ ====");
-
-  isShowcaseExist.value =
-    !data.material?.includes("Alum") &&
-    isShowcase &&
-    data.id !== RESET_COLOR &&
-    showcaseList.value.length > 0;
-
-  /** @Стёкла */
-  glassList.value = modelState.getCurrentGlassData;
-  isGlassExist.value = glassList.value.length > 0 && isShowcase || glassList.value.length > 0 && data.material?.includes("Alum");
+  if (defaultPaletteColor) {
+    commands.changePaletteColor(defaultPaletteColor.ID);
+  }
 
   /** @Тип_фасада */
-  isFasadeTypesExist.value = modelState.getCurrentFasadeTypesData.length > 0;
+  applyIntegratedTypes();
+};
 
-  isFasadeHandleExist.value = false;
-  fasadeHandleList.value = {};
-  FASADE_PROPS[props.tabIndex].MILLING_TYPE = null;
+/** Списки опций, собранные в сторе под текущее полотно */
+const getCurrentOptionLists = () => ({
+  milling: modelState.getCurrentMillingData,
+  palette: modelState.getCurrentPaletteData,
+  patina: modelState.getCurrentPatinaData,
+  glass: modelState.getCurrentGlassData,
+  showcase: modelState.getCurrentShowcaseData,
+});
 
-  // ================================================================================================================
-
-  if (isMillingExist.value) {
-    const { NAME, PREVIEW_PICTURE, ID, PATINAOFF } = millingList.value[0];
-    modelState.setMillingId(props.tabIndex, ID);
-    currentMillingData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
-
-    isPatinaExist.value =
-      patinaList.value.length > 0 && isMillingExist.value && PATINAOFF == 0;
-  } else {
-    currentMillingData.value = {};
-    isFasadeHandleExist.value = false;
-    fasadeHandleList.value = {};
-    FASADE_PROPS[props.tabIndex].MILLING_TYPE = null;
-    isPatinaExist.value = false;
-  }
-
-  if (isPatinaExist.value) {
-    const { NAME, PREVIEW_PICTURE } = patinaList.value[0];
-    currentPatinaData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
-  }
-
-  if (isPalleteExist.value) {
-    let { NAME, HTML, ID } =
-      paletteList.value[Object.keys(paletteList.value)[0]];
-    currentPaletteData.value = { name: NAME, hex: HTML };
-
-    eventBus.emit("A:ChangePaletteColor", {
-      data: ID,
-      fasadeNdx: props.tabIndex,
-    });
-  }
-
-  if (isGlassExist.value) {
-    const { NAME, PREVIEW_PICTURE } = glassList.value[0];
-    currentGlassData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
-  } else {
-    currentGlassData.value = {};
-  }
-
-  if (isShowcaseExist.value && showcaseList.value.length > 0) {
-    const { NAME, PREVIEW_PICTURE } = showcaseList.value[0];
-    currentShowcaseData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
-  } else {
-    currentShowcaseData.value = {};
-  }
-
-  if (isFasadeTypesExist.value) {
-    const typeList = getIntegratedHandleControllerData(
-      modelState.getCurrentFasadeTypesData,
-      props.tabIndex,
-      "integrate",
-    );
-
-    FASADE_PROPS[props.tabIndex].TYPE = typeList[0].id;
-    fasadeTypesList.value = typeList;
-  } else {
-    fasadeTypesList.value = {};
-    FASADE_PROPS[props.tabIndex].TYPE = null;
+/**
+ * Выбор фрезеровки. MillingRedactor только сообщает о выборе: сначала пересчитываются
+ * зависящие от фрезеровки патина и положения ручки, затем фрезеровка пишется в конфиг и сцену —
+ * тот же порядок, что был, когда запись делал сам MillingRedactor. finally — потому что раньше
+ * запись выполнялась и при раннем выходе или ошибке в пересчёте
+ */
+const onSelectMilling = (data) => {
+  try {
+    updateMillingDependents(data);
+  } finally {
+    commands.selectMilling(data);
   }
 };
 
-const onSelectMilling = (data) => {
-  currentMillingData.value = data;
-  console.log(data);
+/** Патина и положения ручки под выбранную фрезеровку */
+const updateMillingDependents = (data) => {
+  milling.current = data;
 
   // Проверка на существование свойств productData.value.PROPS.CONFIG
   if (!productData.value?.PROPS?.CONFIG) return;
 
-  const { FASADE_PROPS, FASADE_POSITIONS } = productData.value.PROPS.CONFIG;
+  const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
   const fasadeProps = FASADE_PROPS[props.tabIndex];
 
   // Проверка на существование fasadeProps
@@ -269,7 +230,6 @@ const onSelectMilling = (data) => {
     return;
   }
 
-  const isShowcase = FASADE_POSITIONS?.[props.tabIndex]?.SHOWCASE === 1;
   const rootDataPatina = _FASADE[fasadeProps.COLOR]?.PATINA;
 
   // Проверка на существование rootDataPatina и его свойств
@@ -278,101 +238,56 @@ const onSelectMilling = (data) => {
     return;
   }
 
-  if (!isShowcase) {
-    isPatinaExist.value =
-      data.patina == 0 &&
-      rootDataPatina.length > 0 &&
-      rootDataPatina[0] != null &&
-      rootDataPatina[0] != 0;
+  // Патина пересчитывается и для витрин: там она пишется только в конфиг, без отрисовки.
+  // data.patina — PATINAOFF выбранной фрезеровки (см. MillingRedactor)
+  patina.exists = isPatinaAvailableForMilling(data.patina, rootDataPatina);
 
-    /** @Если у выбранной фрезы нет патина */
-    try {
-      if (!isPatinaExist.value && patinaList.value.length > 0) {
-        fasadeProps.PATINA = null;
-      } else {
-        fasadeProps.PATINA = rootDataPatina[0];
+  /** @Если у выбранной фрезы нет патина */
+  try {
+    if (!patina.exists && patina.list.length > 0) {
+      commands.setPatina(null);
+    } else {
+      commands.setPatina(rootDataPatina[0]);
 
-        const { NAME, PREVIEW_PICTURE } = _APP?.PATINA[rootDataPatina[0]];
+      const { NAME, PREVIEW_PICTURE } = _APP?.PATINA[rootDataPatina[0]];
 
-        if (!NAME || !PREVIEW_PICTURE) {
-          console.warn('Missing PATINA data');
-          return;
-        }
-
-        currentPatinaData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
+      if (!NAME || !PREVIEW_PICTURE) {
+        console.warn('Missing PATINA data');
+        return;
       }
-    } catch (e) {
-      console.warn(e, "в методе onSelectMilling");
+
+      patina.current = { name: NAME, imgSrc: PREVIEW_PICTURE };
     }
+  } catch (e) {
+    console.warn(e, "в методе onSelectMilling");
   }
 
   /** @Отображение_положения_петель */
-  if (data.fasade_type && data.fasade_type[0] !== null) {
-    const typeList = getIntegratedHandleControllerData(
-      data,
-      props.tabIndex,
-      "milling",
-    );
-
-    // Проверка на существование typeList
-    if (!typeList) {
-      console.warn('typeList is undefined or null');
-      return;
-    }
-
-    if (typeList.length > 0) {
-      isFasadeHandleExist.value = true;
-      fasadeHandleList.value = typeList;
-      fasadeProps.MILLING_TYPE = typeList[0].id ?? null;
-    } else {
-      isFasadeHandleExist.value = false;
-      fasadeHandleList.value = {};
-      fasadeProps.MILLING_TYPE = null;
-    }
-  } else {
-    isFasadeHandleExist.value = false;
-    fasadeHandleList.value = {};
-    fasadeProps.MILLING_TYPE = null;
-  }
+  applyMillingHandles(data);
 };
 
+// Остальные редакторы тоже только сообщают о выборе: карточка обновляется здесь,
+// запись в конфиг и сцену — командами, как раньше делал сам редактор
+
 const onSelectPalette = (data) => {
-  currentPaletteData.value = data;
+  palette.current = data;
+  commands.setPalette(data.ID);
+  commands.changePaletteColor(data.ID);
 };
 
 const onSelectPatina = (data) => {
-  currentPatinaData.value = data;
+  patina.current = data;
+  commands.applyPatina(data.ID);
 };
 
 const onSelectGlass = (data) => {
-  currentGlassData.value = data;
+  glass.current = data;
+  commands.changeGlassColor(data.ID);
 };
 
 const onSelectShowcase = (data) => {
-  currentShowcaseData.value = data;
-};
-
-const onChangeMillingHandlePos = (action, id) => {
-  console.log(action, id, 'onChangeMillingHandlePos')
-
-  const { FASADE_PROPS, FASADE_POSITIONS } = productData.value.PROPS.CONFIG;
-  const fasadeProps = FASADE_PROPS[props.tabIndex];
-  const isShowcase = FASADE_POSITIONS[props.tabIndex].SHOWCASE === 1;
-  fasadeProps.MILLING_TYPE = id ?? null;
-
-  if (isShowcase) {
-    eventBus.emit("A:ChangeShowcaseMilling");
-    return;
-  }
-  setIntegratedHandleAction(action, props.tabIndex, "milling");
-};
-
-const onChangeIntegratedHandlePos = (action, id) => {
-  const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
-  const fasadeProps = FASADE_PROPS[props.tabIndex];
-  fasadeProps.TYPE = id ?? null;
-
-  setIntegratedHandleAction(action, props.tabIndex, "integrate");
+  showcase.current = data;
+  commands.changeShowcase(data.ID);
 };
 
 /** Удаление опций конфигурации */
@@ -381,151 +296,124 @@ const deleteSelectedOptions = (type: String) => {
   const isShowcase = FASADE_POSITIONS[props.tabIndex].SHOWCASE === 1;
 
   if (type == "surface") {
-    eventBus.emit("A:Delite-Fasad", props.tabIndex);
-    let { NAME, DETAIL_PICTURE } = _FASADE[7397];
-    currentSurfaceData.value = { name: NAME, imgSrc: DETAIL_PICTURE };
-    isMillingExist.value = false;
-    isPalleteExist.value = false;
-    isPatinaExist.value = false;
-    isGlassExist.value = false;
-    isShowcaseExist.value = false;
+    commands.removeMaterial();
+    const { NAME, DETAIL_PICTURE } = _FASADE[NO_FASADE_ID];
+    surface.current = { name: NAME, imgSrc: DETAIL_PICTURE };
+    hideOptions();
 
-    isFasadeHandleExist.value = false;
-    fasadeHandleList.value = {};
-
-    isFasadeTypesExist.value = false;
-    fasadeTypesList.value = {};
-
-    FASADE_PROPS[props.tabIndex].TYPE = null;
-    FASADE_PROPS[props.tabIndex].MILLING_TYPE = null;
+    resetMillingHandles();
+    resetIntegratedTypes();
 
     /** @Очищаем данные для отслеживания полотна */
-    productData.value.restrictData = {};
+    commands.clearMaterialRestrictions();
 
     setCurrentEditableOption("surface");
-    resetGlobal(); /** @Очищаеи_опции */
+    commands.resetGlobalOptions();
     return;
   }
 
   if (type === "milling") {
-    const { NAME, PREVIEW_PICTURE, ID } = millingList.value[0];
-    currentMillingData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
-    // FASADE_PROPS[props.tabIndex].PATINA = 475428;
-    currentPatinaData.value = {
-      name: Object.values(modelState._PATINA)[0].NAME,
-      imgSrc: Object.values(modelState._PATINA)[0].PREVIEW_PICTURE,
-    };
+    const firstMilling = milling.list[0];
+    milling.current = toImageView(firstMilling);
 
-    if (!isPatinaExist.value && patinaList.value.length > 0) {
-      eventBus.emit("A:DelitePatina", props.tabIndex);
+    if (!patina.exists && patina.list.length > 0) {
+      commands.removePatina();
     }
 
-    // FASADE_PROPS[props.tabIndex].MILLING_TYPE = null;
-    isFasadeTypesExist.value = false;
-    fasadeTypesList.value = {};
+    hideIntegratedTypes();
+    hideMillingHandles();
 
-    isFasadeHandleExist.value = false;
-    fasadeHandleList.value = {};
-    isPatinaExist.value = false;
+    // Патина по умолчанию для первой фрезеровки — то же правило, что в Events.deliteMilling:
+    // при PATINAOFF == 0 первая патина списка, иначе без патины
+    const defaultPatina = getDefaultPatinaForMilling(
+      firstMilling.PATINAOFF,
+      patina.list,
+    );
+    patina.exists = defaultPatina !== null;
+    patina.current = defaultPatina ? toImageView(defaultPatina) : {};
 
-    FASADE_PROPS[props.tabIndex].MILLING = ID;
+    commands.setMilling(firstMilling.ID);
 
     if (isShowcase) {
-      eventBus.emit("A:ChangeShowcaseMilling");
+      // На витрине фрезеровка и патина живут только в конфиге: патину по умолчанию
+      // записываем здесь, Events.deliteMilling делает это для обычного фасада
+      commands.setPatina(defaultPatina?.ID ?? null);
+      commands.notifyShowcaseMillingChanged();
       return;
     }
-    eventBus.emit("A:DeliteMilling", props.tabIndex);
+    commands.removeMilling();
   }
 
   if (type === "palette") {
-    let { ID, NAME, HTML } = Object.values(paletteList.value)[0];
-    eventBus.emit("A:ChangePaletteColor", {
-      data: ID,
-      fasadeNdx: props.tabIndex,
-    });
-    currentPaletteData.value = { name: NAME, hex: HTML };
+    const firstColor = Object.values(palette.list)[0];
+    commands.changePaletteColor(firstColor.ID);
+    palette.current = toColorView(firstColor);
   }
 
   if (type === "patina") {
-    eventBus.emit("A:DelitePatina", props.tabIndex);
-    const { NAME, PREVIEW_PICTURE } = patinaList.value[0];
-    currentPatinaData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
+    // Удаление патины — возврат к патине по умолчанию для текущей фрезеровки:
+    // при PATINAOFF == 0 это первая патина списка, а не null
+    const currentMilling = _APP.MILLING[FASADE_PROPS[props.tabIndex].MILLING];
+    const defaultPatina = getDefaultPatinaForMilling(
+      currentMilling?.PATINAOFF,
+      patina.list,
+    );
+
+    if (defaultPatina) {
+      commands.applyPatina(defaultPatina.ID);
+      patina.current = toImageView(defaultPatina);
+    } else {
+      commands.removePatina();
+      patina.current = {};
+    }
   }
 
   if (type === "showcase") {
-    eventBus.emit("A:DeliteShowcase", props.tabIndex);
-
-    const { NAME, PREVIEW_PICTURE } = showcaseList.value[0];
-    currentShowcaseData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
+    // Удаление витрины — возврат к витрине по умолчанию: первой в списке продукта
+    // (её же подставляет FasadeBuilder при сборке). Фрезеровку и патину не трогает
+    const defaultShowcase = showcase.list[0];
+    commands.changeShowcase(defaultShowcase.ID);
+    showcase.current = toImageView(defaultShowcase);
   }
 
   if (type === "glass") {
-    const { ID, NAME, PREVIEW_PICTURE } = glassList.value[0];
-    currentGlassData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
+    const firstGlass = glass.list[0];
+    glass.current = toImageView(firstGlass);
 
-    eventBus.emit("A:ChangeGlassColor", {
-      data: ID,
-      fasadeNdx: props.tabIndex,
-    });
+    commands.changeGlassColor(firstGlass.ID);
   }
 };
 
 const millingStatus = computed(() => {
-  if (!currentMillingData.value.imgSrc) {
+  if (!milling.current.imgSrc) {
     return "disabled";
   }
 });
 
 /** Выбор панели редактирования фрезеровки или цвета, если такая опция существует */
-const setCurrentEditableOption = async (name: String) => {
+const setCurrentEditableOption = (name: string) => {
   currentEditableOption.value = name;
-  await nextTick();
-  requestAnimationFrame(() => {
-    if (!mainContainer.value) return;
-    const list = mainContainer.value.querySelector(
-      '.material-config_list__details_content, .material-config_list'
-    ) as HTMLElement | null;
-    const activeEl = list?.querySelector('.active') as HTMLElement | null;
-    if (!activeEl || !list) return;
-    list.scrollTop =
-      activeEl.getBoundingClientRect().top -
-      list.getBoundingClientRect().top +
-      list.scrollTop;
-  });
+  scrollToActiveOption(() => mainContainer.value);
+};
+
+/** Запись починенной фрезеровки и патины в конфиг и сцену (см. resolveMillingRepair) */
+const repairMilling = (millingId: number, patinaId: number | null, isShowcase: boolean) => {
+  commands.setMilling(millingId);
+  commands.setPatina(patinaId);
+
+  if (isShowcase) {
+    // На витрине фрезеровка и патина только в конфиге — нужен лишь пересчёт корзины
+    commands.notifyShowcaseMillingChanged();
+  } else {
+    // Перерисовка фрезеровки уже с записанной патиной
+    commands.changeMilling(millingId);
+  }
 };
 
 const update = () => {
-  currentSurfaceData.value = {};
-  currentMillingData.value = {};
-  currentPaletteData.value = {};
-  currentPatinaData.value = {};
-  currentShowcaseData.value = {};
-  currentGlassData.value = {};
-
-  isSurfaceSelected.value = false;
-
-  millingList.value = [];
-  isMillingExist.value = false;
-
-  paletteList.value = {};
-  isPalleteExist.value = false;
-
-  patinaList.value = [];
-  isPatinaExist.value = false;
-
-  glassList.value = [];
-  isGlassExist.value = false;
-
-  showcaseList.value = [];
-  isShowcaseExist.value = false;
-
-  currentSize.value = null;
-  fasadeSizeList.value = [];
-  fasadeSizeListExist.value = false;
-  incomeSize.value = null;
-
-  isFasadeHandleExist.value = false;
-  fasadeHandleList.value = {};
+  resetOptionsState();
+  resetSize();
+  hideMillingHandles();
 };
 
 const prepareData = () => {
@@ -533,7 +421,6 @@ const prepareData = () => {
   const { CONFIG, FASADE } = PROPS as TTotalProps;
   const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
   const fasadeProps = FASADE_PROPS[props.tabIndex];
-  const product = _APP.CATALOG.PRODUCTS[productId.value];
   const isShowcase = FASADE_POSITIONS[props.tabIndex].SHOWCASE === 1;
 
   const {
@@ -541,7 +428,6 @@ const prepareData = () => {
     MILLING_TYPE,
     PALETTE,
     COLOR,
-    RESET_COLOR,
     PATINA,
     GLASS,
     SHOWCASE,
@@ -571,229 +457,55 @@ const prepareData = () => {
     productId: pid,
     fasadeNdx: props.tabIndex,
   });
+  // Типы фасада (положения интегрированной ручки) — под текущее полотно: иначе restoreHandles
+  // берёт из стора список, оставшийся от другого фасада, или пустой после загрузки проекта
+  modelState.createCurrentFasadeTypesData({ fasadeId: COLOR, productId: pid });
 
-  // Кэш для предотвращения лишних обращений
-  const millingData = modelState.getCurrentMillingData;
-  const paletteData = modelState.getCurrentPaletteData;
-  const patinaData = modelState.getCurrentPatinaData;
-  const glassData = modelState.getCurrentGlassData;
-  const showcaseData = modelState.getCurrentShowcaseData;
-  const fasadeTypes = modelState.getCurrentFasadeTypesData;
+  // Починка испорченного конфига: фрезеровки нет в списке фрезеровок фасада (например, ID
+  // витрины после старого удаления витрины). При загрузке проекта это же чинит FasadeBuilder
+  const repair = resolveMillingRepair({
+    millingId: MILLING,
+    patinaId: PATINA,
+    millingList: modelState.getCurrentMillingData,
+    patinaList: modelState.getCurrentPatinaData,
+  });
 
-  // Установка списков и флагов существования
-
-  /** @Тип_фасада */
-  if (TYPE) {
-    isFasadeTypesExist.value = fasadeTypes.length > 0;
-    fasadeTypesList.value = getIntegratedHandleControllerData(
-      fasadeTypes,
-      props.tabIndex,
-      "integrate",
+  if (repair) {
+    console.warn(
+      `Фасад №${props.tabIndex + 1}: фрезеровки ${MILLING} нет в списке, заменена на ${repair.milling.ID}`,
     );
+    repairMilling(repair.milling.ID, repair.patinaId, isShowcase);
   }
 
-  /** @Тип_ручки_фрезеровки */
-  if (MILLING_TYPE && MILLING) {
-    const curMilling = _APP.MILLING[MILLING];
-    const typeList = getIntegratedHandleControllerData(
-      curMilling,
-      props.tabIndex,
-      "milling",
-    );
-    fasadeHandleList.value = typeList;
-    isFasadeHandleExist.value = true;
-  }
+  const millingId = repair ? repair.milling.ID : MILLING;
+  const patinaId = repair ? repair.patinaId : PATINA;
 
-  /** @Фрезеровка */
-  // if (fasadeData.ATTACH_MILLINGS?.[0] && !isShowcase) {
-  if (millingData.length > 0) {
-    millingList.value = millingData;
-    isMillingExist.value = millingData.length > 0;
-  }
+  /** @Тип_фасада и @Тип_ручки_фрезеровки */
+  restoreHandles({ TYPE, MILLING_TYPE, MILLING: millingId });
 
-  /** @Витрины */
-  if (isShowcase && ALUM == null && COLOR != 7397) {
-    showcaseList.value = showcaseData;
-    isShowcaseExist.value = showcaseData.length > 0;
-  }
-
-  /** @Палитра */
-  if (fasadeData.PALETTE?.[0]) {
-    paletteList.value = paletteData;
-    isPalleteExist.value = Object.keys(paletteList.value).length > 0;
-  }
-
-  /** @Патина */
-  if (fasadeData.PATINA?.[0] && isMillingExist.value && !isShowcase) {
-    const curMilling = _APP.MILLING[MILLING];
-
-    patinaList.value = patinaData;
-    isPatinaExist.value = patinaData.length > 0 && curMilling.PATINAOFF == 0;
-  }
-
-  /** @Стёкла */
-  if (
-    isShowcase && glassData.length > 0 ||
-    glassData.length > 0 && ALUM !== null
-  ) {
-    glassList.value = glassData;
-    isGlassExist.value = glassData.length > 0;
-  }
-
-  // Текущие выбранные значения
-  if (COLOR && _FASADE[COLOR]) {
-    const { NAME, PREVIEW_PICTURE } = _FASADE[COLOR];
-    currentSurfaceData.value = { name: NAME, imgSrc: PREVIEW_PICTURE };
-    isSurfaceSelected.value = true;
-  }
-
-  const assignIfFound = (
-    list: any[],
-    id: string | number,
-    target: any,
-    key: string,
-    imageKey = "PREVIEW_PICTURE",
-  ) => {
-    const item = list?.find((i) => i.ID == id);
-
-    if (item) target.value = { name: item.NAME, imgSrc: item[imageKey] };
-  };
-
-  if (MILLING) {
-    assignIfFound(
-      millingData,
-      MILLING,
-      currentMillingData,
-      "currentMillingData",
-    );
-  }
-  if (PALETTE && paletteData[PALETTE]) {
-    const { NAME, HTML } = paletteData[PALETTE];
-    currentPaletteData.value = { name: NAME, hex: HTML };
-  }
-  if (PATINA && !product.type_showcase?.[0]) {
-    assignIfFound(patinaData, PATINA, currentPatinaData, "currentPatinaData");
-  }
-  if (SHOWCASE) {
-    assignIfFound(
-      showcaseData,
+  // Списки, флаги доступности и выбранные значения опций по сохранённому конфигу
+  const { patch, surface: surfacePatch } = resolveOptionsFromConfig({
+    lists: getCurrentOptionLists(),
+    fasadeProps: {
+      MILLING: millingId,
+      PALETTE,
+      PATINA: patinaId,
+      GLASS,
       SHOWCASE,
-      currentShowcaseData,
-      "currentShowcaseData",
-    );
-  }
-  if (GLASS) {
-    assignIfFound(glassData, GLASS, currentGlassData, "currentGlassData");
-  }
-};
-
-const prepareFasadeSizeList = () => {
-  const curData = productData.value;
-  const { FASADE_SIZE, FASADE_PROPS } = curData.PROPS.CONFIG;
-
-  const sizesParentKey = Object.entries(FASADE_SIZE).map(([key, value]) => {
-    return key;
+      ALUM,
+      COLOR,
+    },
+    material: fasadeData,
+    millingItem: _APP.MILLING[millingId],
+    isShowcase,
+    noFasadeId: NO_FASADE_ID,
   });
 
-  try {
-    if (sizesParentKey.length == 0) return [];
-  } catch (e) {
-    console.log("Список размера фасадов отсутствует");
+  applyOptionsPatch(patch);
+
+  if (surfacePatch) {
+    applySurfacePatch(surfacePatch);
   }
-
-  const parentKey = parseInt(sizesParentKey[props.tabIndex]);
-
-  const sizesKeys = Object.values(_APP.FASADENUMBERSIZE[parentKey]).flat();
-  const curSizeId = FASADE_PROPS[props.tabIndex].SIZES.id;
-
-  const sizesData = sizesKeys
-    .map((el) => {
-      _APP.FASADESIZE[el].active = _APP.FASADESIZE[el].ID == curSizeId;
-      return _APP.FASADESIZE[el];
-    })
-    .sort((a, b) => a.SORT - b.SORT);
-
-  currentSize.value = sizesData.find((el) => el.active) ?? null;
-
-  return sizesData;
-};
-
-const changeFasadeSize = async (data: TFasadeSize) => {
-
-  currentSize.value = data;
-  const curData = productData.value;
-
-  // Пересобираем от размера, заданного пользователем, а пока его не меняли — от
-  // каталожного. Текущий SIZE брать нельзя: у моделей, где ширина задана выражением
-  // от #MWIDTH#, он хранит уже пересчитанное значение и правки накручивались бы
-  const { width, height, depth } =
-    curData.PROPS.CONFIG.SIZE_BASE ?? _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
-
-  const { FASADE_PROPS, FASADE_SIZE } = curData.PROPS.CONFIG;
-  const curFasade = FASADE_PROPS[props.tabIndex];
-  const curSize = curFasade.SIZES;
-  const positionList = Object.values(FASADE_SIZE)[props.tabIndex];
-  const curPositionId = positionList[data.ID].ID;
-  const defaultWidth = Object.values(positionList)[0]?.FASADE_WIDTH;
-
-  const incomePosition = _APP.FASADE_POSITION[curPositionId];
-  const isIncomeWidth = isNaN(parseInt(incomePosition.FASADE_WIDTH));
-
-  curSize.id = data.ID;
-  curFasade.POSITION = curPositionId;
-
-  if (isIncomeWidth) {
-
-    if (incomeSize.value.width === null) {
-      incomeSize.value.width = parseInt(defaultWidth);
-    }
-
-    incomeSize.value.min = data.SIZE_EDIT_WIDTH_MIN;
-    incomeSize.value.max = data.SIZE_EDIT_WIDTH_MAX;
-
-    curSize.params.FASADE_WIDTH = incomeSize.value.width;
-    curSize.params.min = data.SIZE_EDIT_WIDTH_MIN;
-    curSize.params.max = data.SIZE_EDIT_WIDTH_MAX;
-  } else {
-    incomeSize.value.width = null;
-    incomeSize.value.min = null;
-    incomeSize.value.max = null;
-    curSize.params = {
-      FASADE_WIDTH: parseInt(incomePosition.FASADE_WIDTH),
-      min: null,
-      max: null,
-    };
-  }
-
-  eventBus.emit("A:Model-resize", {
-    data: { width, height, depth },
-    type: "resize",
-  });
-};
-
-const updateFasadeSize = async (data) => {
-  const curData = productData.value;
-
-  // Тот же случай, что и в changeFasadeSize: базовый размер, а не пересчитанный SIZE
-  const { width, height, depth } =
-    curData.PROPS.CONFIG.SIZE_BASE ?? _APP.CATALOG.PRODUCTS[curData.PROPS.PRODUCT];
-  const { FASADE_PROPS } = curData.PROPS.CONFIG;
-  const curFasade = FASADE_PROPS[props.tabIndex];
-  const curSize = curFasade.SIZES;
-  curSize.params.FASADE_WIDTH = data;
-
-  eventBus.emit("A:Model-resize", {
-    data: { width, height, depth },
-    type: "resize",
-  });
-};
-
-const getFasadDataType = (data) => {
-  const result = data.fasade_type
-    .map((item) => _APP.FASADETYPE[item])
-    .filter(Boolean);
-
-  return result;
 };
 
 const getFasadesize = computed(() => {
@@ -804,36 +516,16 @@ const getFasadesize = computed(() => {
 });
 
 onBeforeMount(() => {
-  // materialList.value = modelState.getCurrentModelFasadesData;
   productData.value = modelState.getCurrentModel.userData;
   productId.value = productData.value.PROPS.PRODUCT;
-  materialList.value = filterFasadeConversations(props.tabIndex);
 
-  fasadeSizeList.value = prepareFasadeSizeList();
-  fasadeSizeListExist.value = fasadeSizeList.value.length > 0;
+  const { FASADE } = productData.value.PROPS;
+  materialList.value = filterFasadeConversations(
+    props.tabIndex,
+    FASADE[props.tabIndex]?.userData?.trueSize,
+  );
 
-  const { FASADE_PROPS, FASADE_SIZE } = productData.value.PROPS.CONFIG;
-
-  const positionList = Object.values(FASADE_SIZE)[props.tabIndex];
-
-  const curFasade = FASADE_PROPS[props.tabIndex];
-  const curSize = curFasade.SIZES;
-
-  // const manualInputValue = curSize?.params?.FASADE_WIDTH
-  //   ? curSize?.params?.FASADE_WIDTH
-  //   : fasadeSizeListExist.value &&
-  //       fasadeSizeList.value.length === 1 &&
-  //       fasadeSizeList.value[0].NAME.includes("Нестандарт")
-  //     ? fasadeSizeList.value[0].WIDTH
-  //     : null;
-
-
-  incomeSize.value = {
-    width: curSize?.params?.FASADE_WIDTH ?? null,
-    min: curSize?.params?.min ?? null,
-    max: curSize?.params?.max ?? null,
-  };
-
+  initSize();
 });
 
 onMounted(() => {
@@ -858,52 +550,19 @@ onBeforeUnmount(() => {
         </p>
       </div>
     </div>
-    <div class="configuration" v-if="isSurfaceSelected">
-      <ConfigurationOption :type="'surface'" :data="currentSurfaceData" @choose-option="setCurrentEditableOption"
+    <div class="configuration" v-if="surface.selected">
+      <ConfigurationOption :type="'surface'" :data="surface.current" @choose-option="setCurrentEditableOption"
         @delete-choise="deleteSelectedOptions" />
 
-      <ConfigurationOption v-if="isMillingExist" :type="'milling'" :data="currentMillingData"
-        @choose-option="setCurrentEditableOption" @delete-choise="deleteSelectedOptions" />
+      <!-- Опции полотна в порядке FASADE_OPTION_KEYS: фрезеровка, палитра, патина, стекло, витрина -->
+      <template v-for="key in FASADE_OPTION_KEYS" :key="key">
+        <ConfigurationOption v-if="fasadeOptions[key].exists" :type="key" :data="fasadeOptions[key].current"
+          :additionalClass="key === 'patina' ? millingStatus : undefined" @choose-option="setCurrentEditableOption"
+          @delete-choise="deleteSelectedOptions" />
+      </template>
 
-      <ConfigurationOption v-if="isPalleteExist" :type="'palette'" :data="currentPaletteData"
-        @choose-option="setCurrentEditableOption" @delete-choise="deleteSelectedOptions" />
-
-      <ConfigurationOption v-if="isPatinaExist" :type="'patina'" :data="currentPatinaData"
-        :additionalClass="millingStatus" @choose-option="setCurrentEditableOption"
-        @delete-choise="deleteSelectedOptions" />
-
-      <ConfigurationOption v-if="isGlassExist" :type="'glass'" :data="currentGlassData"
-        @choose-option="setCurrentEditableOption" @delete-choise="deleteSelectedOptions" />
-
-      <ConfigurationOption v-if="isShowcaseExist" :type="'showcase'" :data="currentShowcaseData"
-        @choose-option="setCurrentEditableOption" @delete-choise="deleteSelectedOptions" />
-
-      <div v-if="fasadeSizeListExist">
-        <Accordion>
-          <template #title>
-            <div class="accordion__title">
-              <p>Размер</p>
-              <p>{{ currentSize?.NAME }}</p>
-            </div>
-          </template>
-
-          <template #params="{ onToggle }">
-            <ul class="accordion__contnt">
-              <li class="accordion__text" v-for="(size, key) in fasadeSizeList" :key="key + size.NAME" @click="
-                () => {
-                  changeFasadeSize(size);
-                  onToggle();
-                }
-              ">
-                {{ size.NAME }}
-              </li>
-            </ul>
-          </template>
-        </Accordion>
-      </div>
-
-      <MainInput v-if="incomeSize.min && incomeSize.max" :inputClass="'input__search right-menu'" :type="'number'"
-        :min="incomeSize.min" :max="incomeSize.max" @update:modelValue="updateFasadeSize" v-model="incomeSize.width" />
+      <FasadeSizeSelector :sizeList="sizeList" :currentSize="currentSize" :incomeSize="incomeSize"
+        @select-size="changeFasadeSize" @update-width="updateFasadeWidth" />
 
       <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList"
         @change="onChangeIntegratedHandlePos" />
@@ -912,23 +571,24 @@ onBeforeUnmount(() => {
         @change="onChangeMillingHandlePos" />
     </div>
 
-    <SurfaceRedactor v-if="currentEditableOption === 'surface'" :materialList="materialList" :tabIndex="props.tabIndex"
+    <!-- Редактор выбранной опции: список значений, выбор уходит в обработчик опции -->
+    <SurfaceRedactor v-if="currentEditableOption === 'surface'" :materialList="materialList"
       :selectedId="fasadeProps?.COLOR" @select_material="onSelectMaterial" />
 
-    <MillingRedactor v-if="currentEditableOption === 'milling'" :millingList="millingList" :tabIndex="props.tabIndex"
+    <MillingRedactor v-if="currentEditableOption === 'milling'" :millingList="milling.list"
       :selectedId="fasadeProps?.MILLING" @select_milling="onSelectMilling" />
 
-    <ColorRedactor v-if="currentEditableOption === 'palette'" :paletteList="paletteList" :tabIndex="props.tabIndex"
+    <ColorRedactor v-if="currentEditableOption === 'palette'" :paletteList="palette.list"
       :selectedId="fasadeProps?.PALETTE" @select_color="onSelectPalette" />
 
-    <PatinaRedactor v-if="currentEditableOption === 'patina'" :patinaList="patinaList" :tabIndex="props.tabIndex"
+    <PatinaRedactor v-if="currentEditableOption === 'patina'" :patinaList="patina.list"
       :selectedId="fasadeProps?.PATINA" @select_patina="onSelectPatina" />
 
-    <GlassRedactor v-if="currentEditableOption === 'glass'" :glassList="glassList" :tabIndex="props.tabIndex"
+    <GlassRedactor v-if="currentEditableOption === 'glass'" :glassList="glass.list"
       :selectedId="fasadeProps?.GLASS" @select_glass="onSelectGlass" />
 
-    <ShowcaseRedactor v-if="currentEditableOption === 'showcase'" :showcaseList="showcaseList"
-      :tabIndex="props.tabIndex" :selectedId="fasadeProps?.SHOWCASE" @select_showcase="onSelectShowcase" />
+    <ShowcaseRedactor v-if="currentEditableOption === 'showcase'" :showcaseList="showcase.list"
+      :selectedId="fasadeProps?.SHOWCASE" @select_showcase="onSelectShowcase" />
   </div>
 </template>
 
@@ -957,23 +617,6 @@ onBeforeUnmount(() => {
     }
   }
 
-  &__list {
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-    flex-direction: column;
-    gap: 8px;
-    border: 1px solid #c6c6c6;
-    border-radius: 15px;
-    padding: 10px 0px 0px 10px;
-    height: 100%;
-    overflow-y: scroll;
-    box-sizing: border-box;
-  }
-
-  &__list::-webkit-scrollbar {
-    width: 8px;
-  }
 }
 
 .configuration {
@@ -983,49 +626,8 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px;
 
-  &__item {
-    height: 50px;
-    border: 1px solid grey;
-    border-radius: 5px;
-  }
-
   @media (min-height: 1000px) {
     gap: 17px;
-  }
-}
-
-.accordion {
-  padding: 0.5rem 1rem;
-  border: none;
-  box-shadow: 4px 4px 4px 4px rgba(34, 60, 80, 0.11);
-  transition-property: box-shadow;
-  transition-duration: 0.25s;
-  transition-timing-function: ease;
-
-  &__contnt {
-    padding-top: 0.5rem;
-    border-top: 1px solid #a3a9b5;
-  }
-
-  &__text {
-    cursor: pointer;
-    transition-property: color;
-    transition-duration: 0.25s;
-    transition-timing-function: ease;
-
-    @media (hover: hover) {
-
-      /* when hover is supported */
-      &:hover {
-        color: $dark-grey;
-      }
-    }
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      box-shadow: 4px 4px 4px 4px #a3a9b5;
-    }
   }
 }
 </style>

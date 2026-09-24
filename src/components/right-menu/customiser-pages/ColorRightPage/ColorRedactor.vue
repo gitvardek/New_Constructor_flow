@@ -1,25 +1,17 @@
 <script lang="ts" setup>
 // @ts-nocheck 31
 import { defineProps, defineEmits, onMounted, computed, ref, nextTick } from "vue";
-import { useEventBus } from "@/store/appliction/useEventBus";
-import { useModelState } from "@/store/appliction/useModelState";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 
-const eventBus = useEventBus();
-const modelState = useModelState();
 const emit = defineEmits(["select_color"]);
 
+// Только выбор из списка: запись в конфиг и сцену делает родитель
 const props = defineProps({
   paletteList: Object,
-  tabIndex: Number,
   selectedId: {
     type: Number,
     default: null,
-  },
-  tempWork: {
-    type: Boolean,
-    default: false,
   },
 });
 
@@ -30,23 +22,12 @@ const isSearch = computed(() => {
 });
 
 const changePaletteColor = (color) => {
-  const { FASADE_PROPS } = modelState.getCurrentModel?.userData.PROPS.CONFIG;
-
   emit("select_color", {
     name: color.NAME,
     data: "",
     hex: color.HTML,
     ID: color.ID,
   }); // отдает данные в родительский компонент для рендеринга в ConfiguraitonOption
-
-
-  if (!props.tempWork) {
-    FASADE_PROPS[props.tabIndex].PALETTE = color.ID;
-    eventBus.emit("A:ChangePaletteColor", {
-      data: color.ID,
-      fasadeNdx: props.tabIndex,
-    });
-  }
 };
 
 const onSearchChange = (e) => {
@@ -107,7 +88,7 @@ onMounted(() => {
 }
 
 .material-config_list__details_content {
-  max-height: 55vh;
+  // max-height: 55vh;
   overflow-y: auto;
 }
 </style>
