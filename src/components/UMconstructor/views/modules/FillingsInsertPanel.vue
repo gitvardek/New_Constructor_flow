@@ -4,7 +4,7 @@ import "@/components/UMconstructor/styles/UM.scss";
 
 import { computed, ref } from "vue";
 import { _URL } from "@/types/constants.ts";
-import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
+import { FILLINGS_RESTRICTION_EXCEPTIONS, UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
@@ -54,9 +54,13 @@ const isUniversalDrawerBlocked = computed(
   () => !props.UMconstructor.FILLINGS.isUniversalDrawerAllowed(props.module),
 );
 
-const isFillingBlocked = (groupID: string | number) =>
-  isFillingsRestricted.value ||
-  (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
+const isFillingBlocked = (groupID: string | number, filling?: any) => {
+  if (FILLINGS_RESTRICTION_EXCEPTIONS.includes(+filling?.ID)) {
+    return false;
+  }
+  return isFillingsRestricted.value ||
+    (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
+};
 
 const toggleFillingGroup = (key: string | number, isOpen: boolean) => {
   if (isOpen) {
@@ -104,7 +108,7 @@ const onSearchChange = (e: Event, totalMaterialList: Array<any>) => {
               <li v-if="!isSearch" :class="['item-group-color']" v-for="(filling, key1) in fillingGroup.items"
                 :key="key1 + filling.NAME">
                 <div
-                  :class="['name__container', { 'name__container--disabled': isFillingBlocked(fillingGroup.groupID) }]"
+                  :class="['name__container', { 'name__container--disabled': isFillingBlocked(fillingGroup.groupID, filling) }]"
                   @click="UMconstructor.FILLINGS.addFilling(filling, fillingGroup.groupID, module)">
                   <img class="name__bg-item" :src="_URL + filling.PREVIEW_PICTURE" />
                   <p class="name__text-item">{{ filling.NAME }}</p>
@@ -116,7 +120,7 @@ const onSearchChange = (e: Event, totalMaterialList: Array<any>) => {
               <li v-else :class="['item-group-color']" v-for="(filling, key2) in filteredMaterialList"
                 :key="key2 + filling.NAME">
                 <div
-                  :class="['name__container', { 'name__container--disabled': isFillingBlocked(fillingGroup.groupID) }]"
+                  :class="['name__container', { 'name__container--disabled': isFillingBlocked(fillingGroup.groupID, filling) }]"
                   @click="UMconstructor.FILLINGS.addFilling(filling, fillingGroup.groupID, module)">
 
                   <img class="name__bg-item" :src="_URL + filling.PREVIEW_PICTURE" />

@@ -10,7 +10,7 @@ import {
     MANUFACTURER, GridSection, GridCell, GridCellsRow, GridRowExtra, FasadeObject, LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import { TFasadeProp } from "@/types/types.ts";
-import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
+import { FILLINGS_RESTRICTION_EXCEPTIONS, UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
 
 type TCollisionExclusionRule = {
     prop: string
@@ -353,7 +353,7 @@ export default class FillingsManager {
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
 
-        console.log(productGroupID, 'productGroupID')
+        console.log(_product,productGroupID, 'productGroupID')
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
             if (!this.isUniversalDrawerAllowed(grid)) {
@@ -549,12 +549,15 @@ export default class FillingsManager {
 
         let currentModuleSegment = currentExtra || currentRow || currentCell || currentSection
 
-        if (currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
+        // Наполнение из списка исключений ставится без ограничений по размерам области
+        const isRestrictionException = FILLINGS_RESTRICTION_EXCEPTIONS.includes(+product.ID)
+
+        if (!isRestrictionException && currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
             this.scope.callAlert("error", `Нельзя добавить наполнение: ширина области (${currentModuleSegment.width} мм) превышает ${UM_PARAMS.FILLINGS_MAX_WIDTH} мм`)
             return;
         }
 
-        if (currentModuleSegment.height <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT) {
+        if (!isRestrictionException && currentModuleSegment.height <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT) {
             this.scope.callAlert("error", `Нельзя добавить наполнение: высота области (${currentModuleSegment.height} мм) менее ${UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT} мм`)
             return;
         }

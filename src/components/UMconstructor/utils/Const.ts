@@ -43,6 +43,9 @@ export const UM_DRAWERS_IDS = {
     UNIVERSAL: [15309443]
 }
 
+// Наполнение, которое можно добавлять без ограничений по ширине и высоте области
+export const FILLINGS_RESTRICTION_EXCEPTIONS = [6513263];
+
 export const WITH_TSARGA = [3954672];
 
 // Опции, дающие модулю собственную царгу: 7250589 — металлическая, 7250452 — деревянная.
