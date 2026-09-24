@@ -874,11 +874,11 @@ export class MeshEvents extends BuildersHelper {
         const { NAME, ID } = data.option ?? {}
         if (!this._currentMesh) return;
 
-        const { FASADE, FASADE_DEFAULT, LEG, CONFIG } = this._currentMesh.userData.PROPS;
-        const { width, height, depth } = CONFIG.SIZE;
+        const { FASADE, FASADE_DEFAULT, LEG, CONFIG, PRODUCT } = this._currentMesh.userData.PROPS;
 
         if (NAME?.includes('Опоры')) {
-            this.changeModelSize({ data: { width, height, depth } })
+            const { width, height, depth } = CONFIG.SIZE_BASE ?? this._PRODUCTS[PRODUCT];
+            this.changeModelSize({ data: { width, height, depth }, type: 'resize' })
             return
         }
         this.buildProduct.fasade_builder.processOptions({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data });
@@ -950,6 +950,12 @@ export class MeshEvents extends BuildersHelper {
 
         //Применение позиционирования после изменений
 
+        // Свободно установленный объект коллайдер выталкивает из стен по его OBB,
+        // поэтому новая ширина нужна OBB до расчёта позиции
+        if (CONFIG.FREE_TRANSFORM) {
+            this._currentMesh.userData.obb.halfSize.x = data.width * 0.5;
+        }
+
         const adjustedPosition = this.root._roomManager!.adjustPositionWithRaycasting({
             object: this._currentMesh,
             targetPosition: this._currentMesh.userData.targetPosition,
@@ -1018,10 +1024,13 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.position.set(POSITION.x, POSITION.y, POSITION.z);
         currentMesh.updateMatrixWorld(true);
 
+        const halfWidth = fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
+        const halfDepth = fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5;
+
         currentMesh.userData.trueSizes = {
-            DEPTH: fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5,
+            DEPTH: halfDepth,
             HEIGHT: body.userData.trueSizes.HEIGHT,
-            WIDTH: fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5,
+            WIDTH: halfWidth,
         };
 
         // Пересоздаём UNIFORM_TEXTURE
@@ -1046,6 +1055,13 @@ export class MeshEvents extends BuildersHelper {
             this.root._customBoxHelper.hideGroupBox(this.buildUniformTexture._groupsBoxHelper);
         }
 
+        // Свободно установленный объект коллайдер выталкивает из стен по его OBB,
+        // поэтому новые габариты нужны OBB до расчёта позиции
+        if (CONFIG.FREE_TRANSFORM) {
+            currentMesh.userData.obb.halfSize.x = halfWidth;
+            currentMesh.userData.obb.halfSize.z = halfDepth;
+        }
+
         const adjusted = this.root._roomManager!.adjustPositionWithRaycasting({
             object: currentMesh,
             targetPosition: currentMesh.userData.targetPosition,
@@ -1061,11 +1077,8 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.userData.aabb.getCenter(center);
         currentMesh.userData.obb.center.copy(center);
 
-
-
-        currentMesh.userData.obb.halfSize.x = fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
-        currentMesh.userData.obb.halfSize.z = fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5;
-
+        currentMesh.userData.obb.halfSize.x = halfWidth;
+        currentMesh.userData.obb.halfSize.z = halfDepth;
 
         if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
             currentMesh.userData.obb.halfSize.y = data.height * 0.5;

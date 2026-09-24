@@ -272,6 +272,7 @@ export class BuildersHelper extends GlobalsData {
                         1 / texture_size.height
                     );
                     material.map.offset.set(0.5, 0.5);
+                    material.map.rotation = Math.PI * 0.5
                 }
                 material.needsUpdate = true;
 
