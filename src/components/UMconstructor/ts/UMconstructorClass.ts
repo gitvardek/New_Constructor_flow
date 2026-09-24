@@ -472,14 +472,14 @@ export default class UMconstructorClass {
             profileData.size = { x: grid.height, y: product.height, z: product.depth }
             profileData.product = 6513251
 
-            profileData.side = LOOPSIDE[grid.sections[0].loopsSides[0]]?.includes("left") ? "left" : "right"
+            profileData.side = LOOPSIDE[grid.sections[0].loopsSides[0]]?.includes("left") ? "right" : "left" //"left" : "right"
             const profileSidesMap = {
-                "right": new THREE.Vector2(-profileData.manufacturerOffset - profileData.size.y / 2, 0),
-                "left": new THREE.Vector2(grid.width + profileData.manufacturerOffset + profileData.size.y / 2, 0),
+                "left": new THREE.Vector2(-profileData.manufacturerOffset - profileData.size.y / 2, 0),
+                "right": new THREE.Vector2(grid.width + profileData.manufacturerOffset + profileData.size.y / 2, 0),
             }
             const profileRotationMap = {
-                "right": Math.PI / 2,
-                "left": -Math.PI / 2,
+                "left": Math.PI / 2,
+                "right": -Math.PI / 2,
             }
 
             profileData.position = profileSidesMap[profileData.side];

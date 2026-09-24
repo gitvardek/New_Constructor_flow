@@ -80,9 +80,14 @@ export class OBBCollider {
 
         const obb = object.userData.obb;
 
+        /** Объект установлен гизмо: поворот задал пользователь — не трогаем его, только выталкиваем OBB из стен */
+
+        if (object.userData.PROPS.CONFIG.FREE_TRANSFORM) {
+            this.getClampedFloorPosition(obb, wallStore, position, adjustPosition)
+        }
         /** Для загрузки контента из стора при запуске приложения */
 
-        if (!wall) {
+        else if (!wall) {
 
             for (const wall of wallStore) {
 
@@ -120,10 +125,11 @@ export class OBBCollider {
 
         /** Проверка на положение объекта только на полу */
         const elementPosition = object.userData.elementType == "element_down" && !this.UM_LIST.includes(PRODUCT)
+        const verticalHalfSize = this.getVerticalHalfSize(object, rotation)
 
-        adjustPosition.y = elementPosition ? HEIGHT - 0.001 : Math.max(
-            (HEIGHT - 0.001),
-            Math.min(position.y, roomBound.max.y - (HEIGHT - 0.001))
+        adjustPosition.y = elementPosition ? verticalHalfSize - 0.001 : Math.max(
+            (verticalHalfSize - 0.001),
+            Math.min(position.y, roomBound.max.y - (verticalHalfSize - 0.001))
         );
 
         // adjustPosition.y = Math.max((HEIGHT - 0.001), Math.min(position.y, roomBound.max.y - (HEIGHT - 0.001)))
@@ -134,6 +140,21 @@ export class OBBCollider {
         object.userData.obb = obb
 
         return { position: adjustPosition, rotation };
+    }
+
+    /**
+     * Половина высоты объекта по мировой вертикали с учётом наклона.
+     * Объект, наклонённый гизмо (например, положенный набок), по вертикали занимает уже не HEIGHT:
+     * без учёта наклона он зависал над полом на HEIGHT. Для поворота только вокруг Y результат равен HEIGHT
+     */
+    private getVerticalHalfSize(object: THREE.Object3D, rotation: THREE.Euler): number {
+        const { HEIGHT } = object.userData.trueSizes
+        const { halfSize } = object.userData.obb
+        const m = new THREE.Matrix4().makeRotationFromEuler(rotation).elements
+
+        // Строка Y матрицы поворота — вклад каждой локальной оси в мировую вертикаль.
+        // Горизонтальные полуразмеры берём из OBB: у УМ в trueSizes DEPTH и WIDTH не заполнены
+        return Math.abs(m[1]) * halfSize.x + Math.abs(m[5]) * HEIGHT + Math.abs(m[9]) * halfSize.z
     }
 
     private getClampedPosition({ position, rotation, wall, object, obb, floor }: { position: THREE.Vector3, rotation: THREE.Euler, wall: THREE.Object3D, object: THREE.Object3D, obb: OBB, floor?: boolean }) {

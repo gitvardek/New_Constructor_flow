@@ -1,6 +1,7 @@
 //@ts-nocheck
 
 import * as THREE from 'three';
+import { toRaw } from 'vue';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { TApplication, TMoveManager } from '@/types/types';
@@ -32,6 +33,10 @@ export class TransformControlsManager {
     private isEnabled: boolean = false;
     private currentTarget: THREE.Object3D | null = null;
     private disposed: boolean = false; // Флаг для предотвращения использования после dispose
+    private hasChanges: boolean = false; // Гизмо сдвинуло или повернуло объект в текущем перетаскивании
+
+    /** Зазор до стены (мм), в пределах которого сброс свободной установки прижимает объект к стене */
+    private readonly WALL_SNAP_DISTANCE: number = 100
 
     private rotationSnapDegrees: number
     private rotationSnapRadians: number
@@ -73,6 +78,10 @@ export class TransformControlsManager {
         // Подписываемся на встроенные события TransformControls
         this.controls.addEventListener('dragging-changed', (event) => {
             this.onDraggingChanged(event.value as boolean); // true = dragging, false = idle
+        });
+        // Любое изменение объекта гизмо делает его свободно установленным
+        this.controls.addEventListener('objectChange', () => {
+            this.hasChanges = true;
         });
 
 
@@ -125,6 +134,10 @@ export class TransformControlsManager {
         }
         else {
             this.orbitControls.enabled = true
+            // Перетаскивание гизмо закончено — фиксируем результат
+            if (this.hasChanges && this.currentTarget) {
+                this.commitFreeTransform(this.currentTarget)
+            }
         }
     }
 
@@ -132,13 +145,13 @@ export class TransformControlsManager {
     detach(): void {
         // this.checkDisposed();
         if (!this.currentTarget) return;
-        const pos = this.moveManager.getMousePos(this.currentTarget.position)
-        this.currentTarget.userData.MOUSE_POSITION = pos
-        this.currentTarget.userData.obb.center.copy(this.currentTarget.position)
-        this.currentTarget.userData.obb.rotation.setFromMatrix4(this.currentTarget.matrixWorld);
-        this.currentTarget.userData.PROPS.CONFIG.ROTATION = this.currentTarget.rotation;
-        this.currentTarget.userData.targetPosition = this.currentTarget.position
 
+        if (this.hasChanges) {
+            this.commitFreeTransform(this.currentTarget)
+        }
+        else {
+            this.syncTransform(this.currentTarget)
+        }
 
         this.controls.detach();
         this.callbacks.onDetach(this.currentTarget);
@@ -150,6 +163,127 @@ export class TransformControlsManager {
         this.controls.enabled = false;
         this.controls.detach();
         this.currentTarget = null;
+        this.hasChanges = false;
+    }
+
+    /** Переносит положение объекта в CONFIG и данные коллизий */
+    private syncTransform(object: THREE.Object3D): void {
+        const { CONFIG } = object.userData.PROPS
+
+        object.updateMatrixWorld(true)
+
+        // Копии, а не ссылки: коллайдер меняет CONFIG.ROTATION через rotation.copy(),
+        // а ресайз — позицию через position.set(POSITION), и это задевало бы сам объект
+        CONFIG.POSITION = object.position.clone()
+        CONFIG.ROTATION = object.rotation.clone()
+
+        object.userData.targetPosition = object.position.clone()
+        object.userData.MOUSE_POSITION = this.moveManager.getMousePos(object.position)
+        // По aabb строится OBB объекта для коллизий соседей — без пересчёта они сталкивались бы с его старым местом
+        object.userData.aabb = new THREE.Box3().setFromObject(object)
+        object.userData.obb.center.copy(object.position)
+        object.userData.obb.rotation.setFromMatrix4(object.matrixWorld)
+    }
+
+    /** Фиксирует установку гизмо: коллайдер больше не поворачивает объект к стенам */
+    private commitFreeTransform(object: THREE.Object3D): void {
+        this.hasChanges = false
+        this.syncTransform(object)
+
+        object.userData.PROPS.CONFIG.FREE_TRANSFORM = true
+        this.transformController.setFreeTransform(true)
+
+        this.eventBus.emit('U:PositionChanged')
+    }
+
+    /** Снимает свободную установку: объект получает поворот ближайшей стены и снова к ней притягивается */
+    resetFreeTransform(): void {
+        const object: THREE.Object3D | null = toRaw(this.modelState.getCurrentModel)
+        if (!object?.userData.PROPS?.CONFIG.FREE_TRANSFORM) {
+            return
+        }
+
+        const roomManager = this.root._roomManager
+        const { CONFIG } = object.userData.PROPS
+
+        delete CONFIG.FREE_TRANSFORM
+        this.transformController.setFreeTransform(false)
+
+        const wall = this.findNearestWall(object.position, roomManager._roomWalls)
+        // Зазор меряем до поворота: важно, насколько близко к стене объект стоит сейчас
+        const snapToWall = !!wall && this.getWallGap(object, wall) <= this.WALL_SNAP_DISTANCE
+
+        if (wall) {
+            CONFIG.ROTATION = wall.rotation.clone()
+            object.rotation.copy(wall.rotation)
+            object.updateMatrixWorld(true)
+            object.userData.obb.rotation.setFromMatrix4(object.matrixWorld)
+        }
+
+        // Точка на плоскости стены — туда же целится перетаскивание мышью по стене,
+        // коллайдер затем отодвигает объект на его глубину
+        const targetPosition = snapToWall
+            ? wall.userData.plane.projectPoint(object.position, new THREE.Vector3())
+            : object.position.clone()
+
+        const adjusted = roomManager.adjustPositionWithRaycasting({
+            object,
+            targetPosition,
+            wall: snapToWall ? wall : roomManager._roomFloor
+        })
+
+        object.position.copy(adjusted.position)
+        object.rotation.copy(adjusted.rotation)
+
+        this.syncTransform(object)
+        // Цель на стене: при ресайзе глубины коллайдер снова прижмёт объект задней стенкой
+        object.userData.targetPosition = targetPosition
+
+        this.root._customBoxHelper?.updateBoxHelper()
+        this.eventBus.emit('U:PositionChanged')
+    }
+
+    /** Ближайшая к точке стена по расстоянию до её отрезка на полу */
+    private findNearestWall(position: THREE.Vector3, walls: THREE.Object3D[]): THREE.Object3D | null {
+        const point = new THREE.Vector3(position.x, 0, position.z)
+        const segment = new THREE.Line3()
+        const closest = new THREE.Vector3()
+
+        let nearest: THREE.Object3D | null = null
+        let minDistance = Infinity
+
+        for (const wall of walls) {
+            const { coordinates, plane } = wall.userData
+            if (!plane || !coordinates || coordinates.length < 2) {
+                continue
+            }
+
+            segment.start.set(coordinates[0].x, 0, coordinates[0].z)
+            segment.end.set(coordinates[1].x, 0, coordinates[1].z)
+            segment.closestPointToPoint(point, true, closest)
+
+            const distance = closest.distanceTo(point)
+            if (distance < minDistance) {
+                minDistance = distance
+                nearest = wall
+            }
+        }
+
+        return nearest
+    }
+
+    /** Зазор между ближайшей к стене гранью OBB объекта и плоскостью стены */
+    private getWallGap(object: THREE.Object3D, wall: THREE.Object3D): number {
+        const { obb } = object.userData
+        const { plane } = wall.userData
+
+        // Нормаль стены в локальных осях OBB — по ней проецируем полуразмеры
+        const localNormal = plane.normal.clone().applyMatrix3(obb.rotation.clone().transpose())
+        const extent = obb.halfSize.x * Math.abs(localNormal.x)
+            + obb.halfSize.y * Math.abs(localNormal.y)
+            + obb.halfSize.z * Math.abs(localNormal.z)
+
+        return plane.distanceToPoint(object.position) - extent
     }
 
     // Включение (enabled = true)
@@ -247,6 +381,10 @@ export class TransformControlsManager {
             this.setRotationSnap(degrees);
         };
 
+        const onReset = () => {
+            this.resetFreeTransform()
+        }
+
 
         this.eventBus.on("A:TransformSetMode", onSetMode)
         this.eventBus.on("A:TransformMode_On", onAttach)
@@ -258,6 +396,7 @@ export class TransformControlsManager {
         this.eventBus.on("A:NextAction", onTotalDetach)
         this.eventBus.on("A:PrevAction", onTotalDetach)
         this.eventBus.on("A:TransformSetRotationSnap", onSetRotationSnap);
+        this.eventBus.on("A:TransformReset", onReset);
 
     }
 }

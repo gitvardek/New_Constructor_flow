@@ -39,7 +39,6 @@ defineExpose({
 </template>
 
 <style lang="scss" scoped>
-
 button {
   border: none;
   border-radius: 15px;
@@ -52,8 +51,14 @@ button {
   transition-property: background-color, color;
   transition-duration: 0.25s;
   transition-timing-function: ease;
+
   &.right-menu {
     padding: 10px 15px;
+  }
+
+  &.small {
+    padding: 0.5rem 1rem;
+    font-size: 1.2rem;
   }
 
   &:hover {
@@ -61,10 +66,23 @@ button {
     color: $white;
   }
 }
+
+.border {
+  border: solid 1px $strong-grey;
+  transition-property: border-color, background-color, color;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+   &:hover {
+    border-color: $red;
+   }
+
+}
+
 .btn-active {
   background-color: $red;
   color: $white;
 }
+
 .red__button {
   background-color: $red;
   color: $white;
