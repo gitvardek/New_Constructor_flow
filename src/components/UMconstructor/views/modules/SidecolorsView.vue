@@ -475,6 +475,20 @@ const getSideProfile = computed(() => {
   return module.value.profilesConfig?.sideProfile || false;
 });
 
+// Сторону профиля выбирает пользователь, только пока петли крайних секций не заняли
+// ни одну из стенок. Иначе она задана петлями и показывается заголовком
+const profileSideSelectable = computed(() => {
+  return !!getSideProfile.value && UMconstructor.value.PROFILES.isSideSelectable(module.value);
+});
+
+const isProfileRight = computed({
+  get: () => getSideProfile.value?.side === "right",
+  set: (value: boolean) => {
+    UMconstructor.value.PROFILES.setManualSide(value ? "right" : "left", module.value);
+    reset();
+  },
+});
+
 const changeProfilesWidth = (onSectionSize) => {
   module.value.sections.forEach((section, secIndex) => {
     let newWidth = onSectionSize
@@ -571,11 +585,27 @@ onBeforeUnmount(() => {
         <h1 class="UM color__title">{{ partsNames[currentOption] }}</h1>
         <ClosePopUpButton class="UM menu__close" @close="closeMenu()" />
 
-        <p class="UM color__title color__switch" v-if="currentOption === 'PROFILECOLOR'">
+        <div class="color__switch" v-if="currentOption === 'PROFILECOLOR' && getSideProfile">
+          <p class="color__switch__label">Расположение бокового профиля</p>
+          <template v-if="profileSideSelectable">
+            <h1 :class="['color__switch__text', { active: !isProfileRight }]">
+              Слева
+            </h1>
+            <Toggle v-model="isProfileRight" />
+            <h1 :class="['color__switch__text', { active: isProfileRight }]">
+              Справа
+            </h1>
+          </template>
+          <h1 v-else class="color__switch__text active">
+            {{ isProfileRight ? "Справа" : "Слева" }} — напротив петель
+          </h1>
+        </div>
+
+        <!-- <p class="UM color__title color__switch" v-if="currentOption === 'PROFILECOLOR'">
           Профили в размер секции
           <Toggle v-model="module.profilesConfig.onSectionSize"
             @change="changeProfilesWidth(module.profilesConfig.onSectionSize)" />
-        </p>
+        </p> -->
 
         <div class="color__switch" v-if="currentOption === 'TOPFASADECOLOR'">
           <h1 :class="['color__switch__text', { active: !toptableMode }]">
@@ -626,6 +656,12 @@ onBeforeUnmount(() => {
     &.active {
       color: #da444c;
     }
+  }
+
+  &__label {
+    flex-basis: 100%;
+    margin-bottom: 0.5rem;
+    text-align: center;
   }
 }
 

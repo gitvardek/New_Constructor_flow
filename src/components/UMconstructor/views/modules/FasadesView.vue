@@ -307,13 +307,19 @@ const getLoopsideList = (
 const changeLoopside = (secIndex, segment, event, doorIndex, module) => {
   closeMenu();
 
-  UMconstructor?.value?.FASADES.changeLoopside(
+  const applied = UMconstructor?.value?.FASADES.changeLoopside(
     secIndex,
     segment,
     event.target.value,
     doorIndex,
     module,
   );
+
+  // Смену отклонили (боковому профилю не осталось бы стенки) — селект уже показывает
+  // новый вариант, возвращаем его к фактической стороне
+  if (applied === false) {
+    event.target.value = segment.loopsSide;
+  }
 };
 
 // У сегмента разделённого фасада без материала петель нет — выбор стороны скрыт
