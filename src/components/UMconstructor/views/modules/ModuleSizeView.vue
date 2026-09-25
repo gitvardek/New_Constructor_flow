@@ -58,6 +58,14 @@ const fillingExist = computed(() => {
     return false
 })
 
+const toggleSideProfile = () => {
+  UMconstructor.value.initSideProfile(module.value)
+
+  // Профиль могли не поставить (петли у обеих стенок): флаг в сторе не изменился,
+  // watch не сработает — возвращаем тумблер к факту вручную
+  onSideProfile.value = UMconstructor.value.UM_STORE.onSideProfile
+}
+
 const updateTotalSize = (dimensions: string, value: number, event: Event) => {
   switch (dimensions) {
     case "totalHeight":
@@ -341,7 +349,7 @@ onMounted(() => {
       <Toggle
           v-else
           v-model="onSideProfile"
-          @change="() => UMconstructor.initSideProfile(module)"
+          @change="toggleSideProfile"
       />
     </div>
 

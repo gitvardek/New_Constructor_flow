@@ -976,7 +976,14 @@ export default class FasadesManager {
         doorIndex: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-        fasade.loopsSide = typeof newSide === "string" ? parseInt(newSide) : newSide;
+        const side = typeof newSide === "string" ? parseInt(newSide) : newSide;
+
+        // С боковым профилем петли крайних секций не должны занять обе стенки
+        if (!this.scope.PROFILES.canApplyLoopside(secIndex, side, grid)) {
+            return false
+        }
+
+        fasade.loopsSide = side;
 
         // Временно: сторона открывания едина для всей секции — меняем её сразу у всех
         // фасадов. Фасады ящиков пропускаем, петель у них нет; сегмент разделённого
@@ -1005,9 +1012,7 @@ export default class FasadesManager {
         //     (item) => (item.loopsSide = fasade.loopsSide)
         // );
 
-        if (grid.profilesConfig?.sideProfile)
-            this.scope.PROFILES.changeProfileSide(LOOPSIDE[fasade.loopsSide]?.includes("left") ? "left" : "right", grid)
-
+        // Сторону бокового профиля пересчитает reset — после того как calcLoops разложит петли
         this.scope.reset(grid);
     };
 

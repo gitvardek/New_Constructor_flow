@@ -449,6 +449,16 @@ export default class UMconstructorClass {
     initSideProfile(grid: GridModule = this.UM_STORE.getUMGrid()) {
         if (!grid.profilesConfig?.sideProfile) {
 
+            // Профиль встаёт к стенке, свободной от петель крайней секции. Если петли
+            // стоят у обеих стенок, ставить его некуда
+            const side = this.PROFILES.resolveProfileSide(grid)
+
+            if (!side) {
+                this.callAlert("error", "Нельзя установить боковой профиль: петли крайних секций стоят у обеих боковых стенок. Смените сторону открывания у крайней левой или крайней правой секции")
+                this.UM_STORE.onSideProfile = false
+                return
+            }
+
             const product = this.APP.CATALOG.PRODUCTS[6513251] //C - образный профиль
             const productData = this.UM_STORE.getUMData()
             let profileData = {}
@@ -472,20 +482,8 @@ export default class UMconstructorClass {
             profileData.size = { x: grid.height, y: product.height, z: product.depth }
             profileData.product = 6513251
 
-            profileData.side = LOOPSIDE[grid.sections[0].loopsSides[0]]?.includes("left") ? "right" : "left" //"left" : "right"
-            const profileSidesMap = {
-                "left": new THREE.Vector2(-profileData.manufacturerOffset - profileData.size.y / 2, 0),
-                "right": new THREE.Vector2(grid.width + profileData.manufacturerOffset + profileData.size.y / 2, 0),
-            }
-            const profileRotationMap = {
-                "left": Math.PI / 2,
-                "right": -Math.PI / 2,
-            }
-
-            profileData.position = profileSidesMap[profileData.side];
-            profileData.rotation = new THREE.Vector3(0, 0, profileRotationMap[profileData.side]);
-
             grid.profilesConfig.sideProfile = profileData
+            this.PROFILES.applyProfileSide(side, grid)
             this.UM_STORE.onSideProfile = true
         }
         else {
@@ -821,6 +819,10 @@ export default class UMconstructorClass {
             if (this.SHELVES.cleanupOversizedGlassShelves(module)) {
                 return this.reset(module)
             }
+
+            // Сторона бокового профиля зависит от петель крайних секций и ширины модуля —
+            // пересчитываем, когда петли уже разложены
+            this.PROFILES.updateSideProfile(module)
         }
         catch (error) {
             console.error(error)
