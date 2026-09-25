@@ -39,6 +39,7 @@ import { ShelfBuilder } from './Shelf/ShelfBuilder.ts';
 import { MirrorBuilder } from './MirrorBuilder/MirrorBuilder.ts';
 import { TsargaBuilder } from './TsargaBuilder/TsargaBuilder.ts';
 import { UM_SAMPLE } from '../F-umModulesData.ts';
+import { UM_PARAMS, WITHOUT_START_FASADE } from "@/components/UMconstructor/utils/Const";
 
 export class BuildProduct extends BuildersHelper {
 
@@ -154,6 +155,10 @@ export class BuildProduct extends BuildersHelper {
 
                 this.checkOptionsOldDataFormat(loaded_props)
 
+                if (!loaded_props && um_params) {
+                    this.resetStartFasades(um_params)
+                }
+
                 const income_props = loaded_props ?? um_params
 
                 const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
@@ -239,6 +244,22 @@ export class BuildProduct extends BuildersHelper {
             return el
         })
         CONFIG.OPTIONS = check
+    }
+
+    private resetStartFasades(data: THREETypes.TTotalProps) {
+        if (!WITHOUT_START_FASADE.includes(data.PRODUCT)) {
+            return
+        }
+
+        const { FASADE_PROPS, MODULEGRID } = data.CONFIG
+        const gridMaterials = (MODULEGRID?.fasades ?? []).flat().map(fasade => fasade.material)
+        const materials = [...(FASADE_PROPS ?? []), ...gridMaterials].filter(Boolean)
+
+        materials.forEach(material => {
+            material.COLOR = material.RESET_COLOR ?? UM_PARAMS.NO_FASADE_ID
+            material.SHOW = false
+            material.MANUAL_NO_FASADE = true
+        })
     }
 
     //========================================================================================================

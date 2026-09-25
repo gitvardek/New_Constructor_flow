@@ -45,4 +45,5 @@ export const FILLINGS_RESTRICTION_EXCEPTIONS = [6513263];
 
 export const WITH_TSARGA = [3954672];
 export const MODULE_TSARGA_OPTIONS = [7250589, 7250452];
-// export const WITH_TSARGA = [];
+// Модули, которые ставятся на сцену без фасадов: цвет фасада из настроек комнаты им не подставляется.
+export const WITHOUT_START_FASADE = [5168676];

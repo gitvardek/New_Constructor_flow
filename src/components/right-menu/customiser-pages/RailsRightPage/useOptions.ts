@@ -11,7 +11,7 @@ const mechanism = useMechanism();
 const { expressionsReplace, calculateFromString } = useExpressions();
 
 
-export const useOptions = () => {
+export const useOptions = ({ withMechanism = true } = {}) => {
 
     const appData = useAppData();
     const modelState = useModelState();
@@ -33,7 +33,7 @@ export const useOptions = () => {
     const LOW_MODULE_HIDDEN_GROUPS = [548, 549]
     const NO_LOOPS_OPTION = 1795067
 
-    const mechanismList = createMeckhanizmList();
+    const mechanismList = withMechanism ? createMeckhanizmList() : [];
 
     const syncHorizont = (options: any[]) => {
         UM_STORE.onHorizont = !options.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id) && opt.active)
@@ -294,23 +294,32 @@ export const useOptions = () => {
         return curOpt.active;
     };
 
-    const checkExeptionOptionForFasade = (options, props) => {
-        const { PROPS } = modelState.getCurrentModel.userData;
+    const syncOptions = (model = modelState.getCurrentModel) => {
+        const PROPS = model?.userData?.PROPS as TTotalProps
+
+        // Без тела нет trueSize, по которому считаются CONDITIONS и размер распила
+        if (!PROPS?.CONFIG?.OPTIONS?.length || !PROPS.BODY?.userData?.trueSize) {
+            return
+        }
+
+        checkExeptionOptionForFasade(filterOptions(PROPS), PROPS.CONFIG.OPTIONS, PROPS)
+    }
+
+    const checkExeptionOptionForFasade = (options, props, PROPS: TTotalProps = modelState.getCurrentModel.userData.PROPS) => {
         const { FASADE_PROPS } = PROPS.CONFIG
         const prepareColorId = FASADE_PROPS.map(el => {
             return el.COLOR
         })
 
-        const result = filterGroups(options, prepareColorId, props)
+        const result = filterGroups(options, prepareColorId, props, PROPS)
 
         return result
     }
 
-    const filterOptions = () => {
+    const filterOptions = (PROPS: TTotalProps = modelState.getCurrentModel.userData.PROPS) => {
         const data = appData.getAppData
         const options = data.OPTION as Record<string | number, TRootOptionType>
         const optGroup = data.OPTIONS_GROUP
-        const { PROPS } = modelState.getCurrentModel.userData;
         const curOptions = PROPS.CONFIG.OPTIONS
 
         applyLowModuleRules(curOptions, PROPS)
@@ -321,7 +330,7 @@ export const useOptions = () => {
             .map(el => {
                 if (!options[el.id]) return
                 const cloneOption = JSON.parse(JSON.stringify(options[el.id]))
-                const cutSize = getCutSizeOption(el, cloneOption)
+                const cutSize = getCutSizeOption(el, cloneOption, PROPS)
                 const disabled = checkDisabled(el, PROPS)
 
                 return { ...cloneOption, active: el.active, visible: el.visible, cutSize: cutSize, disabled }
@@ -351,10 +360,10 @@ export const useOptions = () => {
         return filtered
     }
 
-    const filterGroups = (groups, incomingIds, props) => {
+    const filterGroups = (groups, incomingIds, props, PROPS: TTotalProps = modelState.getCurrentModel?.userData?.PROPS) => {
         const idStrs = incomingIds.map(id => id.toString());
         const tmp_active_options = getActiveOptionIds(props)
-        const lowModule = isLowModule(modelState.getCurrentModel?.userData?.PROPS)
+        const lowModule = isLowModule(PROPS)
 
         let result = groups.map(group => {
             const contant = group.CONTANT;
@@ -371,7 +380,7 @@ export const useOptions = () => {
                 if (!hasMatching) {
                     // console.log('MATCH', checkAvailable(item))
 
-                    if (checkAvailable(item)) {
+                    if (checkAvailable(item, PROPS)) {
                         shouldBeVisible = !item.SHOW_ON_FASADE || item.SHOW_ON_FASADE.length === 0;
                     }
                     else {
@@ -486,88 +495,28 @@ export const useOptions = () => {
         }
     }
 
-    const processVisibility = (groups: any[], incomingIds: any[], global?: any[]) => {
-        const idStrs = incomingIds.map(id => id.toString());
-        const activeIds = getActiveOptionIds(global);
-        groups.forEach(group => {
-            const contant = group.CONTANT;
-            // Проверяем, есть ли в CONTANT хотя бы один элемент с хотя бы одним incomingId в SHOW_ON_FASADE
-            const hasMatching = contant.some(item =>
-                item.SHOW_ON_FASADE && idStrs.some(idStr => item.SHOW_ON_FASADE.includes(idStr))
-            );
-
-            contant.forEach(item => {
-                let shouldBeVisible: boolean;
-                if (!hasMatching) {
-                    // Если нет совпадений, видимыми остаются только с пустым SHOW_ON_FASADE
-                    // shouldBeVisible = !item.SHOW_ON_FASADE || item.SHOW_ON_FASADE.length === 0;
-                    if (checkAvailable(item)) {
-                        shouldBeVisible = !item.SHOW_ON_FASADE || item.SHOW_ON_FASADE.length === 0;
-                    }
-                    else {
-                        shouldBeVisible = false
-                    }
-                } else {
-                    // Если есть совпадения, видимыми только те, где есть хотя бы один incomingId в SHOW_ON_FASADE
-                    // и ID элемента не входит в его собственный SHOW_ON_WITH
-                    if (item.SHOW_ON_FASADE && idStrs.some(idStr => item.SHOW_ON_FASADE.includes(idStr))) {
-                        const myId = item.ID;
-                        const showOnWith = item.SHOW_ON_WITH || [];
-                        // Очищаем от trailing \t для корректного сравнения
-                        const cleanShowOnWith = showOnWith.map(s => s.replace(/\t$/, ''));
-                        shouldBeVisible = !cleanShowOnWith.includes(myId);
-                    } else {
-                        shouldBeVisible = false;
-                    }
-                }
-
-                // Зависимость от другой опции — тот же учёт, что и в filterGroups
-                if (!isRequirementMet(item, activeIds)) {
-                    shouldBeVisible = false
-                }
-
-                if (global) {
-                    const curOptionInConfig = global.find(el => el.id === item.ID)
-                    if (!curOptionInConfig) return
-
-                    curOptionInConfig.visible = shouldBeVisible
-                    if (!shouldBeVisible && curOptionInConfig.active) {
-                        curOptionInConfig.active = false
-                        eventBus.emit("A:SelectModelOption")
-                    }
-                }
-            });
-        });
-    };
-
     const resetGlobal = () => {
 
         const { PROPS } = modelState.getCurrentModel.userData;
-        const { FASADE_PROPS, OPTIONS } = PROPS.CONFIG
-        const prepareColorId = FASADE_PROPS.map(el => {
-            return el.COLOR
-        })
-        const filtered = filterOptions()
-        processVisibility(filtered, prepareColorId, OPTIONS)
+        syncOptions()
         PROPS.CONFIG.MECHANISM = null
         PROPS.CONFIG.MECHANISM_TEMP = []
 
     }
 
-    const getCutSizeOption = (option, options) => {
+    const getCutSizeOption = (option, options, PROPS: TTotalProps = modelState.getCurrentModel.userData.PROPS) => {
 
         const { id } = option
-        const { PROPS } = modelState.getCurrentModel.userData;
         const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize
         const getResult = (param) => { return param * 0.5 - cutOptionsTempSize * 0.5 }
 
 
         if (cutOptionsId.includes(parseInt(id))) {
             if (parseInt(id) === 4722787) {
-                return getResult(BODY_WIDTH)
+                return getResult(BODY_HEIGHT)
             }
             if (parseInt(id) === 4722786) {
-                return getResult(BODY_HEIGHT)
+                return getResult(BODY_WIDTH)
             }
         }
 
@@ -575,10 +524,9 @@ export const useOptions = () => {
 
     }
 
-    const checkAvailable = (options: TRootOptionType) => {
+    const checkAvailable = (options: TRootOptionType, PROPS: TTotalProps = modelState.getCurrentModel.userData.PROPS) => {
 
-        const PROPS = modelState.getCurrentModel.userData.PROPS as TTotalProp;
-        const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize
+        const { BODY_WIDTH, BODY_HEIGHT, CONFIG } = PROPS.BODY.userData.trueSize
         const isNestandartFasade = NESTANDART_FASADE.includes(PROPS.PRODUCT)
         const isConditions = options.CONDITIONS
         if (UNIVERSALE_MODULES.includes(PROPS.PRODUCT)) return true
@@ -625,5 +573,5 @@ export const useOptions = () => {
     }
 
 
-    return { createOptionList, checkActive, resetGlobal }
+    return { createOptionList, checkActive, resetGlobal, syncOptions }
 }

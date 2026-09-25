@@ -18,6 +18,7 @@ import { useRoomContantData } from "@/store/appliction/useRoomContantData";
 import { useModelState } from '@/store/appliction/useModelState';
 import { useSceneState } from '@/store/appliction/useSceneState';
 import { useUniformState } from "@/store/appliction/useUniformState";
+import { useOptions } from "@/components/right-menu/customiser-pages/RailsRightPage/useOptions";
 
 import { SetObject } from '../Utils/SetObject';
 import { GeometryBuilder } from '../Meshes/GeometryBuilder';
@@ -34,6 +35,7 @@ export class RoomManager extends Room {
     private roomContentData: ReturnType<typeof useRoomContantData> = useRoomContantData()
     private modelState: ReturnType<typeof useModelState> = useModelState()
     private uniformState: ReturnType<typeof useUniformState> = useUniformState()
+    private options: ReturnType<typeof useOptions> = useOptions({ withMechanism: false })
     private OBBCollider: OBBCollider = new OBBCollider()
     private OBBHealper: OBBHelper = new OBBHelper()
 
@@ -439,11 +441,9 @@ export class RoomManager extends Room {
 
             let builder = isUM ? this.universalGeometryBuilder : this.geometryBuilder;
 
-            /** @Копирование_объекта */
             if (!isUM) {
                 builder?.isCopy(copy)
             }
-            //----------------------------------------------------------------------------------------
 
             const object = await builder!.createModel(
                 this.modelState.getModels[model.id] as THREEInterfases.IModelsData,
@@ -461,6 +461,13 @@ export class RoomManager extends Room {
                 point,
                 boxHelper: copy
             });
+
+            if (!isUM) {
+                builder?.isCopy(false)
+            }
+
+            // Проверка на баг с опциями
+            this.options.syncOptions(object);
 
             /** @Столешница */
 
