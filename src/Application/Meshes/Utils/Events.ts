@@ -16,6 +16,7 @@ import { useUniformState } from "@/store/appliction/useUniformState";
 import { useMenuStore } from '@/store/appStore/useMenuStore';
 import { useRoomOptions } from '@/components/left-menu/option/roomOptions/useRoomOptons';
 import { getDefaultPatinaForMilling } from '@/components/right-menu/customiser-pages/ColorRightPage/domain/fasadeOptions';
+import { useOptions } from '@/components/right-menu/customiser-pages/RailsRightPage/useOptions';
 import { BuildersHelper } from '../BuildersHelper';
 
 
@@ -39,6 +40,7 @@ export class MeshEvents extends BuildersHelper {
     modelState: ReturnType<typeof useModelState> = useModelState()
     menuStore: ReturnType<typeof useMenuStore> = useMenuStore()
     roomOptions: ReturnType<typeof useRoomOptions> = useRoomOptions()
+    options: ReturnType<typeof useOptions> = useOptions({ withMechanism: false })
     trafficManager: THREETypes.TTrafficManager
 
     resources: THREETypes.TResources
@@ -445,6 +447,11 @@ export class MeshEvents extends BuildersHelper {
                 );
             })
         );
+
+        // От цвета фасадов зависит видимость опций (SHOW_ON_FASADE), а вместе с ней и
+        // обязательные опции. Пересчитываем до GlobalParamsSelect, чтобы корзина собралась
+        // уже по новому набору
+        elementsList.forEach(el => this.options.syncOptions(el));
 
         // Только здесь — всё гарантированно завершено
         setTimeout(() => {

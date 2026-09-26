@@ -13,6 +13,7 @@ import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from '@/store/appliction/useModelState';
 import { useMenuStore } from '@/store/appStore/useMenuStore.ts';
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
+import { UM_PARAMS, WITHOUT_START_FASADE } from "@/components/UMconstructor/utils/Const";
 
 import { Resources } from '../Utils/Resources'
 import { Ruler } from '../Utils/Ruler'
@@ -159,6 +160,12 @@ export class BuildProduct extends BuildersHelper {
 
                 this.checkOptionsOldDataFormat(loaded_props)
 
+                // Сохранённых пропсов нет только у новой модели, которую вытаскивают на сцену.
+                // Загрузка проекта и копирование приходят с loaded_props
+                if (!loaded_props && um_params) {
+                    this.resetStartFasades(um_params)
+                }
+
                 const income_props = loaded_props ?? um_params
 
                 const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
@@ -245,6 +252,27 @@ export class BuildProduct extends BuildersHelper {
             return el
         })
         CONFIG.OPTIONS = check
+    }
+
+    // Фасады новой модели из WITHOUT_START_FASADE остаются с RESET_COLOR. Одного цвета мало:
+    // resolveColorId при каждой сборке заменяет незаданный фасад цветом из настроек комнаты.
+    // MANUAL_NO_FASADE это запрещает, пока фасад не выберут явно — тогда пометка снимается
+    // (catchFasadeChange, FasadesView). Новые двери УМ копируют материал соседней вместе с ней
+    private resetStartFasades(data: THREETypes.TTotalProps) {
+        if (!WITHOUT_START_FASADE.includes(data.PRODUCT)) {
+            return
+        }
+
+        const { FASADE_PROPS, MODULEGRID } = data.CONFIG
+        // У УМ FASADE_PROPS пересобираются из материалов дверей сетки (parseModulegrid)
+        const gridMaterials = (MODULEGRID?.fasades ?? []).flat().map(fasade => fasade.material)
+        const materials = [...(FASADE_PROPS ?? []), ...gridMaterials].filter(Boolean)
+
+        materials.forEach(material => {
+            material.COLOR = material.RESET_COLOR ?? UM_PARAMS.NO_FASADE_ID
+            material.SHOW = false
+            material.MANUAL_NO_FASADE = true
+        })
     }
 
     //========================================================================================================

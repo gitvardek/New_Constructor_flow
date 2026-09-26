@@ -24,6 +24,7 @@ import { GeometryBuilder } from '../Meshes/GeometryBuilder';
 import { Room } from './Room';
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
+import { useOptions } from "@/components/right-menu/customiser-pages/RailsRightPage/useOptions";
 // import CreateShape from '../2DScene/CreateShape';
 
 
@@ -34,6 +35,7 @@ export class RoomManager extends Room {
     private roomContentData: ReturnType<typeof useRoomContantData> = useRoomContantData()
     private modelState: ReturnType<typeof useModelState> = useModelState()
     private uniformState: ReturnType<typeof useUniformState> = useUniformState()
+    private options: ReturnType<typeof useOptions> = useOptions({ withMechanism: false })
     private OBBCollider: OBBCollider = new OBBCollider()
     private OBBHealper: OBBHelper = new OBBHelper()
 
@@ -468,6 +470,11 @@ export class RoomManager extends Room {
             if (!isUM) {
                 builder?.isCopy(false)
             }
+
+            // Проект мог сохраниться с опциями, не пересчитанными под фасады: например,
+            // после глобальной смены фасадов. Выравниваем их сразу, иначе обязательные
+            // опции уйдут в корзину выключенными, хотя панель показывает их отмеченными
+            this.options.syncOptions(object);
 
             /** @Столешница */
 
