@@ -110,6 +110,16 @@ export class FasadeBuilder {
         }
     }
 
+    private resolveGlass(fasadeData: THREETypes.TFasadeProp, glassList: { ID: number }[], haveShowcase: boolean) {
+        const hasGlass = haveShowcase || fasadeData.ALUM != null
+
+        if (!fasadeData.SHOW || !hasGlass || !glassList.length) {
+            return fasadeData.GLASS
+        }
+
+        return glassList.some(item => item.ID == fasadeData.GLASS) ? fasadeData.GLASS : glassList[0].ID
+    }
+
     private getSelectedPatina(fasadeData: THREETypes.TFasadeProp) {
         if (!fasadeData.PATINA) {
             return null
@@ -344,9 +354,9 @@ export class FasadeBuilder {
             const firstValuePall = Object.values(
                 this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR)
             )[0] as any;
-            const firstValueGlass = this.parent.modelState.createCurrentGlassData({
+            const glassList = this.parent.modelState.createCurrentGlassData({
                 fasadeId: fasadeData.COLOR, productId: PRODUCT
-            })[0] as any;
+            });
 
             if (millingList.length > 0) {
 
@@ -390,9 +400,7 @@ export class FasadeBuilder {
                 }
             }
 
-            if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
-                fasadeData.GLASS = fasadeData.GLASS ?? firstValueGlass.ID;
-            }
+            fasadeData.GLASS = this.resolveGlass(fasadeData, glassList, haveShowcase);
 
             this.applyDecorations(result, fasadeData, key, haveShowcase, FASADE_DEFAULT, FASADE_PROPS, 'build');
         }
@@ -509,7 +517,10 @@ export class FasadeBuilder {
         const firstValuePall = Object.values(
             this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR)
         )[0] as any;
-        const firstValueGlass = this.parent.modelState.getCurrentGlassData[0] as any;
+        const glassList = this.parent.modelState.createCurrentGlassData({
+            fasadeId: fasadeData.COLOR,
+            productId: PRODUCT,
+        });
         const millingList = this.parent.modelState.createCurrentMillingData({
             fasadeId: fasadeData.COLOR,
             productId: PRODUCT,
@@ -551,9 +562,7 @@ export class FasadeBuilder {
             fasadeData.PATINA = null;
         }
 
-        if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
-            fasadeData.GLASS = firstValueGlass.ID;
-        }
+        fasadeData.GLASS = this.resolveGlass(fasadeData, glassList, haveShowcase);
 
         // Пересоздание геометрии, если нет кастомной глубины
         const fasadePositionData = this.getFasadePosition(CONFIG, fasadeNdx, isUMmodule);

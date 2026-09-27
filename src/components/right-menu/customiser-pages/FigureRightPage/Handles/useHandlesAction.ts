@@ -4,7 +4,7 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
 import { MILLING_HANDLE_KEYS, additionalMillingKeys } from "@/Application/F-millings";
 import { TMillingListItem } from "@/store/appliction/useModelState";
-import { TConfig, FasadeTextAlignAction } from "@/types/types";
+import { TConfig, TFasadeProp, FasadeTextAlignAction } from "@/types/types";
 
 export type THandleType = "milling" | "integrate"
 
@@ -49,21 +49,46 @@ const useHandlesAction = () => {
         return result;
     };
 
-    const getIntegratedHandleControllerData = (data: TMillingListItem, fasadeNdx: number, type: THandleType) => {
+    /** В УМ тип фасада лежит объектом {action, id, active, name}, в обычном потоке — числом */
+    const getTypeId = (value: unknown) => {
+        if (value && typeof value === "object") {
+            return (value as { id: number }).id
+        }
+        return value
+    }
+
+    const getIntegratedHandleControllerData = (
+        data: TMillingListItem,
+        fasadeNdx: number,
+        type: THandleType,
+        curFasadeProps: TFasadeProp | null = null,
+    ) => {
         const model = modelState.getCurrentModel;
-        const { FASADE_POSITIONS, FASADE_PROPS } = (model?.userData?.PROPS?.CONFIG ?? {}) as TConfig;
-        if (!FASADE_POSITIONS || !FASADE_PROPS) return [];
-        const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE
+        const CONFIG = (model?.userData?.PROPS?.CONFIG ?? {}) as TConfig;
+        const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
+        if (!FASADE_POSITIONS || !FASADE_PROPS) {
+            return [];
+        }
+        
+        const fasadeProps = curFasadeProps ?? FASADE_PROPS[fasadeNdx]
+        const fType = FASADE_POSITIONS[fasadeNdx]?.FASADE_TYPE ?? CONFIG.FASADE_TYPE
 
+        if (!fasadeProps || !fType) {
+            return [];
+        }
 
-        const curMillinType = FASADE_PROPS[fasadeNdx].MILLING_TYPE ?? null
-        const curType = FASADE_PROPS[fasadeNdx].TYPE ?? null
+        const curMillinType = fasadeProps.MILLING_TYPE ?? null
+        const curType = fasadeProps.TYPE ?? null
 
         const typeList = getDataType(data, fType)
         let id: number | null;
-        if (type === "integrate") id = curType;
-        else if (type === "milling") id = curMillinType;
-        else id = 0
+        if (type === "integrate") {
+            id = getTypeId(curType);
+        } else if (type === "milling") {
+            id = getTypeId(curMillinType);
+        } else {
+            id = 0
+        }
 
         const textList = typeList.map((el, ndx) => {
 

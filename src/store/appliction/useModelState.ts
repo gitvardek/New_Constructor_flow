@@ -528,12 +528,6 @@ export const useModelState = defineStore('ModelState', () => {
 
         const millingConversations = checkMillingConversations(fasadeId)
 
-        const product = _PRODUCTS.value[productId]
-        const positionId = product.FASADE_POSITION[fasadeNdx]
-
-        const fasadePosData = _FASADE_POSITION.value[positionId]
-
-        const haveShowCase = fasadePosData?.glass == 1
         const sideColors = ["LEFTSIDECOLOR", "RIGHTSIDECOLOR"]
 
 
@@ -685,11 +679,11 @@ export const useModelState = defineStore('ModelState', () => {
     }
 
     /** Витрины */
-    const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx }) => {
+    const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx, fasadePosition = null }) => {
 
         const product = _PRODUCTS.value[productId]
         const prodShowcases = product.type_showcase
-        const positionId = product.FASADE_POSITION[fasadeNdx]
+        const positionId = fasadePosition ?? product.FASADE_POSITION[fasadeNdx]
         const fasadePosData = _FASADE_POSITION.value[positionId]
         const haveShowCase = fasadePosData?.glass == 1
         let prepare = [];

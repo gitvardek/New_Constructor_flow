@@ -53,6 +53,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  elementLabel: {
+    type: String,
+    default: "",
+  },
 });
 
 const { getIntegratedHandleControllerData } = useHandlesAction();
@@ -335,6 +339,7 @@ const onSelectMaterial = (data) => {
       fasadeTypes,
       props.elementIndex,
       "integrate",
+      selectedValues.value,
     );
 
     fasadeTypesList.value = typeList;
@@ -393,6 +398,7 @@ const onSelectMilling = (data) => {
       data,
       props.elementIndex,
       "milling",
+      selectedValues.value,
     );
 
     if (typeList.length > 0) {
@@ -629,6 +635,7 @@ const prepareData = () => {
       fasadeId: COLOR,
       productId: pid,
       fasadeNdx: props.elementIndex,
+      fasadePosition: selectedValues.value?.POSITION ?? null,
     });
 
     modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
@@ -660,6 +667,7 @@ const prepareData = () => {
       fasadeTypes,
       props.elementIndex,
       "integrate",
+      selectedValues.value,
     );
   }
 
@@ -670,6 +678,7 @@ const prepareData = () => {
       curMilling,
       props.elementIndex,
       "milling",
+      selectedValues.value,
     );
     fasadeHandleList.value = typeList;
     isFasadeHandleExist.value = true;
@@ -795,7 +804,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="container" ref="mainContainer">
     <div class="container__header" v-if="props.isFasade && props.elementIndex !== null">
-      <h3>Конфигурация фасада {{ props.elementIndex + 1 }}</h3>
+      <h3>Конфигурация фасада {{ props.elementLabel || props.elementIndex + 1 }}</h3>
     </div>
     <div class="container__header" v-if="props.elementIndex !== null && partsNames[props.elementIndex]">
       <h3>{{ partsNames[props.elementIndex] }}</h3>
@@ -812,11 +821,9 @@ onBeforeUnmount(() => {
           @delete-choise="deleteSelectedOptions" />
       </template>
 
-      <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList"
-        @change="onChangeIntegratedHandlePos" />
+      <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList" @change="onChangeIntegratedHandlePos" />
 
-      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList"
-        @change="onChangeMillingHandlePos" />
+      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList" @change="onChangeMillingHandlePos" />
     </div>
 
     <!-- Редактор выбранной опции: список значений, выбор уходит в обработчик опции -->
@@ -835,8 +842,8 @@ onBeforeUnmount(() => {
     <PatinaRedactor v-if="currentEditableOption === 'patina'" :patinaList="patina.list"
       :selectedId="selectedValues?.PATINA" @select_patina="onSelectPatina" />
 
-    <GlassRedactor v-if="currentEditableOption === 'glass'" :glassList="glass.list"
-      :selectedId="selectedValues?.GLASS" @select_glass="onSelectGlass" />
+    <GlassRedactor v-if="currentEditableOption === 'glass'" :glassList="glass.list" :selectedId="selectedValues?.GLASS"
+      @select_glass="onSelectGlass" />
 
     <ShowcaseRedactor v-if="currentEditableOption === 'showcase'" :showcaseList="showcase.list"
       :selectedId="selectedValues?.SHOWCASE" @select_showcase="onSelectShowcase" />
