@@ -349,12 +349,26 @@ export class MeshEvents extends BuildersHelper {
         const incomingModel = data.MODEL;
         const fasade = FASADE[fasadeNdx] ?? FASADE_DEFAULT[fasadeNdx];
         const fasadeProp = FASADE_PROPS[fasadeNdx];
+        const isNewMaterial = fasadeProp.COLOR != data.ID;
 
         fasadeProp.COLOR = data.ID
         if (fasadeProp.MANUAL_NO_FASADE)
             delete fasadeProp.MANUAL_NO_FASADE
 
         fasadeProp.ALUM = incomingModel;
+
+        // Новое полотно — патина и стекло по умолчанию для него, как их показывает редактор.
+        // updateFasade сохраняет выбранные, если они есть и в списках нового полотна, поэтому
+        // без сброса оставались значения прежнего. Патина — для фрезеровки из конфига: редактор
+        // записывает её до смены полотна, глобальная смена пересчитывает патину под свою фрезеровку.
+        // Стекло null — updateFasade подставит первое из списка
+        if (isNewMaterial) {
+            fasadeProp.PATINA = this.getDefaultFasadePatina(
+                data.ID,
+                this.modelState._MILLING[fasadeProp.MILLING]?.PATINAOFF
+            );
+            fasadeProp.GLASS = null;
+        }
 
         if (UNIFORM_TEXTURE.group !== null) {
             this.removeFromUniformGroup(meshData);
@@ -412,7 +426,6 @@ export class MeshEvents extends BuildersHelper {
                 const currentFasade = this._FASADE[data.ID];
 
                 const includeIncomeFasade = currentProduct.FACADE.includes(data.ID);
-                const includeIncomMilling = milling ? currentProduct.MILLING.includes(milling.ID) : false;
 
                 if (FASADE.length === 0) return;
 
@@ -420,27 +433,59 @@ export class MeshEvents extends BuildersHelper {
                 await Promise.all(
                     FASADE.map(async (fasade, fasadeNdx) => {
                         const { SHOWCASE } = FASADE_POSITIONS[fasadeNdx];
+                        const fasadeProp = FASADE_PROPS[fasadeNdx];
+                        // Полотно и фрезеровка до смены — от них зависит патина
+                        const prevColor = fasadeProp.COLOR;
+                        const prevMilling = fasadeProp.MILLING;
 
                         if (data.ID == 7397 || !includeIncomeFasade) {
                             await this.catchDeliteFasade(fasadeNdx, el);
                         } else {
                             await this.catchFasadeChange({ data, fasadeNdx, mesh: el });
 
+                            // Фрезеровка из опций комнаты — только если она есть в списке фасада, иначе
+                            // первая из списка: то же правило, что при сборке (buildAllFasades). Раньше
+                            // глобальная ставилась и продуктам, которые её не поддерживают, и фасадам,
+                            // чей размер её не допускает, а на витринах оставалась фрезеровка прежнего полотна
+                            const millingList = this.modelState.createCurrentMillingData({
+                                fasadeId: fasadeProp.COLOR,
+                                productId: PRODUCT,
+                                fasadeNdx,
+                                fasadeSize: fasade.userData?.trueSize,
+                            });
+                            const nextMilling = milling && millingList.some(item => item.ID == milling.ID)
+                                ? milling
+                                : millingList[0] ?? null;
+
+                            // Сменились полотно или фрезеровка — патина по умолчанию для них, как в
+                            // редакторе фасада: catchFasadeChange считает её для прежней фрезеровки, а
+                            // catchChangeMilling рисует новую с текущей PATINA. Пишем до перерисовки
+                            // палитры и фрезеровки — обе рисуют патину из конфига
+                            if (prevColor != fasadeProp.COLOR || prevMilling != nextMilling?.ID) {
+                                fasadeProp.PATINA = this.getDefaultFasadePatina(fasadeProp.COLOR, nextMilling?.PATINAOFF);
+                            }
+
                             if (palitte) {
                                 await this.changePaletteColor({ data: palitte, fasadeNdx, mesh: el });
                             }
 
-                            if (milling && !SHOWCASE) {
-                                let action = null;
+                            // Положение интегрированной ручки — по новой фрезеровке. Без фрезеровки или у
+                            // фрезеровки без положений сбрасываем, раньше оставалось от прежней
+                            const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
+                            const millingType = nextMilling?.fasade_type?.[0] != null
+                                ? nextMilling.fasade_type.filter(typeId => fType?.includes(typeId))[0] ?? null
+                                : null;
 
-                                if (milling.fasade_type && milling.fasade_type[0] !== null) {
-                                    const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
-                                    const prepare = milling.fasade_type.filter(el => fType?.includes(el));
-                                    action = this.modelState.getCurrentMillingActionMap(prepare[0], milling.ID) ?? null;
-                                    FASADE_PROPS[fasadeNdx].MILLING_TYPE = prepare[0] ?? null;
+                            fasadeProp.MILLING_TYPE = millingType;
+
+                            if (nextMilling) {
+                                if (SHOWCASE) {
+                                    // На витрине фрезеровка только в конфиге (для заказа и цены), без отрисовки
+                                    fasadeProp.MILLING = nextMilling.ID;
+                                } else {
+                                    const action = this.modelState.getCurrentMillingActionMap(millingType, nextMilling.ID) ?? null;
+                                    await this.catchChangeMilling({ data: nextMilling.ID, fasadeNdx, action, mesh: el });
                                 }
-
-                                await this.catchChangeMilling({ data: milling.ID, fasadeNdx, action, mesh: el });
                             }
                         }
                     })
@@ -488,13 +533,15 @@ export class MeshEvents extends BuildersHelper {
 
         const props = meshData.userData.PROPS
         const { FASADE, CONFIG } = props
-        const { FASADE_PROPS } = CONFIG
+        const { FASADE_PROPS, FASADE_POSITIONS } = CONFIG
         const patina = FASADE_PROPS[fasadeNdx]?.PATINA
+        // На витрине патина только в конфиге (для заказа и цены), без отрисовки — как в applyFasadePatina
+        const isShowcase = FASADE_POSITIONS[fasadeNdx]?.SHOWCASE === 1
 
         // console.log(data, 'data')
 
         await this.catchChangePaletteColor({ data, fasadeNdx, mesh: meshData } as TDataWithNdx)
-        if (patina) {
+        if (patina && !isShowcase) {
 
             await this.catchDrawPatina({ data: patina, fasadeNdx, mesh: meshData })
         }
@@ -639,15 +686,24 @@ export class MeshEvents extends BuildersHelper {
             return;
         }
 
-        // Патина — по умолчанию для новой фрезеровки (при PATINAOFF == 0 первая патина полотна,
-        // иначе null) и до её перестроения: catchChangeMilling рисует фрезеровку с текущей PATINA.
-        // Список тот же, что в редакторе (createCurrentPatinaData): патины полотна, есть в справочнике
-        const materialPatina = (this.modelState._FASADE[fasade.COLOR]?.PATINA ?? [])
-            .filter(id => id != null && Object.prototype.hasOwnProperty.call(this.modelState._PATINA, id))
-        fasade.PATINA = getDefaultPatinaForMilling(firstMilling.PATINAOFF, materialPatina)
+        // Патина — по умолчанию для новой фрезеровки и до её перестроения:
+        // catchChangeMilling рисует фрезеровку с текущей PATINA
+        fasade.PATINA = this.getDefaultFasadePatina(fasade.COLOR, firstMilling.PATINAOFF)
 
         await this.changeMilling({ data: firstMilling.ID, fasadeNdx })
         fasade.MILLING_TYPE = null
+    }
+
+    /**
+     * Патина по умолчанию для полотна и фрезеровки: при PATINAOFF == 0 первая патина полотна,
+     * иначе null. Список тот же, что в редакторе (createCurrentPatinaData): патины полотна,
+     * которые есть в справочнике
+     */
+    private getDefaultFasadePatina(colorId: number | string, millingPatinaOff: number | string | null | undefined) {
+        const materialPatina = (this.modelState._FASADE[colorId]?.PATINA ?? [])
+            .filter(id => id != null && Object.prototype.hasOwnProperty.call(this.modelState._PATINA, id))
+
+        return getDefaultPatinaForMilling(millingPatinaOff, materialPatina)
     }
 
     async changeMillingTotal({ data, type, fasade }: TDataWithType) {

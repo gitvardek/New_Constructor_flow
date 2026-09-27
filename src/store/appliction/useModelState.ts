@@ -541,12 +541,8 @@ export const useModelState = defineStore('ModelState', () => {
         }
 
         const millingConversations = checkMillingConversations(fasadeId)
-        const product = _PRODUCTS.value[productId]
-        const positionId = product.FASADE_POSITION[fasadeNdx]
-
-        const fasadePosData = _FASADE_POSITION.value[positionId]
-
-        const haveShowCase = fasadePosData?.glass == 1
+        // fasadeNdx нужен здесь только как признак боковой стенки: позиция фасада
+        // на список фрезеровок не влияет, и раньше она считалась вхолостую
         const sideColors = ["LEFTSIDECOLOR", "RIGHTSIDECOLOR"]
 
         if ((_FASADE.value[fasadeId].ATTACH_MILLINGS.length && _FASADE.value[fasadeId].ATTACH_MILLINGS[0] != null) || (sideColors.includes(fasadeNdx) && _FASADE.value[fasadeId].ATTACH_MILLINGS_SIDE?.[0])) {
@@ -695,11 +691,14 @@ export const useModelState = defineStore('ModelState', () => {
     }
 
     /** Витрины */
-    const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx }) => {
+    const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx, fasadePosition = null }) => {
 
         const product = _PRODUCTS.value[productId]
         const prodShowcases = product.type_showcase
-        const positionId = product.FASADE_POSITION[fasadeNdx]
+        // Позицию фасада берём у вызывающего, когда он её передал: в редакторе УМ fasadeNdx —
+        // это номер сегмента внутри двери, и по нему в FASADE_POSITION продукта попадаешь
+        // либо в чужой фасад, либо мимо массива, и витрины пропадают
+        const positionId = fasadePosition ?? product.FASADE_POSITION[fasadeNdx]
         const fasadePosData = _FASADE_POSITION.value[positionId]
         const haveShowCase = fasadePosData?.glass == 1
         let prepare = [];

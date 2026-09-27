@@ -53,6 +53,15 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /**
+   * Готовая метка элемента для заголовка. В редакторе УМ elementIndex — это номер
+   * сегмента внутри двери, и нумеровать им фасады нельзя: у «Сегмент №1.2.2»
+   * получалось «Конфигурация фасада 2»
+   */
+  elementLabel: {
+    type: String,
+    default: "",
+  },
 });
 
 const { getIntegratedHandleControllerData } = useHandlesAction();
@@ -335,6 +344,7 @@ const onSelectMaterial = (data) => {
       fasadeTypes,
       props.elementIndex,
       "integrate",
+      selectedValues.value,
     );
 
     fasadeTypesList.value = typeList;
@@ -393,6 +403,7 @@ const onSelectMilling = (data) => {
       data,
       props.elementIndex,
       "milling",
+      selectedValues.value,
     );
 
     if (typeList.length > 0) {
@@ -629,6 +640,7 @@ const prepareData = () => {
       fasadeId: COLOR,
       productId: pid,
       fasadeNdx: props.elementIndex,
+      fasadePosition: selectedValues.value?.POSITION ?? null,
     });
 
     modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
@@ -660,6 +672,7 @@ const prepareData = () => {
       fasadeTypes,
       props.elementIndex,
       "integrate",
+      selectedValues.value,
     );
   }
 
@@ -670,6 +683,7 @@ const prepareData = () => {
       curMilling,
       props.elementIndex,
       "milling",
+      selectedValues.value,
     );
     fasadeHandleList.value = typeList;
     isFasadeHandleExist.value = true;
@@ -795,7 +809,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="container" ref="mainContainer">
     <div class="container__header" v-if="props.isFasade && props.elementIndex !== null">
-      <h3>Конфигурация фасада {{ props.elementIndex + 1 }}</h3>
+      <h3>Конфигурация фасада {{ props.elementLabel || props.elementIndex + 1 }}</h3>
     </div>
     <div class="container__header" v-if="props.elementIndex !== null && partsNames[props.elementIndex]">
       <h3>{{ partsNames[props.elementIndex] }}</h3>

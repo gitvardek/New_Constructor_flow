@@ -142,6 +142,21 @@ export class FasadeBuilder {
         return null
     }
 
+    // Стекло есть у витрины и у алюминиевого профиля. Выбранное переживает пересборку, если
+    // оно есть в списке полотна и продукта (как патина), иначе — первое из списка. Раньше при
+    // сборке его всегда затирало первым, а в updateFasade брался список из стора — тот, что
+    // редактор собрал для другого фасада. Без списка и у остальных фасадов значение не трогаем:
+    // витрина подставит стекло по умолчанию сама
+    private resolveGlass(fasadeData: THREETypes.TFasadeProp, glassList: { ID: number }[], haveShowcase: boolean) {
+        const hasGlass = haveShowcase || fasadeData.ALUM != null
+
+        if (!fasadeData.SHOW || !hasGlass || !glassList.length) {
+            return fasadeData.GLASS
+        }
+
+        return glassList.some(item => item.ID == fasadeData.GLASS) ? fasadeData.GLASS : glassList[0].ID
+    }
+
     private applyDecorations(
         mesh: THREETypes.TObject,
         fasadeData: THREETypes.TFasadeProp,
@@ -360,9 +375,9 @@ export class FasadeBuilder {
             const firstValuePall = Object.values(
                 this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR)
             )[0] as any;
-            const firstValueGlass = this.parent.modelState.createCurrentGlassData({
+            const glassList = this.parent.modelState.createCurrentGlassData({
                 fasadeId: fasadeData.COLOR, productId: PRODUCT
-            })[0] as any;
+            });
 
             if (millingList.length > 0) {
                 if (!checkCurrentMilling && fasadeData.MILLING != null && fasadeData.MILLING != millingList[0].ID) {
@@ -416,9 +431,7 @@ export class FasadeBuilder {
                 }
             }
 
-            if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
-                fasadeData.GLASS = firstValueGlass.ID;
-            }
+            fasadeData.GLASS = this.resolveGlass(fasadeData, glassList, haveShowcase);
 
             this.applyDecorations(result, fasadeData, key, haveShowcase, FASADE_DEFAULT, FASADE_PROPS, 'build');
         }
@@ -542,7 +555,12 @@ export class FasadeBuilder {
         const firstValuePall = Object.values(
             this.parent.modelState.createCurrentPaletteData(fasadeData.COLOR)
         )[0] as any;
-        const firstValueGlass = this.parent.modelState.getCurrentGlassData[0] as any;
+        // Список под это полотно и продукт. Раньше брался getCurrentGlassData — список, который
+        // последним собрал редактор, при глобальной смене полотна — для другого фасада
+        const glassList = this.parent.modelState.createCurrentGlassData({
+            fasadeId: fasadeData.COLOR,
+            productId: PRODUCT,
+        });
         const millingList = this.parent.modelState.createCurrentMillingData({
             fasadeId: fasadeData.COLOR,
             productId: PRODUCT,
@@ -588,9 +606,7 @@ export class FasadeBuilder {
             fasadeData.PATINA = null;
         }
 
-        if (fasadeData.SHOW && typeof firstValueGlass == 'object' && haveShowcase) {
-            fasadeData.GLASS = firstValueGlass.ID;
-        }
+        fasadeData.GLASS = this.resolveGlass(fasadeData, glassList, haveShowcase);
 
         // Пересоздание геометрии, если нет кастомной глубины
         const fasadePositionData = this.getFasadePosition(CONFIG, fasadeNdx, isUMmodule);

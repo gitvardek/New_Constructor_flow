@@ -160,14 +160,18 @@ const openFasadeSelector = (
   }
 
   setTimeout(() => {
-    let data =
+    const door =
       sec === null
-        ? module.value.fasades[cell][row]
-        : module.value.sections[sec].fasades[cell][row];
+        ? module.value.fasades[cell]
+        : module.value.sections[sec].fasades[cell];
+    let data = door[row];
     currentFasadeMaterial.value = {
       sec,
       cell,
       row,
+      // Метка для заголовка редактора — та же, что в списке сегментов. Номером сегмента
+      // внутри двери фасады нумеровать нельзя: у «Сегмент №1.2.2» получалось «фасад 2»
+      label: getSegmentLabel(sec, cell, door, data),
       data: data.material,
     };
     currentFasadeSize.value = <TFasadeTrueSizes>{
@@ -177,6 +181,22 @@ const openFasadeSelector = (
     UMconstructor?.value?.FASADES.selectCell(sec, cell, row);
     isOpenMaterialSelector.value = true;
   }, 10);
+};
+
+/** «раздел.дверь.сегмент» — как в заголовках списка сегментов */
+const getSegmentLabel = (
+  sec: number | null,
+  cell: number,
+  door: Array,
+  segment: Object,
+) => {
+  if (sec !== null) {
+    return `${sec + 1}.${cell + 1}.${segment.id}`;
+  }
+  if (door.length > 1) {
+    return `${cell + 1}.${segment.id}`;
+  }
+  return `${cell + 1}`;
 };
 
 const openHandleSelector = (
@@ -866,7 +886,8 @@ watch(
 
       <AdvanceCorpusMaterialRedactor v-if="isOpenMaterialSelector" :is-fasade="true"
         :elementData="currentFasadeMaterial.data" :elementIndex="currentFasadeMaterial.row"
-        :fasade-size="currentFasadeSize" @parent-callback="selectOption" />
+        :element-label="currentFasadeMaterial.label" :fasade-size="currentFasadeSize"
+        @parent-callback="selectOption" />
 
       <Handles v-if="isOpenHandleSelector" :is2-dconstructor="true" :data="createSurfaceList(currentHandle)" :index="0"
         @parent-callback="selectHandle" :active-pos="currentHandle.data.HANDLES.position"
