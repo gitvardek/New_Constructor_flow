@@ -258,7 +258,7 @@ export class BuildersHelper extends GlobalsData {
     //----------------------------------------------------------
     /** @Настройка материала */
     //----------------------------------------------------------
-    public getTexture({ material, url, texture_size, rotation = Math.PI * 0.5 }: { material: any, url: string, texture_size?: THREETypes.TObject, rotation?: number }) {
+    public getTexture({ material, url, texture_size, rotation = 0}: { material: any, url: string, texture_size?: THREETypes.TObject, rotation?: number }) {
 
         this.resources.startLoading(url, 'texture', (file) => {
             if (file instanceof THREE.Texture) {
