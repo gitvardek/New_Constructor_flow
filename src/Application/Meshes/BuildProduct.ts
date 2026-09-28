@@ -692,14 +692,15 @@ export class BuildProduct extends BuildersHelper {
         if (isTopTable) {
 
             const { geometryType } = body.userData;
-            const textureSize = {
-                width: geometryType === "ExtrudeGeometry" ? texture.width : 1,
-                height: geometryType === "ExtrudeGeometry" ? texture.height : 1,
-            };
+            const isExtrude = geometryType === "ExtrudeGeometry";
             body.children.forEach((child) => {
                 if (!(child instanceof THREE.Mesh)) return;
-                const params: any = { material: child.material, url: texture.src, texture_size: textureSize };
-                if (geometryType === "ExtrudeGeometry") params.rotation = Math.PI * 0.5;
+                const params: any = { material: child.material, url: texture.src };
+
+                if (isExtrude) {
+                    params.texture_size = { width: texture.width, height: texture.height };
+                    params.rotation = Math.PI * 0.5;
+                }
                 this.getTexture(params);
                 body.userData.MATERIAL = child.material;
             });
