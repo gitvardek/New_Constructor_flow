@@ -536,6 +536,8 @@ export default class ShelvesManager {
 
 
         const mergeDown = (list: any[], onEmpty: () => void) => {
+            const initialLength = list.length
+
             for (let i = list.length - 2; i >= 0; i--) {
                 const current = list[i]
 
@@ -551,7 +553,7 @@ export default class ShelvesManager {
                 removed += 1
             }
 
-            if (list.length <= 1) {
+            if (list.length < initialLength && list.length <= 1) {
                 onEmpty()
             }
         }
