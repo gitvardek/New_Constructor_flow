@@ -5,8 +5,10 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
 import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
+import { useModelState } from "@/store/appliction/useModelState"
 
 const appDataStore = useAppData();
+const modelState = useModelState();
 const emptyTableTopId = 69919
 const CORNER_CABINET_IDS = [2106690, 5766313, 10252974, 11451643, 11451679]
 const tableTopLengthDefault = 3000
@@ -66,8 +68,10 @@ function createBodyProps(objProps: any) {
     HEIGHT: null,
     DEPTH: null,
   };
-  
+
   if (!CORNER_CABINET_IDS.includes(+objProps.PRODUCT)) {
+    const curBDdata = modelState._PRODUCTS[objProps.PRODUCT]
+
     const isSizeEdit = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT;
     const isSizeEditStepWidth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_WIDTH;
     const isSizeEditStepHeight = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_HEIGHT;
@@ -84,9 +88,13 @@ function createBodyProps(objProps: any) {
         sizeObj.DEPTH = objProps.CONFIG.SIZE.depth;
       }
     } else {
-      sizeObj.WIDTH = objProps.CONFIG.EXPRESSIONS['#MWIDTH#'] !== objProps.CONFIG.SIZE.width ? objProps.CONFIG.SIZE.width : null;
-      sizeObj.HEIGHT = objProps.CONFIG.EXPRESSIONS['#MHEIGHT#'] !== objProps.CONFIG.SIZE.height ? objProps.CONFIG.SIZE.height : null;
-      sizeObj.DEPTH = objProps.CONFIG.EXPRESSIONS['#MDEPTH#'] !== objProps.CONFIG.SIZE.depth ? objProps.CONFIG.SIZE.depth : null;
+      // sizeObj.WIDTH = objProps.CONFIG.EXPRESSIONS['#MWIDTH#'] !== objProps.CONFIG.SIZE.width ? objProps.CONFIG.SIZE.width : null;
+      // sizeObj.HEIGHT = objProps.CONFIG.EXPRESSIONS['#MHEIGHT#'] !== objProps.CONFIG.SIZE.height ? objProps.CONFIG.SIZE.height : null;
+      // sizeObj.DEPTH = objProps.CONFIG.EXPRESSIONS['#MDEPTH#'] !== objProps.CONFIG.SIZE.depth ? objProps.CONFIG.SIZE.depth : null;
+
+      sizeObj.WIDTH = curBDdata.width !== objProps.CONFIG.SIZE.width ? objProps.CONFIG.SIZE.width : null;
+      sizeObj.HEIGHT = curBDdata.height !== objProps.CONFIG.SIZE.height ? objProps.CONFIG.SIZE.height : null;
+      sizeObj.DEPTH = curBDdata.depth !== objProps.CONFIG.SIZE.depth ? objProps.CONFIG.SIZE.depth : null;
     }
   }
 
