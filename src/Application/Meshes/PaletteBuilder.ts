@@ -41,10 +41,20 @@ export class PaletteBuilder {
         child.userData.millingMaterial = material;
     }
 
-    private async applyKant(paletteData, fasadeMesh: THREE.Mesh, fasadeTexture:string) {
+    private async applyKant(paletteData, fasadeMesh: THREE.Mesh, fasadeTexture: string) {
 
         const rootMaterial = new THREE.MeshStandardMaterial()
-        await this.parent.getTexture({material:rootMaterial, url:fasadeTexture, texture_size: {width:1024, height:1024}})
+        // Поворот передаём в getTexture: текстура назначается в колбэке загрузки,
+        // поэтому после вызова map ещё пуст и выставить rotation здесь нельзя
+        await this.parent.getTexture({
+            material: rootMaterial,
+            url: fasadeTexture,
+            texture_size: { width: 1024, height: 1024 },
+            rotation: Math.PI
+        })
+
+        console.log('getTexture')
+
         const kantMaterial = this.createMaterial(paletteData.HTML, 0.5)
 
         const geometry = fasadeMesh.geometry;
@@ -69,7 +79,7 @@ export class PaletteBuilder {
         for (let i = 0; i < vertexCount; i += 3) {
             // Индекс первой вершины треугольника
             const vIdx = hasIndex ? indexArray[i] : i;
-            const nz = normals[vIdx * 3 + 2]; 
+            const nz = normals[vIdx * 3 + 2];
 
             const isCap = Math.abs(Math.abs(nz) - 1) < 0.001;
 

@@ -547,6 +547,8 @@ export default class ShelvesManager {
         // Полка принадлежит ячейке, под которой стоит, поэтому у самой нижней её нет —
         // с неё и не начинаем. Сливаем текущую с нижней: у нижней своя полка остаётся
         const mergeDown = (list: any[], onEmpty: () => void) => {
+            const initialLength = list.length
+
             for (let i = list.length - 2; i >= 0; i--) {
                 const current = list[i]
 
@@ -562,7 +564,11 @@ export default class ShelvesManager {
                 removed += 1
             }
 
-            if (list.length <= 1) {
+            // Схлопываем только то, что осталось после слияния. Одна ячейка сама по себе
+            // допустима: так выглядит секция с одними вертикальными разделителями
+            // (базовая ячейка с cellsRows), и её стирание убивало бы только что
+            // добавленный разделитель
+            if (list.length < initialLength && list.length <= 1) {
                 onEmpty()
             }
         }
