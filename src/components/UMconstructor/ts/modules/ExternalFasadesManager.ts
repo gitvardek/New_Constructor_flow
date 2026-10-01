@@ -630,8 +630,19 @@ export default class ExternalFasadesManager {
         })
 
         section?.hiTechProfiles?.forEach(profile => {
-            if (profile?.position && !bodies.includes(profile)) {
-                bodies.push(profile)
+            const twin = this.scope.FILLINGS.getFillingObject({
+                grid,
+                sec: profile.sec ?? secIndex,
+                cell: profile.cell,
+                row: profile.row,
+                extra: profile.extra,
+                item: profile.id - 1,
+            })
+
+            const body = twin?.isProfile && twin.id === profile.id ? twin : profile
+
+            if (body?.position && !bodies.includes(body)) {
+                bodies.push(body)
             }
         })
 
@@ -667,7 +678,7 @@ export default class ExternalFasadesManager {
 
         // Сначала уносим всю стопку за полом: расстояние до цоколя у каждого ящика
         // сохраняется. Дальше двумя проходами загоняем её в фасадную зону
-        const target = boxes.map(box => box.y + delta)
+        const target = boxes.map((box, index) => box.y + (sorted[index].isProfile ? 0 : delta))
 
         // Сверху вниз: выше потолка подниматься некуда, и каждый нижний уступает соседу.
         // Этот проход и забирает недостающие миллиметры из промежутков внутри стопки —
@@ -698,7 +709,7 @@ export default class ExternalFasadesManager {
 
         const moved = new Set()
         const moveBody = (body, shift) => {
-            if (!body?.position || !shift || moved.has(body)) {
+            if (!body?.position || moved.has(body)) {
                 return
             }
             moved.add(body)
