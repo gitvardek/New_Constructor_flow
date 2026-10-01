@@ -517,9 +517,11 @@ export default class ExternalFasadesManager {
     // не идут: с появлением цоколя нижний ящик проваливается в него (distances.bottom
     // уходит в минус), а calcDrawersFasadesPositons раскладывает фасады от пола и теряет
     // эти миллиметры — проём двери считается короче, чем он есть, и разделение схлопывается.
-    // Поэтому вместе с полом двигаем нижнюю стопку: ящики и профили, стоящие вплотную друг
-    // к другу. Останавливаемся на первом промежутке, который сдвиг поглотит — всё, что выше
-    // него, остаётся на месте, потому что верх модуля от цоколя не зависит
+    // Поэтому вместе с полом двигаем нижнюю стопку ящиков. Останавливаемся на первом
+    // промежутке, который сдвиг поглотит — всё, что выше него, остаётся на месте, потому
+    // что верх модуля от цоколя не зависит. Профили в стопку входят, но за полом не идут:
+    // профиль крепится к боковинам и свою высоту в модуле сохраняет — он только уступает
+    // место ящикам, когда стопке иначе не хватает высоты
     shiftStackWithHorizont(secIndex: number, delta: number, grid: GridModule) {
         if (!delta) {
             return
@@ -548,9 +550,24 @@ export default class ExternalFasadesManager {
             }
         })
 
+        // Профиль берём из наполнения: после saveUMGrid копия в hiTechProfiles — уже другой
+        // объект, а 2D и 3D строят профиль по fillings. Раньше в стопку попадала копия,
+        // и двигалась только она: фасады раскладывались по одной позиции профиля, а рисовался
+        // он по другой — стык фасадов уезжал от профиля
         section?.hiTechProfiles?.forEach(profile => {
-            if (profile?.position && !bodies.includes(profile)) {
-                bodies.push(profile)
+            const twin = this.scope.FILLINGS.getFillingObject({
+                grid,
+                sec: profile.sec ?? secIndex,
+                cell: profile.cell,
+                row: profile.row,
+                extra: profile.extra,
+                item: profile.id - 1,
+            })
+
+            const body = twin?.isProfile && twin.id === profile.id ? twin : profile
+
+            if (body?.position && !bodies.includes(body)) {
+                bodies.push(body)
             }
         })
 
@@ -584,9 +601,11 @@ export default class ExternalFasadesManager {
         const floor = (grid.horizont ?? 0) + delta + 2
         const ceiling = grid.height - 2
 
-        // Сначала уносим всю стопку за полом: расстояние до цоколя у каждого ящика
-        // сохраняется. Дальше двумя проходами загоняем её в фасадную зону
-        const target = boxes.map(box => box.y + delta)
+        // Сначала уносим за полом ящики: расстояние до цоколя у каждого сохраняется.
+        // Профиль за полом не идёт — он закреплён к боковинам, и его высота в модуле
+        // от цоколя не зависит. Дальше двумя проходами загоняем стопку в фасадную зону:
+        // там профиль и уступит место, если ящикам его не хватит
+        const target = boxes.map((box, index) => box.y + (sorted[index].isProfile ? 0 : delta))
 
         // Сверху вниз: выше потолка подниматься некуда, и каждый нижний уступает соседу.
         // Этот проход и забирает недостающие миллиметры из промежутков внутри стопки —
@@ -617,7 +636,7 @@ export default class ExternalFasadesManager {
 
         const moved = new Set()
         const moveBody = (body, shift) => {
-            if (!body?.position || !shift || moved.has(body)) {
+            if (!body?.position || moved.has(body)) {
                 return
             }
             moved.add(body)
@@ -626,7 +645,9 @@ export default class ExternalFasadesManager {
             body.position.y -= shift
             if (body.distances) {
                 // Потолок секции на месте, а пол ушёл на delta: до потолка стало ближе
-                // ровно на сдвиг, до пола — на разницу сдвига и цоколя
+                // ровно на сдвиг, до пола — на разницу сдвига и цоколя. Деталь могла
+                // и остаться на месте (профиль, или ящик, которому сдвиг срезал потолок) —
+                // пол под ней всё равно уехал, поэтому расстояния пересчитываем всегда
                 body.distances.top -= shift
                 body.distances.bottom += shift - delta
             }
