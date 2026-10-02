@@ -535,6 +535,96 @@ export default class FasadesManager {
             )
     };
 
+    /**
+     * Ширину полотна двери задаёт сам модуль: MAX_FASADE_WIDTH у распашной, MAX_SLIDE_DOOR_WIDTH
+     * у купе. Проверки в updateFasades и прочих операциях переоценивают ошибку только внутри
+     * своей ветки — updateFasades, например, лишь при ненулевой дельте, — поэтому дверь, уже
+     * сохранённая шире предела, при открытии конструктора остаётся непомеченной. Здесь правило
+     * применяется ко всей сетке на каждом пересчёте.
+     *
+     * Ошибку только ставим, никогда не снимаем: причин у неё несколько, и снятие — дело тех
+     * проверок, у которых есть полный контекст. Фасады ящиков не трогаем: им размер полотна
+     * не ограничивают, их же пропускает и filterFasadeConversations по признаку isDrawer
+     */
+    markOversizedFasades(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        // IGNORE_SIZE у продукта снимает все ограничения по размеру
+        if (this.FASADES_CONVERSATION.checkIgnore(this.scope.MODEL_STATE.getCurrentModel)) {
+            return
+        }
+
+        const maxWidth = grid.isSlidingDoors
+            ? this.scope.CONST.MAX_SLIDE_DOOR_WIDTH
+            : this.scope.CONST.MAX_FASADE_WIDTH
+
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    if (fasade?.width > maxWidth) {
+                        fasade.error = true
+                    }
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+    };
+
+    /**
+     * Размер фасада вышел за пределы, доступные его материалу: сам фасад помечается ошибкой
+     * и в 3D не строится, но материал остаётся в сетке и уходит в корзину и на бэк — там
+     * появляется цвет фасада, которого на модуле нет. Снимаем материал так же, как у низкого
+     * модуля, и ошибку убираем: фасад становится обычным «без фасада»
+     */
+    resetErrorFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
+
+        let resetCount = 0
+
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    if (!fasade?.error) {
+                        return
+                    }
+
+                    const color = fasade.material?.COLOR
+
+                    if (!color || +color === NO_FASADE_ID) {
+                        return
+                    }
+
+                    // Ошибку ставят по двум причинам: полотно такого размера не выпускается
+                    // в этом материале либо фасад физически меньше допустимого. Во втором
+                    // случае материал ни при чём, и трогать его нельзя. Отличаем по геометрии,
+                    // а не повторной проверкой: та показывает пользователю собственный toast
+                    const fitsBounds = fasade.width >= (fasade.minX ?? 0)
+                        && fasade.height >= (fasade.minY ?? 0)
+
+                    if (!fitsBounds) {
+                        return
+                    }
+
+                    this.resetFasadeMaterial(fasade.material)
+                    delete fasade.error
+                    resetCount += 1
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+
+        // Одно сообщение на весь проход: метод зовётся при каждом пересчёте, но повторно
+        // ничего не сбрасывает — уже сброшенные отсеиваются по цвету «без фасада»
+        if (resetCount) {
+            this.scope.callAlert(
+                "warning",
+                `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: полотно такого размера в нём не выпускается`
+            )
+        }
+    };
+
     addDoor(
         secIndex: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
@@ -673,6 +763,13 @@ export default class FasadesManager {
             (segment.height - (grid.isSlidingDoors ? 0 : 4)) / 2
         );
         // Обновляем высоту последней строки
+
+        // Пределы в сетке — снимок, сделанный при последнем изменении размеров модуля:
+        // их обновляет только updateFasades внутри веток deltaWidth/deltaHeight. Деление
+        // габаритов не меняет, поэтому без явного пересчёта проверка идёт по устаревшим
+        // minY/minX — например по прежнему MIN_FASADE_HEIGHT, и корректное деление
+        // помечается ошибкой
+        Object.assign(segment, this.getFasadePositionMinMax(segment))
 
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
             segment.material.COLOR,

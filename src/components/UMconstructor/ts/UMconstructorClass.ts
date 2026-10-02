@@ -809,6 +809,11 @@ export default class UMconstructorClass {
 
             module = this.FASADES.updateFasades(module)
             this.FASADES.resetRestrictedFasadeMaterials(module)
+            this.FASADES.resetErrorFasadeMaterials(module)
+            // Строго после сброса материалов: resetErrorFasadeMaterials снимает флаг вместе
+            // с материалом, а предел ширины двери задаёт модуль, а не покрытие — он должен
+            // пережить сброс. Поэтому структурное правило применяется последним
+            this.FASADES.markOversizedFasades(module)
             this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.cleanupUniversalDrawers(module)
