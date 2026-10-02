@@ -53,6 +53,10 @@
           max-height: 90vh;
           width: 18.5vw;
 
+          @media screen and (height <=900px) {
+            height: calc(90vh);
+          }
+
           &--module-size {
             display: flex;
             flex-direction: row;
@@ -1298,6 +1302,14 @@
     gap: 0.3rem;
     overflow-y: auto;
     min-height: 0;
+
+    @media screen and (height <=900px) {
+      overflow-y: clip;
+      height: fit-content;
+      max-height: fit-content;
+      flex: content;
+      min-height: fit-content
+    }
   }
 
   .filling-width-warning {
