@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { defineStore } from "pinia";
+import { defineStore, getActivePinia } from "pinia";
 import { TConfig, TTotalProps } from "@/types/types.ts";
 import { canvasConfig, constructorMode, GridModule, TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
 
@@ -12,18 +12,19 @@ const defaultSelectedCell = <TSelectedCell>{ sec: 0, cell: null, row: null, extr
 const defaultSelectedFilling = <TSelectedCell>{ sec: 0, cell: null, row: null, extra: null, item: null }
 const defaultSelectedFasade = <TSelectedCell>{ sec: 0, cell: null, row: null }
 
-export const useUMStorage = defineStore('um-data', () => {
+// Состояние одной сессии редактора УМ. Дефолты копируются: объекты не должны делиться между сторами.
+const umStorageSetup = () => {
     const UM_GRID = ref<GridModule>(<GridModule>{})
     const UM_DATA = ref<TTotalProps>(<TTotalProps>{})
     const UM_CASH_GRID = ref<GridModule>(<GridModule>{})
     const UM_CASH_CONFIG = ref<TConfig>(<TConfig>{})
-    const UM_CANVAS_PROPS = ref<canvasConfig>(defaultCanvas)
+    const UM_CANVAS_PROPS = ref<canvasConfig>({ ...defaultCanvas })
 
     const loadUM = ref<boolean>(false)
 
-    const selectedCell = ref<TSelectedCell>(defaultSelectedCell);
-    const selectedFasade = ref<TSelectedCell>(defaultSelectedFasade);
-    const selectedFilling = ref<TSelectedCell>(defaultSelectedFilling);
+    const selectedCell = ref<TSelectedCell>({ ...defaultSelectedCell });
+    const selectedFasade = ref<TSelectedCell>({ ...defaultSelectedFasade });
+    const selectedFilling = ref<TSelectedCell>({ ...defaultSelectedFilling });
 
     const totalHeight = ref<number>(0);
     const totalWidth = ref<number>(0);
@@ -45,7 +46,7 @@ export const useUMStorage = defineStore('um-data', () => {
     const wardrobeShelfDimensionMode = ref<'gap' | 'floor'>('floor');
 
     // Гардеробная система — true во время активного драга полки/профиля на
-    // канвасе (DividerDragEngine.onWardrobeShelfDragStart/
+    // канвасе (WardrobeDragEngine.onWardrobeShelfDragStart/
     // onWardrobeProfileDragStart..DragEnd). Зеркалит
     // RenderContext.wardrobeDragActive: та копия для PIXI-стороны, эта —
     // реактивная, для Vue. Нужна против фризов, которые оставались и после
@@ -64,7 +65,7 @@ export const useUMStorage = defineStore('um-data', () => {
     // TSelectedCell и не наполнение, поэтому отдельное простое поле, а не
     // расширение generic-механизма setSelected/getSelected). Пишется из
     // SelectionHighlighter.selectWardrobeProfile (канвас) и
-    // UMconstructorClass.selectWardrobeProfile (панель) — см. там же.
+    // WardrobeModule.selectProfile (панель) — см. там же.
     const selectedWardrobeProfileId = ref<number | null>(null);
 
     const pendingOperations = ref<number>(0);
@@ -115,7 +116,7 @@ export const useUMStorage = defineStore('um-data', () => {
         if (config)
             UM_CANVAS_PROPS.value = config
         else
-            UM_CANVAS_PROPS.value = defaultCanvas
+            UM_CANVAS_PROPS.value = { ...defaultCanvas }
     }
 
     const getCanvasConfig = () => {
@@ -136,7 +137,7 @@ export const useUMStorage = defineStore('um-data', () => {
             case "fasades":
                 selectedFasade.value = newSelected ?
                     <TSelectedCell>{ sec: validateValue(sec), cell: validateValue(cell), row: validateValue(row) } :
-                    defaultSelectedFasade
+                    { ...defaultSelectedFasade }
                 break;
             case "module":
                 selectedCell.value = newSelected ?
@@ -146,7 +147,7 @@ export const useUMStorage = defineStore('um-data', () => {
                         row: validateValue(row),
                         extra: validateValue(extra)
                     } :
-                    defaultSelectedCell
+                    { ...defaultSelectedCell }
                 break;
             case "fillings":
                 selectedFilling.value = newSelected ?
@@ -157,7 +158,7 @@ export const useUMStorage = defineStore('um-data', () => {
                         extra: validateValue(extra),
                         item: validateValue(item)
                     } :
-                    defaultSelectedFilling
+                    { ...defaultSelectedFilling }
                 break;
         }
     }
@@ -186,13 +187,13 @@ export const useUMStorage = defineStore('um-data', () => {
         UM_DATA.value = <TTotalProps>{}
         UM_CASH_GRID.value = <GridModule>{}
         UM_CASH_CONFIG.value = <TConfig>{}
-        UM_CANVAS_PROPS.value = defaultCanvas
+        UM_CANVAS_PROPS.value = { ...defaultCanvas }
 
         loadUM.value = false
 
-        selectedCell.value = defaultSelectedCell;
-        selectedFasade.value = defaultSelectedFasade;
-        selectedFilling.value = defaultSelectedFilling;
+        selectedCell.value = { ...defaultSelectedCell };
+        selectedFasade.value = { ...defaultSelectedFasade };
+        selectedFilling.value = { ...defaultSelectedFilling };
 
         totalHeight.value = 0;
         totalWidth.value = 0;
@@ -236,4 +237,23 @@ export const useUMStorage = defineStore('um-data', () => {
         setSelected,
         getSelected,
     }
-})
+}
+
+const defineUMStorage = (id: string) => defineStore(id, umStorageSetup)
+
+export type UMStorage = ReturnType<ReturnType<typeof defineUMStorage>>
+
+// Основной редактор УМ (и внешние потребители вне редактора).
+export const useUMStorage = defineUMStorage('um-data')
+
+// Отдельный стор вложенной сессии редактора (тумбочка внутри гардеробной и т.п.).
+// После закрытия сессии — disposeUMStorage.
+export const createUMStorage = (sessionId: string): UMStorage =>
+    defineUMStorage(`um-data:${sessionId}`)()
+
+export const disposeUMStorage = (store: UMStorage) => {
+    const id = store.$id
+    store.$dispose()
+    const pinia = getActivePinia()
+    if (pinia) delete pinia.state.value[id]
+}

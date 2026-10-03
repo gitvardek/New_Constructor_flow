@@ -4,7 +4,8 @@ import "@/components/UMconstructor/styles/UM.scss";
 
 import { computed, ref } from "vue";
 import { _URL } from "@/types/constants.ts";
-import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
+import { UM_PARAMS } from "../../utils/Const";
+import { useFillingInsertRules } from "@/components/UMconstructor/editor-v2/fillings/useFillingInsertRules.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
@@ -27,40 +28,11 @@ const openedFillingGroupKey = ref<string | number | null>(null);
 const filteredMaterialList = ref<Array<any>>([]);
 const isSearch = computed(() => filteredMaterialList.value.length > 0);
 
-const getSelectSegment = () => {
-  const { sec, cell, row, extra } = props.UMconstructor.UM_STORE.getSelected("module") ?? {};
-  if (sec === null || sec === undefined) return false;
-  const curSection = props.module.sections?.[sec];
-  const curCell = curSection?.cells?.[cell];
-  const curRow = curCell?.cellsRows?.[row];
-  const curExtra = curRow?.extras?.[extra];
-
-  return curExtra || curRow || curCell || curSection;
-}
-
-const isFillingWidthRestricted = computed(() => {
-  const segment = getSelectSegment();
-  return (segment?.width ?? 0) > UM_PARAMS.FILLINGS_MAX_WIDTH
+// Ограничения вставки — общая логика с редактором v2.
+const { isFillingWidthRestricted, isFillingHeightRestricted, isFillingBlocked } = useFillingInsertRules({
+  getEngine: () => props.UMconstructor,
+  getModule: () => props.module,
 });
-
-const isFillingHeightRestricted = computed(() => {
-  const segment = getSelectSegment();
-  return (segment?.height ?? 0) <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT;
-});
-
-const isFillingsRestricted = computed(() => {
-  const segment = getSelectSegment();
-  return (segment?.width ?? 0) > UM_PARAMS.FILLINGS_MAX_WIDTH || (segment?.height ?? 0) <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT;
-})
-
-// Универсальный ящик, стенки не менее 18 мм
-const isUniversalDrawerBlocked = computed(
-  () => !props.UMconstructor.FILLINGS.drawers.isUniversalDrawerAllowed(props.module),
-);
-
-const isFillingBlocked = (groupID: string | number) =>
-  isFillingWidthRestricted.value ||
-  (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
 
 const toggleFillingGroup = (key: string | number, isOpen: boolean) => {
   if (isOpen) {
@@ -104,7 +76,8 @@ const onAddFilling = (filling: any, groupID: number) => {
                 v-for="(filling, itemKey) in (isSearch ? filteredMaterialList : fillingGroup.items)"
                 :key="itemKey + filling.NAME">
                 <ProductCard :name="filling.NAME" :image="_URL + filling.PREVIEW_PICTURE"
-                  :disabled="isFillingWidthRestricted ||  isFillingBlocked(fillingGroup.groupID) " @click="onAddFilling(filling, fillingGroup.groupID)" />
+                  :disabled="isFillingWidthRestricted || isFillingBlocked(fillingGroup.groupID, filling)"
+                  @click="onAddFilling(filling, fillingGroup.groupID)" />
               </li>
             </ul>
           </div>

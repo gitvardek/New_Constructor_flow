@@ -3,7 +3,7 @@
 // Начальный GridModule гардеробной системы.
 // Для продукта без стенок: sections[] используются только как секции
 // (ширина/позиция/resize-драг), cells/cellsRows/extras внутри не нужны —
-// вместо них GridSection.wardrobeShelves и GridModule.wardrobeProfiles
+// вместо них GridSection.wardrobeFilling и GridModule.wardrobeProfiles
 // (см. UMtypes.ts).
 //
 // Единый источник дефолтной сетки: зовётся из UMconstructorClass (первое
@@ -12,14 +12,15 @@
 // создании товара).
 
 import * as THREE from "three";
-import { GridModule, GridSection, WardrobeProfile } from "./../types/UMtypes.ts";
+import { GridModule, GridSection } from "@/components/UMconstructor/types/UMtypes.ts";
+import type { WardrobeProfile } from "@/components/UMconstructor/wardrobe/types.ts";
 import {
     WARDROBE_SECTION_WIDTH_MIN,
     WARDROBE_SECTION_WIDTH_MAX,
     WARDROBE_START_WIDTH,
     WARDROBE_PROFILE_WIDTH,
 } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeProfileProducts, getWardrobeProfileFastenings, getWardrobeProfileMaterials } from "./../utils/WardrobeSystem.ts";
+import { getWardrobeProfileProducts, getWardrobeProfileFastenings, getWardrobeProfileMaterials } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 // Тот же товар-полка, что уже используется в ShelfBuilder.buildWardrobeShelf
 export const WARDROBE_SHELF_PRODUCT_ID = 5975548;
@@ -57,9 +58,9 @@ export function createWardrobeGrid(
         width: sectorWidth,
         height: size.height,
         type: "section",
-        cells: [], // у гардеробной системы содержимое не в cells — см. wardrobeShelves ниже
-        position: new THREE.Vector2(0, 0), 
-        wardrobeShelves: [],
+        cells: [], // у гардеробной системы содержимое не в cells — см. wardrobeFilling ниже
+        position: new THREE.Vector2(0, 0),
+        wardrobeFilling: [],
     };
 
     return {

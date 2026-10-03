@@ -4,7 +4,7 @@ import * as THREEInterfases from "@/types/interfases"
 import * as THREETypes from "@/types/types"
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useBasketStore } from "@/store/appStore/useBasketStore";
-import { isWardrobeSystemProduct } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+import { isWardrobeSystemProduct } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 export class DragAndDropManager {
 

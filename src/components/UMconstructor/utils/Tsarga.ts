@@ -19,8 +19,12 @@ export const TSARGA_MATERIAL_ID = 15826
 // id опции "Металлическая царга" в CONFIG.OPTIONS
 export const METAL_TSARGA_OPTION_ID = 7250589
 
+// PRODUCT_ID обязателен: basketMapper добавляет царгу в заказ только при
+// `el.tsarga?.PRODUCT_ID`, а TsargaBuilder кладёт его в userData меша.
+// Дублирует ID — так же, как в исходном инлайновом объекте.
 export function createTsargaData(width: number, positionX: number) {
     return {
+        PRODUCT_ID: TSARGA_PRODUCT_ID,
         ID: TSARGA_PRODUCT_ID,
         MATERIAL_ID: TSARGA_MATERIAL_ID,
         WIDTH: width,

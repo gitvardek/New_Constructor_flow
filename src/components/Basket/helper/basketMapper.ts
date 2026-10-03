@@ -5,10 +5,14 @@ import { useAppData } from "@/store/appliction/useAppData"
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
 import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
+import { useModelState } from "@/store/appliction/useModelState"
+import { getWardrobeShelfDepth, getWardrobeShelfThickness, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
 
 const appDataStore = useAppData();
+const modelState = useModelState();
 const emptyTableTopId = 69919
 const tableTopLengthDefault = 3000
+const CORNER_CABINET_IDS = [2106690, 5766313, 10252974, 11451643, 11451679]
 
 function createFacadeProps(objProps: any): IBasketFacade[] {
 
@@ -65,25 +69,37 @@ function createBodyProps(objProps: any) {
     HEIGHT: null,
     DEPTH: null,
   };
-  const isSizeEdit = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT;
-  const isSizeEditStepWidth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_WIDTH;
-  const isSizeEditStepHeight = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_HEIGHT;
-  const isSizeEditStepDepth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_DEPTH;
 
-  if (isSizeEdit === "obligatory") {
-    if (isSizeEditStepWidth) {
-      sizeObj.WIDTH = objProps.CONFIG.SIZE.width;
+  if (!CORNER_CABINET_IDS.includes(+objProps.PRODUCT)) {
+    const curBDdata = modelState._PRODUCTS[objProps.PRODUCT]
+
+    const isSizeEdit = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT;
+    const isSizeEditStepWidth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_WIDTH;
+    const isSizeEditStepHeight = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_HEIGHT;
+    const isSizeEditStepDepth = appDataStore.getAppData.CATALOG.PRODUCTS[`${objProps.PRODUCT}`].SIZE_EDIT_STEP_DEPTH;
+
+    if (isSizeEdit === "obligatory") {
+      if (isSizeEditStepWidth) {
+        sizeObj.WIDTH = objProps.CONFIG.SIZE.width;
+      }
+      if (isSizeEditStepHeight) {
+        sizeObj.HEIGHT = objProps.CONFIG.SIZE.height;
+      }
+      if (isSizeEditStepDepth) {
+        sizeObj.DEPTH = objProps.CONFIG.SIZE.depth;
+      }
+    } else {
+      // sizeObj.WIDTH = objProps.CONFIG.EXPRESSIONS['#MWIDTH#'] !== objProps.CONFIG.SIZE.width ? objProps.CONFIG.SIZE.width : null;
+      // sizeObj.HEIGHT = objProps.CONFIG.EXPRESSIONS['#MHEIGHT#'] !== objProps.CONFIG.SIZE.height ? objProps.CONFIG.SIZE.height : null;
+      // sizeObj.DEPTH = objProps.CONFIG.EXPRESSIONS['#MDEPTH#'] !== objProps.CONFIG.SIZE.depth ? objProps.CONFIG.SIZE.depth : null;
+
+
+      const { SIZE, EXPRESSIONS } = objProps.CONFIG;
+
+      sizeObj.WIDTH = (curBDdata.width || EXPRESSIONS['#MWIDTH#']) !== SIZE.width ? SIZE.width : null;
+      sizeObj.HEIGHT = (curBDdata.height || EXPRESSIONS['#MHEIGHT#']) !== SIZE.height ? SIZE.height : null;
+      sizeObj.DEPTH = (curBDdata.depth || EXPRESSIONS['#MDEPTH#']) !== SIZE.depth ? SIZE.depth : null;
     }
-    if (isSizeEditStepHeight) {
-      sizeObj.HEIGHT = objProps.CONFIG.SIZE.height;
-    }
-    if (isSizeEditStepDepth) {
-      sizeObj.DEPTH = objProps.CONFIG.SIZE.depth;
-    }
-  } else {
-    sizeObj.WIDTH = objProps.CONFIG.EXPRESSIONS['#MWIDTH#'] !== objProps.CONFIG.SIZE.width ? objProps.CONFIG.SIZE.width : null;
-    sizeObj.HEIGHT = objProps.CONFIG.EXPRESSIONS['#MHEIGHT#'] !== objProps.CONFIG.SIZE.height ? objProps.CONFIG.SIZE.height : null;
-    sizeObj.DEPTH = objProps.CONFIG.EXPRESSIONS['#MDEPTH#'] !== objProps.CONFIG.SIZE.depth ? objProps.CONFIG.SIZE.depth : null;
   }
 
   return {
@@ -633,6 +649,93 @@ function convertModuleToLegacyFormat(newModuleObject) {
   return legacyProps;
 }
 
+// Элемент наполнения секции гардеробной — полка или штанга.
+// VALUE — высота установки от низа модуля, мм. SIZE.width — ширина секции
+// (= длина полки/штанги), SIZE.depth — вылет (getWardrobeShelfDepth),
+// SIZE.height — толщина: у полки реальная (ЛДСП — из _FASADE, стекло — из
+// товара-стекла), у штанги 0 (railHeight из сетки — высота для 2D, не размер
+// товара).
+function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: number, wardrobeProductId: number) {
+
+  const type = item.type ?? 'shelf';
+
+  const result: any = {
+    ID: item.productId,
+    PRODUCT_TYPE: type,
+    VALUE: item.positionY,
+    SIZE: {
+      width: sectionWidth,
+      height: 0,
+      depth: shelfDepth,
+    },
+  };
+
+  if (type === 'shelf') {
+    const material = item.material ?? 'ldsp';
+
+    result.MATERIAL = material;
+    result.SHELF_TYPE = item.shelfType ?? 'flat';
+    result.SIZE.height = getWardrobeShelfThickness(item.colorId, material, wardrobeProductId);
+
+    // У стеклянной полки материал не выбирается — colorId нет
+    if (item.colorId != null) result.MATERIAL_ID = item.colorId;
+  }
+
+  return result;
+}
+
+// Состав гардеробной системы для расчёта цены.
+// Структура зеркалит CONFIG.WARDROBEGRID, а не нумерованные legacy-ключи
+// SECTIONS{n}/SECTIONSFILLING{n}: число секций ничем не ограничено (ширина
+// секции от 200мм), а записей в propsLabel конечное число. Поля элементов —
+// те же, что у box-УМ в creatSectionFilling.
+// Элементы идут поштучно, одинаковые не склеиваются: позиция по высоте у
+// каждого своя.
+// type === 'cabinet' пропускается — тумбочка станет отдельной позицией корзины.
+function createWardrobeGridData(objProps: any) {
+
+  const grid = migrateWardrobeGrid(objProps.CONFIG?.WARDROBEGRID);
+  if (!grid?.sections?.length) return null;
+
+  const wardrobeProductId = grid.productID ?? objProps.CONFIG?.ID;
+  const shelfDepth = getWardrobeShelfDepth(grid);
+
+  // Профилей на один больше, чем секций: они стоят на границах секций и
+  // секциям не принадлежат. SIZE — длина профиля (своя у каждого, высота
+  // модуля — максимум по всем).
+  const PROFILES = (grid.wardrobeProfiles ?? []).map((profile: any) => {
+
+    const result: any = {
+      ID: profile.profileProductId,
+      PRODUCT_TYPE: 'profile',
+      SIZE: profile.height ?? grid.height,
+    };
+
+    if (profile.colorId != null) result.MATERIAL_ID = profile.colorId;
+    if (profile.fasteningId != null) result.FASTENING_ID = profile.fasteningId;
+
+    return result;
+  });
+
+  // WIDTH — внутреннее расстояние между профилями, сами профили в секцию не входят
+  const SECTIONS = grid.sections.map((section: any) => ({
+    WIDTH: section.width,
+    FILLING: (section.wardrobeFilling ?? [])
+      .filter((item: any) => (item.type ?? 'shelf') !== 'cabinet')
+      .map((item: any) => createWardrobeFillingItem(item, section.width, shelfDepth, wardrobeProductId)),
+  }));
+
+  return {
+    SIZE: {
+      width: grid.width,
+      height: grid.height,
+      depth: grid.depth,
+    },
+    PROFILES,
+    SECTIONS,
+  };
+}
+
 function removeEmptyObjects(obj) {
   const result = {};
 
@@ -845,6 +948,14 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
   }
 
   if (objProps.CONFIG.SIZEEDITJOINDEPTH) { props.SIZEEDITJOINDEPTH = objProps.CONFIG.SIZEEDITJOINDEPTH }
+
+  // У гардеробной системы нет CONFIG.SECTIONS (её создаёт только
+  // BuildUniversalModule для box-УМ), поэтому позиция уходит ветку ниже —
+  // TYPE: "scene", а состав едет в PROPS.WARDROBEGRID
+  const wardrobeGridData = createWardrobeGridData(objProps);
+  if (wardrobeGridData) {
+    props.WARDROBEGRID = wardrobeGridData;
+  }
 
   if (objProps.CONFIG.SECTIONS) {
     const propsUM = convertModuleToLegacyFormat(objProps);

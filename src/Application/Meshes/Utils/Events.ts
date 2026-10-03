@@ -15,6 +15,8 @@ import { useModelState } from "@/store/appliction/useModelState";
 import { useUniformState } from "@/store/appliction/useUniformState";
 import { useMenuStore } from '@/store/appStore/useMenuStore';
 import { useRoomOptions } from '@/components/left-menu/option/roomOptions/useRoomOptons';
+import { useOptions } from '@/components/right-menu/customiser-pages/RailsRightPage/useOptions';
+import { getDefaultPatinaForMilling } from '@/components/right-menu/customiser-pages/ColorRightPage/domain/fasadeOptions';
 import { BuildersHelper } from '../BuildersHelper';
 
 
@@ -22,7 +24,7 @@ import { MILLINGS, additionalMillingKeys } from '@/Application/F-millings';
 // import { directionToColor } from 'three/webgpu';
 // import { VertexNormalsHelper } from "three/examples/jsm/Addons.js";
 import { BuildUniversalModule } from "@/Application/Meshes/UniversalModuleUtils/BuildUniversalModule.ts";
-import { getUMGridFromConfig, WARDROBE_GRID_CONFIG_KEY } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+import { getUMGridFromConfig, WARDROBE_GRID_CONFIG_KEY } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 type TRotateActions = Record<number, number>
 export type TDataCreateHandle = { data: TCreateHandleParams; fasadeNdx: number }
@@ -39,6 +41,7 @@ export class MeshEvents extends BuildersHelper {
     modelState: ReturnType<typeof useModelState> = useModelState()
     menuStore: ReturnType<typeof useMenuStore> = useMenuStore()
     roomOptions: ReturnType<typeof useRoomOptions> = useRoomOptions()
+    options: ReturnType<typeof useOptions> = useOptions({ withMechanism: false })
     trafficManager: THREETypes.TTrafficManager
 
     resources: THREETypes.TResources
@@ -344,12 +347,21 @@ export class MeshEvents extends BuildersHelper {
         const incomingModel = data.MODEL;
         const fasade = FASADE[fasadeNdx] ?? FASADE_DEFAULT[fasadeNdx];
         const fasadeProp = FASADE_PROPS[fasadeNdx];
+        const isNewMaterial = fasadeProp.COLOR != data.ID;
 
         fasadeProp.COLOR = data.ID
         if (fasadeProp.MANUAL_NO_FASADE)
             delete fasadeProp.MANUAL_NO_FASADE
 
         fasadeProp.ALUM = incomingModel;
+
+        if (isNewMaterial) {
+            fasadeProp.PATINA = this.getDefaultFasadePatina(
+                data.ID,
+                this.modelState._MILLING[fasadeProp.MILLING]?.PATINAOFF
+            );
+            fasadeProp.GLASS = null;
+        }
 
         if (UNIFORM_TEXTURE.group !== null) {
             this.removeFromUniformGroup(meshData);
@@ -415,34 +427,59 @@ export class MeshEvents extends BuildersHelper {
                 await Promise.all(
                     FASADE.map(async (fasade, fasadeNdx) => {
                         const { SHOWCASE } = FASADE_POSITIONS[fasadeNdx];
+                        const fasadeProp = FASADE_PROPS[fasadeNdx];
+                        // Полотно и фрезеровка до смены — от них зависит патина
+                        const prevColor = fasadeProp.COLOR;
+                        const prevMilling = fasadeProp.MILLING;
 
                         if (data.ID == 7397 || !includeIncomeFasade) {
                             await this.catchDeliteFasade(fasadeNdx, el);
                         } else {
                             await this.catchFasadeChange({ data, fasadeNdx, mesh: el });
 
+                            // Фрезеровка из опций комнаты — только если она есть в списке фасада, иначе
+                            // первая из списка: то же правило, что при сборке (buildAllFasades). Раньше
+                            // глобальная ставилась и продуктам, которые её не поддерживают, и фасадам,
+                            // чей размер её не допускает, а на витринах оставалась фрезеровка прежнего полотна
+                            const millingList = this.modelState.createCurrentMillingData({
+                                fasadeId: fasadeProp.COLOR,
+                                productId: PRODUCT,
+                                fasadeNdx,
+                                fasadeSize: fasade.userData?.trueSize,
+                            });
+                            const nextMilling = milling && millingList.some(item => item.ID == milling.ID)
+                                ? milling
+                                : millingList[0] ?? null;
+
+                            if (prevColor != fasadeProp.COLOR || prevMilling != nextMilling?.ID) {
+                                fasadeProp.PATINA = this.getDefaultFasadePatina(fasadeProp.COLOR, nextMilling?.PATINAOFF);
+                            }
+
                             if (palitte) {
                                 await this.changePaletteColor({ data: palitte, fasadeNdx, mesh: el });
                             }
+                            const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
+                            const millingType = nextMilling?.fasade_type?.[0] != null
+                                ? nextMilling.fasade_type.filter(typeId => fType?.includes(typeId))[0] ?? null
+                                : null;
 
-                            if (milling && !SHOWCASE) {
-                                let action = null;
+                            fasadeProp.MILLING_TYPE = millingType;
 
-                                if (milling.fasade_type && milling.fasade_type[0] !== null) {
-                                    const fType = FASADE_POSITIONS[fasadeNdx].FASADE_TYPE;
-                                    const prepare = milling.fasade_type.filter(el => fType?.includes(el));
-                                    action = this.modelState.getCurrentMillingActionMap(prepare[0], milling.ID) ?? null;
-                                    FASADE_PROPS[fasadeNdx].MILLING_TYPE = prepare[0] ?? null;
+                            if (nextMilling) {
+                                if (SHOWCASE) {
+                                    // На витрине фрезеровка только в конфиге (для заказа и цены), без отрисовки
+                                    fasadeProp.MILLING = nextMilling.ID;
+                                } else {
+                                    const action = this.modelState.getCurrentMillingActionMap(millingType, nextMilling.ID) ?? null;
+                                    await this.catchChangeMilling({ data: nextMilling.ID, fasadeNdx, action, mesh: el });
                                 }
-
-                                await this.catchChangeMilling({ data: milling.ID, fasadeNdx, action, mesh: el });
                             }
                         }
                     })
                 );
             })
         );
-
+        elementsList.forEach(el => this.options.syncOptions(el));
         // Только здесь — всё гарантированно завершено
         setTimeout(() => {
             this.events.emit('A:GlobalParamsSelect');
@@ -478,13 +515,14 @@ export class MeshEvents extends BuildersHelper {
 
         const props = meshData.userData.PROPS
         const { FASADE, CONFIG } = props
-        const { FASADE_PROPS } = CONFIG
+        const { FASADE_PROPS, FASADE_POSITIONS } = CONFIG
         const patina = FASADE_PROPS[fasadeNdx]?.PATINA
 
+        const isShowcase = FASADE_POSITIONS[fasadeNdx]?.SHOWCASE === 1
         // console.log(data, 'data')
 
         await this.catchChangePaletteColor({ data, fasadeNdx, mesh: meshData } as TDataWithNdx)
-        if (patina) {
+        if (patina && !isShowcase) {
 
             await this.catchDrawPatina({ data: patina, fasadeNdx, mesh: meshData })
         }
@@ -612,12 +650,29 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG, FASADE, PRODUCT, FASADE_DEFAULT } = PROPS
         const { FASADE_PROPS } = CONFIG
         const fasade = FASADE_PROPS[fasadeNdx]
-        const firstMilling = this.modelState.createCurrentMillingData({ fasadeId: fasade.COLOR, productId: PRODUCT, fasadeNdx })[0]
+
+        const firstMilling = this.modelState.createCurrentMillingData({
+            fasadeId: fasade.COLOR,
+            productId: PRODUCT,
+            fasadeNdx,
+            fasadeSize: FASADE[fasadeNdx]?.userData?.trueSize,
+        })[0]
+
+        if (!firstMilling) {
+            return;
+        }
+
+        fasade.PATINA = this.getDefaultFasadePatina(fasade.COLOR, firstMilling.PATINAOFF)
 
         await this.changeMilling({ data: firstMilling.ID, fasadeNdx })
-        fasade.PATINA = Object.values(this.modelState._PATINA)[0].ID
-        // fasade.MILLING = firstMilling.ID
         fasade.MILLING_TYPE = null
+    }
+
+    private getDefaultFasadePatina(colorId: number | string, millingPatinaOff: number | string | null | undefined) {
+        const materialPatina = (this.modelState._FASADE[colorId]?.PATINA ?? [])
+            .filter(id => id != null && Object.prototype.hasOwnProperty.call(this.modelState._PATINA, id))
+
+        return getDefaultPatinaForMilling(millingPatinaOff, materialPatina)
     }
 
     async changeMillingTotal({ data, type, fasade }: TDataWithType) {
@@ -760,8 +815,8 @@ export class MeshEvents extends BuildersHelper {
         const { FASADE_PROPS } = CONFIG
         const fasade = FASADE_PROPS[fasadeNdx]
 
-        this.changeMilling({ data: '1013628', fasadeNdx })
         fasade.SHOWCASE = 1013628
+        this.changeShowcase({ data: 1013628, fasadeNdx })
 
     }
 
@@ -862,11 +917,11 @@ export class MeshEvents extends BuildersHelper {
         const { NAME, ID } = data.option ?? {}
         if (!this._currentMesh) return;
 
-        const { FASADE, FASADE_DEFAULT, LEG, CONFIG } = this._currentMesh.userData.PROPS;
-        const { width, height, depth } = CONFIG.SIZE;
+        const { FASADE, FASADE_DEFAULT, LEG, CONFIG, PRODUCT } = this._currentMesh.userData.PROPS;
 
         if (NAME?.includes('Опоры')) {
-            this.changeModelSize({ data: { width, height, depth } })
+            const { width, height, depth } = CONFIG.SIZE_BASE ?? this._PRODUCTS[PRODUCT];
+            this.changeModelSize({ data: { width, height, depth }, type: 'resize' })
             return
         }
         this.buildProduct.fasade_builder.processOptions({ mesh: FASADE, defaultMesh: FASADE_DEFAULT, data });
@@ -951,6 +1006,10 @@ export class MeshEvents extends BuildersHelper {
 
         //Применение позиционирования после изменений
 
+        if (CONFIG.FREE_TRANSFORM) {
+            this._currentMesh.userData.obb.halfSize.x = data.width * 0.5;
+        }
+
         const adjustedPosition = this.root._roomManager!.adjustPositionWithRaycasting({
             object: this._currentMesh,
             targetPosition: this._currentMesh.userData.targetPosition,
@@ -1020,10 +1079,13 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.position.set(POSITION.x, POSITION.y, POSITION.z);
         currentMesh.updateMatrixWorld(true);
 
+        const halfWidth = fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
+        const halfDepth = fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5;
+
         currentMesh.userData.trueSizes = {
-            DEPTH: fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5,
+            DEPTH: halfDepth,
             HEIGHT: body.userData.trueSizes.HEIGHT,
-            WIDTH: fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5,
+            WIDTH: halfWidth,
         };
 
         // Пересоздаём UNIFORM_TEXTURE
@@ -1048,6 +1110,13 @@ export class MeshEvents extends BuildersHelper {
             this.root._customBoxHelper.hideGroupBox(this.buildUniformTexture._groupsBoxHelper);
         }
 
+        // Свободно установленный объект коллайдер выталкивает из стен по его OBB,
+        // поэтому новые габариты нужны OBB до расчёта позиции
+        if (CONFIG.FREE_TRANSFORM) {
+            currentMesh.userData.obb.halfSize.x = halfWidth;
+            currentMesh.userData.obb.halfSize.z = halfDepth;
+        }
+
         const adjusted = this.root._roomManager!.adjustPositionWithRaycasting({
             object: currentMesh,
             targetPosition: currentMesh.userData.targetPosition,
@@ -1061,11 +1130,8 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.userData.aabb.getCenter(center);
         currentMesh.userData.obb.center.copy(center);
 
-
-
-        currentMesh.userData.obb.halfSize.x = fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
-        currentMesh.userData.obb.halfSize.z = fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5;
-
+        currentMesh.userData.obb.halfSize.x = halfWidth;
+        currentMesh.userData.obb.halfSize.z = halfDepth;
 
         if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
             currentMesh.userData.obb.halfSize.y = data.height * 0.5;
@@ -1090,7 +1156,7 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG } = PROPS
         const { POSITION, UNIFORM_TEXTURE, OPTIONS, FASADE_PROPS } = CONFIG
         const product = this._PRODUCTS[PROPS.PRODUCT]
-        const { width, height, depth } = CONFIG.SIZE;
+        const { width, height, depth } = CONFIG.SIZE_BASE ?? product;
         const clone = FASADE_PROPS.map(el => el)
 
 
@@ -1100,7 +1166,7 @@ export class MeshEvents extends BuildersHelper {
 
         CONFIG.FASADE_PROPS = clone
 
-        this.changeModelSize({ data: { width, height, depth } })
+        this.changeModelSize({ data: { width, height, depth }, type: 'resize' })
 
     }
 
@@ -1116,7 +1182,7 @@ export class MeshEvents extends BuildersHelper {
         const { CONFIG } = PROPS
         const { POSITION, UNIFORM_TEXTURE, OPTIONS, FASADE_PROPS } = CONFIG
         const product = this._PRODUCTS[PROPS.PRODUCT]
-        const { width, height, depth } = CONFIG.SIZE;
+        const { width, height, depth } = CONFIG.SIZE_BASE ?? product;
 
         // CONFIG.FASADE_PROPS = []
         CONFIG.FILLING = data
@@ -1124,7 +1190,7 @@ export class MeshEvents extends BuildersHelper {
         this.buildProduct.filters.filterFasadePosition(CONFIG, product)
         // this.buildProduct.filters.filterFasadeSizer(product.FASADE_SIZES, product)
 
-        this.changeModelSize({ data: { width, height, depth } })
+        this.changeModelSize({ data: { width, height, depth }, type: 'resize' })
 
     }
 

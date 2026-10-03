@@ -6,6 +6,8 @@ export const useTransformController = defineStore('TransformController', () => {
     const transformControlsName = ref<string>("Позиционирование")
     const transformControlSnapAngles = ref<number[]>([1, 5, 10, 20, 30, 40, 45, 50, 90, 180]);
     const currentControlSnapAngle = ref<number>(45)
+    /** У выбранного объекта стоит флаг свободной установки (CONFIG.FREE_TRANSFORM) */
+    const freeTransform = ref<boolean>(false)
 
 
     const setTransformControlsValue = (value: boolean) => {
@@ -18,6 +20,10 @@ export const useTransformController = defineStore('TransformController', () => {
 
     const setTransformControlsName = (value: string) => {
         transformControlsName.value = value
+    }
+
+    const setFreeTransform = (value: boolean) => {
+        freeTransform.value = value
     }
 
     const getTransformControlsValue = computed(() => {
@@ -37,14 +43,20 @@ export const useTransformController = defineStore('TransformController', () => {
         return transformControlsName.value
     })
 
+    const getFreeTransform = computed(() => {
+        return freeTransform.value
+    })
+
     return {
         setTransformControlsValue,
         setControlSnapAngle,
         setTransformControlsName,
+        setFreeTransform,
         getTransformControlsValue,
         getTransformControlSnapAngles,
         getControlSnapAngle,
-        getTransformControlsName
+        getTransformControlsName,
+        getFreeTransform
     }
 
 })

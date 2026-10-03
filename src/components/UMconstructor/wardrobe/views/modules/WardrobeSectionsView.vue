@@ -4,7 +4,7 @@
 // ==== Гардеробная система (WARDROBE) — временно, черновик ====
 // Аналог SectionsView.vue, но сильно упрощённый: у секции гардеробной
 // системы нет cells/cellsRows/extras/loops/hiTechProfiles — только список
-// добавить/удалить (см. SectionsManager.addWardrobeSector/deleteWardrobeSector).
+// добавить/удалить (см. WardrobeSectionsManager.addWardrobeSector/deleteWardrobeSector).
 // Рендерится из RightPanelView.vue вместо SectionsView, когда
 // module.moduleKind === 'wardrobe'.
 
@@ -64,13 +64,13 @@ onMounted(() => {
                     <!-- :key на факт. применённой ширине — баг, показанный пользователем:
                     введённое, но клампнутое (или отклонённое) число оставалось
                     висеть в поле, даже когда section.width реально менялся (см.
-                    SectionsManager.updateWardrobeSectorWidth) — смена :key
+                    WardrobeSectionsManager.updateWardrobeSectorWidth) — смена :key
                     пересоздаёт MainInput целиком, гарантированно сбрасывая его
                     внутреннее значение к актуальному :modelValue, а не полагаясь
                     на внутренний watch(props.modelValue) компонента. -->
                     <MainInput :key="`sector-width-${secIndex}-${Math.round(section.width)}`"
                       :disabled="module.sections.length <= 1"
-                      @update:modelValue="(value: number) => UMconstructor.updateWardrobeSectorWidth(secIndex, value)"
+                      @update:modelValue="(value: number) => UMconstructor.WARDROBE.updateSectorWidth(secIndex, value)"
                       :inputClass="'UM actions-input'" :modelValue="Math.round(section.width)"
                       :min="WARDROBE_SECTION_WIDTH_MIN" :max="WARDROBE_SECTION_WIDTH_MAX" :type="'number'"
                       :isUM="true" />
@@ -82,7 +82,7 @@ onMounted(() => {
 
 
             <button v-if="module.sections.length > 1" class="UM actions-btn actions-icon"
-              @click.stop="UMconstructor.SECTIONS.deleteWardrobeSector(module, secIndex, true)">
+              @click.stop="UMconstructor.WARDROBE.sections.deleteWardrobeSector(module, secIndex, true)">
               <img class="UM actions-icon--delete" src="/icons/delite.svg" alt="" />
             </button>
           </div>
@@ -90,7 +90,7 @@ onMounted(() => {
         </div>
 
         <button class="UM actions-btn actions-btn--default"
-          @click="UMconstructor.SECTIONS.addWardrobeSector(module, selectedCell.sec ?? 0, 1, true)">
+          @click="UMconstructor.WARDROBE.sections.addWardrobeSector(module, selectedCell.sec ?? 0, 1, true)">
           Добавить сектор
         </button>
       </section>

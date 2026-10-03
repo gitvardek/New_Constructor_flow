@@ -4,8 +4,9 @@
 // ==== Гардеробная система (WARDROBE) ====
 // "Конфигурация" — настройка уже УСТАНОВЛЕННОГО наполнения выбранной
 // секции; рендерится из WardrobeRightPanelView.vue при mode==='fillings'.
-// Полки (kind==='shelf'/undefined) и штанги (kind==='rail') лежат в одном
-// массиве wardrobeShelves и рендерятся разными карточками. У полки правятся
+// Полки (type==='shelf'), штанги (type==='rail') и тумбочки
+// (type==='cabinet', карточка — cabinet/views/CabinetConfigCard.vue) лежат в
+// одном массиве wardrobeFilling и рендерятся разными карточками. У полки правятся
 // материал (для ЛДСП, каталог _WARDROBE_SYSTEM[...].shelf[...].fasade) и
 // положение по Y; тип и вид задаются один раз при добавлении
 // (WardrobeInsertView.vue). У штанги материала нет — карточка показывает
@@ -20,12 +21,16 @@
 import { computed, ref, toRefs, onMounted, watch } from "vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
-import { getWardrobeShelfMaterials, getWardrobeSectionInstallableHeight, getWardrobeShelfDepth, getWardrobeShelfDragBounds } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+import { getWardrobeShelfMaterials, getWardrobeSectionInstallableHeight, getWardrobeShelfDepth, getWardrobeShelfDragBounds } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import { _URL } from "@/types/constants";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import MaterialSelector from "@/components/right-menu/customiser-pages/ColorRightPage/MaterialSelector.vue";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
+import CabinetConfigCard from "@/components/UMconstructor/cabinet/views/CabinetConfigCard.vue";
+import { getCabinetWidth, getCabinetHeight } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
+import { openCabinetEditor } from "@/components/UMconstructor/cabinet/openCabinetEditor.ts";
+import { useEditorNavigation } from "@/components/UMconstructor/editor-v2/navigation/editorNavigation.ts";
 
 const modelState = useModelState();
 
@@ -58,7 +63,7 @@ watch(() => UMconstructor?.value?.UM_STORE.getSelected("module"), refreshSelecte
 // Выделенная полка/штанга (уточнение пользователя: клик по полке на канвасе
 // <-> выделение в этой панели) — .item из "fillings"-выбора (UM_STORE.
 // selectedFilling), тот же тип селекта, что и клик на канвасе пишет через
-// ctx.selectCell("fillings", ...), см. DividerDragEngine.onWardrobeShelfDragStart/
+// ctx.selectCell("fillings", ...), см. WardrobeDragEngine.onWardrobeShelfDragStart/
 // SelectionHighlighter.selectCell. Тот же ref+watch приём, что и у selectedSec
 // выше (не computed — тот же стиль, что уже устоялся в этом файле).
 const selectedShelfId = ref<number | null>(null);
@@ -84,14 +89,14 @@ const selectedSection = computed(() => {
   return module.value?.sections?.[selectedSec.value] ?? null;
 });
 
-// Полки И штанги (kind==='rail', хранятся в том же массиве wardrobeShelves —
+// Полки И штанги (type==='rail', хранятся в том же массиве wardrobeFilling —
 // уточнение пользователя, "полноценная коллизия, как у полок", см.
 // RailsManager.addWardrobeRail) — обе показываются здесь, но своими
 // карточками (см. template ниже): у штанги нет материала/типа/цвета (только
 // productId+height из каталога), поэтому вёрстка полки (SHELF_TYPE_LABELS/
 // SHELF_MATERIAL_LABELS/MaterialSelector) для неё не подходит — карточка
 // штанги показывает name/превью товара из каталога + положение по Y.
-const configurableShelves = computed(() => selectedSection.value?.wardrobeShelves ?? []);
+const configurableShelves = computed(() => selectedSection.value?.wardrobeFilling ?? []);
 
 // "Монтажная" высота секции — минимум из высот двух ограничивающих её
 // профилей (не selectedSection.height/module.height, который равен максимуму
@@ -111,7 +116,7 @@ const materialsList = (shelfProductId: number) =>
 // Границы "Положение по Y" — та же getWardrobeShelfDragBounds, что считает
 // лимиты при перетаскивании мышью и (после очередного бага, найденного
 // пользователем) стала единым источником правды и в самом
-// ShelvesManager.updateWardrobeShelfPositionY. Раньше здесь были две ОТДЕЛЬНЫЕ
+// WardrobeShelvesManager.updateWardrobeShelfPositionY. Раньше здесь были две ОТДЕЛЬНЫЕ
 // самодельные формулы (floorGap для низа, installableHeight-height для
 // верха) — ни одна не учитывала коллизии с ДРУГИМИ полками секции, поле
 // позволяло увести полку ниже/выше соседней вплотную (см. скриншоты в чате).
@@ -120,7 +125,7 @@ const positionYBounds = (shelf: any) => {
   // реагирует на правку самого поля "Глубина" — баг, найден пользователем),
   // см. WardrobeSystem.getWardrobeShelfDepth.
   const depthMm = getWardrobeShelfDepth(module.value);
-  const shelves = selectedSection.value?.wardrobeShelves ?? [];
+  const shelves = selectedSection.value?.wardrobeFilling ?? [];
   return getWardrobeShelfDragBounds(shelves, shelf.id, depthMm, installableHeight.value, module.value?.productID);
 };
 
@@ -149,27 +154,36 @@ const computeShelfCards = () => {
     const bounds = positionYBounds(shelf);
     return {
       id: shelf.id,
-      kind: shelf.kind,
       type: shelf.type,
+      shelfType: shelf.shelfType,
       material: shelf.material,
       colorId: shelf.colorId,
       productId: shelf.productId,
       positionY: shelf.positionY,
       min: bounds.minY,
       max: bounds.maxY,
+      // Габарит тумбочки для подзаголовка карточки (Ш × В × Г).
+      size: shelf.type === 'cabinet'
+        ? {
+          width: getCabinetWidth(selectedSection.value.width),
+          height: getCabinetHeight(shelf),
+          depth: getWardrobeShelfDepth(module.value),
+        }
+        : undefined,
     };
   });
 };
 
-watch([configurableShelves, wardrobeDragActive], () => {
+// Ширина секции и глубина модуля — ради габарита тумбочки в карточке.
+watch([configurableShelves, wardrobeDragActive, () => selectedSection.value?.width, () => module.value?.depth], () => {
   if (wardrobeDragActive.value) return;
   computeShelfCards();
 }, { immediate: true, deep: true });
 
 // MaterialSelector эмитит выбранный материал целиком (сырой объект _FASADE),
-// а не только id — у полки хранится только colorId (см. WardrobeShelfPlacement).
+// а не только id — у полки хранится только colorId (см. WardrobeFillingItem).
 const onColorChange = (shelfId: number, material: any) => {
-  UMconstructor.value.SHELVES.updateWardrobeShelfColor(module.value, selectedSec.value, shelfId, material.ID);
+  UMconstructor.value.WARDROBE.shelves.updateWardrobeShelfColor(module.value, selectedSec.value, shelfId, material.ID);
 };
 
 // Карточка текущего материала в заголовке Accordion — см. ConfigurationOption.vue.
@@ -182,7 +196,7 @@ const currentMaterialImg = (shelf: any) => {
 
 const currentMaterialName = (shelf: any) => currentMaterial(shelf)?.NAME ?? "Не выбран";
 
-// Карточка штанги (kind==='rail') показывает НЕ материал (его нет), а сам
+// Карточка штанги (type==='rail') показывает НЕ материал (его нет), а сам
 // товар из каталога (productId — item.ID/item.id, см. RailsManager) —
 // name/превью, тот же _URL-паттерн, что и currentMaterialImg выше.
 const railProduct = (shelf: any) => modelState._PRODUCTS[shelf.productId];
@@ -193,11 +207,24 @@ const railProductImg = (shelf: any) => {
 const railProductName = (shelf: any) => railProduct(shelf)?.NAME ?? "Штанга";
 
 const onPositionYChange = (shelfId: number, value: number) => {
-  UMconstructor.value.SHELVES.updateWardrobeShelfPositionY(module.value, selectedSec.value, shelfId, value);
+  UMconstructor.value.WARDROBE.shelves.updateWardrobeShelfPositionY(module.value, selectedSec.value, shelfId, value);
 };
 
 const deleteShelf = (shelfId: number) => {
-  UMconstructor.value.SHELVES.deleteWardrobeShelf(module.value, selectedSec.value, shelfId, true);
+  UMconstructor.value.WARDROBE.shelves.deleteWardrobeShelf(module.value, selectedSec.value, shelfId, true);
+};
+
+const navigation = useEditorNavigation();
+
+// Открывает редактор тумбочки уровнем навигации окна (Гардеробная › Тумбочка N).
+const editCabinet = (cabinetId: number, index: number) => {
+  openCabinetEditor({
+    navigation,
+    wardrobeEngine: UMconstructor.value,
+    secIndex: selectedSec.value,
+    cabinetId,
+    title: `Тумбочка ${index + 1}`,
+  });
 };
 </script>
 
@@ -215,7 +242,11 @@ const deleteShelf = (shelfId: number) => {
       <div v-for="(card, shelfIndex) in cachedShelfCards" :key="card.id"
         :class="['UM wardrobe-fillings__item', { 'wardrobe-fillings__item--active': card.id === selectedShelfId }]"
         @click="selectShelf(card.id)">
-        <template v-if="card.kind === 'rail'">
+        <CabinetConfigCard v-if="card.type === 'cabinet'" :index="shelfIndex" :card="card"
+          @edit="editCabinet(card.id, shelfIndex)" @delete="deleteShelf(card.id)"
+          @update:positionY="(value) => onPositionYChange(card.id, value)" />
+
+        <template v-else-if="card.type === 'rail'">
           <div class="UM wardrobe-fillings__item-header">
             <div>
               <p class="UM no-select wardrobe-fillings__item-title">Штанга {{ shelfIndex + 1 }}</p>
@@ -251,7 +282,7 @@ const deleteShelf = (shelfId: number) => {
             <div>
               <p class="UM no-select wardrobe-fillings__item-title">Полка {{ shelfIndex + 1 }}</p>
               <p class="UM no-select wardrobe-fillings__item-subtitle">
-                {{ SHELF_TYPE_LABELS[card.type] }} · {{ SHELF_MATERIAL_LABELS[card.material] }}
+                {{ SHELF_TYPE_LABELS[card.shelfType] }} · {{ SHELF_MATERIAL_LABELS[card.material] }}
               </p>
             </div>
             <button class="UM actions-btn actions-icon" @click.stop="deleteShelf(card.id)">

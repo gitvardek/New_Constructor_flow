@@ -12,7 +12,8 @@ import { useConversationActions } from "@/components/right-menu/actions/useConve
 export default class FasadesManager {
     scope: UMconstructorClass
     EXTERNAL_FASADES: ExternalFasadesManager
-    FASADES_CONVERSATION: ReturnType<typeof useConversationActions> = useConversationActions();
+    // Проверки размеров — по модели движка: во вложенной сессии выбран не её объект.
+    FASADES_CONVERSATION: ReturnType<typeof useConversationActions> = useConversationActions(() => this.scope.getModel());
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope;
@@ -20,7 +21,8 @@ export default class FasadesManager {
     }
 
     createFacadeData(fasadeIndex?: number, _productId?: number) {
-        const { PROPS: { FASADE, PRODUCT } } = this.scope.MODEL_STATE.getCurrentModel.userData
+        // PROPS сессии, а не выбранного 3D-объекта: во вложенной сессии это разные товары.
+        const { FASADE, PRODUCT } = this.scope.UM_STORE.getUMData()
         const umHeight = this.scope.UM_STORE.totalHeight
         const productId = _productId || PRODUCT;
         const { FACADE } = this.scope.MODEL_STATE._PRODUCTS[productId];
@@ -907,7 +909,14 @@ export default class FasadesManager {
         doorIndex: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-        fasade.loopsSide = typeof newSide === "string" ? parseInt(newSide) : newSide;
+        const side = typeof newSide === "string" ? parseInt(newSide) : newSide;
+
+        // С боковым профилем петли крайних секций не должны занять обе стенки
+        if (!this.scope.PROFILES.canApplyLoopside(secIndex, side, grid)) {
+            return false
+        }
+
+        fasade.loopsSide = side;
 
         // Временно: сторона открывания едина для всей секции — меняем её сразу у всех фасадов.
 
@@ -924,17 +933,7 @@ export default class FasadesManager {
             })
         })
 
-        // if(!grid.sections[secIndex].loopsSides){
-        //     grid.sections[secIndex].loopsSides = {}
-        // }
 
-        // grid.sections[secIndex].loopsSides[doorIndex] = fasade.loopsSide;
-        // grid.sections[secIndex].fasades[doorIndex].forEach(
-        //     (item) => (item.loopsSide = fasade.loopsSide)
-        // );
-
-        if (grid.profilesConfig?.sideProfile)
-            this.scope.PROFILES.changeProfileSide(LOOPSIDE[fasade.loopsSide]?.includes("left") ? "left" : "right", grid)
 
         this.scope.reset(grid);
     };

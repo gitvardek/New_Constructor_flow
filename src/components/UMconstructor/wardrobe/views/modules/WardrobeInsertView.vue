@@ -5,23 +5,25 @@
 // Подраздел "Вставка" панели "Наполнение" (WardrobeRightPanelView.vue) —
 // наполнение, доступное для установки в ВЫБРАННУЮ секцию. Две категории:
 // 1. "Полки" — тип и вид выбираются здесь (AccordionSelect) ДО добавления и
-//    потом не редактируются (ShelvesManager.addWardrobeShelf; в
+//    потом не редактируются (WardrobeShelvesManager.addWardrobeShelf; в
 //    WardrobeFillingsView.vue у полки остаются материал и положение по Y).
 //    Всегда видима, в список ниже не входит.
 // 2. Динамические группы каталога (fillingsGroups,
 //    getWardrobeFillingsGroups) — аккордеоны после "Полок", по одному на
 //    группу _PRODUCTS[wardrobeProductId].FILLING_SECTION -> _SECTIONS[groupID].
 //    Вёрстка (поиск + сетка карточек) — те же SearchInput.vue/ProductCard.vue,
-//    что у box-UM FillingsInsertPanel.vue. Клик по карточке добавляет ШТАНГУ
-//    (RailsManager.addWardrobeRail) в section.wardrobeShelves рядом с полками
-//    (kind==='rail'), с полноценной коллизией: поиск места/зазоры/драг
-//    переиспользованы без правок, всё уже дженерик над {type, positionY, kind}.
+//    что у box-UM FillingsInsertPanel.vue. Клик по карточке (selectFilling)
+//    добавляет в section.wardrobeFilling рядом с полками по типу товара:
+//    универсальную тумбочку (товар УМ, cabinet/CabinetManager, type==='cabinet')
+//    или ШТАНГУ (RailsManager.addWardrobeRail, type==='rail'), с полноценной
+//    коллизией: поиск места/зазоры/драг дженерик над {type, positionY}.
 
 import { computed, ref, toRefs, onMounted, watch } from "vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
-import { getWardrobeShelfMaterials, getWardrobeFillingsGroups } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
-import { WARDROBE_SHELF_PRODUCT_ID } from "@/components/UMconstructor/ts/createWardrobeGrid.ts";
+import { getWardrobeShelfMaterials, getWardrobeFillingsGroups } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { WARDROBE_SHELF_PRODUCT_ID } from "@/components/UMconstructor/wardrobe/createWardrobeGrid.ts";
+import { isCabinetProduct } from "@/components/UMconstructor/cabinet/cabinetProduct.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import { _URL } from "@/types/constants";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
@@ -79,19 +81,22 @@ const shelfMaterialsList = computed(() =>
 // общей категорией-обёрткой вроде бывшей "Штанга") — тот же уровень, что и
 // "Полки", участвуют в том же openCategory. Вёрстка внутри каждой —
 // SearchInput+ProductCard, тот же паттерн, что box-UM
-// FillingsInsertPanel.vue (см. пример со скриншота в чате). Клик по карточке
-// добавляет ШТАНГУ (RailsManager.addWardrobeRail, уточнение пользователя) —
-// сегодня ВСЕ товары динамических групп трактуются как штанги (единственная
-// реальная группа сейчас — "Аксессуары для шкафов", вся состоит из
-// штанг/труб); если позже появятся группы с другими типами наполнения
-// (тумбочки и т.п.), этот клик придётся различать по группе/товару.
+// FillingsInsertPanel.vue (см. пример со скриншота в чате).
 const fillingsGroups = computed(() =>
   module.value ? getWardrobeFillingsGroups(module.value.productID) : [],
 );
 
-const addRail = (item: any) => {
+// Клик по карточке группы — установка по типу товара: товар УМ (универсальная
+// тумба, isCabinetProduct) — тумбочка, остальное — штанга.
+const selectFilling = (item: any) => {
   if (selectedSec.value === null) return;
-  UMconstructor.value.RAILS.addWardrobeRail(module.value, selectedSec.value, item, true);
+
+  const { WARDROBE } = UMconstructor.value;
+  if (isCabinetProduct(item)) {
+    WARDROBE.cabinets.addWardrobeCabinet(module.value, selectedSec.value, item, true);
+  } else {
+    WARDROBE.rails.addWardrobeRail(module.value, selectedSec.value, item, true);
+  }
 };
 
 // Один общий ref на "текущий отфильтрованный список" достаточен: одновременно
@@ -134,7 +139,7 @@ const toggleCategory = (key: string, isOpen: boolean) => {
 
 const addShelf = (count: number | string) => {
   const safeCount = Math.max(1, Math.floor(Number(count) || 1));
-  UMconstructor.value.SHELVES.addWardrobeShelf(
+  UMconstructor.value.WARDROBE.shelves.addWardrobeShelf(
     module.value,
     selectedSec.value,
     newShelfType.value,
@@ -146,7 +151,7 @@ const addShelf = (count: number | string) => {
 };
 
 // MaterialSelector эмитит материал целиком (сырой объект _FASADE) — храним
-// только id, как и у уже установленных полок (WardrobeShelfPlacement.colorId).
+// только id, как и у уже установленных полок (WardrobeFillingItem.colorId).
 const onShelfMaterialSelect = (material: any) => {
   newShelfColorId.value = material.ID;
 };
@@ -162,7 +167,7 @@ const currentShelfMaterialName = computed(() => currentShelfMaterial.value?.NAME
 
 const applyMaterialToAll = () => {
   if (!newShelfColorId.value) return;
-  UMconstructor.value.SHELVES.applyMaterialToAllShelves(module.value, newShelfColorId.value, true);
+  UMconstructor.value.WARDROBE.shelves.applyMaterialToAllShelves(module.value, newShelfColorId.value, true);
 };
 </script>
 
@@ -230,18 +235,18 @@ const applyMaterialToAll = () => {
         <template #title>
           <span class="UM no-select">{{ group.groupName }}</span>
         </template>
-  
-          <SearchInput v-if="openCategory === `group-${group.groupID}`" :items="group.items"
-            @update:filtered="filteredGroupItems = $event" />
 
-          <ul class="wardrobe-insert__product-list">
-            <li v-for="(item, itemIndex) in (isGroupSearch ? filteredGroupItems : group.items)"
-              :key="itemIndex + (item.NAME || '')" class="wardrobe-insert__product-list-item">
-              <ProductCard :name="item.NAME" :image="item.PREVIEW_PICTURE ? _URL + item.PREVIEW_PICTURE : null"
-                @click="addRail(item)" />
-            </li>
-          </ul>
-      
+        <SearchInput v-if="openCategory === `group-${group.groupID}`" :items="group.items"
+          @update:filtered="filteredGroupItems = $event" />
+
+        <ul class="wardrobe-insert__product-list">
+          <li v-for="(item, itemIndex) in (isGroupSearch ? filteredGroupItems : group.items)"
+            :key="itemIndex + (item.NAME || '')" class="wardrobe-insert__product-list-item">
+            <ProductCard :name="item.NAME" :image="item.PREVIEW_PICTURE ? _URL + item.PREVIEW_PICTURE : null"
+              @click="selectFilling(item)" />
+          </li>
+        </ul>
+
       </Accordion>
     </template>
   </div>
@@ -257,10 +262,6 @@ const applyMaterialToAll = () => {
 
   &__category {
     margin-bottom: 0.75rem;
-
-    &--disabled {
-      opacity: 0.5;
-    }
   }
 
   &__options {

@@ -25,6 +25,11 @@ const props = defineProps({
     type: Number,
     default: 1,
   },
+  // Не показывать у ячейки ширину секции — когда она уже есть в карточке секции.
+  hideSectionWidth: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const section = computed(() => props.module?.sections?.[props.target.sec] ?? null);
@@ -156,7 +161,7 @@ const updateExtraHeight = (event: Event) => {
 
     <!-- Ячейка: ширина принадлежит секции, высота — самой ячейке -->
     <template v-if="level === 'cell'">
-      <div class="actions-inputs">
+      <div v-if="!hideSectionWidth" class="actions-inputs">
         <p class="actions-title">Ширина</p>
         <div class="actions-input--container">
           <MainInput :type="'number'" :inputClass="'actions-input'" :modelValue="section.width"

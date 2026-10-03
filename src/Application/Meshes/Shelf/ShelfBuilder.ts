@@ -8,7 +8,7 @@ import {
     WARDROBE_SHELF_BRACKET_HEIGHT_FLAT,
     WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED,
 } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeShelfThickness, getWardrobeAngledShelfPivotOffset, getWardrobeShelfDepth } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+import { getWardrobeShelfThickness, getWardrobeAngledShelfPivotOffset, getWardrobeShelfDepth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { createGlassMaterial } from "@/Application/Meshes/Utils/glassMaterial.ts";
 import { createWardrobeMetalMaterial } from "@/Application/Meshes/Wardrobe/WardrobeFillingMeshBuilder.ts";
 import {
@@ -463,39 +463,114 @@ export class ShelfBuilder {
         return wrapper
     }
 
-    // ==== Гардеробная система (WARDROBE) — временно, черновик ====
-    // Штанга (kind==='rail') строится НЕ из json.items каталога, в отличие от
-    // полок: у товаров-штанг из FILLING_SECTION 3D-модели может не быть (это
-    // мелкая фурнитура). Поэтому цилиндр вдоль ширины сектора диаметром
-    // railHeight — той же величиной 2D задаёт высоту PIXI-элемента: у штанги
-    // нет ни наклона, ни материала. positionY — нижняя грань, как у полок.
+    // ==== Гардеробная система (WARDROBE) ====
+    // Штанга (type==='rail') — модель товара из каталога
+    // (_PRODUCTS[productId].models[0] -> _MODELS[...], GLB), растянутая на
+    // ширину сектора. Сечение модели НЕ масштабируется (уточнение
+    // пользователя: диаметра у этих моделей нет, ставим по длине секции) —
+    // railHeight задаёт только высоту PIXI-элемента в 2D и запасной цилиндр.
+    // У товаров-штанг из FILLING_SECTION модели может не быть (мелкая
+    // фурнитура) — тогда цилиндр, как раньше.
+    //
+    // Модель грузится асинхронно (GLB), поэтому возвращается wrapper: он сразу
+    // встаёт на своё место (вызывающий сдвигает его по X), а содержимое
+    // появляется по загрузке.
     buildWardrobeRail(
         props: TTotalProps,
         sectionWidth: number,
         positionY: number,
-        railHeight?: number
+        railHeight?: number,
+        productId?: number,
     ): Object3D | null {
-        const diameter = Number(railHeight) || 20
-        const radius = diameter / 2
+        const diameter = Number(railHeight) || 16
         const length = sectionWidth - 4
 
+        const wrapper = new Object3D()
+        wrapper.name = 'WARDROBE_RAIL'
+        // floorY=-height/2 — см. подробный комментарий в buildWardrobeShelf
+        // выше. Начало координат wrapper'а — НИЖНЯЯ грань штанги: реальная
+        // высота модели своя, и содержимое выравнивается по низу уже в ней.
+        wrapper.position.set(0, -props.CONFIG.SIZE.height / 2 + positionY, 0)
+        wrapper.userData.trueSizes = { BODY_WIDTH: length, BODY_HEIGHT: diameter, BODY_DEPTH: diameter }
+
+        const modelId = this.parent._PRODUCTS[productId!]?.models?.[0]
+        const modelData = modelId != null ? this.parent._MODELS[modelId] : null
+
+        if (!modelData?.file && !modelData?.DAE) {
+            wrapper.add(this.createWardrobeRailCylinder(props, length, diameter))
+            return wrapper
+        }
+
+        this.parent.models_builder.create({
+            props: { CONFIG: { MODELID: modelId, SIZE: { width: length, height: diameter, depth: diameter } } },
+            sizeRulers: false,
+            onLoad: (model: Object3D) => {
+                const size = this.fitWardrobeRailModel(model, length)
+                if (!size) {
+                    wrapper.add(this.createWardrobeRailCylinder(props, length, diameter))
+                    return
+                }
+
+                wrapper.add(model)
+                // Габарит по факту модели: её сечение не подгонялось.
+                wrapper.userData.trueSizes = { BODY_WIDTH: size.x, BODY_HEIGHT: size.y, BODY_DEPTH: size.z }
+            },
+        })
+
+        return wrapper
+    }
+
+    // Запасная геометрия штанги: цилиндр вдоль ширины сектора (X), низ — в
+    // начале координат wrapper'а.
+    private createWardrobeRailCylinder(props: TTotalProps, length: number, diameter: number): Mesh {
         const matType = props.BODY?.userData?.MATERIAL_TYPE ?? "MeshStandardMaterial";
         const railMaterial = this.materialMap[matType] || this.materialMap.MeshStandardMaterial;
 
-        const geometry = new CylinderGeometry(radius, radius, length, 16)
+        const geometry = new CylinderGeometry(diameter / 2, diameter / 2, length, 16)
         geometry.rotateZ(Math.PI / 2) // ось цилиндра по умолчанию Y -> вдоль ширины сектора (X)
 
         const body = new Mesh(geometry, railMaterial)
         body.castShadow = true
         body.receiveShadow = true
-
-        // floorY=-height/2 — см. подробный комментарий в buildWardrobeShelf выше.
-        const floorY = -props.CONFIG.SIZE.height / 2
-        body.position.set(0, floorY + positionY + radius, 0)
-        body.name = 'WARDROBE_RAIL'
-        body.userData.trueSizes = { BODY_WIDTH: length, BODY_HEIGHT: diameter, BODY_DEPTH: diameter }
+        body.position.y = diameter / 2
+        body.name = 'WARDROBE_RAIL_BODY'
 
         return body
+    }
+
+    // Подгонка загруженной модели под длину штанги. Ось трубы в GLB не
+    // нормирована (у "Трубы" она своя), поэтому берётся самая длинная сторона
+    // габарита: её тянем на длину секции и разворачиваем вдоль X. Сечение
+    // остаётся как в модели — иначе труба превращалась бы в конус/овал.
+    // Затем модель центрируется по X/Z и ставится низом в начало координат
+    // wrapper'а (её собственный центр не обязан совпадать с габаритным).
+    // Возвращает итоговый габарит; null — модель не загрузилась.
+    private fitWardrobeRailModel(model: Object3D, length: number): Vector3 | null {
+        if (!model) return null
+
+        model.updateMatrixWorld(true)
+        const size = new Box3().setFromObject(model).getSize(new Vector3())
+
+        const axes = ['x', 'y', 'z'] as const
+        if (axes.some((axis) => !(size[axis] > 0))) return null
+
+        const longest = axes.reduce((a, b) => (size[a] >= size[b] ? a : b))
+        model.scale[longest] *= length / size[longest]
+
+        // Длинная ось -> X. Масштаб применяется до поворота (T*R*S), поэтому
+        // тянем в локальных осях модели, а разворачиваем уже готовую.
+        if (longest === 'y') model.rotation.z = Math.PI / 2
+        if (longest === 'z') model.rotation.y = Math.PI / 2
+
+        model.updateMatrixWorld(true)
+        const box = new Box3().setFromObject(model)
+        const center = box.getCenter(new Vector3())
+
+        model.position.x -= center.x
+        model.position.z -= center.z
+        model.position.y -= box.min.y
+
+        return box.getSize(new Vector3())
     }
 
 }

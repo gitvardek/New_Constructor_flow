@@ -17,7 +17,7 @@ import {
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import { TFasadeProp, TFasadeTrueSizes } from "@/types/types.ts";
 import { useFigureRightPage } from "@/utils/useFigureRightPage";
-import { useMechanism } from "@/components/right-menu/customiser-pages/RailsRightPage/Mechanism/useMechanism";
+import { useFasadeEditor } from "@/components/UMconstructor/editor-v2/fasades/useFasadeEditor.ts";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 
 const props = defineProps({
@@ -39,35 +39,34 @@ const { module, mode, UMconstructor } = toRefs(props);
 const selectedFasade = ref<TSelectedCell>(<TSelectedCell>{});
 const selectedCell = ref<TSelectedCell>(<TSelectedCell>{});
 
-const mechanism: ReturnType<typeof useMechanism> = useMechanism();
-const { weightCalculation, createMeckhanizmList } = mechanism;
-const mechanismList = ref([]);
-const currentElement = ref(null);
-const currentSegment = ref(null);
-
 const step = ref<number>(1);
 const { createSurfaceList } = useFigureRightPage();
-type selectedMaterial = {
-  sec: number | null;
-  cell?: number | null;
-  row?: number | null;
-  extra?: number | null;
-  item?: number | null;
-  data: TFasadeProp;
-  fasadeSize?: {};
-};
-const isOpenMaterialSelector = ref<boolean>(false);
-const currentFasadeMaterial = ref<selectedMaterial | boolean>(false);
-const currentFasadeSize = ref<TFasadeTrueSizes | boolean>(false);
-
-const isOpenHandleSelector = ref<boolean>(false);
-const currentHandle = ref<selectedMaterial | boolean>(false);
 const panelRef = ref<HTMLElement | null>(null);
 
-const isOpenMechanizm = ref<boolean>(false);
-mechanismList.value = [];
-currentElement.value = null;
-currentSegment.value = null;
+// Редактор сегмента (материал, ручка, механизмы) — общая логика с редактором v2.
+const {
+  isOpenMaterialSelector,
+  currentFasadeMaterial,
+  currentFasadeSize,
+  isOpenHandleSelector,
+  currentHandle,
+  isOpenMechanizm,
+  mechanismList,
+  currentElement,
+  currentSegment,
+  openFasadeSelector,
+  openHandleSelector,
+  selectHandle,
+  selectOption,
+  closeMenu,
+  getLoopsideList,
+  setLoopside,
+  createMechanizmList,
+  closeIfOtherSelected,
+} = useFasadeEditor({
+  getEngine: () => UMconstructor.value,
+  getModule: () => module.value,
+});
 
 const handleOutsideClick = (event: MouseEvent) => {
   // Закрываем только когда меню реально открыто
@@ -124,228 +123,12 @@ const handleCellSelect = () => {
   currentSegment.value = null;
 };
 
-const openFasadeSelector = (
-  sec: number,
-  cell: number | null = null,
-  row: number | null = null,
-) => {
-  isOpenMaterialSelector.value = false;
-  isOpenMechanizm.value = false;
-  mechanismList.value = [];
-  currentElement.value = null;
-  currentSegment.value = null;
-
-  if (isOpenHandleSelector.value) closeMenu();
-
-  const productId = UMconstructor.value.MODEL_STATE.getCurrentModel.userData.PROPS.PRODUCT;
-  const exeptModel = UMconstructor.value.MODEL_STATE._FASADE_EXCEPTIONS[productId]
-
-  /** @Создание_данных_для_выбранного_фасада */
-  if (exeptModel) {
-    createFacadeData(cell);
-  }
-  else {
-    createFacadeData(row === null ? undefined : row);
-  }
-
-  if (
-    currentFasadeMaterial.value &&
-    sec === currentFasadeMaterial.value.sec &&
-    cell === currentFasadeMaterial.value.cell &&
-    row === currentFasadeMaterial.value.row
-  ) {
-    closeMenu();
-    return;
-  }
-
-  setTimeout(() => {
-    let data =
-      sec === null
-        ? module.value.fasades[cell][row]
-        : module.value.sections[sec].fasades[cell][row];
-    currentFasadeMaterial.value = {
-      sec,
-      cell,
-      row,
-      data: data.material,
-    };
-    currentFasadeSize.value = <TFasadeTrueSizes>{
-      FASADE_WIDTH: data.width,
-      FASADE_HEIGHT: data.height,
-    };
-    UMconstructor?.value?.FASADES.selectCell(sec, cell, row);
-    isOpenMaterialSelector.value = true;
-  }, 10);
-};
-
-const openHandleSelector = (
-  sec: number | null,
-  cell: number | null = null,
-  row: number | null = null,
-) => {
-  isOpenHandleSelector.value = false;
-  isOpenMaterialSelector.value = false;
-  isOpenMechanizm.value = false;
-  mechanismList.value = [];
-  currentElement.value = null;
-  currentSegment.value = null;
-
-  if (isOpenMaterialSelector.value) closeMenu();
-
-  if (
-    currentHandle.value &&
-    sec === currentHandle.value.sec &&
-    cell === currentHandle.value.cell &&
-    row === currentHandle.value.row
-  ) {
-    closeMenu();
-    return;
-  }
-
-  setTimeout(() => {
-    let data =
-      sec === null
-        ? module.value.fasades[cell][row]
-        : module.value.sections[sec].fasades[cell][row];
-    currentHandle.value = {
-      sec,
-      cell,
-      row,
-      data: data.material,
-    };
-    UMconstructor?.value?.FASADES.selectCell(sec, cell, row);
-    isOpenHandleSelector.value = true;
-  }, 10);
-};
-
-const createFacadeData = (fasadeIndex: number | undefined) => {
-  UMconstructor?.value?.FASADES.createFacadeData(fasadeIndex);
-};
-
-const selectHandle = (data: any, type: string) => {
-  switch (type) {
-    case "handle":
-      currentHandle.value.data.HANDLES.id = data;
-      break;
-    case "position":
-      currentHandle.value.data.HANDLES.position = data;
-      break;
-  }
-  UMconstructor?.value?.RENDER_REF.renderGrid(module.value);
-};
-
-const selectOption = (value: Object, type: string, palette: Object = false, alum: number | null = null) => {
-  currentFasadeMaterial.value.data[type] = value ? value.ID || value : null;
-  if (palette) currentFasadeMaterial.value.data["PALETTE"] = palette;
-
-  if (type === "COLOR") {
-    currentFasadeMaterial.value.data["ALUM"] = alum;
-    if (
-      currentFasadeMaterial.value.data[type] ===
-      UMconstructor?.value?.CONST.NO_FASADE_ID
-    )
-      currentFasadeMaterial.value.data["MANUAL_NO_FASADE"] = true;
-    else delete currentFasadeMaterial.value.data["MANUAL_NO_FASADE"];
-  }
-
-  let { sec, cell, row } = currentFasadeMaterial.value;
-  if (sec === null) {
-    module.value.fasades[cell][row].material = Object.assign(
-      module.value.fasades[cell][row].material,
-      currentFasadeMaterial.value.data,
-    );
-  } else {
-    module.value.sections[sec].fasades[cell][row].material = Object.assign(
-      module.value.sections[sec].fasades[cell][row].material,
-      currentFasadeMaterial.value.data,
-    );
-  }
-
-  // Петли сегмента разделённого фасада зависят от материала: без материала сегмента
-  // фактически нет и петли ему не назначаются. Как только материал выбран (или снят),
-  // пересчитываем петли секции — calcLoops сам вернёт loopsSide, сброшенный в none
-
-  if (type === "COLOR" && sec !== null) {
-    UMconstructor?.value?.LOOPS.syncSplitLoopside(sec, cell, row, module.value);
-    UMconstructor?.value?.LOOPS.calcLoops(sec, module.value);
-    UMconstructor?.value?.RENDER_REF.renderGrid(module.value);
-  }
-};
-
-const closeMenu = () => {
-  isOpenMaterialSelector.value = false;
-  isOpenHandleSelector.value = false;
-  isOpenMechanizm.value = false;
-
-  currentHandle.value = false;
-  currentFasadeMaterial.value = false;
-  currentFasadeSize.value = false;
-
-  mechanismList.value = [];
-  currentElement.value = null;
-  currentSegment.value = null;
-};
-
-const getLoopsideList = (
-  secIndex: number,
-  doorIndex: number,
-  module,
-  segment: number,
-) => {
-  let list = UMconstructor?.value?.LOOPS.getLoopsideList(
-    secIndex,
-    doorIndex,
-    module,
-    segment,
-  );
-
-  if (module.noLoops) {
-    const noneItem = list?.find((item) => item.ID === LOOPSIDE["none"]);
-    return noneItem ? [noneItem] : [];
-  } else return list?.filter(Boolean) ?? [];
-};
-
 const changeLoopside = (secIndex, segment, event, doorIndex, module) => {
-  closeMenu();
-
-  UMconstructor?.value?.FASADES.changeLoopside(
-    secIndex,
-    segment,
-    event.target.value,
-    doorIndex,
-    module,
-  );
-};
-
-const createMechanizmList = (segment) => {
-  const { height, width, material } = segment;
-  const { PRODUCT, CONFIG } = UMconstructor.value.UM_STORE.getUMData();
-
-  const tempData = {
-    userData: {
-      UM: true,
-      PROPS: {
-        PRODUCT: PRODUCT,
-        CONFIG: {
-          FASADE_PROPS: Object.assign(material, { UMSIZES: { height, width } }),
-          SIZE: { height, width },
-          MECHANISM: material.MECHANISM,
-          MECHANISM_TEMP: [],
-        },
-      },
-    },
-  };
-
-  const list = createMeckhanizmList(tempData);
-
-  mechanismList.value = list;
-  currentElement.value = tempData.userData.PROPS.CONFIG;
-  currentSegment.value = material;
-
-  isOpenMechanizm.value = true;
-  isOpenHandleSelector.value = false;
-  isOpenMaterialSelector.value = false;
-
+  // Смену отклонили (боковому профилю не осталось бы стенки) — селект уже показывает
+  // новый вариант, возвращаем его к фактической стороне
+  if (!setLoopside(secIndex, segment, event.target.value, doorIndex, module)) {
+    event.target.value = segment.loopsSide;
+  }
 };
 
 onMounted(() => {
@@ -371,30 +154,7 @@ watch(
 
 watch(
   () => selectedFasade.value,
-  () => {
-    const { sec, cell, row } = selectedFasade.value;
-    if (
-      currentFasadeMaterial.value &&
-      !(
-        sec === currentFasadeMaterial.value.sec &&
-        cell === currentFasadeMaterial.value.cell &&
-        row === currentFasadeMaterial.value.row
-      )
-    ) {
-      closeMenu();
-      return;
-    } else if (
-      currentHandle.value &&
-      !(
-        sec === currentHandle.value.sec &&
-        cell === currentHandle.value.cell &&
-        row === currentHandle.value.row
-      )
-    ) {
-      closeMenu();
-      return;
-    }
-  },
+  () => closeIfOtherSelected(selectedFasade.value),
 );
 </script>
 
@@ -842,8 +602,9 @@ watch(
       <ClosePopUpButton class="menu__close" @close="closeMenu()" />
 
       <AdvanceCorpusMaterialRedactor v-if="isOpenMaterialSelector" :is-fasade="true"
-        :elementData="currentFasadeMaterial.data" :elementIndex="currentFasadeMaterial.row"
-        :fasade-size="currentFasadeSize" @parent-callback="selectOption" />
+        :elementData="currentFasadeMaterial.data" :elementIndex="currentFasadeMaterial.row" 
+        :element-label="currentFasadeMaterial.label" :fasade-size="currentFasadeSize"
+        @parent-callback="selectOption" />
 
       <Handles v-if="isOpenHandleSelector" :is2-dconstructor="true" :data="createSurfaceList(currentHandle)" :index="0"
         @parent-callback="selectHandle" :active-pos="currentHandle.data.HANDLES.position"

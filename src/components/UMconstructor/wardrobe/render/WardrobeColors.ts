@@ -5,6 +5,8 @@
 // Shape/Section) сюда сознательно не перенесены — общий, давно стабильный
 // код, не относится к гардеробной системе.
 //@ts-nocheck
+import { CABINET_COLORS } from "@/components/UMconstructor/cabinet/render/CabinetGraphics.ts";
+import type { WardrobeFillingItem } from "@/components/UMconstructor/wardrobe/types.ts";
 
 export const WARDROBE_COLORS = {
     shelf: {
@@ -19,7 +21,7 @@ export const WARDROBE_COLORS = {
         // поверх этого цвета (физически стекло полупрозрачное).
         glass: { fill: '#80bdfd', stroke: '#0a1e33' },
         glassAlpha: 0.55,
-        // Штанга (kind==='rail', уточнение пользователя) — металлический
+        // Штанга (type==='rail', уточнение пользователя) — металлический
         // цвет, отличный и от ЛДСП (оранжевый/коричневый), и от стекла
         // (синий) — своя, самостоятельная категория наполнения, не
         // разновидность полки.
@@ -51,15 +53,20 @@ export const WARDROBE_COLORS = {
 } as const;
 
 // Выбор цвета полки/штанги по её признакам — та же логика, что раньше жила
-// ТОЛЬКО инлайн внутри SceneBuilder.createWardrobeShelf. Вынесено сюда как
-// переиспользуемый чистый хелпер, чтобы SceneBuilder.createWardrobeSector
+// ТОЛЬКО инлайн внутри WardrobeSceneBuilder.createWardrobeShelf. Вынесено сюда как
+// переиспользуемый чистый хелпер, чтобы WardrobeSceneBuilder.createWardrobeSector
 // (нейминг "Полка N"/"Штанга N", см. WardrobeDimensions.
 // getContrastTextColor) мог получить ТОТ ЖЕ цвет заливки, на которой сидит
 // подпись, не дублируя условия isRail/isGlass/isAngled в двух местах.
-export function getWardrobeShelfColors(shelf: { type: 'flat' | 'angled'; material?: 'ldsp' | 'glass'; kind?: 'shelf' | 'rail' }) {
-    const isAngled = shelf.type === 'angled'
+//
+// Тумбочка рисуется отдельно (cabinet/render/CabinetGraphics.ts); здесь для неё
+// только фон подписи — задняя стенка, на которой подпись и сидит.
+export function getWardrobeShelfColors(shelf: Pick<WardrobeFillingItem, 'type' | 'shelfType' | 'material'>) {
+    const isAngled = shelf.shelfType === 'angled'
     const isGlass = shelf.material === 'glass'
-    const isRail = shelf.kind === 'rail'
+    const isRail = shelf.type === 'rail'
+
+    if (shelf.type === 'cabinet') return { fill: CABINET_COLORS.back.fill, stroke: CABINET_COLORS.panel.stroke }
 
     return isRail
         ? WARDROBE_COLORS.shelf.rail

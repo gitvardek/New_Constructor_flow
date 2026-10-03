@@ -8,7 +8,7 @@
 // в ЛОКАЛЬНЫХ координатах модуля (центр 0,0,0 — тот же нуль, что у
 // WardrobeFillingMeshBuilder/ShelfBuilder/LegBuilder).
 //
-// Раскладка повторяет 2D (SceneBuilder.renderWardrobeGrid): N секторов ->
+// Раскладка повторяет 2D (WardrobeSceneBuilder.renderWardrobeGrid): N секторов ->
 // N+1 профилей, вдоль X идут профиль, сектор, профиль, ..., профиль.
 // section.width — ВНУТРЕННЕЕ расстояние между профилями (сами профили в
 // сектор не входят), поэтому totalWidth = sum(sections[].width) +
@@ -18,7 +18,9 @@
 // шириной САМОГО СЕКТОРА и уводила профили на ~WARDROBE_PROFILE_WIDTH/2.
 
 import { WARDROBE_PROFILE_WIDTH } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeFasteningColorFamily } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+import { getWardrobeFasteningColorFamily } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import type { WardrobeCabinetConfig } from "@/components/UMconstructor/cabinet/types.ts";
+import type { WardrobeFillingType, WardrobeShelfType } from "@/components/UMconstructor/wardrobe/types.ts";
 
 export interface ParsedWardrobeProfile {
     id: number | undefined;
@@ -34,15 +36,17 @@ export interface ParsedWardrobeProfile {
     colorId: number | undefined;
 }
 
-export interface ParsedWardrobeShelf {
+export interface ParsedWardrobeContent {
     id: number;
     productId: number;
-    type: 'flat' | 'angled';
+    type: WardrobeFillingType;
+    shelfType?: WardrobeShelfType;
     material?: 'ldsp' | 'glass';
     colorId?: number;
     positionY: number;
-    kind: 'shelf' | 'rail';
     railHeight?: number;
+    // Параметры корпуса тумбочки (type==='cabinet'), см. cabinet/types.ts.
+    cabinet?: WardrobeCabinetConfig;
     sectionIndex: number;
     sectionCenterX: number;
     sectionWidth: number;
@@ -50,7 +54,7 @@ export interface ParsedWardrobeShelf {
 
 export interface ParsedWardrobeGrid {
     profiles: ParsedWardrobeProfile[];
-    shelves: ParsedWardrobeShelf[];
+    content: ParsedWardrobeContent[];
     totalWidth: number;
 }
 
@@ -66,7 +70,7 @@ export class WardrobeGridParser {
             + (sections.length + 1) * profileWidth
 
         const profiles: ParsedWardrobeProfile[] = []
-        const shelves: ParsedWardrobeShelf[] = []
+        const content: ParsedWardrobeContent[] = []
 
         let cursor = -totalWidth / 2
 
@@ -88,18 +92,19 @@ export class WardrobeGridParser {
 
             const sectionCenterX = cursor + section.width / 2
 
-            const items = section.wardrobeShelves ?? []
-            
-            items.forEach((shelf: any) => {
-                shelves.push({
-                    id: shelf.id,
-                    productId: shelf.productId,
-                    type: shelf.type,
-                    material: shelf.material,
-                    colorId: shelf.colorId,
-                    positionY: shelf.positionY,
-                    kind: shelf.kind ?? 'shelf',
-                    railHeight: shelf.railHeight,
+            const items = section.wardrobeFilling ?? []
+
+            items.forEach((element: any) => {
+                content.push({
+                    id: element.id,
+                    productId: element.productId,
+                    type: element.type ?? 'shelf',
+                    shelfType: element.shelfType,
+                    material: element.material,
+                    colorId: element.colorId,
+                    positionY: element.positionY,
+                    railHeight: element.railHeight,
+                    cabinet: element.cabinet,
                     sectionIndex: profileIndex,
                     sectionCenterX,
                     sectionWidth: section.width,
@@ -109,6 +114,6 @@ export class WardrobeGridParser {
             cursor += section.width
         }
 
-        return { profiles, shelves, totalWidth }
+        return { profiles, content, totalWidth }
     }
 }

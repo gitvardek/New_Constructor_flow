@@ -11,7 +11,7 @@ import {
 import { useSceneState } from "@/store/appliction/useSceneState"
 import { useModelState } from '@/store/appliction/useModelState';
 
-import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from '@/components/UMconstructor/utils/Const';
+import { UM_PARAMS, WITH_TSARGA, MODULE_TSARGA_OPTIONS, SHELF_PRODUCTS, GLASS_SHELF_THICKNESS } from '@/components/UMconstructor/utils/Const';
 import { BuildProduct } from "../BuildProduct"
 import { _URL } from "@/types/constants";
 import { CSG } from "three-csg-ts";
@@ -34,6 +34,8 @@ export class BuildUniversalModule extends BuildProduct {
     private readonly correctPosZGroups: number[] = [2166309]
     private readonly fillingOffset: number = 50
     private readonly UM_PARAMS: ReturnType<typeof UM_PARAMS> = UM_PARAMS
+    private readonly SHELF_PRODUCTS: ReturnType<typeof SHELF_PRODUCTS> = SHELF_PRODUCTS
+    private readonly GLASS_SHELF_THICKNESS: ReturnType<typeof GLASS_SHELF_THICKNESS> = GLASS_SHELF_THICKNESS
 
     // Продукто-агностичная часть сборки (не знает про корпус/стенки) —
     // компонуется через инъекцию this, тем же паттерном, что уже
@@ -288,7 +290,8 @@ export class BuildUniversalModule extends BuildProduct {
             CONFIG.isSlideDoor = true
         }
 
-        if (this._APP.CATALOG.SECTIONS[product_data.OPTIONSECTION_ID].TYPE.toLowerCase().includes("hitech"))
+        // TYPE раздела может быть null (у тумбы 15389606) — тогда не hitech.
+        if (this._APP.CATALOG.SECTIONS[product_data.OPTIONSECTION_ID]?.TYPE?.toLowerCase().includes("hitech"))
             CONFIG.isHiTech = true
 
         if (product_data.moduleType?.CODE === "restricted")

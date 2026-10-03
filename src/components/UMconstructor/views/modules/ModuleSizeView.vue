@@ -10,7 +10,7 @@ import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 import { onMounted, ref, toRefs, watch, computed, onBeforeMount } from "vue";
 import { TTotalProps } from "@/types/types.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
-import { getWardrobeProfileMaxDepth } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+import { getWardrobeProfileMaxDepth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 const props = defineProps({
   module: {
@@ -28,7 +28,12 @@ const props = defineProps({
   productData: {
     type: ref<TTotalProps>,
     required: true,
-  }
+  },
+  // false — блока "Цоколь" нет (тумбочка гардеробной: цоколя не бывает).
+  showHorizont: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const { module, mode, UMconstructor, productData } = toRefs(props)
@@ -69,6 +74,14 @@ const maxDepth = computed(() => {
   return UMconstructor?.value?.getMinMaxModuleSize(productData.value, 'depth', 'max')
 })
 
+const toggleSideProfile = () => {
+  UMconstructor.value.initSideProfile(module.value)
+
+  // Профиль могли не поставить (петли у обеих стенок): флаг в сторе не изменился,
+  // watch не сработает — возвращаем тумблер к факту вручную
+  onSideProfile.value = UMconstructor.value.UM_STORE.onSideProfile
+}
+
 const updateTotalSize = (dimensions: string, value: number, event: Event) => {
   switch (dimensions) {
     case "totalHeight":
@@ -102,6 +115,9 @@ const horizontToggle = (value: boolean) => {
 }
 
 watch(() => UMconstructor?.value?.UM_STORE.onHorizont, () => {
+  // Модуль без цоколя: опции ("Без дна" и т.п.) его не включают.
+  if (!props.showHorizont) return;
+
   if (onHorizont.value !== UMconstructor.value.UM_STORE.onHorizont) {
     onHorizont.value = UMconstructor.value.UM_STORE.onHorizont
     horizontToggle(onHorizont.value)
@@ -300,7 +316,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="!module.isRestrictedModule && module.moduleKind !== 'wardrobe' && !isLowModule"
+      <div v-if="showHorizont && !module.isRestrictedModule && module.moduleKind !== 'wardrobe' && !isLowModule"
         class="UM constructor2d-container--left--module-configs--module-size-item actions-inputs">
         <p class="UM no-select actions-title">Цоколь
           <img v-if="mode !== 'module' || noBottom || onWallModule" class="cut-icon" src="/icons/lock.svg" alt=""

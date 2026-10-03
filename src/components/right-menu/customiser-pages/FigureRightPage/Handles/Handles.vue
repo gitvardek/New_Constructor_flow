@@ -5,7 +5,7 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { Tab } from "@/components/ui/tabs/defaultTab.vue";
 import { THandlesItem } from "@/utils/useFigureRightPage";
 import { TFasadeProp, FasadeTextAlignAction } from "@/types/types";
-import { useModelState } from "@/store/appliction/useModelState";
+import { useUMEditorModel } from "@/components/UMconstructor/ts/umEngineContext.ts";
 import { useHandlesAction } from "./useHandlesAction";
 
 import MaterialSelector from "@/components/right-menu/customiser-pages/ColorRightPage/MaterialSelector.vue";
@@ -25,7 +25,7 @@ type TFigureFasad = {
 };
 
 const eventBus = useEventBus();
-const modelState = useModelState();
+const getCurrentModel = useUMEditorModel();
 const handlesAction = useHandlesAction();
 
 const { getControllerData } = handlesAction;
@@ -70,8 +70,13 @@ const figureFasad = ref<TFigureFasad>({
 const handlePos = ref<number[] | []>([]);
 const handleList = ref<THandlesItem[]>();
 
+// Список фасадов с ручками пуст, если у товара нет POSITION_HANDLES.
+const hasHandles = computed(() => !!props.data?.length);
+
 onBeforeMount(() => {
-  const model = modelState.getCurrentModel;
+  if (!hasHandles.value) return;
+
+  const model = getCurrentModel();
   const config = model?.userData?.PROPS?.CONFIG;
   const FASADE_TYPE: any[] = config?.FASADE_TYPE ?? [];
   const FASADE_POSITIONS: any[] = config?.FASADE_POSITIONS ?? [];
@@ -179,7 +184,7 @@ const checkControllerVisible = computed(() => {
 });
 
 const handlesDisabled = computed(() => {
-  return !!figureFasad.value.props.HANDLES?.noHandles;
+  return !hasHandles.value || !!figureFasad.value.props.HANDLES?.noHandles;
 });
 </script>
 <template>

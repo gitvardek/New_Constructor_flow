@@ -135,9 +135,11 @@ export class MillingBuilder extends MillingsUtils {
         object.material = patinaResult.material;
       } else {
         object.geometry = newGeometry;
+        this.restoreMaterialWithoutPatina(object);
       }
     } else {
       object.geometry = newGeometry;
+      this.restoreMaterialWithoutPatina(object);
     }
 
     // Очистка памяти
@@ -148,6 +150,24 @@ export class MillingBuilder extends MillingsUtils {
     }
     startGeometry.geometry.dispose();
     startGeometry = null;
+  }
+
+  /**
+ * Возврат исходного материала после патины
+ */
+
+  private restoreMaterialWithoutPatina(object: THREE.Mesh) {
+    const material = object.material;
+
+    if (!Array.isArray(material) || !material.some((item) => (item as THREE.Material)?.vertexColors)) {
+      return;
+    }
+
+    material
+      .filter((item) => (item as THREE.Material)?.vertexColors)
+      .forEach((item) => (item as THREE.Material).dispose());
+
+    object.material = material[0];
   }
 
   /**

@@ -4,7 +4,8 @@
 // Продукто-специфичный аналог FillingMeshBuilder: превращает разобранную
 // сетку в THREE-меши. Профили строит сам — процедурными боксами, БЕЗ
 // WARDROBE_MODEL_DATA/json_builder (та модель описывала ровно 2 хардкод-
-// профиля и на N не годится). Полки и штанги делегирует в ShelfBuilder.
+// профиля и на N не годится). Полки и штанги делегирует в ShelfBuilder,
+// тумбочку — в CabinetMeshBuilder (components/UMconstructor/cabinet/three).
 //
 // ShelfBuilder строит их в ЛОКАЛЬНЫХ координатах СЕКТОРА (X=0 — его центр,
 // Y уже абсолютный, от пола модуля), поэтому здесь остаётся только сдвинуть
@@ -13,6 +14,7 @@
 import * as THREE from 'three'
 import { WARDROBE_PROFILE_WIDTH, WARDROBE_PROFILE_DEPTH } from "@/Application/F-wardrobeData.ts";
 import { ParsedWardrobeGrid } from "./WardrobeGridParser";
+import { CabinetMeshBuilder } from "@/components/UMconstructor/cabinet/three/CabinetMeshBuilder.ts";
 
 // Материал профиля: тот же "металлический" рецепт, что у
 // TsargaBuilder.createFillingTsarga (царга — тоже металлический профиль).
@@ -42,9 +44,11 @@ export function createWardrobeMetalMaterial(builder: any, colorId: number | unde
 
 export class WardrobeFillingMeshBuilder {
     private builder: any
+    private cabinetBuilder: CabinetMeshBuilder
 
     constructor(builder: any) {
         this.builder = builder
+        this.cabinetBuilder = new CabinetMeshBuilder(builder)
     }
 
     // Профили — процедурные боксы (не через каталожную 3D-модель, см.
@@ -80,12 +84,12 @@ export class WardrobeFillingMeshBuilder {
     // Полки и штанги — делегирует геометрию ShelfBuilder'у (уже умеет
     // толщину/материал/наклон), здесь только абсолютный X сектора.
     buildShelves(props: any, parsed: ParsedWardrobeGrid): THREE.Object3D | null {
-        if (!parsed.shelves.length) return null
+        if (!parsed.content.length) return null
 
         const group = new THREE.Object3D()
         const shelfBuilder = this.builder.shelf_builder
 
-        parsed.shelves.forEach((shelf) => {
+        parsed.content.forEach((element) => {
             let mesh: THREE.Object3D | null = null
 
             // Цвет ЛЕВОГО профиля сектора — для кронштейнов полки: они
@@ -93,20 +97,22 @@ export class WardrobeFillingMeshBuilder {
             // Сектор i ограничивают profiles[i] и profiles[i+1]; берём левый —
             // если цвета разойдутся, оба кронштейна одной полки логичнее
             // оставить одинаковыми.
-            const profileColorId = parsed.profiles[shelf.sectionIndex]?.colorId
+            const profileColorId = parsed.profiles[element.sectionIndex]?.colorId
 
-            if (shelf.kind === 'rail') {
-                mesh = shelfBuilder.buildWardrobeRail(props, shelf.sectionWidth, shelf.positionY, shelf.railHeight)
-            } else if (shelf.type === 'angled') {
-                mesh = shelfBuilder.buildWardrobeAngledShelf(props, shelf.productId, shelf.sectionWidth, shelf.positionY, shelf.colorId, shelf.material, profileColorId)
+            if (element.type === 'cabinet') {
+                mesh = this.cabinetBuilder.build(props, element, element.sectionWidth)
+            } else if (element.type === 'rail') {
+                mesh = shelfBuilder.buildWardrobeRail(props, element.sectionWidth, element.positionY, element.railHeight, element.productId)
+            } else if (element.shelfType === 'angled') {
+                mesh = shelfBuilder.buildWardrobeAngledShelf(props, element.productId, element.sectionWidth, element.positionY, element.colorId, element.material, profileColorId)
             } else {
-                mesh = shelfBuilder.buildWardrobeShelf(props, shelf.productId, shelf.sectionWidth, shelf.positionY, shelf.colorId, shelf.material, profileColorId)
+                mesh = shelfBuilder.buildWardrobeShelf(props, element.productId, element.sectionWidth, element.positionY, element.colorId, element.material, profileColorId)
             }
 
             if (!mesh) return
 
-            mesh.position.x += shelf.sectionCenterX
-            mesh.name = `${mesh.name}_${shelf.id}`
+            mesh.position.x += element.sectionCenterX
+            mesh.name = `${mesh.name}_${element.id}`
             group.add(mesh)
         })
 

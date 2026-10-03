@@ -10,6 +10,7 @@
 import * as THREE from 'three'
 import * as THREETypes from "@/types/types"
 import { WITH_TSARGA, MODULE_TSARGA_OPTIONS } from '@/components/UMconstructor/utils/Const';
+import { createTsargaData } from '@/components/UMconstructor/utils/Tsarga';
 
 export class ModulegridParser {
     private builder: any
@@ -19,6 +20,9 @@ export class ModulegridParser {
     }
 
     parseModulegrid(product_data: THREETypes.TObject, PROPS: Object) {
+
+        this.validateGridWalls(product_data, PROPS.CONFIG)
+
         const OLD_SECTIONS = PROPS.CONFIG.SECTIONS
         const OLD_FASADES = PROPS.CONFIG.FASADE_POSITIONS
         PROPS.CONFIG.FASADE_POSITIONS = []
@@ -97,19 +101,21 @@ export class ModulegridParser {
             cells?.forEach((cell, cellIndex) => {
                 if (cellIndex > 0) {
                     const cellTsarga = getCellTopTsarga(cells[cellIndex - 1]);
+                    const isGlassShelf = !!cell.glassShelf
+                    const shelfThickness = isGlassShelf
+                        ? this.builder.GLASS_SHELF_THICKNESS
+                        : PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"]
+
                     curSection.fillings.push({  //Добавляем полку, как товар наполнения
-                        position: new THREE.Vector3(cell.position.x, cell.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
+                        position: new THREE.Vector3(cell.position.x, cell.position.y - shelfThickness - full_horizont_height,
                             curSection.position.z - (isSlidingDoors / 2 || 0)),
-                        size: new THREE.Vector3(cell.width, PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"], product_data.depth - isSlidingDoors), // curSection.size.z
-                        product: 5975548,
+                        size: new THREE.Vector3(cell.width, shelfThickness, product_data.depth - isSlidingDoors), // curSection.size.z
+                        product: isGlassShelf ? this.builder.SHELF_PRODUCTS.glass : this.builder.SHELF_PRODUCTS.ldsp,
                         id: curSection.fillings.length + 1,
-                        material: PROPS.CONFIG.MODULE_COLOR,
-                        type: 'shelf',
+                        type: isGlassShelf ? 'glass_shelf' : 'shelf',
+                        ...(isGlassShelf ? {} : { material: PROPS.CONFIG.MODULE_COLOR }),
                         ...(cellTsarga ? { tsarga: cellTsarga } : {})
                     })
-                    // if (cellTsarga) {
-                    //     curSection.fillings.push(cellTsarga)
-                    // }
                 }
 
                 cell.cellsRows?.forEach((row, rowIndex) => {
@@ -128,19 +134,21 @@ export class ModulegridParser {
                     row.extras?.slice().sort((a, b) => a.position.y - b.position.y).forEach((extra, extraIndex, sortedExtras) => {
                         if (extraIndex > 0) {
                             const extraTsarga = sortedExtras[extraIndex - 1]?.tsarga;
+                            const isGlassShelf = !!extra.glassShelf
+                            const shelfThickness = isGlassShelf
+                                ? this.builder.GLASS_SHELF_THICKNESS
+                                : PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"]
+
                             curSection.fillings.push({  //Добавляем полку, как товар наполнения
-                                position: new THREE.Vector3(extra.position.x, extra.position.y - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] - full_horizont_height,
+                                position: new THREE.Vector3(extra.position.x, extra.position.y - shelfThickness - full_horizont_height,
                                     curSection.position.z - (isSlidingDoors / 2 || 0)),
-                                size: new THREE.Vector3(row.width, PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"], product_data.depth - isSlidingDoors), // curSection.size.z
-                                product: 5975548,
+                                size: new THREE.Vector3(row.width, shelfThickness, product_data.depth - isSlidingDoors), // curSection.size.z
+                                product: isGlassShelf ? this.builder.SHELF_PRODUCTS.glass : this.builder.SHELF_PRODUCTS.ldsp,
                                 id: curSection.fillings.length + 1,
-                                material: PROPS.CONFIG.MODULE_COLOR,
-                                type: 'shelf',
+                                type: isGlassShelf ? 'glass_shelf' : 'shelf',
+                                ...(isGlassShelf ? {} : { material: PROPS.CONFIG.MODULE_COLOR }),
                                 ...(extraTsarga ? { tsarga: extraTsarga } : {})
                             })
-                            // if (extraTsarga) {
-                            //     curSection.fillings.push(extraTsarga)
-                            // }
                         }
 
 
@@ -217,14 +225,9 @@ export class ModulegridParser {
                         curSection.fillings.push(topCellTsarga);
                     }
                 } else if (section.width >= this.builder.UM_PARAMS.MIN_TSARGA_WIDTH && section.width <= this.builder.UM_PARAMS.MAX_TSARGA_WIDTH) {
-                    curSection.fillings.push({
-                        PRODUCT_ID: 4586184,
-                        ID: 4586184,
-                        MATERIAL_ID: 15826,
-                        WIDTH: section.width,
-                        POSITION: curSection.position.x,
-                        type: 'tsarga'
-                    });
+                    curSection.fillings.push(
+                        createTsargaData(section.width, curSection.position.x)
+                    );
                 }
             }
 
@@ -326,5 +329,116 @@ export class ModulegridParser {
                 }
             })
         }
+    }
+
+    // Проверка сетки на соответствие входящим параметрам материала корпус/стенки
+
+    private validateGridWalls(grid: GridModule, CONFIG: THREETypes.TConfig): boolean {
+        if (!grid?.sections?.length) {
+            return false
+        }
+
+        console.log(this.builder, 'this.builder.')
+
+        const moduleThickness = grid.moduleThickness
+        const leftWidth = this.builder._FASADE[CONFIG.LEFTSIDECOLOR?.COLOR]?.DEPTH || moduleThickness
+        const rightWidth = this.builder._FASADE[CONFIG.RIGHTSIDECOLOR?.COLOR]?.DEPTH || moduleThickness
+        const oldLeft = grid.leftWallThickness ?? moduleThickness
+        const oldRight = grid.rightWallThickness ?? moduleThickness
+
+        if (leftWidth === oldLeft && rightWidth === oldRight) {
+            return false
+        }
+
+        // Формула та же, что в reset(): сумма секций против доступной ширины,
+        const sectionsTotalWidth = grid.width - leftWidth - rightWidth
+            - (grid.sections.length - 1) * grid.moduleThickness
+
+        let sectionsWidthSum = 0
+        grid.sections.forEach((section) => {
+            sectionsWidthSum += section.width
+        })
+
+        const deltaWidth = sectionsTotalWidth - sectionsWidthSum
+        const lastSection = grid.sections[grid.sections.length - 1]
+        const newLastWidth = lastSection.width + deltaWidth
+        const maxSectionWidth = WITH_TSARGA.includes(grid.productID)
+            ? this.builder.UM_PARAMS.MAX_SECTION_WIDTH_TSARGA
+            : this.builder.UM_PARAMS.MAX_SECTION_WIDTH
+
+        const needRebuild = newLastWidth < this.builder.UM_PARAMS.MIN_SECTION_WIDTH
+            || newLastWidth > maxSectionWidth
+            || (deltaWidth !== 0 && (!!grid.profilesConfig
+                || lastSection.cells?.some((cell) => cell.cellsRows?.length)))
+
+        if (needRebuild) {
+            console.warn("Сетка модуля не соответствует материалам боковых стенок, "
+                + "поправить автоматически нельзя — нужен пересчёт в 2D-конструкторе", grid)
+            return false
+        }
+
+        grid.leftWallThickness = leftWidth
+        grid.rightWallThickness = rightWidth
+
+        const shiftX = leftWidth - oldLeft
+        if (shiftX !== 0) {
+            grid.sections.forEach((section) => {
+                this.shiftGridBranchX(section, shiftX)
+            })
+        }
+
+        if (deltaWidth !== 0) {
+            lastSection.width = newLastWidth
+            lastSection.position.x += deltaWidth / 2
+
+            lastSection.cells?.forEach((cell) => {
+                cell.width = lastSection.width
+                cell.position.x = lastSection.position.x
+                this.resizeGridFillingsX(cell)
+            })
+
+            this.resizeGridFillingsX(lastSection)
+        }
+
+        return true
+    }
+
+    // Сдвигает по X всю ветку сетки: саму область, её ячейки, ряды, уровни и наполнение 
+
+    private shiftGridBranchX(node: THREETypes.TObject, shiftX: number) {
+        if (!node) {
+            return
+        }
+
+        if (node.position) {
+            node.position.x += shiftX
+        }
+
+        node.fillings?.forEach((filling) => {
+            if (filling.position) {
+                filling.position.x += shiftX
+            }
+        })
+
+        const children = [...(node.cells ?? []), ...(node.cellsRows ?? []), ...(node.extras ?? [])]
+        children.forEach((child) => {
+            this.shiftGridBranchX(child, shiftX)
+        })
+    }
+
+    // Подгоняет наполнение под новую ширину родителя
+
+    private resizeGridFillingsX(parent: THREETypes.TObject) {
+        parent.fillings?.forEach((filling) => {
+            // Вертикальные элементы тянутся по высоте, профили — по ширине модуля:
+            // от ширины родителя они не зависят
+            if (filling.isVerticalItem || filling.isProfile) {
+                return
+            }
+
+            filling.width = parent.width
+            filling.size.x = parent.width
+            filling.position.x = parent.position.x - parent.width / 2
+        })
     }
 }

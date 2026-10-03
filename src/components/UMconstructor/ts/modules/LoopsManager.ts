@@ -426,9 +426,10 @@ export default class LoopsManager {
 
         const checkLoop = (_loops, cell) => {
             let result = []
+            const shelfThickness = this.scope.getShelfThickness(cell, grid)
             _loops.forEach(loop => {
                 if (
-                    ((loop.minY < (cell.position.y - moduleThickness) && loop.maxY > (cell.position.y - moduleThickness)) ||
+                    ((loop.minY < (cell.position.y - shelfThickness) && loop.maxY > (cell.position.y - shelfThickness)) ||
                         (loop.minY < cell.position.y && loop.maxY > cell.position.y))
                     &&
                     ((loop.minX <= (cell.position.x - cell.width / 2) && loop.maxX >= (cell.position.x - cell.width / 2)) ||

@@ -12,6 +12,7 @@ import {
 import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useSceneState } from "@/store/appliction/useSceneState";
+import { useUMEditorModel } from "@/components/UMconstructor/ts/umEngineContext.ts";
 
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import MaterialSelector from "./MaterialSelector.vue";
@@ -21,6 +22,13 @@ import ConfigurationOption from "./ConfigurationOption.vue";
 const modelState = useModelState();
 const eventBus = useEventBus();
 const sceneState = useSceneState();
+// Внутри редактора УМ — модель его движка, вне — выбранный объект.
+const getCurrentModel = useUMEditorModel();
+
+const getCurrentColor = () => {
+  const { CONFIG } = getCurrentModel().userData.PROPS;
+  return props.type === "backwall" ? CONFIG.BACKWALL?.COLOR : CONFIG.MODULE_COLOR;
+};
 interface IProps {
   materialList: [];
   is2Dconstructor?: boolean;
@@ -50,14 +58,7 @@ const callback = (material) => {
 };
 
 onBeforeMount(() => {
-  if (props.type === "backwall") {
-    selectedSurfaceID.value =
-      modelState.getCurrentModel.userData.PROPS.CONFIG.BACKWALL?.COLOR;
-    return;
-  }
-
-  selectedSurfaceID.value =
-    modelState.getCurrentModel.userData.PROPS.CONFIG.MODULE_COLOR;
+  selectedSurfaceID.value = getCurrentColor();
 });
 
 const prepareData = () => {
@@ -119,23 +120,20 @@ const deleteSelectedOptions = (type: string) => {
     if (!fallback) {
       return;
     }
+
     currentSurfaceData.value = {
       name: fallback.NAME,
       imgSrc: fallback.PREVIEW_PICTURE,
     };
 
-    eventBus.emit("A:ChangeModuleTexture", { ...fallback, RESET: true });
+    // В 2D цвет пишет редактор; событие перекрасило бы выбранный объект сцены.
+    if (is2Dconstructor.value) callback(fallback);
+    else eventBus.emit("A:ChangeModuleTexture", { ...fallback, RESET: true });
   }
 };
 
 watch(() => props.type, () => {
-  if (props.type === "backwall")
-    selectedSurfaceID.value =
-      modelState.getCurrentModel.userData.PROPS.CONFIG.BACKWALL?.COLOR;
-  else
-    selectedSurfaceID.value =
-      modelState.getCurrentModel.userData.PROPS.CONFIG.MODULE_COLOR;
-
+  selectedSurfaceID.value = getCurrentColor();
   prepareData()
 })
 </script>

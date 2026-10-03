@@ -2,27 +2,22 @@
 
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
 import type { Application } from "@/Application/Core/Application.ts";
-import { UM_PARAMS, WITH_TSARGA } from "./../utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA, GLASS_SHELF_THICKNESS } from "./../utils/Const.ts";
 import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManager.ts";
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
 import SidecolorsManager from "@/components/UMconstructor/ts/modules/SidecolorsManager.ts";
 import SectionsManager from "@/components/UMconstructor/ts/modules/SectionsManager.ts";
 import ShelvesManager from "@/components/UMconstructor/ts/modules/ShelvesManager.ts";
-import RailsManager from "@/components/UMconstructor/ts/modules/RailsManager.ts";
+import WardrobeModule from "@/components/UMconstructor/wardrobe/WardrobeModule.ts";
 import LoopsManager from "@/components/UMconstructor/ts/modules/LoopsManager.ts";
-import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useUMStorage, type UMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import { useToast } from "@/features/toaster/useToast.ts";
 import { Ref, ref } from "vue";
 
 import { saveUMGrid, ShapeAdjuster } from "@/components/UMconstructor/utils/PixiMethods.ts";
-import { isWardrobeSystemProduct, getWardrobeSectionInstallableHeight, getWardrobeShelfPixiHeight, getWardrobeProfileMaxDepth, getWardrobeShelfDepth, getWardrobeShelfMinGap, getWardrobeShelfFloorGap } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
-import {
-    WARDROBE_SECTION_WIDTH_MIN,
-    WARDROBE_SECTION_WIDTH_MAX,
-    WARDROBE_PROFILE_WIDTH,
-} from "@/Application/F-wardrobeData.ts";
-import { createWardrobeGrid } from "@/components/UMconstructor/ts/createWardrobeGrid.ts";
+import { isWardrobeSystemProduct, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { createWardrobeGrid } from "@/components/UMconstructor/wardrobe/createWardrobeGrid.ts";
 import {
     alertType,
     constructorMode,
@@ -46,7 +41,11 @@ import { Application } from "@/Application/Core/Application.ts";
 import UMconstructor from "@/components/UMconstructor/UMconstructor.vue";
 
 export default class UMconstructorClass {
-    UM_STORE: ReturnType<typeof useUMStorage> = useUMStorage();
+    // Свой стор у каждого экземпляра: основной — useUMStorage(), вложенные
+    // сессии — createUMStorage (см. createUMEngine.ts).
+    UM_STORE: UMStorage;
+    // Приложение — для создания вложенных сессий (createUMEngine).
+    ROOT: Application;
     APP: ReturnType<typeof useAppData> = useAppData().getAppData;
     MODEL_STATE: ReturnType<typeof useModelState> = useModelState();
     CONST: typeof UM_PARAMS
@@ -58,15 +57,25 @@ export default class UMconstructorClass {
     PROFILES: ProfilesManager
     SECTIONS: SectionsManager
     SHELVES: ShelvesManager
-    RAILS: RailsManager
+    WARDROBE: WardrobeModule
     SIDECOLORS: SidecolorsManager
     SHAPE_ADJUSTER: ShapeAdjuster
     OPTIONS: OptionsManager
     RENDER_REF: Ref<typeof Render2D | undefined> = ref<typeof Render2D>()
-    ALERT_FOOTER_REF: Ref = ref()
+
     DEBOUNCES: {}
 
-    constructor(root: Application) {
+    // Своя модель вложенной сессии (см. getModel); у основного движка — null.
+    SESSION_MODEL: any = null
+
+    constructor(root: Application, options: { store?: UMStorage; isolatedModel?: boolean } = {}) {
+        this.UM_STORE = options.store ?? useUMStorage()
+        this.ROOT = root
+        if (options.isolatedModel) {
+            const store = this.UM_STORE
+            // Форма userData объекта сцены: PROPS — данные сессии, restrictData — лимиты материалов фасадов.
+            this.SESSION_MODEL = { userData: { get PROPS() { return store.getUMData() }, restrictData: {} } }
+        }
         this.CONST = UM_PARAMS
         this.BUILDER = root._universalGeometryBuilder?.buildProduct
 
@@ -77,11 +86,18 @@ export default class UMconstructorClass {
         this.PROFILES = new ProfilesManager(this)
         this.SECTIONS = new SectionsManager(this)
         this.SHELVES = new ShelvesManager(this)
-        this.RAILS = new RailsManager(this)
+        this.WARDROBE = new WardrobeModule(this)
         this.SIDECOLORS = new SidecolorsManager(this)
         this.SHAPE_ADJUSTER = new ShapeAdjuster({ scope: this })
         this.OPTIONS = new OptionsManager(this)
         this.DEBOUNCES = {}
+    }
+
+    // Модель, от имени которой идут проверки размеров фасадов и работают общие
+    // компоненты правого меню (материал, ручки): у основного движка — выбранный
+    // 3D-объект, у вложенной сессии — своя (выбран родитель, например гардеробная).
+    getModel(): any {
+        return this.SESSION_MODEL ?? this.MODEL_STATE.getCurrentModel
     }
 
     selectCell(type: constructorMode, newSelected: TSelectedCell) {
@@ -90,17 +106,6 @@ export default class UMconstructorClass {
         // уже развёрнутым через Proxy экземпляром Render2D — обрабатываем оба случая
         const render = this.RENDER_REF?.value ?? this.RENDER_REF;
         render?.selectCell(type, newSelected);
-    };
-
-    // Гардеробная система — выбор ПРОФИЛЯ (уточнение пользователя: клик по
-    // профилю в WardrobeProfilesView.vue "Настройка профилей" выделяет его
-    // на канвасе, и наоборот) — тот же общий вход, что и у selectCell выше,
-    // но отдельный канал (UM_STORE.selectedWardrobeProfileId), см.
-    // SelectionHighlighter.selectWardrobeProfile.
-    selectWardrobeProfile(profileId: number | null) {
-        this.UM_STORE.selectedWardrobeProfileId = profileId;
-        const render = this.RENDER_REF?.value ?? this.RENDER_REF;
-        render?.selectWardrobeProfile(profileId);
     };
 
     checkSelection(
@@ -160,7 +165,7 @@ export default class UMconstructorClass {
                 if (!PROPS.CONFIG.WARDROBEGRID || !Object.keys(PROPS.CONFIG.WARDROBEGRID).length) {
                     return createWardrobeGrid(productData.globalData, size);
                 }
-                return PROPS.CONFIG.WARDROBEGRID;
+                return migrateWardrobeGrid(PROPS.CONFIG.WARDROBEGRID);
             }
 
             const {
@@ -196,14 +201,22 @@ export default class UMconstructorClass {
                 const isSlidingDoors = PROPS.CONFIG.isSlideDoor;
                 let fasades;
 
+                const moduleThickness = PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18;
+                const horizont = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] || 0;
+
+                // Боковая панель может быть из другого материала и другой толщины, чем корпус создаём проверку по аналогии с reset()
+                const leftWallThickness = this.APP.FASADE[PROPS.CONFIG.LEFTSIDECOLOR?.COLOR]?.DEPTH || moduleThickness;
+                const rightWallThickness = this.APP.FASADE[PROPS.CONFIG.RIGHTSIDECOLOR?.COLOR]?.DEPTH || moduleThickness;
+                const sectionWidth = width - leftWallThickness - rightWallThickness;
+
                 let section: GridSection = {
                     number: 1,
-                    width: width - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] * 2,
-                    height: height - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] * 2 - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"],
+                    width: sectionWidth,
+                    height: height - moduleThickness * 2 - horizont,
                     cells: [],
                     type: "section",
-                    position: new THREE.Vector2(PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] + (width - PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] * 2) / 2,
-                        PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] + PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]),
+                    position: new THREE.Vector2(leftWallThickness + sectionWidth / 2,
+                        moduleThickness + horizont),
                 }
 
                 let _module: GridModule = {
@@ -211,10 +224,10 @@ export default class UMconstructorClass {
                     height,
                     depth,
                     moduleColor: PROPS.CONFIG.MODULE_COLOR,
-                    moduleThickness: PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18,
-                    leftWallThickness: PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18,
-                    rightWallThickness: PROPS.CONFIG.EXPRESSIONS["#MATERIAL_THICKNESS#"] || 18,
-                    horizont: PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] || 0,
+                    moduleThickness,
+                    leftWallThickness,
+                    rightWallThickness,
+                    horizont,
                     sections: [section],
                     type: "module",
                     productID: productData.globalData,
@@ -361,6 +374,15 @@ export default class UMconstructorClass {
         this.RENDER_REF = ref
     }
 
+    // Завершение сессии: отложенные операции (debounce) не должны сработать
+    // после закрытия и записать в чужую сетку.
+    dispose() {
+        Object.values(this.DEBOUNCES).forEach((timer) => clearTimeout(timer))
+        this.DEBOUNCES = {}
+        this.UM_STORE.pendingOperations = 0
+        this.RENDER_REF = ref()
+    }
+
 
     callAlert(type: alertType, message: string) {
         if (type)
@@ -371,28 +393,36 @@ export default class UMconstructorClass {
         this.SHAPE_ADJUSTER = SHAPE_ADJUSTER
     }
 
+    // Смена высоты цоколя без пересчёта: секции и фасады сдвигаются на разницу
+    // со старым #HORIZONT#, дальше reset() вызывающего дотягивает высоты. Отдельно
+    // от updateHorizont — нужен и без debounce (тумбочка: переход на 0 при создании).
+    applyHorizont(grid: GridModule, value: number | string) {
+        const PROPS = this.UM_STORE.getUMData();
+        const delta = parseInt(value) - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]
+
+        grid.sections.forEach((section, secIndex) => {
+            section.position.y += delta
+            section.fasades.forEach((door) => {
+                door.forEach((segment) => {
+                    segment.position.y += delta;
+                })
+            })
+
+            this.FASADES.EXTERNAL_FASADES.shiftStackWithHorizont(secIndex, delta, grid)
+        })
+
+        grid.horizont = PROPS.CONFIG.HORIZONT = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] = parseInt(value);
+    }
+
     updateHorizont(value) {
         this.debounce('horizont', () => {
-            const PROPS = this.UM_STORE.getUMData();
             const grid = this.UM_STORE.getUMGrid()
 
             if (!grid?.sections?.length) {
                 return
             }
 
-            let delta = parseInt(value) - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]
-            grid.sections.forEach((section, secIndex) => {
-                section.position.y += delta
-                section.fasades.forEach((door) => {
-                    door.forEach((segment) => {
-                        segment.position.y += delta;
-                    })
-                })
-
-                this.FASADES.EXTERNAL_FASADES.shiftStackWithHorizont(secIndex, delta, grid)
-            })
-
-            grid.horizont = PROPS.CONFIG.HORIZONT = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] = parseInt(value);
+            this.applyHorizont(grid, value)
             this.reset();
         }, 1000)
     };
@@ -409,7 +439,7 @@ export default class UMconstructorClass {
             // сам reset() (как и при правке высоты профиля из "Настройка
             // профилей").
             if (grid.moduleKind === 'wardrobe') {
-                this.PROFILES.applyModuleHeightToProfiles(grid, parseInt(value));
+                this.WARDROBE.profiles.applyModuleHeightToProfiles(grid, parseInt(value));
             } else {
                 grid.height = this.UM_STORE.totalHeight = parseInt(value);
                 //this.RENDER_REF.updateTotalHeight(value);
@@ -436,20 +466,6 @@ export default class UMconstructorClass {
             this.RENDER_REF.selectCell("module", 0, null);
 
         }, 1000)
-    };
-
-    // Точный ввод ширины ОДНОЙ секции гардеробной системы (WardrobeSectionsView.vue)
-    // — тонкая debounce-обёртка над SectionsManager.updateWardrobeSectorWidth
-    // (та же логика "меняем границу с соседом", что и у драга профиля мышью),
-    // тот же приём, что и у updateTotalWidth выше: свежий grid читается ВНУТРИ
-    // debounce-колбэка (не в момент вызова), отдельный ключ debounce на КАЖДУЮ
-    // секцию (secIndex) — иначе правка одной секции отменяла бы отложенную
-    // правку другой, набранную чуть раньше.
-    updateWardrobeSectorWidth(secIndex: number, value: number) {
-        this.debounce(`wardrobeSectorWidth-${secIndex}`, () => {
-            const grid = this.UM_STORE.getUMGrid()
-            this.SECTIONS.updateWardrobeSectorWidth(grid, secIndex, parseInt(value))
-        }, 500)
     };
 
     updateTotalDepth(value) {
@@ -499,6 +515,16 @@ export default class UMconstructorClass {
     initSideProfile(grid: GridModule = this.UM_STORE.getUMGrid()) {
         if (!grid.profilesConfig?.sideProfile) {
 
+            // Профиль встаёт к стенке, свободной от петель крайней секции. Если петли
+            // стоят у обеих стенок, ставить его некуда
+            const side = this.PROFILES.resolveProfileSide(grid)
+
+            if (!side) {
+                this.callAlert("error", "Нельзя установить боковой профиль: петли крайних секций стоят у обеих боковых стенок. Смените сторону открывания у крайней левой или крайней правой секции")
+                this.UM_STORE.onSideProfile = false
+                return
+            }
+
             const product = this.APP.CATALOG.PRODUCTS[6513251] //C - образный профиль
             const productData = this.UM_STORE.getUMData()
             let profileData = {}
@@ -522,20 +548,8 @@ export default class UMconstructorClass {
             profileData.size = { x: grid.height, y: product.height, z: product.depth }
             profileData.product = 6513251
 
-            profileData.side = LOOPSIDE[grid.sections[0].loopsSides[0]]?.includes("left") ? "left" : "right"
-            const profileSidesMap = {
-                "right": new THREE.Vector2(-profileData.manufacturerOffset - profileData.size.y / 2, 0),
-                "left": new THREE.Vector2(grid.width + profileData.manufacturerOffset + profileData.size.y / 2, 0),
-            }
-            const profileRotationMap = {
-                "right": Math.PI / 2,
-                "left": -Math.PI / 2,
-            }
-
-            profileData.position = profileSidesMap[profileData.side];
-            profileData.rotation = new THREE.Vector3(0, 0, profileRotationMap[profileData.side]);
-
             grid.profilesConfig.sideProfile = profileData
+            this.PROFILES.applyProfileSide(side, grid)
             this.UM_STORE.onSideProfile = true
         }
         else {
@@ -546,6 +560,13 @@ export default class UMconstructorClass {
         this.reset(grid)
     }
 
+    getShelfThickness(container: any, grid: any) {
+        if (container?.glassShelf) {
+            return GLASS_SHELF_THICKNESS;
+        }
+        return grid?.moduleThickness ?? 18;
+    };
+
     reset(grid: GridModule = this.UM_STORE.getUMGrid()) {
 
         if (!grid?.sections?.length && grid.moduleKind !== 'wardrobe') {
@@ -553,213 +574,11 @@ export default class UMconstructorClass {
         }
 
         this.UM_STORE.setLoad(true)
-
-        // Гардеробная система (временно, черновик) — весь пересчёт ниже
-        // (секции/ячейки/ряды/тсарга/фасады через FASADES.updateFasades)
-        // box-UM-специфичен и падает на гардеробной сетке (нет cells/rows,
-        // у товара нет FASADE_POSITION вовсе — см. крэш FasadesManager.
-        // updateFasades). Синхронизируем grid.width (её меняет updateTotalWidth()
-        // из числового поля панели, трогая только сам grid.width) с суммой
-        // sections[].width, которую читает SceneBuilder.renderWardrobeGrid —
-        // дельта уходит в последнюю секцию (тот же принцип, что у box-UM
-        // пересчёта ниже). Если после этого последняя секция вышла за
-        // WARDROBE_SECTION_WIDTH_MAX — авто-разбиваем на нужное число секций
-        // (SECTIONS.addWardrobeSector, reset=false — иначе рекурсия в reset()),
-        // симметрично при уменьшении ниже MIN — сливаем через deleteWardrobeSector.
+        // Гардеробная сетка пересчитывается отдельным путём: у неё нет
+        // cells/rows/царги, а у товара нет FASADE_POSITION — box-UM пересчёт
+        // ниже на ней падал (см. wardrobe/managers/WardrobeGridReset.ts).
         if (grid.moduleKind === 'wardrobe') {
-            // Высота МОДУЛЯ = высота самого высокого профиля: профили
-            // настраиваются независимо (ProfilesManager.
-            // updateWardrobeProfileHeight), и "Стена" обычно короче "Потолка".
-            // Поле "Высота" в ModuleSizeView.vue grid.height напрямую НЕ
-            // пишет: updateTotalHeight() зовёт applyModuleHeightToProfiles, а
-            // высота модуля пересчитывается здесь уже как следствие.
-            //
-            // Про высоту знает не только grid.height: PIXI-канвас
-            // масштабируется по отдельному TOTAL_HEIGHT/UM_STORE.totalHeight,
-            // который меняет ТОЛЬКО явный RENDER_REF.updateTotalSize. Без него
-            // канвас остался бы на старом масштабе — профили обрезались или
-            // снизу оставалось пустое место.
-            if (grid.wardrobeProfiles?.length) {
-                const maxProfileHeight = Math.max(...grid.wardrobeProfiles.map((p) => p.height || 0))
-                if (maxProfileHeight !== grid.height) {
-                    grid.height = maxProfileHeight
-                    this.UM_STORE.totalHeight = maxProfileHeight
-                    this.RENDER_REF.updateTotalSize(maxProfileHeight, "height")
-                }
-
-                // Максимальная ГЛУБИНА тоже динамическая, зависит от реально
-                // назначенных креплений. getWardrobeProfileMaxDepth — тот же
-                // потолок, что показан как :max поля "Глубина", и нужен ТОЛЬКО
-                // здесь, для клампа grid.depth: геометрия и коллизии полок
-                // считаются от ТЕКУЩЕЙ grid.depth (getWardrobeShelfDepth) —
-                // когда они брали этот потолок, высота наклонной полки не
-                // реагировала на правку "Глубины".
-                //
-                // Кламп на КАЖДОМ reset(), не только на старте: grid.depth
-                // берётся из каталожного SIZE.depth и может превышать максимум
-                // сразу, а смена крепления уменьшает его уже после создания.
-                // updateTotalSize для depth не зовём (в отличие от height) —
-                // глубина не отрисовываемая ось фронтального 2D-вида, она
-                // влияет только на тригонометрию наклонных полок.
-                const maxDepth = getWardrobeProfileMaxDepth(grid)
-                if (maxDepth != null && grid.depth > maxDepth) {
-                    grid.depth = this.UM_STORE.totalDepth = maxDepth
-                    this.callAlert("warning", `Глубина модуля уменьшена до ${maxDepth}мм — не позволяют текущие крепления профилей`)
-                }
-            }
-
-            // Секции не стоят друг над другом (один ряд) — height каждой
-            // секции всегда должен равняться grid.height. В отличие от
-            // width (который делится/распределяется между секциями),
-            // height просто копируется — но раньше НЕ копировался вовсе:
-            // GridSection.height выставлялся один раз при создании (createWardrobeGrid/
-            // addWardrobeSector) и не обновлялся при изменении "Высота" в
-            // левой панели (updateTotalHeight трогает только grid.height).
-            // Из-за этого section.height оставался ЗАСТАРЕВШИМ (меньше
-            // фактической высоты, на которую уже отрисован канвас) — что
-            // ломало и WardrobeFillingsView.vue (:max для "Положение по Y"
-            // считался от старой высоты), и коллизии полок (ShelvesManager.
-            // addWardrobeShelf упирался в неверный, заниженный потолок и
-            // сообщал "нет места", хотя видимого места было много).
-            grid.sections.forEach((s) => { s.height = grid.height })
-
-            // Полка, которая больше не помещается под "монтажную" высоту
-            // своей секции (минимум из двух ограничивающих её профилей,
-            // см. WardrobeSystem.getWardrobeSectionInstallableHeight) — после
-            // того, как пользователь укоротил один из профилей в "Настройка
-            // профилей" — физически висит в воздухе (см. скриншот в чате) и
-            // удаляется. Проверяется на КАЖДОМ reset() (не только сразу после
-            // правки высоты профиля) — тот же принцип, что и у синхронизации
-            // section.height выше: это инвариант, а не разовый побочный эффект.
-            let removedShelvesCount = 0
-            grid.sections.forEach((section, secIndex) => {
-                if (!section.wardrobeShelves?.length) return
-
-                const installableHeight = getWardrobeSectionInstallableHeight(grid, secIndex)
-                // Полки крепятся к центру профиля — их длина считается от
-                // ТЕКУЩЕЙ grid.depth (не от потолка getWardrobeProfileMaxDepth,
-                // который не реагирует на правку самого поля "Глубина" — баг,
-                // найден пользователем), см. WardrobeSystem.getWardrobeShelfDepth.
-                const depthMm = getWardrobeShelfDepth(grid)
-
-                // Полка, прилегающая к соседу СНИЗУ (в т.ч. к наклонной —
-                // её высота зависит от depthMm, тригонометрия), должна
-                // сохранять минимальный зазор ОТ ЭТОГО соседа даже после
-                // изменения геометрии (глубина модуля и т.п.) — баг, найден
-                // пользователем: при изменении глубины модуля полка,
-                // прилегающая к наклонной полке, не сдвигалась к новому
-                // разрешённому положению и оставалась на старом positionY
-                // (нарушая либо занижая зазор). Сдвигаем ТОЛЬКО ВВЕРХ —
-                // устраняем нарушение зазора, но никогда не "утягиваем"
-                // полку вниз, если у неё и так больше свободного места, чем
-                // требуется по формуле (это может быть намеренный выбор
-                // пользователя при перетаскивании, не нарушение). "Пол"
-                // считается неявным нижним соседом первой полки — та же
-                // getWardrobeShelfFloorGap, что уже используют add/drag.
-                const sortedShelves = [...section.wardrobeShelves].sort((a, b) => a.positionY - b.positionY)
-                let prevShelf: typeof sortedShelves[number] | null = null
-                sortedShelves.forEach((shelf) => {
-                    // prevShelf ниже (СНИЗУ), shelf выше (СВЕРХУ) по
-                    // сортировке — порядок аргументов getWardrobeShelfMinGap
-                    // теперь значим (below, above), см. её doc-комментарий;
-                    // здесь порядок уже корректный, менять не нужно.
-                    const lowerBound = prevShelf
-                        ? prevShelf.positionY
-                        + getWardrobeShelfPixiHeight(prevShelf, depthMm, grid.productID)
-                        + getWardrobeShelfMinGap(prevShelf, shelf, depthMm, grid.productID)
-                        : getWardrobeShelfFloorGap(shelf, depthMm, grid.productID)
-
-                    if (shelf.positionY < lowerBound) {
-                        shelf.positionY = Math.ceil(lowerBound)
-                    }
-
-                    prevShelf = shelf
-                })
-
-                const kept = section.wardrobeShelves.filter((shelf) => {
-                    const shelfHeight = getWardrobeShelfPixiHeight(shelf, depthMm, grid.productID)
-                    return shelf.positionY + shelfHeight <= installableHeight + 0.01
-                })
-
-                removedShelvesCount += section.wardrobeShelves.length - kept.length
-                section.wardrobeShelves = kept
-            })
-
-            if (removedShelvesCount > 0) {
-                this.callAlert("warning", removedShelvesCount === 1
-                    ? "Полка удалена — не помещается под новую высоту профиля!"
-                    : `Удалено полок: ${removedShelvesCount} — не помещаются под новую высоту профиля!`)
-            }
-
-            // grid.width — это ПОЛНАЯ физическая ширина модуля (то же число,
-            // что "Мин/Макс" в поле "Ширина" ModuleSizeView.vue — реальный
-            // каталожный лимит на готовое изделие), а не просто сумма ширин
-            // секций. Профили стоят СНАРУЖИ секций (addWardrobeSector,
-            // createWardrobeGrid.ts) — на N секций приходится N+1 профилей.
-            // Раньше бюджет под секции считался равным ВСЕМУ grid.width без
-            // вычета ширины профилей — из-за этого физическая сборка (секции
-            // + профили) превышала выбранный пользователем максимум ширины
-            // модуля (баг, показанный пользователем: 3 секции по 900 = 2700 =
-            // Макс, + 4 профиля по 25мм = 2800мм фактической ширины). Дельта
-            // между бюджетом и текущей суммой секций уходит в последнюю
-            // секцию — тот же принцип, что у box-UM пересчёта выше.
-            const applyWardrobeWidthDelta = () => {
-                const profileOverhead = (grid.sections.length + 1) * WARDROBE_PROFILE_WIDTH
-                const targetSectionsWidth = grid.width - profileOverhead
-                const sectionsWidthSum = grid.sections.reduce((sum, s) => sum + s.width, 0)
-                const deltaWidth = targetSectionsWidth - sectionsWidthSum
-                if (deltaWidth !== 0) {
-                    grid.sections[grid.sections.length - 1].width += deltaWidth
-                }
-            }
-
-            applyWardrobeWidthDelta()
-
-            // Вся дельта уходит в последнюю секцию (applyWardrobeWidthDelta
-            // выше), поэтому при большом скачке "Ширины" (скажем, сразу до
-            // каталожного Макс) он может в разы превысить
-            // WARDROBE_SECTION_WIDTH_MAX и потребовать разбиения на несколько
-            // частей. Проверять после этого только последнюю секцию мало:
-            // остаток от деления в addWardrobeSector (deltaLastPart) тоже
-            // целиком уходит в последнюю из НОВЫХ частей и может снова выйти
-            // за MAX (в одном разбиении за 900 оставались сразу 2 секции).
-            // Поэтому цикл: находим ЛЮБУЮ секцию вне [MIN, MAX], разбиваем/
-            // сливаем, заново подгоняем сумму под бюджет (число профилей
-            // могло измениться) и проверяем снова. Если beforeCount не
-            // изменился — SECTIONS.*Sector отказал сам (лимит секций/узкий
-            // остаток, у него свои alert'ы), выходим, чтобы не зациклиться и
-            // не заспамить предупреждениями.
-            for (let guard = 0; guard < 20; guard++) {
-                const beforeCount = grid.sections.length
-
-                const oversizedIndex = grid.sections.findIndex((s) => s.width > WARDROBE_SECTION_WIDTH_MAX)
-                if (oversizedIndex !== -1) {
-                    const countToAdd = Math.floor(grid.sections[oversizedIndex].width / WARDROBE_SECTION_WIDTH_MAX)
-                    this.SECTIONS.addWardrobeSector(grid, oversizedIndex, countToAdd)
-                    if (grid.sections.length === beforeCount) break
-                    applyWardrobeWidthDelta()
-                    continue
-                }
-
-                const undersizedIndex = grid.sections.length > 1
-                    ? grid.sections.findIndex((s) => s.width < WARDROBE_SECTION_WIDTH_MIN)
-                    : -1
-                if (undersizedIndex !== -1) {
-                    this.SECTIONS.deleteWardrobeSector(grid, undersizedIndex)
-                    if (grid.sections.length === beforeCount) break
-                    applyWardrobeWidthDelta()
-                    continue
-                }
-
-                break
-            }
-
-            this.UM_STORE.setUMGrid(grid)
-            this.debounce("renderGrid", () => {
-                this.RENDER_REF.renderGrid(grid)
-                this.UM_STORE.setLoad(false)
-            }, 100)
-            return grid
+            return this.WARDROBE.reset(grid)
         }
 
         const PROPS = this.UM_STORE.getUMData();
@@ -819,16 +638,18 @@ export default class UMconstructorClass {
 
                         lastCellHeight -= newCell.height
 
+                        const shelfAbove = this.getShelfThickness(tmpCells[i + 1], moduleGrid)
+
                         if (i === tmpCells.length - 1 || lastCellHeight <= 0) {
                             newCell.height += lastCellHeight
 
                             if (newCell.height < MIN_SECTION_HEIGHT) {
-                                newCellsArray[newCellsArray.length - 1].height += newCell.height + moduleGrid.moduleThickness
+                                newCellsArray[newCellsArray.length - 1].height += newCell.height + this.getShelfThickness(newCell, moduleGrid)
                                 break;
                             }
                         }
                         else {
-                            lastCellHeight -= moduleGrid.moduleThickness
+                            lastCellHeight -= shelfAbove
                         }
 
                         if (newCell.cellsRows?.length) {
@@ -878,17 +699,18 @@ export default class UMconstructorClass {
                                         newExtra.width = newRow.width;
 
                                         lastExtraHeight -= newExtra.height
+                                        const shelfAbove = this.getShelfThickness(extras[j + 1], moduleGrid)
 
                                         if (j === extras.length - 1 || lastExtraHeight <= 0) {
                                             newExtra.height += lastExtraHeight
 
                                             if (newExtra.height < MIN_SECTION_HEIGHT) {
-                                                newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + moduleGrid.moduleThickness
+                                                newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + this.getShelfThickness(newExtra, moduleGrid)
                                                 break;
                                             }
                                         }
                                         else {
-                                            lastExtraHeight -= moduleGrid.moduleThickness
+                                            lastExtraHeight -= shelfAbove
                                         }
 
                                         if (newExtra.fillings?.length) {
@@ -908,7 +730,7 @@ export default class UMconstructorClass {
                                         }
 
                                         newRowExtrasArray.push(newExtra)
-                                        positionRowExtras.y += newExtra.height + moduleGrid.moduleThickness
+                                        positionRowExtras.y += newExtra.height + shelfAbove
                                     }
 
                                     newRow.extras = newRowExtrasArray.slice().sort((a, b) => b.position.y - a.position.y)
@@ -946,7 +768,7 @@ export default class UMconstructorClass {
                             newCell.cellsRows = newCellsRowArray.slice()
                         }
 
-                        positionCells.y += newCell.height + moduleGrid.moduleThickness
+                        positionCells.y += newCell.height + shelfAbove
 
                         if (newCell.fillings?.length) {
                             newCell.fillings = <FillingObject>[...newCell.fillings]
@@ -1056,6 +878,12 @@ export default class UMconstructorClass {
             this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.drawers.cleanupUniversalDrawers(module)
+
+            this.PROFILES.updateSideProfile(module)
+
+            if (this.SHELVES.cleanupOversizedGlassShelves(module)) {
+                return this.reset(module)
+            }
         }
         catch (error) {
             console.error(error)

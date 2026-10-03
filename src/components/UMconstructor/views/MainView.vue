@@ -7,7 +7,7 @@ import RightPanelView from "@/components/UMconstructor/views/RightPanelView.vue"
 import LeftPanelView from "@/components/UMconstructor/views/LeftPanelView.vue";
 import Render2D from "@/components/UMconstructor/views/Render2D.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { provideUMEngine } from "@/components/UMconstructor/ts/umEngineContext.ts";
 import { TTotalProps } from "@/types/types.ts";
 import { canvasConfig, constructorMode } from "@/components/UMconstructor/types/UMtypes.ts";
 import { useToast } from "@/features/toaster/useToast.ts";
@@ -18,9 +18,10 @@ type Props = {
   defaultDepth: number;
   productData: TTotalProps | boolean;
   verdekConstructor: Application;
+  // Движок вложенной сессии (createUMEngine); без него — основной экземпляр приложения.
+  engine?: UMconstructorClass;
 };
 
-const UMstore = useUMStorage()
 const toaster = useToast();
 
 const mode = ref<constructorMode>('module');
@@ -39,6 +40,10 @@ const props = withDefaults(defineProps<Props>(), {
   defaultDepth: 560,
   productData: false,
 });
+
+const engine = props.engine ?? props.verdekConstructor._universalModuleConstructor;
+const UMstore = engine.UM_STORE;
+provideUMEngine(engine);
 
 const emit = defineEmits(["close-modal"]);
 
@@ -83,7 +88,7 @@ const saveGrid = (_grid: GridModule) => {
 };
 
 onBeforeMount(() => {
-  UMconstructor.value = props.verdekConstructor._universalModuleConstructor;
+  UMconstructor.value = engine;
   UMstore.setCanvasConfig(<canvasConfig>{
     canvasHeight: props.canvasHeight,
     canvasWidth: props.canvasWidth,

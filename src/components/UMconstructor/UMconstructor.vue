@@ -5,12 +5,14 @@ import { computed, defineExpose, nextTick, onBeforeUnmount, ref } from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus.ts";
 import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import MainView from "@/components/UMconstructor/views/MainView.vue"
-import WardrobeMainView from "@/components/UMconstructor/views/WardrobeMainView.vue"
+import WardrobeMainView from "@/components/UMconstructor/wardrobe/views/WardrobeMainView.vue"
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import { useToast } from "@/features/toaster/useToast.ts";
 import UMLoader from "@/components/UMconstructor/UMLoader.vue";
 import type { Application } from "@/Application/Core/Application";
-import { getUMGridFromConfig, isWardrobeSystemProduct } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+import { getUMGridFromConfig, isWardrobeSystemProduct } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { createEditorNavigation, provideEditorNavigation } from "@/components/UMconstructor/editor-v2/navigation/editorNavigation.ts";
+import { cloneUMData } from "@/components/UMconstructor/editor-v2/session/cloneUMData.ts";
 
 type Props = {
   product: Record<any | any> | null;
@@ -34,6 +36,18 @@ const gridUMSaved = ref(false);
 // быть верным сразу, до первого рендера.
 const isWardrobeProduct = computed(() => isWardrobeSystemProduct(props.product?.userData?.globalData));
 
+// Уровни внутри окна (Гардеробная › Тумбочка N). Корень — сам редактор товара,
+// вложенные уровни открывают его панели (openCabinetEditor).
+const navigation = createEditorNavigation({ id: "root", title: "" });
+provideEditorNavigation(navigation);
+
+// Esc на вложенном уровне — шаг назад, на корне — закрытие окна.
+const onEscape = () => {
+  if (navigation.depth.value <= 1) return false;
+  navigation.back();
+  return true;
+};
+
 const selectUMData = (data) => {
   universalModuleData.value = data;
   UMstore.setUMData(data.PROPS.PROPS);
@@ -47,10 +61,13 @@ const saveUMData = ({ data, canvasHeight }) => {
     return;
 
   let saveData = universalModule2DConstructor.value.saveGrid()
+  console.log(saveData, 'saveData')
   if (!saveData)
     return;
 
-  let tmp_result = saveUMGrid(saveData)
+  // Глубокая копия: сохранённая сетка не должна делить объекты с редактируемой,
+  // иначе правки после "Сохранить" без повторного сохранения попадали бы в конфиг.
+  let tmp_result = saveUMGrid(cloneUMData(saveData))
 
   const { PROPS } = props.product.userData
   // Гардеробная система (временно, черновик) — пишем в тот же ключ, из
@@ -87,7 +104,11 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
   // под CONFIG.WARDROBEGRID, не только CONFIG.MODULEGRID — см. WardrobeSystem.ts.
   const { grid: activeUMGrid } = getUMGridFromConfig(CONFIG)
   if (!skipGrid && activeUMGrid) {
-    UMstore.setUMCashGrid(saveUMGrid(activeUMGrid))
+    // Снимок для отката — глубокая копия: saveUMGrid копирует только sections/
+    // cells/fasades/..., а wardrobeFilling, wardrobeProfiles и вложенные объекты
+    // оставались общими с редактируемой сеткой, и закрытие без сохранения
+    // "откатывало" к уже изменённым данным (тумбочка, её конфиг, профили).
+    UMstore.setUMCashGrid(saveUMGrid(cloneUMData(activeUMGrid)))
   }
 
   let universalModuleConfigCash = {
@@ -124,6 +145,8 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
 const openUMRedactor = () => {
   const { PROPS } = props.product.userData
   saveConfigCash(PROPS)
+  navigation.reset()
+  navigation.setRootTitle(PROPS.NAME)
   isUMModalOpen.value = true;
 };
 
@@ -136,6 +159,8 @@ const closeUMRedactor = () => {
     props.product.userData.PROPS.CONFIG = Object.assign(props.product.userData.PROPS.CONFIG, UMstore.getUMCashConfig());
   }
 
+  // Вложенные уровни закрываются без проверок: вместе с окном откатывается всё.
+  navigation.reset()
   universalModuleData.value = false;
   isUMModalOpen.value = false;
   gridUMSaved.value = false;
@@ -144,6 +169,7 @@ const closeUMRedactor = () => {
 };
 
 onBeforeUnmount(() => {
+  navigation.reset()
   universalModuleData.value = false;
   isUMModalOpen.value = false;
   gridUMSaved.value = false;
@@ -157,8 +183,8 @@ defineExpose({
 </script>
 
 <template>
-  <Modal v-if="universalModuleData && props.product" :container="`modal--tableTop`" @open-modal="openUMRedactor"
-    @close-modal="closeUMRedactor">
+  <Modal v-if="universalModuleData && props.product" :container="`modal--tableTop`" handle-escape
+    :before-escape="onEscape" @open-modal="openUMRedactor" @close-modal="closeUMRedactor">
     <template #modalBody="{ onModalClose }" class="modal--tableTop">
       <div class="um-modal-body-wrapper">
         <MainView v-if="isUMModalOpen && !isWardrobeProduct" ref="universalModule2DConstructor"
@@ -183,7 +209,8 @@ defineExpose({
           </template>
         </MainView>
 
-        <WardrobeMainView v-if="isUMModalOpen && isWardrobeProduct" ref="universalModule2DConstructor"
+        <WardrobeMainView v-if="isUMModalOpen && isWardrobeProduct" v-show="navigation.depth.value === 1"
+          ref="universalModule2DConstructor" :active="navigation.depth.value === 1"
           :productData="universalModuleData.PROPS" :canvasHeight="universalModuleData.canvasHeight"
           :canvasWidth="universalModuleData.canvasWidth" :verdekConstructor="verdekConstructor"
           @close-modal="closeUMRedactor">
@@ -204,6 +231,11 @@ defineExpose({
             </button>
           </template>
         </WardrobeMainView>
+
+        <template v-if="isUMModalOpen">
+          <component :is="level.component" v-for="level in navigation.nested.value" v-show="level.id === navigation.current.value.id"
+            :key="level.id" v-bind="level.props" :level-id="level.id" />
+        </template>
 
         <div v-if="UMstore.getLoad" class="um-modal-loader-overlay">
           <UMLoader />

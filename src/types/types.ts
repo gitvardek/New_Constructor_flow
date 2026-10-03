@@ -512,6 +512,8 @@ export type TConfig = {
   KROMKA: NumStr | null,
   EXPRESSIONS: TExpressions,
   ROTATION: TRotationEuler,
+  /** Объект установлен гизмо: коллайдер не поворачивает его к стене, только выталкивает из стен */
+  FREE_TRANSFORM?: boolean,
   MODULEGRID?: GridModule,
   BACKWALL?: TFasadeProp,
   LEFTSIDECOLOR?: TFasadeProp,
@@ -658,6 +660,7 @@ export type IProductFull = {
   PREVIEW_PICTURE: string;
   FILLING_SECTION: boolean;
   FASADE_POSITION: number[];
+  IGNORE_SIZE: number;
 }
 
 export type TPalitte = {

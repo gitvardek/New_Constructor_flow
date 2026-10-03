@@ -2,41 +2,28 @@
 // @ts-nocheck 31
 import { defineProps, ref, computed, defineEmits, onMounted, nextTick } from "vue";
 import { _URL } from "@/types/constants";
-import { useEventBus } from "@/store/appliction/useEventBus";
 import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 
+// Только выбор из списка: запись в конфиг и сцену делает родитель
 const props = defineProps({
   glassList: Array,
-  tabIndex: Number,
   selectedId: {
     type: Number,
     default: null,
-  },
-  tempWork: {
-    type: Boolean,
-    default: false,
   },
 });
 
 const emit = defineEmits(["select_glass"]);
 
-const eventBus = useEventBus();
 const selectPatina = ref<any>(null);
 const listRef = ref<HTMLElement | null>(null);
 
 const changeGlass = (glass) => {
-
   emit("select_glass", {
     name: glass.NAME,
     imgSrc: glass.PREVIEW_PICTURE,
     ID: glass.ID,
   });
-
-  if (!props.tempWork)
-    eventBus.emit("A:ChangeGlassColor", {
-      data: glass.ID,
-      fasadeNdx: props.tabIndex,
-    });
 };
 
 onMounted(() => {

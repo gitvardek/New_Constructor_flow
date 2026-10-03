@@ -212,8 +212,11 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** ------- Задняя стенка -------- */
 
-    const createCurrentBackwallData = (productId: number) => {
+    // onWallModule — из стора сессии редактора УМ; вне редактора — основной стор.
+    // def — только вернуть список, не меняя текущий (как у createCurrentModuleData).
+    const createCurrentBackwallData = (productId: number, onWallModule: boolean = UM_store.onWallModule, def: boolean = false) => {
         const productInfo = _PRODUCTS.value[productId]
+        if (def && !(productInfo?.BACKWALL?.length && productInfo.BACKWALL[0])) return []
 
         if (productInfo.BACKWALL?.length && productInfo.BACKWALL[0]) {
             const validFacadeIds = productInfo.BACKWALL.filter(id => _FASADE.value[id]);
@@ -242,11 +245,11 @@ export const useModelState = defineStore('ModelState', () => {
                 .filter(group => group.FASADES.length > 0)
                 .sort((a, b) => a.SORT - b.SORT);
 
-            let onWallModule = UM_store.onWallModule
             if (onWallModule) {
                 result = result.filter(item => item.NAME.toLowerCase().includes('хдф'));
             }
 
+            if (def) return result;
             currentBackwallData.value = result;
         }
     }
@@ -257,9 +260,11 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** ------- Боковые стенки -------- */
 
-    const createCurrentSidewallData = (productId: number) => {
+    // def — только вернуть список, не меняя текущий.
+    const createCurrentSidewallData = (productId: number, def: boolean = false) => {
 
         const productInfo = _PRODUCTS.value[productId]
+        if (def && !(productInfo?.SIDEWALL?.length && productInfo.SIDEWALL[0])) return []
 
         if (productInfo.SIDEWALL?.length && productInfo.SIDEWALL[0]) {
             const groupedFasades = productInfo.SIDEWALL.reduce((acc, facadeId) => {
@@ -286,6 +291,7 @@ export const useModelState = defineStore('ModelState', () => {
                 .filter(group => group.FASADES.length > 0)
                 .sort((a, b) => a.SORT - b.SORT);
 
+            if (def) return result;
             currentSidewallData.value = result;
         }
     }
@@ -530,13 +536,6 @@ export const useModelState = defineStore('ModelState', () => {
         }
 
         const millingConversations = checkMillingConversations(fasadeId)
-
-        const product = _PRODUCTS.value[productId]
-        const positionId = product.FASADE_POSITION[fasadeNdx]
-
-        const fasadePosData = _FASADE_POSITION.value[positionId]
-
-        const haveShowCase = fasadePosData?.glass == 1
         const sideColors = ["LEFTSIDECOLOR", "RIGHTSIDECOLOR"]
 
 
@@ -688,11 +687,11 @@ export const useModelState = defineStore('ModelState', () => {
     }
 
     /** Витрины */
-    const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx }) => {
+    const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx, fasadePosition = null }) =>{
 
         const product = _PRODUCTS.value[productId]
         const prodShowcases = product.type_showcase
-        const positionId = product.FASADE_POSITION[fasadeNdx]
+        const positionId = fasadePosition ?? product.FASADE_POSITION[fasadeNdx]
         const fasadePosData = _FASADE_POSITION.value[positionId]
         const haveShowCase = fasadePosData?.glass == 1
         let prepare = [];
@@ -778,9 +777,6 @@ export const useModelState = defineStore('ModelState', () => {
 
     const createCurrentPatinaData = ({ fasadeId, productId }) => {
 
-        if (_PRODUCTS.value[productId].type_showcase.length && _PRODUCTS.value[productId].type_showcase[0] !== null) {
-            return
-        }
 
         const incomePatina = _FASADE.value[fasadeId].PATINA
         const currentPataina = incomePatina.filter(key => _PATINA.value.hasOwnProperty(key)).map(key => _PATINA.value[key])

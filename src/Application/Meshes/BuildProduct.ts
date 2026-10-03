@@ -39,12 +39,13 @@ import { ShelfBuilder } from './Shelf/ShelfBuilder.ts';
 import { MirrorBuilder } from './MirrorBuilder/MirrorBuilder.ts';
 import { TsargaBuilder } from './TsargaBuilder/TsargaBuilder.ts';
 import { UM_SAMPLE } from '../F-umModulesData.ts';
+import { UM_PARAMS, WITHOUT_START_FASADE } from "@/components/UMconstructor/utils/Const";
 
 //Временно
-import { isWardrobeSystemProduct } from '@/components/UMconstructor/utils/WardrobeSystem.ts';
+import { isWardrobeSystemProduct, migrateWardrobeGrid } from '@/components/UMconstructor/wardrobe/WardrobeSystem.ts';
 import { WardrobeGridParser } from './Wardrobe/WardrobeGridParser.ts';
 import { WardrobeFillingMeshBuilder } from './Wardrobe/WardrobeFillingMeshBuilder.ts';
-import { createWardrobeGrid } from '@/components/UMconstructor/ts/createWardrobeGrid.ts';
+import { createWardrobeGrid } from '@/components/UMconstructor/wardrobe/createWardrobeGrid.ts';
 
 export class BuildProduct extends BuildersHelper {
 
@@ -167,6 +168,10 @@ export class BuildProduct extends BuildersHelper {
 
                 this.checkOptionsOldDataFormat(loaded_props)
 
+                if (!loaded_props && um_params) {
+                    this.resetStartFasades(um_params)
+                }
+
                 const income_props = loaded_props ?? um_params
 
                 const parentGroup = this.createPerentGroup(product_data, type, income_props, loaded_size);
@@ -252,6 +257,22 @@ export class BuildProduct extends BuildersHelper {
             return el
         })
         CONFIG.OPTIONS = check
+    }
+
+    private resetStartFasades(data: THREETypes.TTotalProps) {
+        if (!WITHOUT_START_FASADE.includes(data.PRODUCT)) {
+            return
+        }
+
+        const { FASADE_PROPS, MODULEGRID } = data.CONFIG
+        const gridMaterials = (MODULEGRID?.fasades ?? []).flat().map(fasade => fasade.material)
+        const materials = [...(FASADE_PROPS ?? []), ...gridMaterials].filter(Boolean)
+
+        materials.forEach(material => {
+            material.COLOR = material.RESET_COLOR ?? UM_PARAMS.NO_FASADE_ID
+            material.SHOW = false
+            material.MANUAL_NO_FASADE = true
+        })
     }
 
     //========================================================================================================
@@ -475,7 +496,7 @@ export class BuildProduct extends BuildersHelper {
         // что зовёт UMconstructorClass — единый источник, без повторной
         // генерации.
         if (isWardrobeSystemProduct(ID)) {
-            PARAMS.WARDROBEGRID = loadedProps?.CONFIG?.WARDROBEGRID
+            PARAMS.WARDROBEGRID = migrateWardrobeGrid(loadedProps?.CONFIG?.WARDROBEGRID)
                 ?? createWardrobeGrid(ID, PARAMS.SIZE);
         }
 
@@ -564,7 +585,7 @@ export class BuildProduct extends BuildersHelper {
         // тут был черновик только для N=1 (2 профиля по краям, полок нет) —
         // раскладку и исправленное расхождение с PROPS.CONFIG.SIZE.width см.
         // в WardrobeGridParser.ts.
-        const wardrobeGrid = isWardrobeSystemTemp ? (PROPS.CONFIG.WARDROBEGRID ?? {}) : null;
+        const wardrobeGrid = isWardrobeSystemTemp ? migrateWardrobeGrid(PROPS.CONFIG.WARDROBEGRID ?? {}) : null;
         const wardrobeParsed = wardrobeGrid?.sections?.length
             ? this.wardrobe_grid_parser.parseWardrobeGrid(wardrobeGrid)
             : null;
@@ -771,14 +792,15 @@ export class BuildProduct extends BuildersHelper {
         if (isTopTable) {
 
             const { geometryType } = body.userData;
-            const textureSize = {
-                width: geometryType === "ExtrudeGeometry" ? texture.width : 1,
-                height: geometryType === "ExtrudeGeometry" ? texture.height : 1,
-            };
+            const isExtrude = geometryType === "ExtrudeGeometry";
             body.children.forEach((child) => {
                 if (!(child instanceof THREE.Mesh)) return;
-                const params: any = { material: child.material, url: texture.src, texture_size: textureSize };
-                if (geometryType === "ExtrudeGeometry") params.rotation = Math.PI * 0.5;
+                const params: any = { material: child.material, url: texture.src };
+
+                if (isExtrude) {
+                    params.texture_size = { width: texture.width, height: texture.height };
+                    params.rotation = Math.PI * 0.5;
+                }
                 this.getTexture(params);
                 body.userData.MATERIAL = child.material;
             });

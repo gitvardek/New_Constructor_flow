@@ -29,7 +29,7 @@ import { useBascetEvents } from "@/components/Basket/helper/basketEvents";
 import { useTransformController } from "@/components/ui/transformController/useTransformController";
 
 import { useModelState } from "@/store/appliction/useModelState";
-import { getUMGridFromConfig } from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+import { getUMGridFromConfig } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 import { Application } from "@/Application/Core/Application";
 

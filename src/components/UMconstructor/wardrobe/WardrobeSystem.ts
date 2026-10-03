@@ -10,6 +10,12 @@
 
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import { WARDROBE_ANGLED_SHELF_ANGLE_DEG, WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT, WARDROBE_SHELF_MIN_GAP_FLAT, WARDROBE_SHELF_MIN_GAP_ANGLED, WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED, WARDROBE_RAIL_MIN_GAP } from "@/Application/F-wardrobeData.ts";
+import { CABINET_MIN_GAP } from "@/components/UMconstructor/cabinet/cabinetData.ts";
+import { getCabinetHeight, getWardrobeItemCeilingGap } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
+import type { WardrobeFillingShape } from "@/components/UMconstructor/wardrobe/types.ts";
+
+type PositionedFilling = WardrobeFillingShape & { positionY: number };
+type IdentifiedFilling = PositionedFilling & { id: number };
 
 export const WARDROBE_GRID_CONFIG_KEY = 'WARDROBEGRID' as const;
 
@@ -31,6 +37,24 @@ export function getUMGridFromConfig(CONFIG: any): {
     if (CONFIG?.MODULEGRID) return { key: 'MODULEGRID', grid: CONFIG.MODULEGRID };
     if (CONFIG?.[WARDROBE_GRID_CONFIG_KEY]) return { key: WARDROBE_GRID_CONFIG_KEY, grid: CONFIG[WARDROBE_GRID_CONFIG_KEY] };
     return { key: 'MODULEGRID', grid: undefined };
+}
+
+// Сетки, сохранённые до 2026-10-03: section.wardrobeShelves -> wardrobeFilling,
+// у элемента kind -> type, прежний type полки (flat/angled) -> shelfType.
+// Правит сетку на месте; повторный вызов ничего не меняет.
+export function migrateWardrobeGrid<T>(grid: T): T {
+    grid?.sections?.forEach((section) => {
+        if (!section?.wardrobeShelves) return;
+
+        section.wardrobeFilling ??= section.wardrobeShelves.map(({ kind, type, ...item }) => {
+            const fillingType = kind ?? 'shelf';
+            return fillingType === 'shelf'
+                ? { ...item, type: fillingType, shelfType: type ?? 'flat' }
+                : { ...item, type: fillingType };
+        });
+        delete section.wardrobeShelves;
+    });
+    return grid;
 }
 
 // Материалы ЛДСП для конкретной полки-товара: _WARDROBE_SYSTEM[...].shelf[
@@ -305,8 +329,6 @@ export function getWardrobeShelfThickness(
     if (material === 'glass' && wardrobeProductId != null) {
         const glassProductId = getWardrobeGlassShelfProductId(wardrobeProductId);
         const glassHeight = glassProductId != null ? useModelState()._PRODUCTS[glassProductId]?.height : undefined;
-        console.log(glassHeight, 'glassHeight')
-
         if (glassHeight != null) return Number(glassHeight);
     }
 
@@ -413,26 +435,36 @@ export function getWardrobeAngledShelfFlatGapAbove(
 // материала; наклонная — свою проекцию вместе с кронштейном (см.
 // getWardrobeAngledShelfProjection); штанга — свой railHeight напрямую
 // (item.height каталога), минуя getWardrobeShelfThickness: у неё нет ни
-// material, ни colorId. wardrobeProductId нужен только для толщины стекла.
+// material, ни colorId; тумбочка — высоту корпуса (cabinet.height).
+// wardrobeProductId нужен только для толщины стекла.
 export function getWardrobeShelfPixiHeight(
-    shelf: { type: 'flat' | 'angled'; colorId?: number; material?: 'ldsp' | 'glass'; kind?: 'shelf' | 'rail'; railHeight?: number },
+    shelf: WardrobeFillingShape,
     depthMm: number,
     wardrobeProductId?: number,
 ): number {
-    if (shelf.kind === 'rail') return Number(shelf.railHeight) || 0;
+    if (shelf.type === 'rail') return Number(shelf.railHeight) || 0;
+    if (shelf.type === 'cabinet') return getCabinetHeight(shelf);
 
     const thicknessMm = getWardrobeShelfThickness(shelf.colorId, shelf.material, wardrobeProductId);
-    if (shelf.type !== 'angled') return thicknessMm;
+    if (shelf.shelfType !== 'angled') return thicknessMm;
 
     return getWardrobeAngledShelfProjection(thicknessMm, depthMm).totalHeight;
 }
 
+// Собственный отступ "не-полки" (штанга, тумбочка), мм; null — это полка.
+function getWardrobeItemOwnGap(item: { type?: string }): number | null {
+    if (item.type === 'rail') return WARDROBE_RAIL_MIN_GAP;
+    if (item.type === 'cabinet') return CABINET_MIN_GAP;
+    return null;
+}
+
 // Минимальный зазор (мм) между парой объектов секции. ПОРЯДОК АРГУМЕНТОВ
-// ЗНАЧИМ: below — снизу, above — сверху (пара НЕ взаимозаменяемая):
-// - обе ШТАНГИ — фиксированные WARDROBE_RAIL_MIN_GAP, направление не важно;
-// - штанга СНИЗУ, полка сверху — отступ полки (getWardrobeShelfFloorGap) ПЛЮС
-//   WARDROBE_RAIL_MIN_GAP: штанга не отменяет требования полки к месту под ней;
-// - штанга СВЕРХУ, полка снизу — ТОЛЬКО отступ штанги: требование нижней
+// ЗНАЧИМ: below — снизу, above — сверху (пара НЕ взаимозаменяемая).
+// Штанга и тумбочка — "не-полки" со своим отступом (getWardrobeItemOwnGap):
+// - обе не-полки — больший из двух отступов, направление не важно;
+// - не-полка СНИЗУ, полка сверху — отступ полки (getWardrobeShelfFloorGap)
+//   ПЛЮС отступ не-полки: она не отменяет требования полки к месту под ней;
+// - не-полка СВЕРХУ, полка снизу — ТОЛЬКО её отступ: требование нижней
 //   полки относится к пространству над ней и сюда не тянется;
 // - две ОБЫЧНЫЕ полки, направление не важно: между двумя ПРЯМЫМИ —
 //   WARDROBE_SHELF_MIN_GAP_FLAT; если хоть одна НАКЛОННАЯ — её высота
@@ -440,23 +472,23 @@ export function getWardrobeShelfPixiHeight(
 //   толщина этой полки: height >= порога -> 2мм, иначе (порог - height) + 2
 //   (чем ниже полка, тем больше зазор); если наклонные обе — больший из двух.
 //
-// Отдельно от всего этого — ПРЯМАЯ над НАКЛОННОЙ, см. первую ветку в теле.
+// Отдельно от всего этого — ПРЯМАЯ над НАКЛОННОЙ, см. ветку в теле.
 export function getWardrobeShelfMinGap(
-    below: { type: 'flat' | 'angled'; colorId?: number; material?: 'ldsp' | 'glass'; kind?: 'shelf' | 'rail' },
-    above: { type: 'flat' | 'angled'; colorId?: number; material?: 'ldsp' | 'glass'; kind?: 'shelf' | 'rail' },
+    below: WardrobeFillingShape,
+    above: WardrobeFillingShape,
     depthMm: number,
     wardrobeProductId?: number,
 ): number {
-    const belowIsRail = below.kind === 'rail';
-    const aboveIsRail = above.kind === 'rail';
+    const belowOwnGap = getWardrobeItemOwnGap(below);
+    const aboveOwnGap = getWardrobeItemOwnGap(above);
 
-    if (belowIsRail && aboveIsRail) return WARDROBE_RAIL_MIN_GAP;
-    if (belowIsRail) return getWardrobeShelfFloorGap(above, depthMm, wardrobeProductId) + WARDROBE_RAIL_MIN_GAP;
-    if (aboveIsRail) return WARDROBE_RAIL_MIN_GAP;
+    if (belowOwnGap !== null && aboveOwnGap !== null) return Math.max(belowOwnGap, aboveOwnGap);
+    if (belowOwnGap !== null) return getWardrobeShelfFloorGap(above, depthMm, wardrobeProductId) + belowOwnGap;
+    if (aboveOwnGap !== null) return aboveOwnGap;
 
     // ПРЯМАЯ полка НАД наклонной — не по общей формуле ниже, а от высоты
     // кронштейна наклонной. Условие внутри; null -> общая логика.
-    if (below.type === 'angled' && above.type !== 'angled') {
+    if (below.shelfType === 'angled' && above.shelfType !== 'angled') {
         const flatAboveGap = getWardrobeAngledShelfFlatGapAbove(below, depthMm, wardrobeProductId);
         if (flatAboveGap !== null) return flatAboveGap;
     }
@@ -468,8 +500,8 @@ export function getWardrobeShelfMinGap(
     };
 
     let gap = null;
-    if (below.type === 'angled') gap = angledGap(below);
-    if (above.type === 'angled') gap = gap === null ? angledGap(above) : Math.max(gap, angledGap(above));
+    if (below.shelfType === 'angled') gap = angledGap(below);
+    if (above.shelfType === 'angled') gap = gap === null ? angledGap(above) : Math.max(gap, angledGap(above));
 
     return gap ?? WARDROBE_SHELF_MIN_GAP_FLAT;
 }
@@ -480,7 +512,7 @@ export function getWardrobeShelfMinGap(
 // полок, поэтому передаём полку дважды: наклонная посчитается по своей
 // угловой геометрии, прямая даст фиксированный WARDROBE_SHELF_MIN_GAP_FLAT.
 export function getWardrobeShelfFloorGap(
-    shelf: { type: 'flat' | 'angled'; colorId?: number; material?: 'ldsp' | 'glass' },
+    shelf: WardrobeFillingShape,
     depthMm: number,
     wardrobeProductId?: number,
 ): number {
@@ -490,10 +522,11 @@ export function getWardrobeShelfFloorGap(
 // Ищет свободную позицию по Y для новой полки, sweep'ом от пола вверх (тот
 // же принцип, что у ShapeAdjuster.getRandomPosition в box-UM, но с зазором
 // по типу пары полок, а не фиксированным шагом). Используется
-// ShelvesManager.addWardrobeShelf: новые секции создаются БЕЗ полок.
+// WardrobeShelvesManager.addWardrobeShelf: новые секции создаются БЕЗ полок.
 // ceilingHeight — "монтажная" высота секции
-// (getWardrobeSectionInstallableHeight), НЕ grid.height. null, если места
-// не осталось.
+// (getWardrobeSectionInstallableHeight), НЕ grid.height; у тумбочки от неё
+// ещё отступ getWardrobeItemCeilingGap (так же в drag-границах ниже). null,
+// если места не осталось.
 //
 // candidateY округляется ВВЕРХ на КАЖДОМ шаге, а не один раз в конце:
 // высоты/зазоры наклонной дробные (тригонометрия), и Math.round в конце мог
@@ -501,30 +534,38 @@ export function getWardrobeShelfFloorGap(
 // же удалял полку как "не помещается". Ceil — безопасное направление, в
 // чужую запретную зону не заезжает.
 export function findFreeWardrobeShelfPositionY(
-    shelves: { type: 'flat' | 'angled'; colorId?: number; material?: 'ldsp' | 'glass'; positionY: number }[],
-    newShelf: { type: 'flat' | 'angled'; colorId?: number; material?: 'ldsp' | 'glass' },
+    shelves: PositionedFilling[],
+    newShelf: WardrobeFillingShape,
     depthMm: number,
     ceilingHeight: number,
     wardrobeProductId?: number,
 ): number | null {
     const newHeight = getWardrobeShelfPixiHeight(newShelf, depthMm, wardrobeProductId);
-    const sorted = [...shelves].sort((a, b) => a.positionY - b.positionY);
+
+    // Запретный интервал positionY вокруг каждого объекта. Зазор направленный,
+    // поэтому края считаются РАЗНЫМИ вызовами (та же пара, что в
+    // resolveWardrobeShelfDragPositionY): снизу — пара (новый, existing),
+    // сверху — (existing, новый). С одним зазором на оба края нижний край
+    // занижался, и штанга садилась под полку в заведомо тесное место.
+    const intervals = shelves
+        .map((existing) => ({
+            lower: existing.positionY
+                - getWardrobeShelfMinGap(newShelf, existing, depthMm, wardrobeProductId)
+                - newHeight,
+            upper: Math.ceil(existing.positionY
+                + getWardrobeShelfPixiHeight(existing, depthMm, wardrobeProductId)
+                + getWardrobeShelfMinGap(existing, newShelf, depthMm, wardrobeProductId)),
+        }))
+        // По НИЖНЕМУ краю, а не по positionY: с направленными зазорами порядок
+        // интервалов не повторяет порядок объектов, и sweep пропускал бы зоны.
+        .sort((a, b) => a.lower - b.lower);
 
     let candidateY = Math.ceil(getWardrobeShelfFloorGap(newShelf, depthMm, wardrobeProductId));
-    for (const existing of sorted) {
-        // Sweep снизу вверх — existing всегда ниже кандидата, отсюда порядок
-        // (below=existing, above=newShelf); он значим, см. getWardrobeShelfMinGap.
-        const gap = getWardrobeShelfMinGap(existing, newShelf, depthMm, wardrobeProductId);
-        const existingHeight = getWardrobeShelfPixiHeight(existing, depthMm, wardrobeProductId);
-        const forbiddenBottom = existing.positionY - gap;
-        const forbiddenTop = Math.ceil(existing.positionY + existingHeight + gap);
-
-        if (candidateY + newHeight > forbiddenBottom && candidateY < forbiddenTop) {
-            candidateY = forbiddenTop;
-        }
+    for (const { lower, upper } of intervals) {
+        if (candidateY > lower && candidateY < upper) candidateY = upper;
     }
 
-    if (candidateY + newHeight > ceilingHeight) return null;
+    if (candidateY + newHeight > ceilingHeight - getWardrobeItemCeilingGap(newShelf)) return null;
     return candidateY;
 }
 
@@ -542,7 +583,7 @@ export function findFreeWardrobeShelfPositionY(
 // полку как "не помещается". С целыми границами round зажатого значения
 // перескочить их уже не может.
 export function getWardrobeShelfDragBounds(
-    shelves: { id: number; type: 'flat' | 'angled'; colorId?: number; material?: 'ldsp' | 'glass'; positionY: number }[],
+    shelves: IdentifiedFilling[],
     draggedShelfId: number,
     depthMm: number,
     ceilingHeight: number,
@@ -554,7 +595,7 @@ export function getWardrobeShelfDragBounds(
     const draggedHeight = getWardrobeShelfPixiHeight(dragged, depthMm, wardrobeProductId);
 
     let minY = Math.ceil(getWardrobeShelfFloorGap(dragged, depthMm, wardrobeProductId));
-    let maxY = Math.floor(ceilingHeight - draggedHeight);
+    let maxY = Math.floor(ceilingHeight - getWardrobeItemCeilingGap(dragged) - draggedHeight);
 
     shelves.forEach((other) => {
         if (other.id === draggedShelfId) return;
@@ -575,7 +616,7 @@ export function getWardrobeShelfDragBounds(
     return { minY, maxY: Math.max(minY, maxY) };
 }
 
-// Живой драг мышью (DividerDragEngine.onWardrobeShelfDragMove): на каждое
+// Живой драг мышью (WardrobeDragEngine.onWardrobeShelfDragMove): на каждое
 // движение разрешает столкновения ДИНАМИЧЕСКИ, по текущим позициям соседей,
 // поэтому элемент может перескакивать через них. Статичный аналог для
 // числового поля — getWardrobeShelfDragBounds выше.
@@ -602,7 +643,7 @@ export function getWardrobeShelfDragBounds(
 //
 // Границы округляются НАРУЖУ — как в getWardrobeShelfDragBounds.
 export function resolveWardrobeShelfDragPositionY(
-    shelves: { id: number; type: 'flat' | 'angled'; colorId?: number; material?: 'ldsp' | 'glass'; kind?: 'shelf' | 'rail'; railHeight?: number; positionY: number }[],
+    shelves: IdentifiedFilling[],
     draggedShelfId: number,
     depthMm: number,
     ceilingHeight: number,
@@ -616,7 +657,7 @@ export function resolveWardrobeShelfDragPositionY(
     const newHeight = getWardrobeShelfPixiHeight(dragged, depthMm, wardrobeProductId);
 
     const floorMin = Math.ceil(getWardrobeShelfFloorGap(dragged, depthMm, wardrobeProductId));
-    const ceilMax = Math.floor(ceilingHeight - newHeight);
+    const ceilMax = Math.floor(ceilingHeight - getWardrobeItemCeilingGap(dragged) - newHeight);
     if (ceilMax <= floorMin) return Math.round(dragged.positionY);
 
     const rawIntervals = others

@@ -93,6 +93,11 @@ export default class SelectionHighlighter {
     // Тот же приём переключения .visible НАПРЯМУЮ на уже отрисованных
     // объектах, что и у selectCell("fillings",...)/ctx.wardrobeShelvesMap
     // выше — без полного renderGrid.
+    //
+    // Единственный гардеробный метод, оставленный вне wardrobe/: он половина
+    // одного инварианта с selectCell выше (выделения профиля и полки/
+    // наполнения взаимоисключающие, каждый снимает чужое) — разнесение по
+    // файлам развалило бы пару.
     selectWardrobeProfile(profileId: number | null) {
         const ctx = this.ctx
         if (ctx.UMconstructor?.value) ctx.UMconstructor.value.UM_STORE.selectedWardrobeProfileId = profileId;
@@ -253,7 +258,7 @@ export default class SelectionHighlighter {
         }
 
         // Гардеробная система: во время живого драга полки (см.
-        // DividerDragEngine.wardrobeShelfDrag) renderGrid() здесь НЕ зовём.
+        // WardrobeDragEngine.wardrobeShelfDrag) renderGrid() здесь НЕ зовём.
         // Симптом был такой: при драге наполнения в режиме "Модуль"
         // пропадали почти все обозначения, полка не ехала за курсором, а
         // корректный рендер появлялся только после дропа. Причина — клик по

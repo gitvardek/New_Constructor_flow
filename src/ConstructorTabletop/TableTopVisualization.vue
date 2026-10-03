@@ -991,8 +991,13 @@ const clearRender = () => {
   dementionContainer.removeChildren();
 };
 
+// Без releaseGlobalResources (его включает app.destroy(true)): пулы PIXI общие для
+// всех приложений страницы, очистка ломает другой живой канвас (2D-план, редактор
+// УМ) — "Cannot read properties of null (reading 'clear')".
+const destroyApp = () => app.destroy({ removeView: true, releaseGlobalResources: false });
+
 const destroy = () => {
-  app.destroy(true);
+  destroyApp();
 };
 
 const addTicker = () => {
@@ -1014,7 +1019,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener("mousemove", handleGlobalPointerMove, false);
-  app.destroy(true);
+  destroyApp();
 });
 
 defineExpose({

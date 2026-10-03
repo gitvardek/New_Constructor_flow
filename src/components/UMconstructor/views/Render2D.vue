@@ -24,6 +24,7 @@ import SceneBuilder from "./../utils/render2d/SceneBuilder.ts";
 import SelectionHighlighter from "./../utils/render2d/SelectionHighlighter.ts";
 import ExternalSizeAdjuster from "./../utils/render2d/ExternalSizeAdjuster.ts";
 import DividerDragEngine from "./../utils/render2d/DividerDragEngine.ts";
+import WardrobeDragEngine from "@/components/UMconstructor/wardrobe/render/WardrobeDragEngine.ts";
 import { WARDROBE_CANVAS_PADDING_PX } from "@/Application/F-wardrobeData.ts";
 
 const props = defineProps({
@@ -54,6 +55,12 @@ const props = defineProps({
   UMconstructor: {
     type: UMconstructorClass,
     required: true,
+  },
+  // false — сцена скрыта (уровень редактора под другим уровнем навигации):
+  // тикер стоит, отрисовка не тратит кадры.
+  active: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -100,6 +107,7 @@ let sceneBuilder: SceneBuilder;
 let selectionHighlighter: SelectionHighlighter;
 let externalSizeAdjuster: ExternalSizeAdjuster;
 let dividerDragEngine: DividerDragEngine;
+let wardrobeDragEngine: WardrobeDragEngine;
 const renderGrid = (...args) => sceneBuilder.renderGrid(...args);
 const createFilling = (...args) => sceneBuilder.createFilling(...args);
 const checkPositionFillingToCreate = (...args) => sceneBuilder.checkPositionFillingToCreate(...args);
@@ -169,14 +177,16 @@ const dragState = reactive({
 const MAX_AREA_WIDTH = ref<number>(CONST_MAX_AREA_WIDTH);
 const MAX_AREA_HEIGHT = ref<number>(CONST_MAX_AREA_HEIGHT);
 
+// Среднюю колонку своего редактора ищем по предкам канваса, а не по id в
+// документе: при вложенной навигации в DOM два редактора с одинаковым id.
+const getMidArea = () => canvasContainer.value?.closest("#midAreaUM2Dconstructor");
+
 const calcMaxAreaWidth = () => {
-  let midArea = document.getElementById("midAreaUM2Dconstructor");
-  MAX_AREA_WIDTH.value = midArea?.clientWidth * 0.7 || CONST_MAX_AREA_WIDTH;
+  MAX_AREA_WIDTH.value = getMidArea()?.clientWidth * 0.7 || CONST_MAX_AREA_WIDTH;
 };
 
 const calcMaxAreaHeight = () => {
-  let midArea = document.getElementById("midAreaUM2Dconstructor");
-  MAX_AREA_HEIGHT.value = midArea?.clientHeight * 0.75 || CONST_MAX_AREA_HEIGHT;
+  MAX_AREA_HEIGHT.value = getMidArea()?.clientHeight * 0.75 || CONST_MAX_AREA_HEIGHT;
 };
 
 const calcMaxAreaSizeConst = () => {
@@ -301,11 +311,24 @@ sceneBuilder = new SceneBuilder(ctx);
 selectionHighlighter = new SelectionHighlighter(ctx);
 externalSizeAdjuster = new ExternalSizeAdjuster(ctx);
 dividerDragEngine = new DividerDragEngine(ctx);
+wardrobeDragEngine = new WardrobeDragEngine(ctx);
 ctx.onVerticalDragStart = dividerDragEngine.onVerticalDragStart;
 ctx.onHorizontalDragStart = dividerDragEngine.onHorizontalDragStart;
-ctx.onWardrobeProfileDragStart = dividerDragEngine.onWardrobeProfileDragStart;
-ctx.onWardrobeProfileClick = dividerDragEngine.onWardrobeProfileClick;
-ctx.onWardrobeShelfDragStart = dividerDragEngine.onWardrobeShelfDragStart;
+ctx.onWardrobeProfileDragStart = wardrobeDragEngine.onWardrobeProfileDragStart;
+ctx.onWardrobeProfileClick = wardrobeDragEngine.onWardrobeProfileClick;
+ctx.onWardrobeShelfDragStart = wardrobeDragEngine.onWardrobeShelfDragStart;
+
+// Компонент может размонтироваться раньше, чем закончится await app.init()
+// (быстрое переключение уровней навигации) — тогда app уничтожается сразу
+// после инициализации, а не в onUnmounted.
+let unmounted = false;
+let appInitialized = false;
+
+// Без releaseGlobalResources (его включает app.destroy(true)): пулы PIXI (батчи и
+// т.п.) общие для всех приложений на странице. Очистка при другом живом канвасе
+// (гардеробная под уровнем тумбочки, 2D-план) отдаёт ему уничтоженный батч —
+// "Cannot read properties of null (reading 'clear')" в Batcher.
+const destroyApp = () => app.destroy({ removeView: true, releaseGlobalResources: false });
 
 const init = async () => {
   app = new Application();
@@ -319,6 +342,11 @@ const init = async () => {
     antialias: true,
     premultipliedAlpha: false,
   });
+  appInitialized = true;
+  if (unmounted) {
+    destroyApp();
+    return;
+  }
   updateTotalSize();
   loopsContainer = new Container();
   handlesContainer = new Container();
@@ -364,15 +392,28 @@ const init = async () => {
   });
 
   addTicker();
+  if (!props.active) app.ticker.stop();
 
   ctx.appReady = true;
   renderGrid();
 };
 
+watch(() => props.active, (active) => {
+  if (!ctx.appReady) return;
+  if (active) {
+    app.ticker.start();
+    // Размер средней колонки мог измениться, пока уровень был скрыт.
+    updateTotalSize();
+    renderGrid();
+  } else {
+    app.ticker.stop();
+  }
+});
+
 
 
 const destroy = () => {
-  app.destroy(true);
+  destroyApp();
 };
 
 const addTicker = () => {
@@ -433,9 +474,10 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  unmounted = true;
   if (ctx) ctx.appReady = false;
   document.removeEventListener("mousemove", handleGlobalPointerMove, false);
-  app.destroy(true);
+  if (appInitialized) destroyApp();
 });
 
 defineExpose({

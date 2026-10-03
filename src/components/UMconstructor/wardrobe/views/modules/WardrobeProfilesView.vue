@@ -12,7 +12,7 @@
 //   _WARDROBE_SYSTEM[productID].profile, у каждого свой список цветов.
 // - Крепление профиля (AccordionSelect): из
 //   _WARDROBE_SYSTEM[productID].fastenings (Пол-потолок/Пол-стена/...); его
-//   type задаёт цвет в 2D (SceneBuilder.createWardrobeProfile) и диапазон
+//   type задаёт цвет в 2D (WardrobeSceneBuilder.createWardrobeProfile) и диапазон
 //   высоты.
 // - Цвет: как материал полок в WardrobeFillingsView.vue (Accordion +
 //   MaterialSelector.vue с карточкой в заголовке), каталог —
@@ -27,7 +27,7 @@ import {
   getWardrobeProfileFastenings,
   getWardrobeProfileMaterials,
   getWardrobeProfileHeightRange,
-} from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+} from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import { _URL } from "@/types/constants";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
@@ -68,7 +68,7 @@ watch(() => UMconstructor?.value?.UM_STORE.selectedWardrobeProfileId, refreshSel
 // сам канвас (ctx.selectWardrobeProfile), пишет в UM_STORE И толкает
 // подсветку в уже отрисованные PIXI-объекты.
 const selectProfile = (profileId: number) => {
-  UMconstructor.value.selectWardrobeProfile(profileId);
+  UMconstructor.value.WARDROBE.selectProfile(profileId);
 };
 
 // Список товаров-профилей ("Тип профиля") и список креплений ("Крепление
@@ -89,19 +89,19 @@ const profileHeightRange = (profile: any) =>
   getWardrobeProfileHeightRange(module.value?.productID, profile.fasteningId);
 
 const onTypeChange = (profileId: number, profileProductId: number) => {
-  UMconstructor.value.PROFILES.updateWardrobeProfileType(module.value, profileId, profileProductId);
+  UMconstructor.value.WARDROBE.profiles.updateWardrobeProfileType(module.value, profileId, profileProductId);
 };
 
 const onFasteningChange = (profileId: number, fasteningId: number) => {
-  UMconstructor.value.PROFILES.updateWardrobeProfileFastening(module.value, profileId, fasteningId);
+  UMconstructor.value.WARDROBE.profiles.updateWardrobeProfileFastening(module.value, profileId, fasteningId);
 };
 
 const onColorChange = (profileId: number, color: any) => {
-  UMconstructor.value.PROFILES.updateWardrobeProfileColor(module.value, profileId, color.ID);
+  UMconstructor.value.WARDROBE.profiles.updateWardrobeProfileColor(module.value, profileId, color.ID);
 };
 
 const onHeightChange = (profileId: number, value: number) => {
-  UMconstructor.value.PROFILES.updateWardrobeProfileHeight(module.value, profileId, value);
+  UMconstructor.value.WARDROBE.profiles.updateWardrobeProfileHeight(module.value, profileId, value);
 };
 
 // Карточка текущего цвета в заголовке Accordion — см. WardrobeFillingsView.vue.

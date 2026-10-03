@@ -5,7 +5,7 @@ import { Container, Graphics, GraphicsPath, Text, TextStyle } from "pixi.js";
 import * as THREE from "three";
 import { MANUFACTURER, TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useUMStorage, type UMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
 type TDashedLine = {
     startX: number;
@@ -217,7 +217,7 @@ class Shape extends Helpers {
     render: () => void
     calcDrawersFasades: () => void
     checkLoopsCollision: () => void
-    UM_STORE: ReturnType<typeof useUMStorage> = useUMStorage();
+    UM_STORE: UMStorage;
     type: string
     sectorBounds: TBounds
     graphic: Graphics
@@ -258,6 +258,7 @@ class Shape extends Helpers {
         collisionExclusionRules,
         customSectorBounds,
         containerShape,
+        store,
     }:
         {
             type: string,
@@ -277,9 +278,12 @@ class Shape extends Helpers {
             containerShape?: Shape,
             dementionContainer?: Container,
             dragActive: boolean,
+            // Стор сессии движка; без него — основной (useUMStorage).
+            store?: UMStorage,
         }) {
         super()
 
+        this.UM_STORE = store ?? useUMStorage()
         this.sector = sector
 
         this.type = type;
@@ -1544,6 +1548,7 @@ class ShapeAdjuster extends Helpers {
             getMmHeight: this.getMmHeight,
             getPixelWidth: this.getPixelWidth,
             getPixelHeight: this.getPixelHeight,
+            store: this.scope.UM_STORE,
         });
 
         const insideSector = tempShape.isPositionInsideSector(shapeData.position || {

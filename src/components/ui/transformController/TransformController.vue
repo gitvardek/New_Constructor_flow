@@ -1,13 +1,17 @@
 <!-- src/components/ui/transform/TransformModeSwitcher.vue -->
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch, toRaw } from "vue";
+import { storeToRefs } from "pinia";
 import Toggle from "@vueform/toggle";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
+import MainButton from "@/components/ui/buttons/MainButton.vue";
 
 import { useTransformController } from "./useTransformController";
 import { useEventBus } from "@/store/appliction/useEventBus";
+import { useModelState } from "@/store/appliction/useModelState";
 
 const eventBus = useEventBus();
+const modelState = useModelState();
 const {
   getTransformControlsValue,
   setTransformControlsValue,
@@ -16,7 +20,10 @@ const {
   getControlSnapAngle,
   getTransformControlsName,
   setTransformControlsName,
+  setFreeTransform,
 } = useTransformController();
+// Через storeToRefs, чтобы кнопка сброса реагировала на изменение флага
+const { getFreeTransform } = storeToRefs(useTransformController());
 
 const transformControlsValue = ref<boolean>(false);
 const curControllerValue = ref<string>("Позиционирование");
@@ -59,6 +66,20 @@ const toggleTransformMode = (value: boolean) => {
 
 const globalDisable = () => (transformControlsValue.value = false);
 
+// Снимает свободную установку: объект снова притягивается к стене и получает её поворот
+const resetFreeTransform = () => {
+  eventBus.emit("A:TransformReset");
+};
+
+// При смене выбранного объекта берём его флаг свободной установки из CONFIG
+watch(
+  () => modelState.getCurrentModel,
+  (model) => {
+    setFreeTransform(!!toRaw(model)?.userData?.PROPS?.CONFIG?.FREE_TRANSFORM);
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
   transformControlsValue.value = getTransformControlsValue ?? false;
   curAngleParam.value = getControlSnapAngle;
@@ -88,28 +109,22 @@ onMounted(() => {
 
     <div>
       <transition name="controller-toggle">
-        <Accordion
-          v-if="
-            curControllerValue.includes('Вращение') && transformControlsValue
-          "
-        >
+        <Accordion v-if="
+          curControllerValue.includes('Вращение') && transformControlsValue
+        ">
           <template #title>
             <h4 class="accordion__header">Шаг: {{ curAngleParam }}&deg;</h4>
           </template>
 
           <template #params="{ onToggle }">
             <ul class="quality-list">
-              <li
-                v-for="(data, index) in getTransformControlSnapAngles"
-                :key="index + data"
-                class="accordion__text"
+              <li v-for="(data, index) in getTransformControlSnapAngles" :key="index + data" class="accordion__text"
                 @click="
                   () => {
                     changeAngle(data);
                     onToggle();
                   }
-                "
-              >
+                ">
                 {{ data }}
               </li>
             </ul>
@@ -127,17 +142,12 @@ onMounted(() => {
 
           <template #params="{ onToggle }">
             <ul class="quality-list">
-              <li
-                v-for="(data, index) in controllerValue"
-                :key="index + data.name"
-                class="accordion__text"
-                @click="
-                  () => {
-                    changeControllerType(data);
-                    onToggle();
-                  }
-                "
-              >
+              <li v-for="(data, index) in controllerValue" :key="index + data.name" class="accordion__text" @click="
+                () => {
+                  changeControllerType(data);
+                  onToggle();
+                }
+              ">
                 {{ data.name }}
               </li>
             </ul>
@@ -147,10 +157,13 @@ onMounted(() => {
     </div>
 
     <div class="switch__container">
-      <Toggle
-        :model-value="transformControlsValue"
-        @update:model-value="toggleTransformMode"
-      />
+      <Toggle :model-value="transformControlsValue" @update:model-value="toggleTransformMode" />
+
+      <transition name="controller-toggle">
+        <MainButton v-if="getFreeTransform" size="small border" @click="resetFreeTransform">
+          Сбросить
+        </MainButton>
+      </transition>
     </div>
   </div>
 </template>
@@ -161,13 +174,16 @@ onMounted(() => {
     position: absolute;
     bottom: 1rem;
     left: 295px;
+    // transform: translate(0, 2rem);
     display: flex;
     flex-direction: column;
+
+
   }
 
   &__title {
     position: absolute;
-    bottom: 2rem;
+    bottom: 3.5rem;
     margin: 0;
     font-size: 1.4rem;
     font-weight: 600;
@@ -178,6 +194,9 @@ onMounted(() => {
   }
 
   &__container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
     padding: 0.35rem;
     border-radius: 8px;
     backdrop-filter: blur(4px);
@@ -193,23 +212,32 @@ onMounted(() => {
   &__header {
     margin-right: 0.5rem;
   }
+
   &__summary {
     gap: 10rem;
   }
+
+  // &__content {
+  //   padding-top: 0.5rem;
+  //   border-top: 1px solid #a3a9b5;
+  // }
 
   &__text {
     cursor: pointer;
     transition-property: color;
     transition-duration: 0.25s;
     transition-timing-function: ease;
+
     @media (hover: hover) {
+
       /* when hover is supported */
       &:hover {
-        color: $dark-grey
+        color: $light-grey;
       }
     }
   }
 }
+
 .quality-list {
   padding-top: 0.5rem;
   border-top: 1px solid $dark-grey;

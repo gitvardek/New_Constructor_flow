@@ -16,10 +16,10 @@ import "@/components/UMconstructor/styles/UM.scss"
 
 import { ref, watch } from "vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import WardrobeSectionsView from "@/components/UMconstructor/views/modules/WardrobeSectionsView.vue";
-import WardrobeProfilesView from "@/components/UMconstructor/views/modules/WardrobeProfilesView.vue";
-import WardrobeInsertView from "@/components/UMconstructor/views/modules/WardrobeInsertView.vue";
-import WardrobeFillingsView from "@/components/UMconstructor/views/modules/WardrobeFillingsView.vue";
+import WardrobeSectionsView from "@/components/UMconstructor/wardrobe/views/modules/WardrobeSectionsView.vue";
+import WardrobeProfilesView from "@/components/UMconstructor/wardrobe/views/modules/WardrobeProfilesView.vue";
+import WardrobeInsertView from "@/components/UMconstructor/wardrobe/views/modules/WardrobeInsertView.vue";
+import WardrobeFillingsView from "@/components/UMconstructor/wardrobe/views/modules/WardrobeFillingsView.vue";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 
 const props = defineProps({

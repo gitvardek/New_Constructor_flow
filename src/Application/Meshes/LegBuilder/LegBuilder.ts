@@ -225,9 +225,10 @@ export class LegBuilder {
     // короче "Пол-потолок", и верхняя ножка короткого иначе повисла бы на
     // уровне соседнего высокого. Нижняя всегда на полу — профили растут вверх.
     //
-    // fasteningType читается буквально как "низ_верх": "floor" — ножка снизу
-    // (нужна везде, кроме "wall_wall"), "ceiling" — ножка сверху, "wall" —
-    // вместо неё крепёжная пластина (createWardrobeWallBracket).
+    // fasteningType читается как "низ_верх", но НОЖКА СНИЗУ есть у всех типов:
+    // у "стена-стена" нижний торец профиля закрыт такой же ножкой, как верхний
+    // (уточнение пользователя). Сверху ножка у "floor_ceiling" и "wall_wall", у
+    // "floor_wall" вместо неё крепёжная пластина (createWardrobeWallBracket).
     buildWardrobeLegs(
         props: TTotalProps,
         profilePositions: { x: number, z: number, height?: number, fasteningType?: 'floor_ceiling' | 'floor_wall' | 'wall_wall', colorId?: number }[]
@@ -239,14 +240,14 @@ export class LegBuilder {
         const floorY = -size.height / 2
 
         profilePositions.forEach(({ x, z, height, fasteningType, colorId }, index) => {
-            const hasBottomLeg = fasteningType !== 'wall_wall'
             const hasTopLeg = fasteningType === 'floor_ceiling'
             const topY = floorY + (height ?? size.height)
 
-            if (hasBottomLeg) {
-                const bottomLeg = this.createWardrobeLeg(-1)
-                bottomLeg.position.set(x, floorY, z)
-                bottomLeg.name = `WARDROBE_LEG_BOTTOM_${index}`
+            const bottomLeg = this.createWardrobeLeg(-1)
+            bottomLeg.position.set(x, floorY, z)
+            bottomLeg.name = `WARDROBE_LEG_BOTTOM_${index}`
+
+            if (fasteningType !== 'wall_wall') {
                 legsGroup.add(bottomLeg)
             }
 
@@ -259,10 +260,17 @@ export class LegBuilder {
 
             // 'floor_wall' — сверху вместо ножки крепёжная пластина к стене,
             // см. createWardrobeWallBracket выше.
-            if (fasteningType === 'floor_wall') {
+            if (fasteningType === 'floor_wall' || 'wall_wall') {
                 const bracket = this.createWardrobeWallBracket(size.depth, colorId)
                 bracket.position.set(x, topY, z)
                 bracket.name = `WARDROBE_WALL_BRACKET_TOP_${index}`
+                legsGroup.add(bracket)
+            }
+
+            if (fasteningType === 'wall_wall') {
+                const bracket = this.createWardrobeWallBracket(size.depth, colorId)
+                bracket.position.set(x, floorY + WARDROBE_PROFILE_DEPTH, z)
+                bracket.name = `WARDROBE_WALL_BRACKET_BOTTOM_${index}`
                 legsGroup.add(bracket)
             }
         })

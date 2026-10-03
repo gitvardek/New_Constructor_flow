@@ -6,19 +6,19 @@ import {
     findFreeWardrobeShelfPositionY,
     getWardrobeSectionInstallableHeight,
     getWardrobeShelfDepth,
-} from "@/components/UMconstructor/utils/WardrobeSystem.ts";
+} from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 // ==== Гардеробная система (WARDROBE) ====
 // Штанга (rail) — товар из динамических групп "Наполнение" -> "Вставка"
-// (WardrobeSystem.getWardrobeFillingsGroups, WardrobeInsertView.vue) Лежит в ТОМ ЖЕ section.wardrobeShelves, что
-// и полки (kind==='rail'), ради полноценной коллизии: поиск свободного места,
+// (WardrobeSystem.getWardrobeFillingsGroups, WardrobeInsertView.vue) Лежит в ТОМ ЖЕ section.wardrobeFilling, что
+// и полки (type==='rail'), ради полноценной коллизии: поиск свободного места,
 // зазоры, драг и авто-удаление по потолку секции
 // (findFreeWardrobeShelfPositionY, getWardrobeShelfDragBounds,
 // UMconstructorClass.reset()) переиспользованы без правок — они уже дженерик
-// над {type, positionY, kind, railHeight}, см.
+// над {type, positionY, railHeight}, см.
 // WardrobeSystem.getWardrobeShelfPixiHeight. Отдельный класс, а не метод
-// ShelvesManager — то же разделение по сущностям, что у
-// ProfilesManager/SectionsManager/ShelvesManager.
+// WardrobeShelvesManager — то же разделение по сущностям, что у
+// остальных менеджеров гардеробной (wardrobe/managers).
 export default class RailsManager {
     scope: UMconstructorClass
 
@@ -33,16 +33,16 @@ export default class RailsManager {
         const section = grid.sections[secIndex];
         if (!section) return;
 
-        if (!section.wardrobeShelves) section.wardrobeShelves = [];
-        const shelves = section.wardrobeShelves;
+        if (!section.wardrobeFilling) section.wardrobeFilling = [];
+        const contant = section.wardrobeFilling;
 
         const railHeight = Number(item?.height) || 0;
         const depthMm = getWardrobeShelfDepth(grid);
         const ceilingHeight = getWardrobeSectionInstallableHeight(grid, secIndex);
 
         const positionY = findFreeWardrobeShelfPositionY(
-            shelves,
-            { type: 'flat', kind: 'rail', railHeight },
+            contant,
+            { type: 'rail', railHeight },
             depthMm,
             ceilingHeight,
             grid.productID,
@@ -53,13 +53,12 @@ export default class RailsManager {
             return;
         }
 
-        const newId = shelves.reduce((max, s) => Math.max(max, s.id), 0) + 1;
+        const newId = contant.reduce((max, s) => Math.max(max, s.id), 0) + 1;
 
-        shelves.push({
+        contant.push({
             id: newId,
             productId: item?.ID ?? item?.id,
-            type: 'flat',
-            kind: 'rail',
+            type: 'rail',
             railHeight,
             positionY,
         });
