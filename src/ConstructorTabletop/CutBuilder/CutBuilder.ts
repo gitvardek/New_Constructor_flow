@@ -179,8 +179,9 @@ class TableTopCreator extends BuildersHelper {
         )
 
         const material2 = new THREE.MeshStandardMaterial()
-        if (kromka) {
-            const cromkaData = this.modelState._HEM[kromka]
+        const cromkaData = kromka ? this.getMaterialRecord('HEM', kromka) : null
+
+        if (cromkaData) {
             await this.getMaterial({
                 material: material2,
                 url: cromkaData.DETAIL_PICTURE,

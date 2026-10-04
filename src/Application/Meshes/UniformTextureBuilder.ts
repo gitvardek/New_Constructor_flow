@@ -391,7 +391,8 @@ export class UniformTextureBuilder extends UniformTextureUtils {
             }[]>((acc, item) => {
                 // return acc.concat(item.FASADES)
                 const filtered = item.FASADES.filter(element => {
-                    return this.parent._FASADE[element].MAX_HEIGHT !== null
+                    return this.parent._FASADE[element]?.MAX_HEIGHT !== null
+                        && !!this.parent._FASADE[element]
                 })
 
                 if (filtered.length > 0) {

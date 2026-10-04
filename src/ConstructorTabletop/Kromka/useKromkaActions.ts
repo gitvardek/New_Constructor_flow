@@ -87,8 +87,8 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                     return HEMLIST[el]
                 }).filter(Boolean)
 
-                const defaultHem = HEMLIST[REC_HEM[0]]
-                tempKromkaId.value = defaultHem?.ID ?? hemList[0].ID;
+                const defaultHem = HEMLIST[REC_HEM?.[0]]
+                tempKromkaId.value = defaultHem?.ID ?? hemList[0]?.ID ?? null;
             }
 
             kromkaActive.value = hasActiveKromka ? hasActiveKromka : hasProfileKromka
@@ -136,8 +136,8 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                     return HEMLIST[el]
                 }).filter(Boolean)
 
-                const defaultHem = HEMLIST[REC_HEM[0]]
-                tempKromkaId.value = defaultHem?.ID ?? hemList[0].ID;
+                const defaultHem = HEMLIST[REC_HEM?.[0]]
+                tempKromkaId.value = defaultHem?.ID ?? hemList[0]?.ID ?? null;
             }
 
             kromkaActive.value = hasActiveKromka ? hasActiveKromka : hasProfileKromka
@@ -182,14 +182,19 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         const { HEM, REC_HEM } = PRODUCTS[PRODUCT]
 
         const kromkaId = tempKromkaId.value;
-        const defaultHem = HEMLIST[REC_HEM[0]]
-        const defaultId = defaultHem?.ID ?? tempKromkaList.value[0].ID;
+        const defaultHem = HEMLIST[REC_HEM?.[0]];
+        
+        const defaultId = defaultHem?.ID ?? tempKromkaList.value[0]?.ID;
 
-        const target = tempKromkaList.value.find(
-            el => el.ID === (kromkaId || defaultId)
-        ) as TKromkaMaterialItem | undefined;
+        const target = (tempKromkaList.value.find(el => el.ID === kromkaId)
+            ?? tempKromkaList.value.find(el => el.ID === defaultId)
+            ?? tempKromkaList.value[0]) as TKromkaMaterialItem | undefined;
 
         if (!target) return;
+
+        if (target.ID !== kromkaId) {
+            tempKromkaId.value = target.ID
+        }
 
         const { NAME, PREVIEW_PICTURE } = target;
 
@@ -245,7 +250,7 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                 NAME: target.NAME,
                 PREVIEW_PICTURE: _URL + target.PREVIEW_PICTURE,
             }
-            if (currentId == null) {
+            if (target.ID !== currentId) {
                 tempKromkaId.value = target.ID
             }
         }

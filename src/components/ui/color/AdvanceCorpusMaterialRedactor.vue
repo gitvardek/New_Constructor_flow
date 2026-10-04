@@ -359,7 +359,7 @@ const onSelectMilling = (data) => {
 
   const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
   const fasadeProps = props.elementData || FASADE_PROPS[props.elementIndex];
-  const rootDataPatina = modelState._FASADE[fasadeProps.COLOR].PATINA;
+  const rootDataPatina = modelState._FASADE[fasadeProps.COLOR]?.PATINA;
   const disablePatina =
     typeof props.elementIndex === "string" &&
     props.elementIndex.toLowerCase().includes("sidecolor");

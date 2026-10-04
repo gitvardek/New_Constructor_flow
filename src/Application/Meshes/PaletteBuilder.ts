@@ -99,9 +99,10 @@ export class PaletteBuilder {
     }
 
     getPalette(fasadeId: number, paletteId: number) {
-        const { _APP, _FASADE } = this.parent;
+        const { _APP } = this.parent;
         const palette = _APP.PALETTE[paletteId];
-        const fasadeName = _FASADE[fasadeId].NAME.toLowerCase();
+        // Покрытия может не быть в каталоге — тогда считаем его глянцевым, как и прежде
+        const fasadeName = this.parent.getMaterialRecord('FASADE', fasadeId)?.NAME?.toLowerCase() ?? '';
 
         const roughnessValue = fasadeName.includes("матовый") ? 0.5 : 0.02;
 
@@ -119,11 +120,12 @@ export class PaletteBuilder {
     }) {
 
 
-        const { _APP, _FASADE } = this.parent;
+        const { _APP } = this.parent;
         const palette = _APP.PALETTE[data];
         const fasadeId = fasadeProps.COLOR ?? 567323;
-        const fasadeName = _FASADE[fasadeId].NAME.toLowerCase();
-        const fasadeTexture = _FASADE[fasadeId].TEXTURE
+        const fasadeRecord = this.parent.getMaterialRecord('FASADE', fasadeId);
+        const fasadeName = fasadeRecord?.NAME?.toLowerCase() ?? '';
+        const fasadeTexture = fasadeRecord?.TEXTURE
 
         fasade.visible = true;
 

@@ -50,6 +50,7 @@ export class BuildUniversalModule extends BuildProduct {
         const { PROPS } = perent_group.userData
         const { CONFIG } = PROPS;
 
+        this.sanitizeProductMaterials(PROPS);
         const defaultConfig: THREETypes.TDefaultOptionsConfig = this.getDefaultOptionsConfig();
 
         const productId = CONFIG.ID
@@ -389,7 +390,7 @@ export class BuildUniversalModule extends BuildProduct {
     parseModulegrid(product_data: THREETypes.TObject, PROPS: Object) {
         // Проверка на корректность просчёта боковых стенок с учётом толщины материала
         this.validateGridWalls(product_data, PROPS.CONFIG)
-        
+
         const OLD_SECTIONS = PROPS.CONFIG.SECTIONS
         const OLD_FASADES = PROPS.CONFIG.FASADE_POSITIONS
         PROPS.CONFIG.FASADE_POSITIONS = []
@@ -1011,10 +1012,12 @@ export class BuildUniversalModule extends BuildProduct {
 
     createSubProductObject(filling: Object, data: THREETypes.TObject, props: THREETypes.TObject) {
 
-        let textureUrl = filling.isProfile ? this._COLOR[props.CONFIG['PROFILECOLOR']].TEXTURE :
-            this._FASADE[filling.color ||
-                filling.material ||
-                props.CONFIG['MODULE_COLOR']].TEXTURE
+        let textureUrl = filling.isProfile
+            ? this.getMaterialTexture('COLOR', props.CONFIG['PROFILECOLOR'])
+            : this.getMaterialTexture('FASADE', filling.color
+                || filling.material
+                || props.CONFIG['MODULE_COLOR'])
+
         let body = this.json_builder.createMesh({ data, textureUrl })
 
         body.position.set(eval(data.corr_x), eval(data.corr_y), eval(data.corr_z));

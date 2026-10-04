@@ -648,10 +648,10 @@ const getTypeName = (
   }
 
   if (type === "HEM" && mainType === "scene") {
-    return appData.value["HEM"][value].NAME;
+    return appData.value["HEM"][value]?.NAME || `[${type}:${value}]`;
   }
   if (type === "MECHANISM" && mainType === "scene") {
-    return appData.value["MECHANISM"][value].NAME;
+    return appData.value["MECHANISM"][value]?.NAME || `[${type}:${value}]`;
   }
 
   if (mainType === "scene") {
@@ -902,7 +902,7 @@ const renderDescription = computed(() => {
           // тогда здесь уже будет id материала
           if (typeof partData === "number") {
             const description =
-              appData.value["FASADE"][partData].NAME ??
+              appData.value["FASADE"][partData]?.NAME ??
               `Неизвестный материал (ID: ${partData})`;
             result.push({
               key: `Цвет фасада ${doorNumber}`,
@@ -911,7 +911,7 @@ const renderDescription = computed(() => {
           } else {
             for (const [elementNumber, materialId] of Object.entries(partData)) {
               const description =
-                appData.value["FASADE"][materialId].NAME ??
+                appData.value["FASADE"][materialId]?.NAME ??
                 `Неизвестный материал (ID: ${materialId})`;
               result.push({
                 key: `Цвет фасада ${doorNumber}`,
@@ -1110,7 +1110,7 @@ const renderDescription = computed(() => {
         value.forEach((doorData, doorNumber) => {
           if (typeof doorData === "number") {
             const description =
-              appData.value[getPropDefinition(key)?.type][doorData].NAME ||
+              appData.value[getPropDefinition(key)?.type]?.[doorData]?.NAME ||
               `Неизвестный материал (ID: ${doorData})`;
             result.push({
               key: getPropDefinition(key)?.NAME,

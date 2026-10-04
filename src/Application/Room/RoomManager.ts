@@ -25,6 +25,7 @@ import { GeometryBuilder } from '../Meshes/GeometryBuilder';
 import { Room } from './Room';
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
+import { resetReplacementsLog } from '../Meshes/Utils/MaterialResolver';
 // import CreateShape from '../2DScene/CreateShape';
 
 
@@ -488,6 +489,7 @@ export class RoomManager extends Room {
         let counts = 0;
         const parse = typeof data === 'string' ? JSON.parse(data) : data;
 
+        resetReplacementsLog();
         const results = await Promise.all(
             parse.map(item => this.loadSingle(item))
         );
