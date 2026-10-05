@@ -364,7 +364,8 @@ const onSelectMilling = (data) => {
 
   const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
   const fasadeProps = props.elementData || FASADE_PROPS[props.elementIndex];
-  const rootDataPatina = modelState._FASADE[fasadeProps.COLOR].PATINA;
+  // Покрытия может не быть в каталоге: патина тогда недоступна, а редактор открывается
+  const rootDataPatina = modelState._FASADE[fasadeProps.COLOR]?.PATINA;
   const disablePatina =
     typeof props.elementIndex === "string" &&
     props.elementIndex.toLowerCase().includes("sidecolor");

@@ -21,6 +21,7 @@ import { useRoomContantData } from "@/store/appliction/useRoomContantData";
 
 import { SetObject } from '../Utils/SetObject';
 import { GeometryBuilder } from '../Meshes/GeometryBuilder';
+import { resetReplacementsLog } from '../Meshes/Utils/MaterialResolver';
 import { Room } from './Room';
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
@@ -494,6 +495,10 @@ export class RoomManager extends Room {
 
         let counts = 0;
         const parse = typeof data === 'string' ? JSON.parse(data) : data;
+
+        // О материалах, снятых с производства, сообщаем один раз на проект: дальше их
+        // подменяет sanitizeProductMaterials у каждой модели
+        resetReplacementsLog();
 
         console.log(parse, 'parse')
 

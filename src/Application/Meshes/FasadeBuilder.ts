@@ -211,8 +211,12 @@ export class FasadeBuilder {
         // Алюм. профиль
         if (fasadeData.ALUM != null && FASADE_PROPS[key].COLOR != null) {
 
-            const alumData = this.parent._FASADE[FASADE_PROPS[key].COLOR];
-            this.parent.alum_builder.createAlum({ fasade: mesh, data: alumData });
+            // Покрытия может не быть в каталоге — алюминиевую рамку тогда просто не красим
+            const alumData = this.parent.getMaterialRecord('FASADE', FASADE_PROPS[key].COLOR);
+
+            if (alumData) {
+                this.parent.alum_builder.createAlum({ fasade: mesh, data: alumData });
+            }
 
             const action = this.modelState.getCurrentFasadeTypesAction(fasadeData.TYPE);
             this.parent.showcase_builder.createShowcase({

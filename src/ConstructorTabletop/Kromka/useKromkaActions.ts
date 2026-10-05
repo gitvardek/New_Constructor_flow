@@ -88,8 +88,10 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                     return HEMLIST[el]
                 }).filter(Boolean)
 
-                const defaultHem = HEMLIST[REC_HEM[0]]
-                tempKromkaId.value = defaultHem?.ID ?? hemList[0].ID;
+                // Рекомендованной кромки товара может уже не быть в справочнике —
+                // тогда берём первую доступную, а не её мёртвый id
+                const defaultHem = HEMLIST[REC_HEM?.[0]]
+                tempKromkaId.value = defaultHem?.ID ?? hemList[0]?.ID ?? null;
             }
 
             console.log(hasActiveKromka, '==== ❌ hasActiveKromka ❌ ====')
@@ -141,8 +143,10 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                     return HEMLIST[el]
                 }).filter(Boolean)
 
-                const defaultHem = HEMLIST[REC_HEM[0]]
-                tempKromkaId.value = defaultHem?.ID ?? hemList[0].ID;
+                // Рекомендованной кромки товара может уже не быть в справочнике —
+                // тогда берём первую доступную, а не её мёртвый id
+                const defaultHem = HEMLIST[REC_HEM?.[0]]
+                tempKromkaId.value = defaultHem?.ID ?? hemList[0]?.ID ?? null;
             }
 
             kromkaActive.value = hasActiveKromka ? hasActiveKromka : hasProfileKromka
@@ -187,14 +191,24 @@ const useKromkaActions = defineStore('KromkaActions', () => {
         const { HEM, REC_HEM } = PRODUCTS[PRODUCT]
 
         const kromkaId = tempKromkaId.value;
-        const defaultHem = HEMLIST[REC_HEM[0]]
-        const defaultId = defaultHem?.ID ?? tempKromkaList.value[0].ID;
+        const defaultHem = HEMLIST[REC_HEM?.[0]];
+        
+        const defaultId = defaultHem?.ID ?? tempKromkaList.value[0]?.ID;
 
-        const target = tempKromkaList.value.find(
-            el => el.ID === (kromkaId || defaultId)
-        ) as TKromkaMaterialItem | undefined;
+        // Сохранённую кромку могли снять с производства — в списке её больше нет.
+        // Берём рекомендованную, иначе первую доступную, и запоминаем подмену, иначе
+        // в заказ уйдёт кромка, которой не существует
+        const target = (tempKromkaList.value.find(el => el.ID === kromkaId)
+            ?? tempKromkaList.value.find(el => el.ID === defaultId)
+            ?? tempKromkaList.value[0]) as TKromkaMaterialItem | undefined;
+
+        console.log(target, defaultHem, 'HEEEEM')
 
         if (!target) return;
+
+        if (target.ID !== kromkaId) {
+            tempKromkaId.value = target.ID
+        }
 
         const { NAME, PREVIEW_PICTURE } = target;
 
@@ -251,7 +265,11 @@ const useKromkaActions = defineStore('KromkaActions', () => {
                 NAME: target.NAME,
                 PREVIEW_PICTURE: _URL + target.PREVIEW_PICTURE,
             }
-            if (currentId == null) {
+
+            // Запоминаем не только первый выбор, но и подмену: кромку могли снять
+            // с производства, и в карточке она уже заменена, а в заказ без этого
+            // уходил бы прежний, несуществующий id
+            if (target.ID !== currentId) {
                 tempKromkaId.value = target.ID
             }
         }

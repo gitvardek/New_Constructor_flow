@@ -8,6 +8,16 @@ import { GlobalsData } from './Utils/Globals'
 import { CUTTER_PARAMS } from "@/ConstructorTabletop/CutterScripts/CutterConst"
 import { label, userData } from 'three/webgpu'
 import { useToast } from "@/features/toaster/useToast"
+import {
+    hasMaterial,
+    isEmptyMaterialId,
+    resolveMaterialId,
+    shouldReportReplacement,
+    TMaterialDict,
+    TMaterialDictName,
+    TMaterialId,
+    TResolveParams,
+} from './Utils/MaterialResolver'
 import { TUG_MODEL_DATA } from '../F-tug'
 export class BuildersHelper extends GlobalsData {
 
@@ -24,6 +34,76 @@ export class BuildersHelper extends GlobalsData {
         this.scene = root._scene
         this.room = root._roomManager
         this.root = root
+    }
+
+    /* --- Материалы из справочников ----------------------------------------------------
+     * Сохранённый в проекте id может указывать на материал, снятый с производства: запись
+     * из каталога пропала, а конфиг о ней помнит. Читаем справочники только через эти
+     * методы — иначе одна мёртвая ссылка роняет сборку всей сцены
+     */
+
+    public getMaterialDict(dictName: TMaterialDictName = 'FASADE'): TMaterialDict {
+        switch (dictName) {
+            case 'COLOR':
+                return this._COLOR
+            case 'WALL':
+                return this._WALL
+            case 'HEM':
+                return this._APP?.HEM
+            case 'FASADE':
+            default:
+                return this._FASADE
+        }
+    }
+
+    /** Запись справочника по сохранённому id: записи нет — null вместо падения */
+    public getMaterialRecord(dictName: TMaterialDictName, id: TMaterialId) {
+        const dict = this.getMaterialDict(dictName)
+
+        if (hasMaterial(dict, id)) {
+            return dict[id as string | number]
+        }
+
+        if (!isEmptyMaterialId(id)) {
+            console.warn(`Материал ${id} отсутствует в справочнике ${dictName}`)
+        }
+
+        return null
+    }
+
+    /** Текстура материала: у цветов это TEXTURE, у кромки — картинка товара */
+    public getMaterialTexture(dictName: TMaterialDictName, id: TMaterialId) {
+        const record = this.getMaterialRecord(dictName, id)
+
+        if (!record) {
+            return undefined
+        }
+
+        // Пустая TEXTURE у цвета — его собственное состояние, подменять её картинками
+        // товара нельзя: деталь должна остаться без текстуры, как и раньше
+        if ('TEXTURE' in record) {
+            return record.TEXTURE
+        }
+
+        return record.DETAIL_PICTURE ?? record.PREVIEW_PICTURE
+    }
+
+    /** Подбирает замену id, которого больше нет в справочнике, и сообщает о подмене */
+    public resolveMaterial(dictName: TMaterialDictName, id: TMaterialId, params: TResolveParams = {}) {
+        const dict = this.getMaterialDict(dictName)
+        const result = resolveMaterialId(dict, id, params)
+
+        if (result.replaced && shouldReportReplacement(dictName, result)) {
+            const replacement = hasMaterial(dict, result.id) ? dict[result.id as string | number] : null
+
+            console.warn(`Материал ${result.from} недоступен (${dictName}), замена: ${result.id}`)
+
+            useToast().warning(replacement?.NAME
+                ? `Материал больше не выпускается, заменён на «${replacement.NAME}»`
+                : 'Материал больше не выпускается, заменить его нечем — проверьте позицию')
+        }
+
+        return result
     }
 
     public createModelData(data: THREETypes.TObject, props: THREETypes.TObject, size: { width: number, height: number, depth: number }) {

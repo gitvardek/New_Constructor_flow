@@ -49,6 +49,10 @@ export class BuildUniversalModule extends BuildProduct {
         const { PROPS } = perent_group.userData
         const { CONFIG } = PROPS;
 
+        // До первого обращения к справочникам: сетка модуля хранит свои копии цветов,
+        // и снятый с производства материал уронил бы сборку наполнения и фасадов
+        this.sanitizeProductMaterials(PROPS);
+
         const defaultConfig: THREETypes.TDefaultOptionsConfig = this.getDefaultOptionsConfig();
 
         const productId = CONFIG.ID
@@ -1036,10 +1040,14 @@ export class BuildUniversalModule extends BuildProduct {
 
     createSubProductObject(filling: Object, data: THREETypes.TObject, props: THREETypes.TObject) {
 
-        let textureUrl = filling.isProfile ? this._COLOR[props.CONFIG['PROFILECOLOR']].TEXTURE :
-            this._FASADE[filling.color ||
-                filling.material ||
-                props.CONFIG['MODULE_COLOR']].TEXTURE
+        // Материала может уже не быть в каталоге: деталь тогда собирается без текстуры,
+        // а не роняет весь модуль
+        let textureUrl = filling.isProfile
+            ? this.getMaterialTexture('COLOR', props.CONFIG['PROFILECOLOR'])
+            : this.getMaterialTexture('FASADE', filling.color
+                || filling.material
+                || props.CONFIG['MODULE_COLOR'])
+
         let body = this.json_builder.createMesh({ data, textureUrl })
 
         body.position.set(eval(data.corr_x), eval(data.corr_y), eval(data.corr_z));

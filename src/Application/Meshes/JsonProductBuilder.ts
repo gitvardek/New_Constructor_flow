@@ -146,7 +146,7 @@ export class JsonBuilder {
             texture_url = this.parent._PRODUCTS[side.TABLE]?.texture?.src
         }
         else {
-            texture_url = this.parent._FASADE[side.COLOR].TEXTURE
+            texture_url = this.parent.getMaterialTexture('FASADE', side.COLOR)
         }
 
         return side.PALETTE
@@ -161,7 +161,12 @@ export class JsonBuilder {
         if (!side || !side.KROMKA)
             return null
 
-        const texture = this.parent._APP.HEM[side.KROMKA]
+        // Кромку, снятую с производства, из справочника убирают — деталь остаётся без неё
+        const texture = this.parent.getMaterialRecord('HEM', side.KROMKA)
+
+        if (!texture) {
+            return null
+        }
 
         return this.createMaterial(materialData, texture.DETAIL_PICTURE || texture.PREVIEW_PICTURE) as THREE.Material
     }

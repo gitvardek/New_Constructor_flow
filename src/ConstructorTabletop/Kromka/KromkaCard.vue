@@ -4,7 +4,9 @@
 import { _URL } from "@/types/constants";
 
 interface Props {
-  data: Record<string, any>;
+  // Кромки может не оказаться: её сняли с производства или список пуст — карточка
+  // тогда не рисуется, а не роняет панель
+  data: Record<string, any> | null;
 }
 
 const props = defineProps<Props>();
@@ -19,7 +21,7 @@ const handleSelect = () => {
 </script>
 
 <template>
-  <div class="option-container" @click="handleSelect()">
+  <div v-if="data" class="option-container" @click="handleSelect()">
     <div class="option-small">
       <div class="option-label">
         <img class="label__img" :src="data.PREVIEW_PICTURE" alt="" />

@@ -177,9 +177,12 @@ class TableTopCreator extends BuildersHelper {
         )
 
         const material2 = new THREE.MeshStandardMaterial()
-        if (kromka) {
-            const cromkaData = this.modelState._HEM[kromka]
 
+        // Кромку могли снять с производства: записи в справочнике уже нет, а в проекте
+        // она осталась — торец тогда красим как саму столешницу, а не роняем загрузку
+        const cromkaData = kromka ? this.getMaterialRecord('HEM', kromka) : null
+
+        if (cromkaData) {
             await this.getMaterial({
                 material: material2,
                 url: cromkaData.DETAIL_PICTURE,
