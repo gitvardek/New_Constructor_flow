@@ -260,7 +260,8 @@ export class LegBuilder {
 
             // 'floor_wall' — сверху вместо ножки крепёжная пластина к стене,
             // см. createWardrobeWallBracket выше.
-            if (fasteningType === 'floor_wall' || 'wall_wall') {
+            // if (fasteningType === 'floor_wall' || 'wall_wall') {
+            if (fasteningType === 'floor_wall' || fasteningType === 'wall_wall') {
                 const bracket = this.createWardrobeWallBracket(size.depth, colorId)
                 bracket.position.set(x, topY, z)
                 bracket.name = `WARDROBE_WALL_BRACKET_TOP_${index}`
