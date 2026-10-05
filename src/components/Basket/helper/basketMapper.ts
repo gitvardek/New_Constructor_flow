@@ -446,7 +446,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
   }
   else {
     const result = {}
-
     CONFIG.MODULEGRID.sections.forEach((section, number) => {
       const sectionNumber = number + 1;
       const sectionKey = `SECTIONS${sectionNumber}`;
@@ -457,6 +456,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
       const fasadesGlassKey = `GLASS${sectionNumber}`;
+      const fasadesTypeKey = `FASADETYPE${sectionNumber}`;
+      const fasadesInterTypeKey = `FASADETYPE${sectionNumber}`;
 
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = {};
@@ -464,20 +465,26 @@ function convertModuleToLegacyFormat(newModuleObject) {
       result[fasadesPaletteKey] = {};
       result[fasadesPattinaKey] = {};
       result[fasadesGlassKey] = {};
+      result[fasadesTypeKey] = {};
+      result[fasadesInterTypeKey] = {};
 
 
       section.fasades?.forEach(doorGroup => {
-        doorGroup.forEach((fasade, index) => {
+
+        doorGroup.forEach((fasade) => {
           const doorNumber = fasade.door;
           const fasId = fasade.id - 1
+
 
           if (!result[fasadesSizeKey][doorNumber]) {
             result[fasadesSizeKey][doorNumber] = {};
           }
 
+          // result[fasadesSizeKey][doorNumber].push(fasade.height);
           if (fasade.height) {
             result[fasadesSizeKey][doorNumber][fasId] = fasade.height
           }
+
 
           if (!result[fasadesWidthKey][doorNumber]) {
             result[fasadesWidthKey][doorNumber] = fasade.width;
@@ -527,6 +534,27 @@ function convertModuleToLegacyFormat(newModuleObject) {
             }
             result[fasadesGlassKey][doorNumber][fasId] = fasade.material.GLASS;
           }
+          if (fasade.material.MILLING_TYPE
+          ) {
+            if (!result[fasadesTypeKey]) {
+              result[fasadesTypeKey] = {};
+            }
+            if (!result[fasadesTypeKey][doorNumber]) {
+              result[fasadesTypeKey][doorNumber] = {};
+            }
+            result[fasadesTypeKey][doorNumber][fasId] = fasade.material.MILLING_TYPE;
+          }
+
+          if (fasade.material.TYPE
+          ) {
+            if (!result[fasadesInterTypeKey]) {
+              result[fasadesInterTypeKey] = {};
+            }
+            if (!result[fasadesInterTypeKey][doorNumber]) {
+              result[fasadesInterTypeKey][doorNumber] = {};
+            }
+            result[fasadesInterTypeKey][doorNumber][fasId] = typeof fasade.material.TYPE === 'object' ? fasade.material.TYPE?.id : fasade.material.TYPE
+          }
         });
       });
 
@@ -538,6 +566,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       legacyProps[`${fasadesPattinaKey}`] = result[fasadesPattinaKey]
       legacyProps[`${fasadesPaletteKey}`] = result[fasadesPaletteKey]
       legacyProps[`${fasadesGlassKey}`] = result[fasadesGlassKey]
+      legacyProps[`${fasadesTypeKey}`] = result[fasadesTypeKey]
+      legacyProps[`${fasadesInterTypeKey}`] = result[fasadesInterTypeKey]
     });
 
 
@@ -552,6 +582,9 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
       const fasadesGlassKey = `GLASS${sectionNumber}`;
+      const fasadesTypeKey = `FASADETYPE${sectionNumber}`;
+      const fasadesInterTypeKey = `FASADETYPE${sectionNumber}`;
+
 
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = false;
@@ -559,6 +592,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       result[fasadesPaletteKey] = {};
       result[fasadesPattinaKey] = {};
       result[fasadesGlassKey] = {};
+      result[fasadesTypeKey] = {};
+      result[fasadesInterTypeKey] = {};
 
       doorGroup.forEach((fasade, index) => {
 
@@ -606,6 +641,24 @@ function convertModuleToLegacyFormat(newModuleObject) {
           result[fasadesGlassKey][index] = fasade.material.GLASS;
         }
 
+        if (fasade.material.MILLING_TYPE
+        ) {
+          if (!result[fasadesTypeKey]) {
+            result[fasadesTypeKey] = {};
+          }
+
+          result[fasadesTypeKey][index] = fasade.material.MILLING_TYPE;
+        }
+
+        if (fasade.material.TYPE?.id
+        ) {
+          if (!result[fasadesInterTypeKey]) {
+            result[fasadesInterTypeKey] = {};
+          }
+
+          result[fasadesInterTypeKey][index] = fasade.material.TYPE.id;
+        }
+
       });
 
       legacyProps[`${fasadesSizeKey}`] = result[fasadesSizeKey]
@@ -614,11 +667,16 @@ function convertModuleToLegacyFormat(newModuleObject) {
       legacyProps[`${fasadesPattinaKey}`] = result[fasadesPattinaKey]
       legacyProps[`${fasadesPaletteKey}`] = result[fasadesPaletteKey]
       legacyProps[`${fasadesGlassKey}`] = result[fasadesGlassKey]
+      legacyProps[`${fasadesTypeKey}`] = result[fasadesTypeKey]
+      legacyProps[`${fasadesInterTypeKey}`] = result[fasadesInterTypeKey]
     });
 
     legacyProps[`LOOPS`] = transformLoops(CONFIG.MODULEGRID?.sections, CONFIG.MODULEGRID?.horizont, CONFIG.MODULEGRID?.moduleThickness).coords;
     legacyProps[`LOOPSSIDE`] = transformLoops(CONFIG.MODULEGRID?.sections).sides;
 
+    // Боковой профиль лежит в сетке одним объектом, а в легаси-формате это словарь —
+    // как LOOPS и остальные посекционные свойства, поэтому кладём под ключом «1».
+    // objId в выгрузку не идёт: он нужен только сцене
     const sideProfile = CONFIG.MODULEGRID?.profilesConfig?.sideProfile;
 
     if (sideProfile?.product) {
