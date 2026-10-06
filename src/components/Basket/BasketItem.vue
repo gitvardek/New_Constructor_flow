@@ -336,7 +336,8 @@
 
       <button v-if="item?.product.TYPE === 'scene' || item?.product.TYPE === 'umscene'" class="basket-item__goto-btn"
         @click="goToObject">Показать</button>
-      <DeleteBasketButton @click="
+      <!-- Тумбочка удаляется только в редакторе гардеробной: своего объекта на сцене у неё нет -->
+      <DeleteBasketButton v-if="!cabinetParentBasketId" @click="
         deleteProductInBusket(item.product.BASKETID, item?.product.TYPE)
         " />
     </div>
@@ -353,7 +354,7 @@ import DeleteBasketButton from "../ui/buttons/basket/DeleteBasketButton.vue";
 import axios from "axios";
 import InfoPopUp from "../popUp/InfoPopUp.vue";
 import { _URL } from "@/types/constants";
-import { propsLabel } from "./helper/basketMapper";
+import { getCabinetParentBasketId, propsLabel } from "./helper/basketMapper";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useConfigStore } from "@/store/appStore/useConfigStore";
 import { BASE_DOMAIN } from "@/utils/originalDomain";
@@ -811,10 +812,17 @@ function updateQuantity(id: string, type: string) {
   basketStore.updateQuantity(id, type, quantity);
 }
 
+// BASKETID гардеробной, если это строка её тумбочки
+const cabinetParentBasketId = computed(() =>
+  getCabinetParentBasketId(props.item.product.BASKETID),
+);
+
 const goToObject = () => {
   popupStore.closePopup('basket');
   if (props.item.product.TYPE === 'scene' || props.item.product.TYPE === 'umscene') {
-    useEventBus().emit('A:SelectFromBasket', { basketId: props.item.product.BASKETID });
+    // У тумбочки объекта на сцене нет — выделяем гардеробную, в которой она стоит
+    const basketId = cabinetParentBasketId.value ?? props.item.product.BASKETID;
+    useEventBus().emit('A:SelectFromBasket', { basketId });
   }
 };
 
@@ -948,6 +956,16 @@ const renderDescription = computed(() => {
 
       if (key === "HORIZONT") {
         result.push({ key: "Горизонт", value: value });
+      }
+
+      // Место тумбочки в гардеробной (basketMapper.createCabinetItems)
+      if (key === "WARDROBE" && isObject(value)) {
+        if (value.SECTION != null) {
+          result.push({ key: "Секция", value: value.SECTION });
+        }
+        if (value.POSITION_Y != null) {
+          result.push({ key: "Высота установки", value: `${value.POSITION_Y} мм` });
+        }
       }
 
       if (getPropDefinition(key)?.NAME && Array.isArray(value)) {

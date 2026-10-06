@@ -7,6 +7,7 @@ import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { useModelState } from "@/store/appliction/useModelState"
 import { getWardrobeShelfDepth, getWardrobeShelfThickness, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
+import { getCabinetHeight, getCabinetWidth } from "@/components/UMconstructor/cabinet/CabinetSystem"
 
 const appDataStore = useAppData();
 const modelState = useModelState();
@@ -461,6 +462,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
       const fasadesGlassKey = `GLASS${sectionNumber}`;
+      const fasadesTypeKey = `FASADETYPE${sectionNumber}`;
+      const fasadesInterTypeKey = `FASADETYPE${sectionNumber}`;
 
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = {};
@@ -468,6 +471,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       result[fasadesPaletteKey] = {};
       result[fasadesPattinaKey] = {};
       result[fasadesGlassKey] = {};
+      result[fasadesTypeKey] = {};
+      result[fasadesInterTypeKey] = {};
 
 
       section.fasades?.forEach(doorGroup => {
@@ -493,7 +498,6 @@ function convertModuleToLegacyFormat(newModuleObject) {
             result[fasadesHorizontlPositionKey][doorNumber] = {};
           }
           result[fasadesHorizontlPositionKey][doorNumber][0] = fasade.position.x;
-
 
           if (fasade.material.MILLING) {
             if (!result[fasadesMillingKey]) {
@@ -531,6 +535,26 @@ function convertModuleToLegacyFormat(newModuleObject) {
             }
             result[fasadesGlassKey][doorNumber][fasId] = fasade.material.GLASS;
           }
+          if (fasade.material.MILLING_TYPE
+          ) {
+            if (!result[fasadesTypeKey]) {
+              result[fasadesTypeKey] = {};
+            }
+            if (!result[fasadesTypeKey][doorNumber]) {
+              result[fasadesTypeKey][doorNumber] = {};
+            }
+            result[fasadesTypeKey][doorNumber][fasId] = fasade.material.MILLING_TYPE;
+          }
+          if (fasade.material.TYPE
+          ) {
+            if (!result[fasadesInterTypeKey]) {
+              result[fasadesInterTypeKey] = {};
+            }
+            if (!result[fasadesInterTypeKey][doorNumber]) {
+              result[fasadesInterTypeKey][doorNumber] = {};
+            }
+            result[fasadesInterTypeKey][doorNumber][fasId] = typeof fasade.material.TYPE === 'object' ? fasade.material.TYPE?.id : fasade.material.TYPE
+          }
         });
       });
 
@@ -542,6 +566,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       legacyProps[`${fasadesPattinaKey}`] = result[fasadesPattinaKey]
       legacyProps[`${fasadesPaletteKey}`] = result[fasadesPaletteKey]
       legacyProps[`${fasadesGlassKey}`] = result[fasadesGlassKey]
+      legacyProps[`${fasadesTypeKey}`] = result[fasadesTypeKey]
+      legacyProps[`${fasadesInterTypeKey}`] = result[fasadesInterTypeKey]
     });
 
 
@@ -556,6 +582,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
       const fasadesGlassKey = `GLASS${sectionNumber}`;
+      const fasadesTypeKey = `FASADETYPE${sectionNumber}`;
+      const fasadesInterTypeKey = `FASADETYPE${sectionNumber}`;
 
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = false;
@@ -563,6 +591,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       result[fasadesPaletteKey] = {};
       result[fasadesPattinaKey] = {};
       result[fasadesGlassKey] = {};
+      result[fasadesTypeKey] = {};
+      result[fasadesInterTypeKey] = {};
 
       doorGroup.forEach((fasade, index) => {
 
@@ -610,6 +640,24 @@ function convertModuleToLegacyFormat(newModuleObject) {
           result[fasadesGlassKey][index] = fasade.material.GLASS;
         }
 
+        if (fasade.material.MILLING_TYPE
+        ) {
+          if (!result[fasadesTypeKey]) {
+            result[fasadesTypeKey] = {};
+          }
+
+          result[fasadesTypeKey][index] = fasade.material.MILLING_TYPE;
+        }
+
+        if (fasade.material.TYPE?.id
+        ) {
+          if (!result[fasadesInterTypeKey]) {
+            result[fasadesInterTypeKey] = {};
+          }
+
+          result[fasadesInterTypeKey][index] = fasade.material.TYPE.id;
+        }
+
       });
 
       legacyProps[`${fasadesSizeKey}`] = result[fasadesSizeKey]
@@ -618,6 +666,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       legacyProps[`${fasadesPattinaKey}`] = result[fasadesPattinaKey]
       legacyProps[`${fasadesPaletteKey}`] = result[fasadesPaletteKey]
       legacyProps[`${fasadesGlassKey}`] = result[fasadesGlassKey]
+      legacyProps[`${fasadesTypeKey}`] = result[fasadesTypeKey]
+      legacyProps[`${fasadesInterTypeKey}`] = result[fasadesInterTypeKey]
     });
 
     legacyProps[`LOOPS`] = transformLoops(CONFIG.MODULEGRID?.sections, CONFIG.MODULEGRID?.horizont, CONFIG.MODULEGRID?.moduleThickness).coords;
@@ -649,15 +699,69 @@ function convertModuleToLegacyFormat(newModuleObject) {
   return legacyProps;
 }
 
-// Элемент наполнения секции гардеробной — полка или штанга.
+// BASKETID позиции тумбочки: id объекта сцены (гардеробной) + номер секции +
+// id тумбочки. id тумбочки уникален только внутри секции
+// (CabinetManager.addWardrobeCabinet), поэтому номер секции обязателен.
+// Разделитель даёт обратный разбор (getCabinetParentBasketId) — по нему UI
+// корзины находит гардеробную, у самой тумбочки объекта на сцене нет.
+const CABINET_BASKETID_SEPARATOR = '-cabinet-';
+
+export function createCabinetBasketId(parentBasketId: any, secIndex: number, cabinetId: number): string {
+  return `${parentBasketId}${CABINET_BASKETID_SEPARATOR}${secIndex + 1}-${cabinetId}`;
+}
+
+// BASKETID гардеробной, в которой стоит тумбочка; null — позиция не тумбочки
+export function getCabinetParentBasketId(basketId: any): string | null {
+  const raw = String(basketId ?? '');
+  const separator = raw.indexOf(CABINET_BASKETID_SEPARATOR);
+
+  return separator > 0 ? raw.slice(0, separator) : null;
+}
+
+// Конфиг УМ тумбочки, пригодный для legacy-маппинга. Его держит актуальным
+// syncCabinetConfig на каждом пересчёте гардеробной, но при неудачной сборке
+// конфига может не быть вовсе.
+function getCabinetUMConfig(item: any) {
+  const config = item.cabinet?.config;
+
+  return config?.SECTIONS && config.MODULEGRID ? config : null;
+}
+
+// Габариты тумбочки задаёт гардеробная: ширина — секция минус отступы по бокам,
+// глубина — вылет, высота своя (cabinetLimits.ts).
+function createCabinetSize(item: any, sectionWidth: number, shelfDepth: number) {
+  return {
+    width: getCabinetWidth(sectionWidth),
+    height: getCabinetHeight(item),
+    depth: shelfDepth,
+  };
+}
+
+// Элемент наполнения секции гардеробной — полка, штанга или метка тумбочки.
 // VALUE — высота установки от низа модуля, мм. SIZE.width — ширина секции
 // (= длина полки/штанги), SIZE.depth — вылет (getWardrobeShelfDepth),
 // SIZE.height — толщина: у полки реальная (ЛДСП — из _FASADE, стекло — из
 // товара-стекла), у штанги 0 (railHeight из сетки — высота для 2D, не размер
 // товара).
-function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: number, wardrobeProductId: number) {
+// Тумбочка — МЕТКА без ID товара: цена считается по её отдельной позиции
+// корзины (createCabinetItems), здесь только состав секции и ссылка BASKETID
+// на ту позицию.
+function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: number, wardrobeProductId: number, cabinetBasketId?: string) {
 
   const type = item.type ?? 'shelf';
+
+  if (type === 'cabinet') {
+    const result: any = {
+      PRODUCT_TYPE: type,
+      VALUE: item.positionY,
+      SIZE: createCabinetSize(item, sectionWidth, shelfDepth),
+    };
+
+    // Позиции нет, если у тумбочки не собрался конфиг УМ — ссылаться не на что
+    if (cabinetBasketId) result.BASKETID = cabinetBasketId;
+
+    return result;
+  }
 
   const result: any = {
     ID: item.productId,
@@ -691,8 +795,9 @@ function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: 
 // те же, что у box-УМ в creatSectionFilling.
 // Элементы идут поштучно, одинаковые не склеиваются: позиция по высоте у
 // каждого своя.
-// type === 'cabinet' пропускается — тумбочка станет отдельной позицией корзины.
-function createWardrobeGridData(objProps: any) {
+// Тумбочки остаются метками без цены — у каждой своя позиция корзины
+// (createCabinetItems), basketId нужен для ссылки на неё.
+function createWardrobeGridData(objProps: any, basketId: any = '') {
 
   const grid = migrateWardrobeGrid(objProps.CONFIG?.WARDROBEGRID);
   if (!grid?.sections?.length) return null;
@@ -718,11 +823,17 @@ function createWardrobeGridData(objProps: any) {
   });
 
   // WIDTH — внутреннее расстояние между профилями, сами профили в секцию не входят
-  const SECTIONS = grid.sections.map((section: any) => ({
+  const SECTIONS = grid.sections.map((section: any, secIndex: number) => ({
     WIDTH: section.width,
-    FILLING: (section.wardrobeFilling ?? [])
-      .filter((item: any) => (item.type ?? 'shelf') !== 'cabinet')
-      .map((item: any) => createWardrobeFillingItem(item, section.width, shelfDepth, wardrobeProductId)),
+    FILLING: (section.wardrobeFilling ?? []).map((item: any) => createWardrobeFillingItem(
+      item,
+      section.width,
+      shelfDepth,
+      wardrobeProductId,
+      item.type === 'cabinet' && getCabinetUMConfig(item)
+        ? createCabinetBasketId(basketId, secIndex, item.id)
+        : undefined,
+    )),
   }));
 
   return {
@@ -952,7 +1063,7 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
   // У гардеробной системы нет CONFIG.SECTIONS (её создаёт только
   // BuildUniversalModule для box-УМ), поэтому позиция уходит ветку ниже —
   // TYPE: "scene", а состав едет в PROPS.WARDROBEGRID
-  const wardrobeGridData = createWardrobeGridData(objProps);
+  const wardrobeGridData = createWardrobeGridData(objProps, key);
   if (wardrobeGridData) {
     props.WARDROBEGRID = wardrobeGridData;
   }
@@ -985,6 +1096,79 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
       TYPE: "scene",
     };
   }
+}
+
+// Позиции корзины для тумбочек гардеробной — по одной на каждую.
+// Тумбочка — обычный товар УМ (cabinetProduct.ts) со своим CONFIG в
+// item.cabinet.config, поэтому PROPS собирает тот же маппер, что и для box-УМ,
+// и TYPE тот же — "umscene". В сетке гардеробной от неё остаётся метка без
+// цены со ссылкой на этот BASKETID (createWardrobeFillingItem).
+// Размеры берутся из MODULEGRID, а не из CONFIG.SIZE: сохранённый SIZE
+// обновляется только при открытии сессии тумбочки (cabinetEditSession
+// .prepareConfig), после правки высоты в редакторе он отстаёт от сетки.
+export function createCabinetItems(objProps: TTotalProps, key: any = ''): IBasket[] {
+
+  const grid = migrateWardrobeGrid(objProps.CONFIG?.WARDROBEGRID);
+  if (!grid?.sections?.length) return [];
+
+  const items: IBasket[] = [];
+
+  grid.sections.forEach((section: any, secIndex: number) => {
+    (section.wardrobeFilling ?? []).forEach((item: any) => {
+
+      if (item.type !== 'cabinet') return;
+
+      const config = getCabinetUMConfig(item);
+      if (!config) {
+        console.warn(`Тумбочка ${item.id} в секции ${secIndex + 1}: нет конфига УМ, в корзину не попала`);
+        return;
+      }
+
+      const cabinetProps = {
+        CONFIG: {
+          ...config,
+          SIZE: {
+            ...config.SIZE,
+            width: config.MODULEGRID.width ?? config.SIZE?.width,
+            height: config.MODULEGRID.height ?? getCabinetHeight(item),
+            depth: config.MODULEGRID.depth ?? config.SIZE?.depth,
+          },
+        },
+        // Объекта на сцене нет; createFacadeProps берёт отсюда только trueSize фасадов
+        FASADE: [],
+      };
+
+      const HANDLES = [];
+      createFacadeProps(cabinetProps).forEach(fasade => {
+        if (fasade.HANDLES) HANDLES.push(fasade.HANDLES);
+      });
+
+      const props = removeEmptyObjects(convertModuleToLegacyFormat(cabinetProps));
+
+      // Место тумбочки в гардеробной — отдельным блоком, чтобы не смешиваться с
+      // legacy-ключами, по которым считается цена УМ.
+      // BASKETID — ровно то же значение, что у позиции гардеробной
+      // (не строка от него), POSITION_Y — высота от низа модуля, как VALUE у
+      // метки в сетке.
+      props.WARDROBE = {
+        BASKETID: key,
+        PRODUCT: grid.productID ?? objProps.CONFIG?.ID,
+        SECTION: secIndex + 1,
+        POSITION_Y: item.positionY,
+      };
+
+      items.push({
+        BASKETID: createCabinetBasketId(key, secIndex, item.id),
+        PRODUCT: item.productId,
+        PROPS: props,
+        QUANTITY: 1,
+        TYPE: "umscene",
+        HANDLES,
+      });
+    });
+  });
+
+  return items;
 }
 
 export function createGlobalData(filteredData: TTotalProps) {
