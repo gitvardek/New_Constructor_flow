@@ -1864,6 +1864,34 @@ const toggleFillingColor = (
   // sector.children[0].alpha = 0.5;
 };
 
+// Границы по наполнению собираются редьюсером от Infinity, поэтому у секции без наполнения
+// minX остаётся Infinity, а maxX — -Infinity. Такие значения нельзя пускать в Math.max:
+// Infinity проглатывает конструктивный минимум, а дальше его срезает защита от нечисловых
+function sanitizeMinWidth(value) {
+  return Number.isFinite(value) ? value : 0;
+}
+
+// Конструктивный минимум ширины секции: секцию нельзя сузить настолько, чтобы её ячейки
+// стали уже MIN_SECTION_WIDTH. Считаем по самой дроблёной ячейке — её вертикальные
+// разделители и сами занимают место. У узлов без ячеек своего минимума нет,
+// их ширину сторожит MIN_SECTION_WIDTH
+function getGridMinWidth(node) {
+  if (!node?.cells?.length) {
+    return 0;
+  }
+
+  let count = 1;
+  node.cells.forEach((cell) => {
+    if (cell.cellsRows?.length > count) {
+      count = cell.cellsRows.length;
+    }
+  });
+
+  return (
+    MIN_SECTION_WIDTH * count + props.module.moduleThickness * (count - 1)
+  );
+}
+
 // Обработчик для вертикального перетаскивания (между колонками)
 function onVerticalDragStart(event) {
 
@@ -1956,42 +1984,22 @@ function onVerticalDragStart(event) {
   dragState.startLeftWidth = cur.width;
   dragState.startRightWidth = next.width;
 
-  let curMin = cur.maxX;
-  if (cur.cells?.length) {
-    let count = 1;
-    cur.cells.forEach((elem) => {
-      if (elem.cellsRows?.length > count) {
-        count = elem.cellsRows.length;
-      }
-    });
+  // Ограничение от наполнения берём только у узлов с ячейками — у остальных его считает
+  // shapeAdjuster по сектору. Конструктивный минимум добавляем всегда: он не должен
+  // теряться, когда граница по наполнению пришла нечисловой (пустая секция даёт Infinity)
+  const curSectorMin = cur.cells?.length
+    ? sanitizeMinWidth(cur.maxX)
+    : sanitizeMinWidth(shapeAdjuster.getLeftSectionWidth(curSector, cur.maxX));
 
-    curMin = Math.max(
-      curMin,
-      MIN_SECTION_WIDTH * count + module.moduleThickness * (count - 1),
-    );
-    dragState.minXleft = curMin;
-  } else
-    dragState.minXleft = shapeAdjuster.getLeftSectionWidth(curSector, curMin);
+  dragState.minXleft = Math.max(curSectorMin, getGridMinWidth(cur));
 
-  let nextMin = next.minX;
-  if (next.cells?.length) {
-    let count = 1;
-    next.cells.forEach((elem) => {
-      if (elem.cellsRows?.length > count) {
-        count = elem.cellsRows.length;
-      }
-    });
+  const nextSectorMin = next.cells?.length
+    ? sanitizeMinWidth(next.minX)
+    : sanitizeMinWidth(
+      shapeAdjuster.getRightSectionWidth(nextSector, next.minX),
+    );
 
-    nextMin = Math.max(
-      nextMin,
-      MIN_SECTION_WIDTH * count + module.moduleThickness * (count - 1),
-    );
-    dragState.minXRight = nextMin;
-  } else
-    dragState.minXRight = shapeAdjuster.getRightSectionWidth(
-      nextSector,
-      nextMin,
-    );
+  dragState.minXRight = Math.max(nextSectorMin, getGridMinWidth(next));
 
   dragState.element = this;
   this.onDrag = true;
@@ -2996,37 +3004,19 @@ const adjustSectionSize = (
 
     if (dimension === "width") {
       if (nextRow) {
-        let curMin = next
-          ? currentRow.maxX
-          : currentRow.minX || MIN_SECTION_WIDTH;
-        if (currentRow.cells?.length) {
-          let count = 1;
-          currentRow.cells.forEach((elem) => {
-            if (elem.cellsRows?.length > count) {
-              count = elem.cellsRows.length;
-            }
-          });
+        // Конструктивный минимум добавляем поверх границы по наполнению: у пустой секции
+        // она приходит Infinity и в updateSizes обнуляется вместе с ним
+        const curMin = Math.max(
+          MIN_SECTION_WIDTH,
+          sanitizeMinWidth(next ? currentRow.maxX : currentRow.minX),
+          getGridMinWidth(currentRow),
+        );
 
-          curMin = Math.max(
-            curMin,
-            MIN_SECTION_WIDTH * count + module.moduleThickness * (count - 1),
-          );
-        }
-
-        let nextMin = next ? nextRow.minX : nextRow.maxX || MIN_SECTION_WIDTH;
-        if (nextRow.cells?.length) {
-          let count = 1;
-          nextRow.cells.forEach((elem) => {
-            if (elem.cellsRows?.length > count) {
-              count = elem.cellsRows.length;
-            }
-          });
-
-          nextMin = Math.max(
-            nextMin,
-            MIN_SECTION_WIDTH * count + module.moduleThickness * (count - 1),
-          );
-        }
+        const nextMin = Math.max(
+          MIN_SECTION_WIDTH,
+          sanitizeMinWidth(next ? nextRow.minX : nextRow.maxX),
+          getGridMinWidth(nextRow),
+        );
 
         const totalWidth = currentRow.width + nextRow.width;
         calcValue = updateSizes(
