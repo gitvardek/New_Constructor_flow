@@ -16,13 +16,13 @@ export const useCatalogStore = defineStore('catalog', () => {
   const productPrice = ref<any>('') // Стоимость продукта
 
   const currentPage = ref<string | number | boolean>('1'); // Текущая страница
-	const currentLevel =  ref<any>(null); // текущий левел 
+  const currentLevel = ref<any>(null); // текущий левел 
 
-	const pagination = ref<{}>({}) // Пагинация
-	const breadcrumb =  ref<any[]>([]); // хлебные крошки
-  
+  const pagination = ref<{}>({}) // Пагинация
+  const breadcrumb = ref<any[]>([]); // хлебные крошки
+
   const searchQuery = ref<string>(""); // если это строка запроса
-  
+
   const isLoading = ref(false)
   const error = ref<any>(null)
 
@@ -32,9 +32,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     try {
       isLoading.value = true
       error.value = null
-      
-      const response = await CatalogService.getCatalogList(idSection, page, query,config, style)
-      
+
+      const response = await CatalogService.getCatalogList(idSection, page, query, config, style)
+
       if (!response?.sections) {
         throw new Error('Invalid server response: missing sections')
       }
@@ -93,7 +93,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       error.value = null;
 
       const response = await CatalogService.getCatalogList({ idSection, page, query, config, style });
-      
+
       if (!response) {
         throw new Error('Invalid server response');
       }
@@ -125,9 +125,9 @@ export const useCatalogStore = defineStore('catalog', () => {
       isLoading.value = true
       error.value = null
       productDetails.value = null
-      
+
       const details = await CatalogService.getProductDetails(formData)
-      
+
       if (!details) {
         throw new Error('Product details not found')
       }
@@ -142,14 +142,14 @@ export const useCatalogStore = defineStore('catalog', () => {
       isLoading.value = false
     }
   };
-  
+
   const fetchProductPrice = async (formData: any) => {
     try {
       isLoading.value = true
       error.value = null
 
       const price = await CatalogService.getProductPrice(formData)
-      
+
       if (!price) {
         throw new Error('Product details not found')
       }
@@ -164,11 +164,11 @@ export const useCatalogStore = defineStore('catalog', () => {
       isLoading.value = false
     }
   };
-  
+
 
 
   // Helpers
-  const handleSectionsResponse = (sections: CatalogSectionItem[] | "undefined", idSection: any ) => {
+  const handleSectionsResponse = (sections: CatalogSectionItem[] | "undefined", idSection: any) => {
     if (sections === "undefined" || !sections.length) return [];
     const depthLevel = sections[0].DEPTH_LEVEL;
     currentLevel.value = depthLevel;
@@ -188,68 +188,78 @@ export const useCatalogStore = defineStore('catalog', () => {
   };
 
   const setDreadcrumb = (id: any, level: string, name: string) => {
-		const levelNum = parseInt(level);
-		breadcrumb.value = breadcrumb.value.slice(0, levelNum - 1);
-		breadcrumb.value.push({
-			name,
-			level,
-			id,
-		});
-		if (level === '1') currentMainID.value = id;
-		if (level !== '1') currentSubID.value = id;
-	};
+    const levelNum = parseInt(level);
+    breadcrumb.value = breadcrumb.value.slice(0, levelNum - 1);
+    breadcrumb.value.push({
+      name,
+      level,
+      id,
+    });
+    if (level === '1') currentMainID.value = id;
+    if (level !== '1') currentSubID.value = id;
+  };
 
   const resetCatalogData = () => {
     currentMainID.value = false;
     currentSubID.value = false;
     subCategoriesList.value = [];
     products.value = [];
-		breadcrumb.value = [];
+    breadcrumb.value = [];
     pagination.value = {};
     searchQuery.value = "";
-    currentPage.value ="1";
+    currentPage.value = "1";
     productDetails.value = null;
-    productPrice.value ="";
+    productPrice.value = "";
 
   };
 
-  const updateProductPrice = (data:any) => {
+  const hidePriceSpinner = () => {
+    const loader = document.querySelector('.spinner__loader_price');
+    const priceBlock = document.querySelector('.product__price');
+    const discountBlock = document.querySelector('.product__price.not__discount');
+
+    if (loader) {
+      loader.style.display = 'none';
+    }
+    if (priceBlock) {
+      priceBlock.style.display = 'block';
+    }
+    if (discountBlock) {
+      discountBlock.style.display = 'block';
+    }
+  };
+
+  const updateProductPrice = (data: any) => {
     try {
-        // Скрываем спиннер и показываем блоки с ценами
-        const loader = document.querySelector('.spinner__loader_price');
-        const priceBlock = document.querySelector('.product__price');
-        const discountBlock = document.querySelector('.product__price.not__discount');
-        
-        if (loader) loader.style.display = 'none';
-        if (priceBlock) priceBlock.style.display = 'block';
-        if (discountBlock) discountBlock.style.display = 'block';
+      hidePriceSpinner();
+      // Устанавливаем оригинальную цену
+      const priceElement = document.querySelector('.product__price-text');
+      if (priceElement) {
+        priceElement.innerHTML = data;
+      }
 
-        // Устанавливаем оригинальную цену
-        const priceElement = document.querySelector('.product__price-text');
-        if (priceElement) priceElement.innerHTML = data;
+      // Получаем коэффициент из скрытого поля (по умолчанию 1)
+      const coefficientInput = document.querySelector('[name="NOT_DISCOUNT"]');
+      const discountCoefficient = coefficientInput ? parseFloat(coefficientInput.value) : 1;
 
-        // Получаем коэффициент из скрытого поля (по умолчанию 1)
-        const coefficientInput = document.querySelector('[name="NOT_DISCOUNT"]');
-        const discountCoefficient = coefficientInput ? parseFloat(coefficientInput.value) : 1;
+      // Извлекаем число из строки формата "53 634 руб"
+      const originalPrice = parseFloat(data.replace(/\s+/g, '').replace('руб', ''));
 
-        // Извлекаем число из строки формата "53 634 руб"
-        const originalPrice = parseFloat(data.replace(/\s+/g, '').replace('руб', ''));
+      // Новая формула расчета: цена / (2 - кэф)
+      // Добавляем проверку, чтобы знаменатель не был равен 0
+      const denominator = 2 - discountCoefficient;
+      const newPrice = denominator !== 0 ? originalPrice / denominator : originalPrice;
 
-        // Новая формула расчета: цена / (2 - кэф)
-        // Добавляем проверку, чтобы знаменатель не был равен 0
-        const denominator = 2 - discountCoefficient;
-        const newPrice = denominator !== 0 ? originalPrice / denominator : originalPrice;
+      // Форматируем результат (разделяем тысячные разряды пробелами)
+      const formattedPrice = newPrice.toLocaleString('ru-RU') + ' руб';
 
-        // Форматируем результат (разделяем тысячные разряды пробелами)
-        const formattedPrice = newPrice.toLocaleString('ru-RU') + ' руб';
-
-        // Обновляем элемент с ценой
-        const discountPriceElement = document.querySelector('.product__price-notdiscount');
-        if (discountPriceElement) {
-            discountPriceElement.innerHTML = formattedPrice;
-        }
+      // Обновляем элемент с ценой
+      const discountPriceElement = document.querySelector('.product__price-notdiscount');
+      if (discountPriceElement) {
+        discountPriceElement.innerHTML = formattedPrice;
+      }
     } catch (error) {
-        console.error('Ошибка при обновлении цены:', error);
+      console.error('Ошибка при обновлении цены:', error);
     }
   };
 
@@ -280,5 +290,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchProductDetails,
     updateProductPrice,
     fetchProductPrice,
+    hidePriceSpinner
   }
 })
