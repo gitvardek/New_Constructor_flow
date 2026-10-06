@@ -484,6 +484,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
       const fasadesGlassKey = `GLASS${sectionNumber}`;
+      const fasadesTypeKey = `FASADETYPE${sectionNumber}`;
+      const fasadesInterTypeKey = `FASADETYPE${sectionNumber}`;
 
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = {};
@@ -491,6 +493,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       result[fasadesPaletteKey] = {};
       result[fasadesPattinaKey] = {};
       result[fasadesGlassKey] = {};
+      result[fasadesTypeKey] = {};
+      result[fasadesInterTypeKey] = {};
 
 
       section.fasades?.forEach(doorGroup => {
@@ -558,6 +562,27 @@ function convertModuleToLegacyFormat(newModuleObject) {
             }
             result[fasadesGlassKey][doorNumber][fasId] = fasade.material.GLASS;
           }
+          if (fasade.material.MILLING_TYPE
+          ) {
+            if (!result[fasadesTypeKey]) {
+              result[fasadesTypeKey] = {};
+            }
+            if (!result[fasadesTypeKey][doorNumber]) {
+              result[fasadesTypeKey][doorNumber] = {};
+            }
+            result[fasadesTypeKey][doorNumber][fasId] = fasade.material.MILLING_TYPE;
+          }
+
+          if (fasade.material.TYPE
+          ) {
+            if (!result[fasadesInterTypeKey]) {
+              result[fasadesInterTypeKey] = {};
+            }
+            if (!result[fasadesInterTypeKey][doorNumber]) {
+              result[fasadesInterTypeKey][doorNumber] = {};
+            }
+            result[fasadesInterTypeKey][doorNumber][fasId] = typeof fasade.material.TYPE === 'object' ? fasade.material.TYPE?.id : fasade.material.TYPE
+          }
         });
       });
 
@@ -569,6 +594,8 @@ function convertModuleToLegacyFormat(newModuleObject) {
       legacyProps[`${fasadesPattinaKey}`] = result[fasadesPattinaKey]
       legacyProps[`${fasadesPaletteKey}`] = result[fasadesPaletteKey]
       legacyProps[`${fasadesGlassKey}`] = result[fasadesGlassKey]
+      legacyProps[`${fasadesTypeKey}`] = result[fasadesTypeKey]
+      legacyProps[`${fasadesInterTypeKey}`] = result[fasadesInterTypeKey]
     });
 
 
@@ -583,6 +610,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
       const fasadesPaletteKey = `PALETTE${sectionNumber}`;
       const fasadesPattinaKey = `PATINA${sectionNumber}`;
       const fasadesGlassKey = `GLASS${sectionNumber}`;
+      const fasadesTypeKey = `FASADETYPE${sectionNumber}`;
 
       result[fasadesSizeKey] = {};
       result[fasadesWidthKey] = false;
@@ -590,6 +618,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
       result[fasadesPaletteKey] = {};
       result[fasadesPattinaKey] = {};
       result[fasadesGlassKey] = {};
+      result[fasadesTypeKey] = {};
 
       doorGroup.forEach((fasade, index) => {
 
@@ -637,6 +666,24 @@ function convertModuleToLegacyFormat(newModuleObject) {
           result[fasadesGlassKey][index] = fasade.material.GLASS;
         }
 
+        if (fasade.material.MILLING_TYPE
+        ) {
+          if (!result[fasadesTypeKey]) {
+            result[fasadesTypeKey] = {};
+          }
+
+          result[fasadesTypeKey][index] = fasade.material.MILLING_TYPE;
+        }
+
+        if (fasade.material.TYPE?.id
+        ) {
+          if (!result[fasadesTypeKey]) {
+            result[fasadesTypeKey] = {};
+          }
+
+          result[fasadesTypeKey][index] = fasade.material.TYPE.id;
+        }
+
       });
 
       legacyProps[`${fasadesSizeKey}`] = result[fasadesSizeKey]
@@ -645,6 +692,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
       legacyProps[`${fasadesPattinaKey}`] = result[fasadesPattinaKey]
       legacyProps[`${fasadesPaletteKey}`] = result[fasadesPaletteKey]
       legacyProps[`${fasadesGlassKey}`] = result[fasadesGlassKey]
+      legacyProps[`${fasadesTypeKey}`] = result[fasadesTypeKey]
     });
 
     legacyProps[`LOOPS`] = transformLoops(CONFIG.MODULEGRID?.sections, CONFIG.MODULEGRID?.horizont, CONFIG.MODULEGRID?.moduleThickness).coords;

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { CatalogService } from '@/services/catalogService'
 
 export const useCatalogStore = defineStore('catalog', () => {
@@ -13,16 +13,16 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   const products = ref<any[]>([]) // Список продуктов 
   const productDetails = ref<any>(null) // Характеристики продукта
-  const productPrice = ref<any>('') // Стоимость продукта
+  const productPrice = ref<any>(null) // Стоимость продукта
 
   const currentPage = ref<string | number | boolean>('1'); // Текущая страница
-	const currentLevel =  ref<any>(null); // текущий левел 
+  const currentLevel = ref<any>(null); // текущий левел 
 
-	const pagination = ref<{}>({}) // Пагинация
-	const breadcrumb =  ref<any[]>([]); // хлебные крошки
-  
+  const pagination = ref<{}>({}) // Пагинация
+  const breadcrumb = ref<any[]>([]); // хлебные крошки
+
   const searchQuery = ref<string>(""); // если это строка запроса
-  
+
   const isLoading = ref(false)
   const error = ref<any>(null)
 
@@ -32,9 +32,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     try {
       isLoading.value = true
       error.value = null
-      
+
       const response = await CatalogService.getCatalogList(idSection, page, query,config, style)
-      
+
       if (!response?.sections) {
         throw new Error('Invalid server response: missing sections')
       }
@@ -77,7 +77,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     // Фильтруем: исключаем объекты, где items пустой массив И pager равен false
     // Также исключаем null/undefined, если были ошибки
     const filteredSections = sectionsNew.filter(item => {
-      console.log();
       if (!item) return false; // исключаем null/undefined
       const isEmptyItems = Array.isArray(item.items) && item.items.length === 0;
       const isPagerFalse = item.pager === false;
@@ -94,7 +93,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       error.value = null;
 
       const response = await CatalogService.getCatalogList({ idSection, page, query, config, style });
-      
+
       if (!response) {
         throw new Error('Invalid server response');
       }
@@ -126,9 +125,9 @@ export const useCatalogStore = defineStore('catalog', () => {
       isLoading.value = true
       error.value = null
       productDetails.value = null
-      
+
       const details = await CatalogService.getProductDetails(formData)
-      
+
       if (!details) {
         throw new Error('Product details not found')
       }
@@ -143,14 +142,14 @@ export const useCatalogStore = defineStore('catalog', () => {
       isLoading.value = false
     }
   };
-  
+
   const fetchProductPrice = async (formData: any) => {
     try {
       isLoading.value = true
       error.value = null
 
       const price = await CatalogService.getProductPrice(formData)
-      
+
       if (!price) {
         throw new Error('Product details not found')
       }
@@ -165,11 +164,11 @@ export const useCatalogStore = defineStore('catalog', () => {
       isLoading.value = false
     }
   };
-  
+
 
 
   // Helpers
-  const handleSectionsResponse = (sections: CatalogSectionItem[] | "undefined", idSection: any ) => {
+  const handleSectionsResponse = (sections: CatalogSectionItem[] | "undefined", idSection: any) => {
     if (sections === "undefined" || !sections.length) return [];
     const depthLevel = sections[0].DEPTH_LEVEL;
     currentLevel.value = depthLevel;
@@ -189,69 +188,82 @@ export const useCatalogStore = defineStore('catalog', () => {
   };
 
   const setDreadcrumb = (id: any, level: string, name: string) => {
-		const levelNum = parseInt(level);
-		breadcrumb.value = breadcrumb.value.slice(0, levelNum - 1);
-		breadcrumb.value.push({
-			name,
-			level,
-			id,
-		});
-		if (level === '1') currentMainID.value = id;
-		if (level !== '1') currentSubID.value = id;
-	};
+    const levelNum = parseInt(level);
+    breadcrumb.value = breadcrumb.value.slice(0, levelNum - 1);
+    breadcrumb.value.push({
+      name,
+      level,
+      id,
+    });
+    if (level === '1') currentMainID.value = id;
+    if (level !== '1') currentSubID.value = id;
+  };
 
   const resetCatalogData = () => {
     currentMainID.value = false;
     currentSubID.value = false;
     subCategoriesList.value = [];
     products.value = [];
-		breadcrumb.value = [];
+    breadcrumb.value = [];
     pagination.value = {};
     searchQuery.value = "";
-    currentPage.value ="1";
+    currentPage.value = "1";
     productDetails.value = null;
-    productPrice.value ="";
+    productPrice.value = "";
 
   };
 
-  const updateProductPrice = (data:any) => {
-    console.log('data', data);
+  // Скрываем спиннер цены и показываем блоки с ценами.
+  // Вынесено отдельно, чтобы спиннер можно было убрать и при ошибке запроса цены
+  const hidePriceSpinner = () => {
+    const loader = document.querySelector('.spinner__loader_price');
+    const priceBlock = document.querySelector('.product__price');
+    const discountBlock = document.querySelector('.product__price.not__discount');
+
+    if (loader) {
+      loader.style.display = 'none';
+    }
+    if (priceBlock) {
+      priceBlock.style.display = 'block';
+    }
+    if (discountBlock) {
+      discountBlock.style.display = 'block';
+    }
+  };
+
+  const updateProductPrice = (data: any) => {
     try {
-        // Скрываем спиннер и показываем блоки с ценами
-        const loader = document.querySelector('.spinner__loader_price');
-        const priceBlock = document.querySelector('.product__price');
-        const discountBlock = document.querySelector('.product__price.not__discount');
-        
-        if (loader) loader.style.display = 'none';
-        if (priceBlock) priceBlock.style.display = 'block';
-        if (discountBlock) discountBlock.style.display = 'block';
+      hidePriceSpinner();
 
-        // Устанавливаем оригинальную цену
-        const priceElement = document.querySelector('.product__price-text');
-        if (priceElement) priceElement.innerHTML = data;
+      // Устанавливаем оригинальную цену
+      const priceElement = document.querySelector('.product__price-text');
 
-        // Получаем коэффициент из скрытого поля (по умолчанию 1)
-        const coefficientInput = document.querySelector('[name="NOT_DISCOUNT"]');
-        const discountCoefficient = coefficientInput ? parseFloat(coefficientInput.value) : 1;
+      if (priceElement) {
+        priceElement.innerHTML = data;
+      }
 
-        // Извлекаем число из строки формата "53 634 руб"
-        const originalPrice = parseFloat(data.replace(/\s+/g, '').replace('руб', ''));
+      // Получаем коэффициент из скрытого поля (по умолчанию 1)
+      const coefficientInput = document.querySelector('[name="NOT_DISCOUNT"]');
+      const discountCoefficient = coefficientInput ? parseFloat(coefficientInput.value) : 1;
 
-        // Новая формула расчета: цена / (2 - кэф)
-        // Добавляем проверку, чтобы знаменатель не был равен 0
-        const denominator = 2 - discountCoefficient;
-        const newPrice = denominator !== 0 ? originalPrice / denominator : originalPrice;
+      // Извлекаем число из строки формата "53 634 руб"
+      const originalPrice = parseFloat(data.replace(/\s+/g, '').replace('руб', ''));
 
-        // Форматируем результат (разделяем тысячные разряды пробелами)
-        const formattedPrice = newPrice.toLocaleString('ru-RU') + ' руб';
+      // Новая формула расчета: цена / (2 - кэф)
+      // Добавляем проверку, чтобы знаменатель не был равен 0
+      const denominator = 2 - discountCoefficient;
+      const newPrice = denominator !== 0 ? originalPrice / denominator : originalPrice;
 
-        // Обновляем элемент с ценой
-        const discountPriceElement = document.querySelector('.product__price-notdiscount');
-        if (discountPriceElement) {
-            discountPriceElement.innerHTML = formattedPrice;
-        }
+      // Форматируем результат (разделяем тысячные разряды пробелами)
+      const formattedPrice = newPrice.toLocaleString('ru-RU') + ' руб';
+
+      // Обновляем элемент с ценой
+      const discountPriceElement = document.querySelector('.product__price-notdiscount');
+      if (discountPriceElement) {
+        discountPriceElement.innerHTML = formattedPrice;
+      }
     } catch (error) {
-        console.error('Ошибка при обновлении цены:', error);
+      console.error('Ошибка при обновлении цены:', error);
     }
   };
 
@@ -281,6 +293,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     resetCatalogData,
     fetchProductDetails,
     updateProductPrice,
+    hidePriceSpinner,
     fetchProductPrice,
   }
 })

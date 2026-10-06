@@ -182,8 +182,6 @@ const {
   fetchSubCatalogData,
   setDreadcrumb,
   resetCatalogData,
-  updateProductPrice,
-  fetchProductPrice,
 } = catalogStore;
 
 const searchTimeout = ref(null);
@@ -203,9 +201,9 @@ const displayedSubCategories = computed(() => {
 const hasMoreSubCategories = computed(
   () => filteredSubCategories.value.length > 6,
 );
-const priceProduct = computed(() =>
-  catalogStore.updateProductPrice(productPrice.value),
-);
+// const priceProduct = computed(() =>
+//   catalogStore.updateProductPrice(productPrice.value),
+// );
 
 onMounted(async () => {
   console.log(appData.appData.CITY.config);
@@ -219,14 +217,15 @@ onMounted(async () => {
   });
 });
 
-watch(
-  () => productPrice.value,
-  (newValue, oldValue) => {
-    console.log("Цена изменилась:", oldValue, "→", newValue);
-    catalogStore.updateProductPrice(productPrice.value);
-    // Дополнительные действия при изменении
-  },
-);
+// watch(() => productDetails.value,
+//   () => {
+//     catalogStore.updateProductPrice(productPrice.value);
+//     console.log('CHANGE')
+//   })
+
+// Цена обновляется напрямую в ProductDetails после ответа сервера:
+// watch не срабатывал, когда цена не изменилась (повторный вход в тот же товар),
+// и спиннер оставался висеть
 
 // Methods
 const handleCategoriesListClick = async (data) => {
