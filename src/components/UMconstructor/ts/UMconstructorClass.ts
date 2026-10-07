@@ -551,7 +551,7 @@ export default class UMconstructorClass {
                         newCell.width = newSection.width;
                         newCell.position.copy(positionCells.clone())
 
-                        if (newCell.position.y - moduleGrid.moduleThickness > newSection.height) {
+                        if (newCell.position.y - newSection.position.y >= newSection.height) {
                             break;
                         }
 
@@ -614,6 +614,10 @@ export default class UMconstructorClass {
 
                                         newExtra.position.copy(positionRowExtras.clone())
                                         newExtra.width = newRow.width;
+
+                                        if (newExtra.position.y - newRow.position.y >= newRow.height) {
+                                            break;
+                                        }
 
                                         lastExtraHeight -= newExtra.height
 
