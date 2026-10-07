@@ -821,9 +821,9 @@ onBeforeUnmount(() => {
           @delete-choise="deleteSelectedOptions" />
       </template>
 
-      <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList" @change="onChangeIntegratedHandlePos" />
+      <!-- <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList" @change="onChangeIntegratedHandlePos" />
 
-      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList" @change="onChangeMillingHandlePos" />
+      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList" @change="onChangeMillingHandlePos" /> -->
     </div>
 
     <!-- Редактор выбранной опции: список значений, выбор уходит в обработчик опции -->
