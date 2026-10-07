@@ -337,6 +337,27 @@ export function getWardrobeShelfThickness(
     return fasade?.DEPTH ?? 18;
 }
 
+// Длина ДОСКИ наклонной полки, мм, из глубины МОДУЛЯ: под наклоном доска
+// должна перекрывать ту же глубину, что прямая полка, причём её габарит
+// ВМЕСТЕ с толщиной укладывается ровно в неё:
+//     depth = L·cos(угол) + толщина·sin(угол)  =>  L = (depth − толщина·sin)/cos
+// Поэтому наклонная ДЛИННЕЕ прямой (550 -> ~563 при толщине 16).
+function angledShelfBoardLength(thicknessMm: number, depthMm: number): number {
+    const angleRad = (WARDROBE_ANGLED_SHELF_ANGLE_DEG * Math.PI) / 180;
+
+    return (depthMm - thicknessMm * Math.sin(angleRad)) / Math.cos(angleRad);
+}
+
+// То же по данным полки — для 3D (ShelfBuilder строит доску этой длины) и
+// корзины (её и отдаём как глубину наклонной полки).
+export function getWardrobeAngledShelfLength(
+    shelf: { colorId?: number; material?: 'ldsp' | 'glass' },
+    depthMm: number,
+    wardrobeProductId?: number,
+): number {
+    return angledShelfBoardLength(getWardrobeShelfThickness(shelf.colorId, shelf.material, wardrobeProductId), depthMm);
+}
+
 // Геометрия наклонной полки — ОДИН источник для 2D
 // (getWardrobeShelfPixiHeight) и 3D (ShelfBuilder.buildWardrobeAngledShelf).
 //

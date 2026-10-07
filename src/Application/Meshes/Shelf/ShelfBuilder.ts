@@ -8,7 +8,7 @@ import {
     WARDROBE_SHELF_BRACKET_HEIGHT_FLAT,
     WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED,
 } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeShelfThickness, getWardrobeAngledShelfPivotOffset, getWardrobeShelfDepth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeShelfThickness, getWardrobeAngledShelfLength, getWardrobeAngledShelfPivotOffset, getWardrobeShelfDepth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { createGlassMaterial } from "@/Application/Meshes/Utils/glassMaterial.ts";
 import { createWardrobeMetalMaterial } from "@/Application/Meshes/Wardrobe/WardrobeFillingMeshBuilder.ts";
 import {
@@ -379,7 +379,10 @@ export class ShelfBuilder {
         const shelfSize = {
             width: shelfWidth,
             height: shelfThickness,
-            depth: shelfDepth,
+            // Под наклоном доска ДЛИННЕЕ глубины модуля — иначе до переднего
+            // края не достаёт (getWardrobeAngledShelfLength, тот же источник
+            // у 2D-проекции и у корзины).
+            depth: getWardrobeAngledShelfLength({ colorId, material }, shelfDepth, wardrobeProductId),
         }
 
         const data = this.parent.createModelData(this.parent._MODELS[productInfo.models[0]], props, shelfSize)

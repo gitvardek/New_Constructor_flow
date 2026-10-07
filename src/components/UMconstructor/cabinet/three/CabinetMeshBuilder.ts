@@ -57,6 +57,11 @@ export class CabinetMeshBuilder {
         // Стрелки размеров — у объекта сцены, не у тумбочки внутри гардеробной.
         cabinetProps.ARROWS?.removeFromParent()
 
+        // Наполнение тумбочки
+        if (item.cabinet?.config) {
+            item.cabinet.config.SECTIONS = cloneUMData(cabinetProps.CONFIG.SECTIONS)
+        }
+
         // Положение по измеренному габариту КОРПУСА (PROPS.BODY — его пишет
         // createBody): начало координат модели УМ не обязано совпадать с её
         // центром/низом, а фасады и наполнение выступают за корпус и не должны

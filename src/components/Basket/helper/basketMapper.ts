@@ -6,7 +6,7 @@ import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoo
 import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { useModelState } from "@/store/appliction/useModelState"
-import { getWardrobeShelfDepth, getWardrobeShelfThickness, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
+import { getWardrobeAngledShelfLength, getWardrobeShelfDepth, getWardrobeShelfThickness, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
 import { getCabinetHeight, getCabinetWidth } from "@/components/UMconstructor/cabinet/CabinetSystem"
 
 const appDataStore = useAppData();
@@ -499,6 +499,7 @@ function convertModuleToLegacyFormat(newModuleObject) {
           }
           result[fasadesHorizontlPositionKey][doorNumber][0] = fasade.position.x;
 
+
           if (fasade.material.MILLING) {
             if (!result[fasadesMillingKey]) {
               result[fasadesMillingKey] = {};
@@ -738,14 +739,15 @@ function createCabinetSize(item: any, sectionWidth: number, shelfDepth: number) 
 }
 
 // Элемент наполнения секции гардеробной — полка, штанга или метка тумбочки.
-// VALUE — высота установки от низа модуля, мм. SIZE.width — ширина секции
-// (= длина полки/штанги), SIZE.depth — вылет (getWardrobeShelfDepth),
-// SIZE.height — толщина: у полки реальная (ЛДСП — из _FASADE, стекло — из
-// товара-стекла), у штанги 0 (railHeight из сетки — высота для 2D, не размер
-// товара).
-// Тумбочка — МЕТКА без ID товара: цена считается по её отдельной позиции
-// корзины (createCabinetItems), здесь только состав секции и ссылка BASKETID
-// на ту позицию.
+// VALUE — высота установки от низа модуля, мм. Размеры — ФАКТИЧЕСКИЕ, по типу:
+//   полка   — SIZE.width ширина секции, SIZE.height толщина материала (ЛДСП из
+//             _FASADE, стекло из товара-стекла), SIZE.depth на всю глубину
+//             модуля у прямой и длина наклонной доски у наклонной
+//             (getWardrobeAngledShelfLength — ею же строится 3D);
+//   штанга  — только длина (SIZE.width): сечение из сетки служебное, в цену не идёт;
+//   тумбочка — МЕТКА без ID товара, цена считается по её отдельной позиции
+//             корзины (createCabinetItems); здесь только состав секции и
+//             ссылка BASKETID на ту позицию.
 function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: number, wardrobeProductId: number, cabinetBasketId?: string) {
 
   const type = item.type ?? 'shelf';
@@ -763,6 +765,17 @@ function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: 
     return result;
   }
 
+  if (type === 'rail') {
+    return {
+      ID: item.productId,
+      PRODUCT_TYPE: type,
+      VALUE: item.positionY,
+      SIZE: {
+        width: sectionWidth,
+      },
+    };
+  }
+
   const result: any = {
     ID: item.productId,
     PRODUCT_TYPE: type,
@@ -776,10 +789,17 @@ function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: 
 
   if (type === 'shelf') {
     const material = item.material ?? 'ldsp';
+    const shelfType = item.shelfType ?? 'flat';
 
     result.MATERIAL = material;
-    result.SHELF_TYPE = item.shelfType ?? 'flat';
+    result.SHELF_TYPE = shelfType;
     result.SIZE.height = getWardrobeShelfThickness(item.colorId, material, wardrobeProductId);
+
+    // Наклонная доска ДЛИННЕЕ прямой: под углом она перекрывает ту же глубину
+    // модуля. Длина — из того же хелпера, по которому её строит 3D.
+    if (shelfType === 'angled') {
+      result.SIZE.depth = Math.round(getWardrobeAngledShelfLength(item, shelfDepth, wardrobeProductId));
+    }
 
     // У стеклянной полки материал не выбирается — colorId нет
     if (item.colorId != null) result.MATERIAL_ID = item.colorId;
