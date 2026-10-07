@@ -609,6 +609,8 @@ export default class FasadesManager {
         );
         // Обновляем высоту последней строки
 
+        Object.assign(segment, this.getFasadePositionMinMax(segment))
+
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
             segment.material.COLOR,
             <TFasadeTrueSizes>{ FASADE_WIDTH: segment.width, FASADE_HEIGHT: segment.height }
@@ -1009,5 +1011,75 @@ export default class FasadesManager {
             )
         }
 
+    };
+
+    // Размер фасада вышел за пределы, доступные его материалу, сбрасываем в «без фасада»
+    markOversizedFasades(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        // IGNORE_SIZE у продукта снимает все ограничения по размеру
+        if (this.FASADES_CONVERSATION.checkIgnore(this.scope.MODEL_STATE.getCurrentModel)) {
+            return
+        }
+
+        const maxWidth = grid.isSlidingDoors
+            ? this.scope.CONST.MAX_SLIDE_DOOR_WIDTH
+            : this.scope.CONST.MAX_FASADE_WIDTH
+
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    if (fasade?.width > maxWidth) {
+                        fasade.error = true
+                    }
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+    };
+
+    resetErrorFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
+
+        let resetCount = 0
+
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    if (!fasade?.error) {
+                        return
+                    }
+
+                    const color = fasade.material?.COLOR
+
+                    if (!color || +color === NO_FASADE_ID) {
+                        return
+                    }
+
+                    const fitsBounds = fasade.width >= (fasade.minX ?? 0)
+                        && fasade.height >= (fasade.minY ?? 0)
+
+                    if (!fitsBounds) {
+                        return
+                    }
+
+                    this.resetFasadeMaterial(fasade.material)
+                    delete fasade.error
+                    resetCount += 1
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+
+        // Одно сообщение на весь проход: метод зовётся при каждом пересчёте, но повторно
+        // ничего не сбрасывает — уже сброшенные отсеиваются по цвету «без фасада»
+        if (resetCount) {
+            this.scope.callAlert(
+                "warning",
+                `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: полотно такого размера в нём не выпускается`
+            )
+        }
     };
 }

@@ -123,14 +123,22 @@ export const useConversationActions = (getModel?: () => any) => {
         const groupId = section?.UF_GROUP ?? section;
         const isIgnoreSize = checkIgnore(curModel)
 
-        if (!groupId || isIgnoreSize) return temp
-
-        const toCheck = modelState._FASADE_SIZE_RESTRICT[section.ID];
-
 
         // Дверные лимиты УМ применимы только к дверям: боковая стенка и накладка
         // ограничены размером листа, поэтому для них ветка isUM пропускается
         const useDoorLimits = isUM && !isPanel
+
+        if (!groupId || isIgnoreSize) {
+
+            if (useDoorLimits && !isIgnoreSize) {
+                temp.MAX_WIDTH = isSlideDoor ? UM_PARAMS.MAX_SLIDE_DOOR_WIDTH : UM_PARAMS.MAX_FASADE_WIDTH
+                temp.MIN_WIDTH = isSlideDoor ? UM_PARAMS.MIN_SLIDE_DOOR_WIDTH : UM_PARAMS.MIN_FASADE_WIDTH
+            }
+
+            return temp
+        }
+
+        const toCheck = modelState._FASADE_SIZE_RESTRICT[section.ID];
 
         restrict = {
             MAX_HEIGHT: toCheck ? _FASADE_SIZE_RESTRICT[section.ID].SIZE_RESTRICT.HEIGHT : Infinity,
