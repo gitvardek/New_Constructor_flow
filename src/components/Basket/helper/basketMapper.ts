@@ -867,6 +867,7 @@ function createWardrobeGridData(objProps: any, basketId: any = '') {
     },
     PROFILES,
     SECTIONS,
+    BASKETID: basketId,
   };
 }
 
