@@ -1175,7 +1175,8 @@ export function createCabinetItems(objProps: TTotalProps, key: any = ''): IBaske
       // (не строка от него), POSITION_Y — высота от низа модуля, как VALUE у
       // метки в сетке.
       props.WARDROBE = {
-        BASKETID: key,
+        PARENT_BASKETID: key,
+        BASKETID: createCabinetBasketId(key, secIndex, item.id),
         PRODUCT: grid.productID ?? objProps.CONFIG?.ID,
         SECTION: secIndex + 1,
         POSITION_Y: item.positionY,
