@@ -428,6 +428,22 @@ const getHoleOptionsActive = computed(() => {
 
 /** =================== @Опции_Услуги =================== */
 
+// Глобальная_услуга — услуга с separated === 0: одно значение на всю столешницу (tempUslugi → PROPS.CONFIG.USLUGI).
+const isGlobalService = (service) => parseInt(service?.separated) === 0;
+
+// Сбрасывает_значения_локальных_услуг_в_общем_списке.
+const sanitizeGlobalUslugi = (list) => {
+  if (!Array.isArray(list)) return list;
+
+  list.forEach((usluga) => {
+    if (!isGlobalService(usluga)) {
+      usluga.value = false;
+    }
+  });
+
+  return list;
+};
+
 const createProfileServices = () => {
   /** Отладка */
 
@@ -474,23 +490,19 @@ const checkProfileDisablegroups = (keepValues = true) => {
     column.forEach((row) => {
       const temp = curProfileServise.map((el) => {
 
-        // const curUsluga = keepValues
-        //   ? row.serviseData.find((usluga) => usluga.ID === el.ID)
-        //   : null;
-
-        // const value = curUsluga ? curUsluga.value : false;
-
         const curUsluga = row.serviseData.find((usluga) => usluga.ID === el.ID);
-        if (curUsluga) el.value = curUsluga.value;
-        else el.value = false;
 
-        // return el;
+        // el — элемент общего списка tempUslugi (filter в createProfileServices отдаёт ссылки)
+        const value = isGlobalService(el)
+          ? Boolean(el.value)
+          : Boolean(curUsluga?.value);
+
         return {
           ID: el.ID,
           NAME: el.NAME,
           NEW_CONSTRUCTOR_GROUP: el.NEW_CONSTRUCTOR_GROUP,
           NEW_CONSTRUCTOR_CHOISEGROUP: el.NEW_CONSTRUCTOR_CHOISEGROUP,
-          value: el.value,
+          value,
           RADIUS: el.RADIUS,
           EURO_WIDTH: el.EURO_WIDTH && curUsluga?.EURO_WIDTH ? curUsluga.EURO_WIDTH : el.EURO_WIDTH,
           CORNER: el.CORNER,
@@ -503,6 +515,9 @@ const checkProfileDisablegroups = (keepValues = true) => {
       row.serviseData = temp;
     }),
   );
+
+
+
 
   const check = grid.value.flatMap(service =>
     service.flatMap(el =>
@@ -521,17 +536,18 @@ const checkProfileDisablegroups = (keepValues = true) => {
     getCurretKromkaList();
   }
 
+  // Локальные услуги в общем списке значений не имеют — держим их выключенными всегда
+  sanitizeGlobalUslugi(tempUslugi.value);
+
   if (!keepValues) {
+    // Профиль сменился: глобальные услуги, которых нет в новом списке, снимаем
     const newProfileIds = new Set(curProfileServise.map((s) => s.ID));
     tempUslugi.value.forEach((usluga) => {
-      console.log(usluga, 'usluga')
-
-      if (!newProfileIds.has(usluga.ID) || parseInt(usluga.separated) !== 0) {
+      if (!newProfileIds.has(usluga.ID)) {
         usluga.value = false;
       }
     });
   }
-
 };
 
 const convertProfileData = (value, item) => {
@@ -1018,7 +1034,7 @@ const createServiseData = () => {
   const serviseList = tempProfile.value.length > 0 ? createProfileServices() : tempUslugi.value;
 
   const convertParams = serviseList.reduce((acc, el) => {
-    const checkGlobal = el.separated == 0 ? el.value : false;
+    const checkGlobal = isGlobalService(el) ? Boolean(el.value) : false;
 
     const param = {
       // ...el,
@@ -1049,11 +1065,6 @@ const clearServiseData = (row) => {
 };
 
 const reset = (reset = false) => {
-  const parent = modelState.getCurrentRaspilParent;
-
-  const { PROPS } = parent.userData;
-  const { USLUGI } = PROPS.CONFIG;
-
   grid.value.length = 0;
   grid.value.push([
     {
@@ -1061,7 +1072,7 @@ const reset = (reset = false) => {
       height: totalHeight.value,
       roundCut: {},
       holes: [],
-      serviseData: USLUGI,
+      serviseData: createServiseData(),
     },
   ]);
   holeOptions.value = { show: false, section: { col: 0, row: 0 } };
@@ -1077,7 +1088,7 @@ const saveProfile = () => {
 
   const parent = modelState.getCurrentRaspilParent;
   const { PROPS } = parent.userData;
-  PROPS.CONFIG.USLUGI = tempUslugi.value;
+  PROPS.CONFIG.USLUGI = sanitizeGlobalUslugi(tempUslugi.value);
   PROPS.CONFIG.PROFILE = tempProfile.value;
   PROPS.CONFIG.KROMKA = getCurrentKromkaId();
 };
@@ -1147,6 +1158,7 @@ onBeforeMount(() => {
   grid.value = JSON.parse(JSON.stringify(props.grid));
   tempProfile.value = JSON.parse(JSON.stringify(PROFILE));
   tempUslugi.value = JSON.parse(JSON.stringify(USLUGI));
+  sanitizeGlobalUslugi(tempUslugi.value);
   setGridData(grid.value);
   setProfileData(tempProfile.value);
   setKromkaId(KROMKA);
