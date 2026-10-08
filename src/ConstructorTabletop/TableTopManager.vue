@@ -419,6 +419,32 @@ const getHoleOptionsActive = computed(() => {
 
 /** =================== @Опции_Услуги =================== */
 
+/**
+ * @Глобальная_услуга — услуга с separated === 0: одно значение на всю столешницу.
+ * Её значение хранится в общем списке (tempUslugi → PROPS.CONFIG.USLUGI).
+ * Все остальные услуги локальные: задаются отдельно для каждой части и живут
+ * только в row.serviseData. В общий список они попадать не должны — иначе
+ * на беке и в корзине одна и та же услуга приходит и как глобальная, и как локальная.
+ */
+const isGlobalService = (service) => parseInt(service?.separated) === 0;
+
+/**
+ * @Сбрасывает_значения_локальных_услуг_в_общем_списке.
+ * Нужен и при загрузке (чистим уже испорченные сохранённые проекты),
+ * и при сохранении (барьер перед записью в PROPS.CONFIG.USLUGI).
+ */
+const sanitizeGlobalUslugi = (list) => {
+  if (!Array.isArray(list)) return list;
+
+  list.forEach((usluga) => {
+    if (!isGlobalService(usluga)) {
+      usluga.value = false;
+    }
+  });
+
+  return list;
+};
+
 const createProfileServices = () => {
   /** Отладка */
 
@@ -468,8 +494,15 @@ const checkProfileDisablegroups = (keepValues = true) => {
         // const value = curUsluga ? curUsluga.value : false;
 
         const curUsluga = row.serviseData.find((usluga) => usluga.ID === el.ID);
-        if (curUsluga) el.value = curUsluga.value;
-        else el.value = false;
+
+        // el — элемент общего списка tempUslugi (filter в createProfileServices отдаёт ссылки,
+        // а не копии). Поэтому значение секции сюда писать нельзя: раньше `el.value = curUsluga.value`
+        // затирало общий список значениями последней обработанной части, и при сохранении
+        // локальные услуги утекали в PROPS.CONFIG.USLUGI, а оттуда в корзину как глобальные опции.
+        // Источник истины: для глобальной услуги — общий список, для локальной — сама часть.
+        const value = isGlobalService(el)
+          ? Boolean(el.value)
+          : Boolean(curUsluga?.value);
 
         // return el;
         return {
@@ -477,7 +510,7 @@ const checkProfileDisablegroups = (keepValues = true) => {
           NAME: el.NAME,
           NEW_CONSTRUCTOR_GROUP: el.NEW_CONSTRUCTOR_GROUP,
           NEW_CONSTRUCTOR_CHOISEGROUP: el.NEW_CONSTRUCTOR_CHOISEGROUP,
-          value: el.value,
+          value,
           RADIUS: el.RADIUS,
           // Ширина еврозапила задаётся отдельно для каждой части, поэтому берём сохранённое значение секции,
           // иначе при перезаходе в редактор оно сбрасывается на значение по умолчанию из глобального списка услуг
@@ -513,17 +546,18 @@ const checkProfileDisablegroups = (keepValues = true) => {
     getCurretKromkaList();
   }
 
+  // Локальные услуги в общем списке значений не имеют — держим их выключенными всегда
+  sanitizeGlobalUslugi(tempUslugi.value);
+
   if (!keepValues) {
+    // Профиль сменился: глобальные услуги, которых нет в новом списке, снимаем
     const newProfileIds = new Set(curProfileServise.map((s) => s.ID));
     tempUslugi.value.forEach((usluga) => {
-
-      if (!newProfileIds.has(usluga.ID) || parseInt(usluga.separated) !== 0) {
+      if (!newProfileIds.has(usluga.ID)) {
         usluga.value = false;
       }
     });
   }
-
-
 };
 
 const convertProfileData = (value, item) => {
@@ -1011,7 +1045,7 @@ const createServiseData = () => {
 
   const convertParams = serviseList.reduce((acc, el) => {
 
-    const checkGlobal = el.separated == 0 ? el.value : false;
+    const checkGlobal = isGlobalService(el) ? Boolean(el.value) : false;
 
     const param = {
       // ...el,
@@ -1042,11 +1076,6 @@ const clearServiseData = (row) => {
 };
 
 const reset = (reset = false) => {
-  const parent = modelState.getCurrentRaspilParent;
-
-  const { PROPS } = parent.userData;
-  const { USLUGI } = PROPS.CONFIG;
-
   grid.value.length = 0;
   grid.value.push([
     {
@@ -1054,7 +1083,9 @@ const reset = (reset = false) => {
       height: totalHeight.value,
       roundCut: {},
       holes: [],
-      serviseData: USLUGI,
+      // Собственный список услуг секции. Раньше сюда подставлялся сам PROPS.CONFIG.USLUGI,
+      // и секция начинала редактировать общий список напрямую (значения, EURO_WIDTH, error)
+      serviseData: createServiseData(),
     },
   ]);
   holeOptions.value = { show: false, section: { col: 0, row: 0 } };
@@ -1070,7 +1101,8 @@ const saveProfile = () => {
 
   const parent = modelState.getCurrentRaspilParent;
   const { PROPS } = parent.userData;
-  PROPS.CONFIG.USLUGI = tempUslugi.value;
+  // В общий список пишем только глобальные услуги — локальные уже лежат в serviseData частей
+  PROPS.CONFIG.USLUGI = sanitizeGlobalUslugi(tempUslugi.value);
   PROPS.CONFIG.PROFILE = tempProfile.value;
   PROPS.CONFIG.KROMKA = getCurrentKromkaId();
 
@@ -1137,7 +1169,9 @@ onBeforeMount(() => {
   tempProfile.value = JSON.parse(JSON.stringify(PROFILE));
   tempUslugi.value = JSON.parse(JSON.stringify(USLUGI));
 
-  console.log(parent)
+  // Санитар уже сохранённых проектов: раньше в общий список могли утечь значения
+  // локальных услуг частей, и при пересохранении они уходили в корзину как глобальные
+  sanitizeGlobalUslugi(tempUslugi.value);
 
   setGridData(grid.value);
   setProfileData(tempProfile.value);

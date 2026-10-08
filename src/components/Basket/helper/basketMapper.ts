@@ -873,7 +873,8 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
           width: el.width,
           serviseData: el.serviseData.filter(el => el.value).map(el => {
 
-            if (el.separated == '0') return
+            // Глобальные услуги столешницы идут в props.USLUGI, а не в данные части
+            if (parseInt(el.separated) === 0) return
             if (el.EURO_WIDTH) {
               return {
                 ID: el.ID,
@@ -896,13 +897,20 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
 
   props.USLUGI = []
 
-  if (objProps.RASPIL.data && objProps.RASPIL.data.length > 1) {
-    props.USLUGI.push("98683");
-    objProps.CONFIG.USLUGI.forEach(el => {
-      if (el.value) {
+  // В USLUGI уходят только услуги, общие для всей столешницы (separated === 0).
+  // Локальные услуги частей передаются в props.RASPIL.data[].serviseData,
+  // и их дубль здесь ломает расчёт на беке.
+  const pushGlobalUslugi = () => {
+    (objProps.CONFIG.USLUGI || []).forEach(el => {
+      if (el.value && parseInt(el.separated) === 0) {
         props.USLUGI.push(el.ID);
       }
     });
+  }
+
+  if (objProps.RASPIL.data && objProps.RASPIL.data.length > 1) {
+    props.USLUGI.push("98683");
+    pushGlobalUslugi();
   }
 
   if (objProps.RASPIL.data) {
@@ -922,12 +930,7 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
   }
 
   if (objProps.RASPIL.data && objProps.RASPIL.data.length === 1) {
-
-    objProps.CONFIG.USLUGI.forEach(el => {
-      if (el.value === true) {
-        props.USLUGI.push(el.ID);
-      }
-    });
+    pushGlobalUslugi();
   }
 
   if (objProps.CONFIG.MECHANISM) {
