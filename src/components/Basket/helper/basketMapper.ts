@@ -177,9 +177,9 @@ function generateDoorsSimple(moduleData) {
       const sectionNum = number + 1;
       DOORS[sectionNum] = {};
 
-      section.fasades?.forEach(fasadeArray => {
+      section.fasades?.forEach((fasadeArray, doorIndex) => {
         fasadeArray.forEach((fasade, index) => {
-          const doorNum = fasade.door || 1;
+          const doorNum = fasade.door ?? doorIndex + 1; //  doorIndex + 1 для универсальной тумбочки
           const segmentNum = fasade.id - 1;
           const color = fasade.material.COLOR;
 
@@ -203,10 +203,10 @@ function generateMechanizmSimple(moduleData) {
   moduleData.sections?.forEach((section, number) => {
     const sectionNum = number + 1;
 
-    section.fasades?.forEach(fasadeArray => {
+    section.fasades?.forEach((fasadeArray, doorIndex) => {
       fasadeArray.forEach((fasade, index) => {
         const elem = {}
-        const doorNum = fasade.door || 1;
+        const doorNum = fasade.door ?? doorIndex + 1; //  doorIndex + 1 для универсальной тумбочки
         const segmentNum = index;
         elem.mechanizm = fasade.material.MECHANISM
         elem.section = sectionNum
@@ -476,9 +476,9 @@ function convertModuleToLegacyFormat(newModuleObject) {
       result[fasadesInterTypeKey] = {};
 
 
-      section.fasades?.forEach(doorGroup => {
+      section.fasades?.forEach((doorGroup, doorIndex) => {
         doorGroup.forEach((fasade, index) => {
-          const doorNumber = fasade.door;
+          const doorNumber = fasade.door ?? doorIndex + 1; // doorIndex + 1 для универсальной тумбочки
           const fasId = fasade.id - 1
 
           if (!result[fasadesSizeKey][doorNumber]) {
