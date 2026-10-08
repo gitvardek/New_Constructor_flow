@@ -563,7 +563,11 @@ export default class UMconstructorClass {
                         newCell.width = newSection.width;
                         newCell.position.copy(positionCells.clone())
 
-                        if (newCell.position.y - moduleGrid.moduleThickness > newSection.height) {
+                        // position.y абсолютный (включает цоколь и дно), поэтому сравнивать
+                        // его с высотой секции напрямую нельзя — выходим по смещению от низа
+                        // секции. Иначе цикл обрывается на ячейке, которой место ещё есть,
+                        // и оставшаяся высота не отдаётся последней ячейке
+                        if (newCell.position.y - newSection.position.y >= newSection.height) {
                             break;
                         }
 
@@ -630,6 +634,12 @@ export default class UMconstructorClass {
 
                                         newExtra.position.copy(positionRowExtras.clone())
                                         newExtra.width = newRow.width;
+
+                                        // Как и у ячеек: субъячейка, которой места уже не осталось,
+                                        // отбрасывается — иначе её высота уйдёт в минус и срежет предыдущую
+                                        if (newExtra.position.y - newRow.position.y >= newRow.height) {
+                                            break;
+                                        }
 
                                         lastExtraHeight -= newExtra.height
 
