@@ -8,6 +8,7 @@ import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { useModelState } from "@/store/appliction/useModelState"
 import { getWardrobeAngledShelfLength, getWardrobeShelfDepth, getWardrobeShelfThickness, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
 import { getCabinetHeight, getCabinetWidth } from "@/components/UMconstructor/cabinet/CabinetSystem"
+import { WARDROBE_PROFILE_DEPTH } from "@/Application/F-wardrobeData"
 
 const appDataStore = useAppData();
 const modelState = useModelState();
@@ -824,6 +825,7 @@ function createWardrobeGridData(objProps: any, basketId: any = '') {
 
   const wardrobeProductId = grid.productID ?? objProps.CONFIG?.ID;
   const shelfDepth = getWardrobeShelfDepth(grid);
+  const profilesCatalog = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.profile;
 
   // Профилей на один больше, чем секций: они стоят на границах секций и
   // секциям не принадлежат. SIZE — длина профиля (своя у каждого, высота
@@ -834,6 +836,7 @@ function createWardrobeGridData(objProps: any, basketId: any = '') {
       ID: profile.profileProductId,
       PRODUCT_TYPE: 'profile',
       SIZE: profile.height ?? grid.height,
+      DEPTH: Number(profilesCatalog?.[profile.profileProductId]?.depth) || WARDROBE_PROFILE_DEPTH,
     };
 
     if (profile.colorId != null) result.MATERIAL_ID = profile.colorId;
