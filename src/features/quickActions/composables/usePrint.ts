@@ -79,11 +79,11 @@ export const usePrint = () => {
       // Немедленно восстанавливаем корзину текущей комнаты —
       // до открытия диалога печати, чтобы связь 3D-сцены и корзины не терялась
       basketStore.updateBasket(savedBasketData as any);
-      
+
       // Получаем данные приложения для доступа к названиям цветов
       const appDataStore = useAppData();
       const appData = appDataStore.getAppData;
-      
+
       // Построение текстового описания товара из PROPS (аналог renderDescription в BasketItem.vue)
       const buildItemDescription = (product: any): string[] => {
         const rows: string[] = [];
@@ -120,7 +120,7 @@ export const usePrint = () => {
             if (fasade.GLASS) rows.push(`Стекло ${n}: ${appData?.GLASS?.[fasade.GLASS]?.NAME || fasade.GLASS}`);
             if (fasade.PATINA) rows.push(`Патина ${n}: ${appData?.PATINA?.[fasade.PATINA]?.NAME || fasade.PATINA}`);
             if (fasade.HANDLES) {
-              console.log(fasade.HANDLES,'<<<<HANDLES>>>>')
+              console.log(fasade.HANDLES, '<<<<HANDLES>>>>')
 
               const hId = fasade.HANDLES.ID ?? fasade.HANDLES.id;
               if (hId && hId !== 69920) {
@@ -180,6 +180,38 @@ export const usePrint = () => {
           props.OPTION.forEach((optId: any) => {
             const name = appData?.OPTION?.[optId]?.NAME;
             if (name) rows.push(`Опции: ${name}`);
+          });
+        }
+
+        // Опции и услуги столешницы (распила).
+        const resolveUsluga = (id: any): string =>
+          appData?.USLUGI?.[id]?.NAME || `Услуга ${id}`;
+
+        if (props.USLUGIraspil) rows.push(`Распил: ${props.USLUGIraspil}`);
+
+        if (props.PROFILE) rows.push(`Тип завала: ${resolveUsluga(props.PROFILE)}`);
+
+        if (props.KROMKA) {
+          rows.push(`Кромка: ${appData?.HEM?.[props.KROMKA]?.NAME || props.KROMKA}`);
+        }
+
+        if (Array.isArray(props.USLUGI) && props.USLUGI.length) {
+          props.USLUGI.forEach((uslugaId: any) => {
+            rows.push(`Услуга: ${resolveUsluga(uslugaId)}`);
+          });
+        }
+
+        // Услуги частей распила. NAME и width (ширина еврозапила) уже лежат в serviseData
+        if (Array.isArray(props.RASPIL?.data)) {
+          props.RASPIL.data.forEach((part: any, i: number) => {
+            const services = Array.isArray(part?.serviseData) ? part.serviseData : [];
+            if (!services.length) return;
+
+            rows.push(`Услуга ${i + 1}:`);
+            services.forEach((service: any) => {
+              const name = service?.NAME || resolveUsluga(service?.ID);
+              rows.push(`  ${name}${service?.width ? ` — ${service.width} мм` : ''}`);
+            });
           });
         }
 
@@ -246,7 +278,7 @@ export const usePrint = () => {
           timestamp: new Date(s.timestamp).toLocaleString()
         })));
       }
-      
+
       // Данные корзины
       const cartData = {
         items: basketData?.products?.map((item: any) => {
@@ -283,7 +315,7 @@ export const usePrint = () => {
       // Создаём скрытый div с печатным содержимым
       const printDiv = document.createElement('div');
       printDiv.id = 'print-content';
-      
+
       // Добавляем каждую комнату на отдельную страницу
       if (screenshots.length > 0) {
         // Группируем скриншоты по комнатам
@@ -294,32 +326,32 @@ export const usePrint = () => {
           }
           roomGroups.get(screenshot.roomId)!.push(screenshot);
         });
-        
+
         let isFirstRoom = true;
         roomGroups.forEach((roomScreenshots: IScreenshot[], roomId: string) => {
           const roomLabel = roomScreenshots[0]?.roomLabel || `Комната ${roomId}`;
-          
+
           let roomHTML = `
             <div class="a4-page">
               <div class="screenshot-container">
           `;
-          
+
           // Добавляем заголовок только на первую страницу
           if (isFirstRoom) {
             roomHTML += `<h2 class="print-title">3D Скриншоты проекта</h2>`;
             isFirstRoom = false;
           }
-          
+
           roomHTML += `
                 <div class="room-section">
                   <h3 class="room-title">${roomLabel}</h3>
                   <div class="room-screenshots">
           `;
-          
+
           roomScreenshots.forEach((screenshot: IScreenshot) => {
             const modeText = screenshot.mode === 'drawing' ? 'Режим чертежа' : 'Обычный режим';
             const blobUrl = URL.createObjectURL(screenshot.blob);
-            
+
             roomHTML += `
               <div class="screenshot-item">
                 <h4 class="screenshot-mode">${modeText}</h4>
@@ -328,20 +360,20 @@ export const usePrint = () => {
               </div>
             `;
           });
-          
+
           roomHTML += `
                   </div>
                 </div>
               </div>
             </div>
           `;
-          
+
           printDiv.innerHTML += roomHTML;
         });
       }
 
-            // Добавляем данные корзины
-            printDiv.innerHTML += `
+      // Добавляем данные корзины
+      printDiv.innerHTML += `
             <div class="a4-page">
               <div class="cart-section">
                 <h2 class="print-title">Данные корзины</h2>
@@ -366,10 +398,10 @@ export const usePrint = () => {
                     <td class="item-name">
                       <strong>${item.name}</strong>
                       ${item.description.length ? item.description.map(row =>
-                        row.startsWith('  ')
-                          ? `<span style="display:block;padding-left:12px;font-size:11px;color:#777;line-height:1.4;">${row.trim()}</span>`
-                          : `<span style="display:block;font-size:11px;color:#555;line-height:1.4;">${row}</span>`
-                      ).join('') : ''}
+        row.startsWith('  ')
+          ? `<span style="display:block;padding-left:12px;font-size:11px;color:#777;line-height:1.4;">${row.trim()}</span>`
+          : `<span style="display:block;font-size:11px;color:#555;line-height:1.4;">${row}</span>`
+      ).join('') : ''}
                     </td>
                     <td class="item-quantity">${item.quantity}</td>
                     <td class="item-price">${item.unitPrice}</td>
@@ -623,7 +655,7 @@ export const usePrint = () => {
       const images = printDiv.querySelectorAll('img');
       if (images.length > 0) {
         console.log(`Ожидаем загрузки ${images.length} изображений...`);
-        
+
         const imagePromises = Array.from(images).map((img, index) => {
           return new Promise<void>((resolve, reject) => {
             // Если изображение уже загружено
@@ -681,7 +713,7 @@ export const usePrint = () => {
             URL.revokeObjectURL(img.src);
           }
         });
-        
+
         document.head.removeChild(printStyles);
         document.body.removeChild(printDiv);
         window.removeEventListener('afterprint', cleanup);
