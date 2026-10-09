@@ -175,6 +175,40 @@ export const usePrint = () => {
           rows.push(`Горизонт: ${props.HORIZONT}`);
         }
 
+        // Опции и услуги столешницы (распила). Повторяет то, что BasketItem.vue
+        // показывает для товара-столешницы: глобальные услуги лежат плоским списком ID
+        // в PROPS.USLUGI, а локальные — по частям в PROPS.RASPIL.data[].serviseData
+        const resolveUsluga = (id: any): string =>
+          appData?.USLUGI?.[id]?.NAME || `Услуга ${id}`;
+
+        if (props.USLUGIraspil) rows.push(`Распил: ${props.USLUGIraspil}`);
+
+        if (props.PROFILE) rows.push(`Тип завала: ${resolveUsluga(props.PROFILE)}`);
+
+        if (props.KROMKA) {
+          rows.push(`Кромка: ${appData?.HEM?.[props.KROMKA]?.NAME || props.KROMKA}`);
+        }
+
+        if (Array.isArray(props.USLUGI) && props.USLUGI.length) {
+          props.USLUGI.forEach((uslugaId: any) => {
+            rows.push(`Услуга: ${resolveUsluga(uslugaId)}`);
+          });
+        }
+
+        // Услуги частей распила. NAME и width (ширина еврозапила) уже лежат в serviseData
+        if (Array.isArray(props.RASPIL?.data)) {
+          props.RASPIL.data.forEach((part: any, i: number) => {
+            const services = Array.isArray(part?.serviseData) ? part.serviseData : [];
+            if (!services.length) return;
+
+            rows.push(`Услуга ${i + 1}:`);
+            services.forEach((service: any) => {
+              const name = service?.NAME || resolveUsluga(service?.ID);
+              rows.push(`  ${name}${service?.width ? ` — ${service.width} мм` : ''}`);
+            });
+          });
+        }
+
         // Опции
         if (Array.isArray(props.OPTION) && props.OPTION.length) {
           props.OPTION.forEach((optId: any) => {
