@@ -1057,12 +1057,12 @@ export class MeshEvents extends BuildersHelper {
 
         //Применение позиционирования после изменений
 
+        // Габариты коллизии — по факту пересобранной геометрии, как при первой сборке
+        // модуля (BuildProduct.setBounds). Перетирать halfSize заданными размерами нельзя:
+        // центр габарита (obbCenter выше) посчитан по той же геометрии, и разъехавшиеся
+        // между собой центр и полуразмеры уводят OBB мимо тела
         const rebuiltObb = body.userData.obb?.clone();
         if (rebuiltObb) {
-            if (!isWardrobe) {
-                rebuiltObb.halfSize.x = data.width * 0.5;
-                rebuiltObb.halfSize.y = data.height * 0.5;
-            }
             this._currentMesh.userData.obb = rebuiltObb;
         }
         this.syncBoundsToWorld(this._currentMesh);
