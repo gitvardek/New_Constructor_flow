@@ -322,6 +322,9 @@ export class BuildProduct extends BuildersHelper {
 
         parent_group.userData.aabb = product.userData.aabb ?? aabb;
         parent_group.userData.obb = product.userData.obb ?? obb;
+        // Смещения центров габарита — см. setBounds и createProductBody
+        parent_group.userData.obbCenter = product.userData.obbCenter ?? new THREE.Vector3();
+        parent_group.userData.clampCenter = product.userData.clampCenter ?? new THREE.Vector3();
         parent_group.userData.restrictData = {};
 
         return parent_group;
@@ -611,6 +614,8 @@ export class BuildProduct extends BuildersHelper {
         const sourceForBounds = curBodyExceptions ? exept : tempTotal;
 
         if (sourceForBounds) this.setBounds(total, sourceForBounds, size, CONFIG);
+        const clampSource = PROPS.BODY instanceof THREE.Object3D ? PROPS.BODY : sourceForBounds;
+        total.userData.clampCenter = new THREE.Box3().setFromObject(clampSource).getCenter(new THREE.Vector3());
 
         if (drowMode) this.useEdgeBuilder.drawingMode(drowMode, total);
 
@@ -857,6 +862,7 @@ export class BuildProduct extends BuildersHelper {
 
         target.userData.aabb = aabb;
         target.userData.obb = obb;
+        target.userData.obbCenter = aabb.getCenter(new THREE.Vector3());
     }
 
     private getTableTopPosition(legs, body, tableTop, baseY) {

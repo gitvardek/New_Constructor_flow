@@ -16,6 +16,7 @@ import { useUniformState } from "@/store/appliction/useUniformState";
 
 import { OBBHelper } from "../Utils/CalculateBoundingBox";
 import { UniformModeHandler } from "../Utils/UniformModeHandler";
+import { getCenterOffset } from "../Room/OBBCollider";
 
 export class MoveManager {
 
@@ -382,6 +383,10 @@ export class MoveManager {
             this.selectedObject.position.copy(adjustedPosition.position);
             this.selectedObject.rotation.copy(adjustedPosition.rotation);
             this.selectedObject.userData.targetPosition = point
+
+            this.selectedObject.userData.obb.center
+                .copy(this.selectedObject.position)
+                .add(getCenterOffset(this.selectedObject, this.selectedObject.rotation, 'obbCenter'))
 
             this.selectedObject.userData.obb.center.copy(this.selectedObject.position)
 
