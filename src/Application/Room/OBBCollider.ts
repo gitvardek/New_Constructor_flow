@@ -83,7 +83,7 @@ export class OBBCollider {
         /** Объект установлен гизмо: поворот задал пользователь — не трогаем его, только выталкиваем OBB из стен */
 
         if (object.userData.PROPS.CONFIG.FREE_TRANSFORM) {
-            this.getClampedFloorPosition(obb, wallStore, position, adjustPosition)
+            this.getClampedFloorPosition(obb, wallStore, position, adjustPosition, getCenterOffset(object, object.rotation, 'obbCenter'))
         }
         /** Для загрузки контента из стора при запуске приложения */
 
@@ -108,7 +108,7 @@ export class OBBCollider {
 
             switch (wall.userData.name) {
                 case "floor":
-                    this.getClampedFloorPosition(obb, wallStore, position, adjustPosition)
+                    this.getClampedFloorPosition(obb, wallStore, position, adjustPosition, getCenterOffset(object, object.rotation, 'obbCenter'))
                     break
                 default:
 
@@ -160,7 +160,10 @@ export class OBBCollider {
     private getClampedPosition({ position, rotation, wall, object, obb, floor }: { position: THREE.Vector3, rotation: THREE.Euler, wall: THREE.Object3D, object: THREE.Object3D, obb: OBB, floor?: boolean }) {
 
         let correctPosition = position.clone()
-        const correctRotation = rotation.clone()
+        // Поворот, с которым объект ВСТАНЕТ: у стены его задаёт сама стена.
+        // Нужен ДО расчётов — им разворачивается смещение центра габарита.
+        // Раньше присваивание стояло в конце функции, результат тот же.
+        const correctRotation = wall.userData.name != "floor" ? wall.rotation.clone() : rotation.clone()
         const wallCoordinates = wall.userData.coordinates
 
 
@@ -193,23 +196,29 @@ export class OBBCollider {
         }
 
         const wallNormal = wall.userData.plane.normal.clone().normalize();
-        const distanceToPlane = wall.userData.plane.distanceToPoint(correctPosition);
+
+        // Расстояние до плоскости стены — от ЦЕНТРА габарита, а не от origin
+        // объекта: они совпадают только у симметричной геометрии (см.
+        // getCenterOffset).
+        const centerOffset = getCenterOffset(object, correctRotation, 'clampCenter')
+        const centerPosition = position.clone().add(centerOffset)
+
+        // А вдоль стены — только КАСАТЕЛЬНАЯ часть смещения. distanceToExtrene
+        // ниже это 3D-расстояние до КОНЦА стены, и нормальная составляющая
+        // (у гардеробной системы это вся её глубина) раздувала бы его: клампинг
+        // срабатывал позже, и модуль заходил за угол в боковую стену.
+        const lateralPosition = position.clone().add(centerOffset.clone().projectOnPlane(wallNormal))
+
+        const distanceToPlane = wall.userData.plane.distanceToPoint(centerPosition);
 
         const side = this.getFacingSideFromOBB(object, wall, obb);
 
-        let trueExtremePoint = this.findClosestPoint(position, wallCoordinates[0], wallCoordinates[1]).clone()
-        // let trueCenterPoint = this.findClosestPoint(obb.center, wallCoordinates[0], wallCoordinates[1]).clone()
+        let trueExtremePoint = this.findClosestPoint(lateralPosition, wallCoordinates[0], wallCoordinates[1]).clone()
 
         const vectorToCenter = new THREE.Vector3().subVectors(wall.userData.center, trueExtremePoint).normalize();
-        // const vectorFromCenter = new THREE.Vector3().subVectors(obb.center, trueExtremePoint).normalize();
 
-        trueExtremePoint.y = position.y
-        // trueCenterPoint.y = position.y
-
-        const distanceToExtrene = trueExtremePoint.distanceTo(position)
-        // const distanceFromExtrene = trueCenterPoint.distanceTo(obb.center)
-
-        // const extrem = Math.pow(distanceFromExtrene, 2) < Math.pow(obb.halfSize.x, 2) + Math.pow(obb.halfSize.z, 2)
+        trueExtremePoint.y = lateralPosition.y
+        const distanceToExtrene = trueExtremePoint.distanceTo(lateralPosition)
 
         if (distanceToExtrene === 0) {
             return {
@@ -232,53 +241,21 @@ export class OBBCollider {
         }
 
 
-        if (wall.userData.name != "floor") {
-            !wall.rotation.equals(correctRotation) ? correctRotation.copy(wall.rotation) : ''
-        }
-
         return {
             correctPosition,
             correctRotation
         }
     }
 
-    /** @Простое решение */
-    // private getClampedFloorPosition(movingObb: OBB,
-    //     walls: THREE.Object3D[],
-    //     newPosition: THREE.Vector3,
-    //     oldPosition: THREE.Vector3,
-    //     adjustPosition: THREE.Vector3,
-
-    // ) {
-    //     const offset = new THREE.Vector3().subVectors(newPosition, oldPosition);
-
-    //     // Клонируем и сдвигаем OBB
-    //     const movedObb = movingObb.clone();
-    //     movedObb.center.add(offset);
-
-    //     for (const wall of walls) {
-    //         if (wall.userData.name === 'floor') continue;
-
-    //         const wallObb = wall.userData.obb as OBB;
-    //         if (movedObb.intersectsOBB(wallObb)) {
-
-    //             // Столкновение — возвращаем старую позицию
-    //             adjustPosition.copy(oldPosition.clone());
-    //             return
-    //         }
-    //     }
-
-    //     adjustPosition.copy(newPosition.clone())
-    // }
-
     private getClampedFloorPosition(
         movingObb: OBB,
         walls: THREE.Object3D[],
         attemptedPosition: THREE.Vector3,
         adjustPosition: THREE.Vector3,
+        centerOffset: THREE.Vector3 = new THREE.Vector3(),
     ) {
         const correctedObb = movingObb.clone();
-        correctedObb.center.copy(attemptedPosition);
+        correctedObb.center.copy(attemptedPosition).add(centerOffset);
 
         const EPSILON = 1e-4;
 
@@ -525,4 +502,13 @@ export class OBBCollider {
         };
     }
 
+}
+/** Дополнительные методы */
+export function getCenterOffset(
+    object: THREE.Object3D,
+    rotation: THREE.Euler,
+    key: 'obbCenter' | 'clampCenter',
+): THREE.Vector3 {
+    const local = object.userData?.[key] as THREE.Vector3 | undefined
+    return local ? local.clone().applyEuler(rotation) : new THREE.Vector3()
 }

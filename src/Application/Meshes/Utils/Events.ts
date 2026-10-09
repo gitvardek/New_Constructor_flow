@@ -24,6 +24,7 @@ import { MILLINGS, additionalMillingKeys } from '@/Application/F-millings';
 // import { directionToColor } from 'three/webgpu';
 // import { VertexNormalsHelper } from "three/examples/jsm/Addons.js";
 import { BuildUniversalModule } from "@/Application/Meshes/UniversalModuleUtils/BuildUniversalModule.ts";
+import { getCenterOffset } from "@/Application/Room/OBBCollider";
 
 type TRotateActions = Record<number, number>
 export type TDataCreateHandle = { data: TCreateHandleParams; fasadeNdx: number }
@@ -976,6 +977,17 @@ export class MeshEvents extends BuildersHelper {
 
     }
 
+    private syncBoundsToWorld(object: THREE.Object3D) {
+        object.updateMatrixWorld(true);
+        object.userData.aabb = new THREE.Box3().setFromObject(object);
+
+        const obb = object.userData.obb;
+        if (!obb) return;
+
+        obb.rotation.setFromMatrix4(object.matrixWorld);
+        obb.center.copy(object.position).add(getCenterOffset(object, object.rotation, 'obbCenter'));
+    }
+
     //------------------
     /** @Универсальный_модуль  */
     //------------------
@@ -1009,8 +1021,12 @@ export class MeshEvents extends BuildersHelper {
 
         /** Для корректного примагничивания к стенам */
         this._currentMesh.userData.trueSizes = {
-            DEPTH: size.depth * 0.5, HEIGHT: size.y * 0.5, WIDTH: size.width * 0.5
+            DEPTH: size.z * 0.5, HEIGHT: size.y * 0.5, WIDTH: size.x * 0.5
         }
+        // Смещения центров габарита пересобранного тела: ими коллайдер меряет
+        // расстояние до стены (см. BuildProduct.setBounds/createProductBody)
+        this._currentMesh.userData.obbCenter = body.userData.obbCenter ?? new THREE.Vector3()
+        this._currentMesh.userData.clampCenter = body.userData.clampCenter ?? new THREE.Vector3()
         /** Пересоздаём UNIFORM_TEXTURE*/
         if (UNIFORM_TEXTURE.group !== null) {
 
@@ -1041,11 +1057,16 @@ export class MeshEvents extends BuildersHelper {
 
         //Применение позиционирования после изменений
 
-        // Свободно установленный объект коллайдер выталкивает из стен по его OBB,
-        // поэтому новая ширина нужна OBB до расчёта позиции
-        if (CONFIG.FREE_TRANSFORM) {
-            this._currentMesh.userData.obb.halfSize.x = data.width * 0.5;
+        const rebuiltObb = body.userData.obb?.clone();
+        if (rebuiltObb) {
+            if (!isWardrobe) {
+                rebuiltObb.halfSize.x = data.width * 0.5;
+                rebuiltObb.halfSize.y = data.height * 0.5;
+            }
+            this._currentMesh.userData.obb = rebuiltObb;
         }
+        this.syncBoundsToWorld(this._currentMesh);
+
 
         const adjustedPosition = this.root._roomManager!.adjustPositionWithRaycasting({
             object: this._currentMesh,
@@ -1056,14 +1077,8 @@ export class MeshEvents extends BuildersHelper {
         this._currentMesh.position.copy(adjustedPosition.position);
         this._currentMesh.rotation.copy(adjustedPosition.rotation);
 
-        const center = new THREE.Vector3();
-        this._currentMesh.userData.aabb.getCenter(center);
-        this._currentMesh.userData.obb.center.copy(center);
-        /** @Корректная_коллизия */
-        const { SIZE } = this._currentMesh?.userData.PROPS.CONFIG
-
-        this._currentMesh.userData.obb.halfSize.x = data.width * 0.5;
-        this._currentMesh.userData.obb.halfSize.y = data.height * 0.5;
+        /** @Корректная_коллизия — габариты родителя по факту новой геометрии */
+        this.syncBoundsToWorld(this._currentMesh);
 
         this.root._customBoxHelper!.updateBoxHelper();
 
@@ -1155,11 +1170,21 @@ export class MeshEvents extends BuildersHelper {
         }
 
         // Свободно установленный объект коллайдер выталкивает из стен по его OBB,
-        // поэтому новые габариты нужны OBB до расчёта позиции
-        if (CONFIG.FREE_TRANSFORM) {
-            currentMesh.userData.obb.halfSize.x = halfWidth;
-            currentMesh.userData.obb.halfSize.z = halfDepth;
+        currentMesh.userData.obbCenter = body.userData.obbCenter ?? new THREE.Vector3();
+        currentMesh.userData.clampCenter = PROPS.BODY instanceof THREE.Object3D
+            ? (body.userData.clampCenter ?? new THREE.Vector3())
+            : new THREE.Vector3();
+
+        const rebuiltObb = body.userData.obb?.clone();
+        if (rebuiltObb) {
+            rebuiltObb.halfSize.x = halfWidth;
+            rebuiltObb.halfSize.z = halfDepth;
+            if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
+                rebuiltObb.halfSize.y = data.height * 0.5;
+            }
+            currentMesh.userData.obb = rebuiltObb;
         }
+        this.syncBoundsToWorld(currentMesh);
 
         const adjusted = this.root._roomManager!.adjustPositionWithRaycasting({
             object: currentMesh,
@@ -1170,22 +1195,8 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.position.copy(adjusted.position);
         currentMesh.rotation.copy(adjusted.rotation);
 
-        // Ресайз мог сдвинуть объект от стены — конфиг должен знать об этом. Иначе
-        // CONFIG.POSITION расходится с положением в сцене, и проект сохраняет две
-        // разные точки
-        CONFIG.POSITION = currentMesh.position.clone();
-        CONFIG.ROTATION = currentMesh.rotation.clone();
-
-        const center = new THREE.Vector3();
-        currentMesh.userData.aabb.getCenter(center);
-        currentMesh.userData.obb.center.copy(center);
-
-        currentMesh.userData.obb.halfSize.x = halfWidth;
-        currentMesh.userData.obb.halfSize.z = halfDepth;
-
-        if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
-            currentMesh.userData.obb.halfSize.y = data.height * 0.5;
-        }
+        /** @Корректная_коллизия — габариты родителя по факту новой геометрии */
+        this.syncBoundsToWorld(currentMesh);
 
         this.root._customBoxHelper!.updateBoxHelper();
 
