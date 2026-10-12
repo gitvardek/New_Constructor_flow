@@ -1,31 +1,34 @@
 // Цвета PIXI-элементов гардеробной системы (SceneBuilder.ts) — вынесены в
 // отдельный файл, чтобы палитру можно было менять/подбирать, не трогая
-// логику отрисовки. Пока только полки и профили (единственные вручную
-// подбираемые цвета в этой системе на сегодня); box-UM цвета (PixiMethods.ts
-// Shape/Section) сюда сознательно не перенесены — общий, давно стабильный
-// код, не относится к гардеробной системе.
+// логику отрисовки. Здесь только полки и профили.
+//
+// Материалы (ЛДСП/стекло/металл) берутся из общего 2D-кита
+// (editor-v2/render2d/palette.ts): те же цвета использует сцена тумбочки,
+// чтобы одна деталь читалась одинаково на любом канвасе. Цвета самих
+// профилей — только здесь, у тумбочки профилей нет.
 //@ts-nocheck
 import { CABINET_COLORS } from "@/components/UMconstructor/cabinet/render/CabinetGraphics.ts";
+import { UM_MATERIAL_COLORS } from "@/components/UMconstructor/editor-v2/render2d/palette.ts";
 import type { WardrobeFillingItem } from "@/components/UMconstructor/wardrobe/types.ts";
 
 export const WARDROBE_COLORS = {
     shelf: {
         // Прямая (обычная) полка ЛДСП — по умолчанию.
-        flat: { fill: '#eea557', stroke: '#181005' },
+        flat: UM_MATERIAL_COLORS.ldsp,
         // Наклонная (обувная) полка ЛДСП — другой цвет, по ТЗ пользователя.
-        angled: { fill: '#9c785e', stroke: '#050301' },
+        angled: UM_MATERIAL_COLORS.ldspDark,
         // Материал 'glass' — СВОЙ цвет (уточнение пользователя), приоритетнее
         // flat/angled независимо от типа (прямая/наклонная стеклянная полка
         // красится одинаково) — форма (flat/angled) по-прежнему влияет
         // только на геометрию (наклон), не на цвет. glassAlpha — прозрачность
         // поверх этого цвета (физически стекло полупрозрачное).
-        glass: { fill: '#80bdfd', stroke: '#0a1e33' },
-        glassAlpha: 0.55,
+        glass: UM_MATERIAL_COLORS.glass,
+        glassAlpha: UM_MATERIAL_COLORS.glassAlpha,
         // Штанга (type==='rail', уточнение пользователя) — металлический
         // цвет, отличный и от ЛДСП (оранжевый/коричневый), и от стекла
         // (синий) — своя, самостоятельная категория наполнения, не
         // разновидность полки.
-        rail: { fill: '#c4c8cc', stroke: '#5a5e63' },
+        rail: UM_MATERIAL_COLORS.metal,
     },
     profile: {
         // Цвет зависит от ДВУХ независимых признаков: "семья" ('floor_ceiling'
@@ -55,7 +58,7 @@ export const WARDROBE_COLORS = {
 // Выбор цвета полки/штанги по её признакам — та же логика, что раньше жила
 // ТОЛЬКО инлайн внутри WardrobeSceneBuilder.createWardrobeShelf. Вынесено сюда как
 // переиспользуемый чистый хелпер, чтобы WardrobeSceneBuilder.createWardrobeSector
-// (нейминг "Полка N"/"Штанга N", см. WardrobeDimensions.
+// (нейминг "Полка N"/"Штанга N", см. editor-v2/render2d/dimensions.
 // getContrastTextColor) мог получить ТОТ ЖЕ цвет заливки, на которой сидит
 // подпись, не дублируя условия isRail/isGlass/isAngled в двух местах.
 //

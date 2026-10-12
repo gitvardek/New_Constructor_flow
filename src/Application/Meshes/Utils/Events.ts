@@ -25,6 +25,7 @@ import { MILLINGS, additionalMillingKeys } from '@/Application/F-millings';
 // import { VertexNormalsHelper } from "three/examples/jsm/Addons.js";
 import { BuildUniversalModule } from "@/Application/Meshes/UniversalModuleUtils/BuildUniversalModule.ts";
 import { getUMGridFromConfig, WARDROBE_GRID_CONFIG_KEY } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getCenterOffset } from "@/Application/Room/OBBCollider";
 
 type TRotateActions = Record<number, number>
 export type TDataCreateHandle = { data: TCreateHandleParams; fasadeNdx: number }
@@ -928,6 +929,27 @@ export class MeshEvents extends BuildersHelper {
 
     }
 
+    /**
+     * Пересчитывает габариты объекта (userData.aabb и userData.obb) по его
+     * текущей геометрии и положению. Нужен после каждой пересборки: родитель
+     * держит ссылку на OBB ПЕРВОЙ сборки, а новый setBounds пишет его в
+     * дочерний total — без переноса у родителя оставались старые полуразмеры.
+     *
+     * Центр OBB — именно центр габарита (origin + повёрнутое userData.obbCenter),
+     * а не origin: иначе несимметричная сборка уходит в стену на величину
+     * расхождения (см. OBBCollider.getCenterOffset).
+     */
+    private syncBoundsToWorld(object: THREE.Object3D) {
+        object.updateMatrixWorld(true);
+        object.userData.aabb = new THREE.Box3().setFromObject(object);
+
+        const obb = object.userData.obb;
+        if (!obb) return;
+
+        obb.rotation.setFromMatrix4(object.matrixWorld);
+        obb.center.copy(object.position).add(getCenterOffset(object, object.rotation, 'obbCenter'));
+    }
+
     //------------------
     /** @Универсальный_модуль  */
     //------------------
@@ -973,9 +995,27 @@ export class MeshEvents extends BuildersHelper {
         aabb.getSize(size);
 
         /** Для корректного примагничивания к стенам */
-        this._currentMesh.userData.trueSizes = {
-            DEPTH: size.depth * 0.5, HEIGHT: size.y * 0.5, WIDTH: size.width * 0.5
+        // trueSizes — ЛОКАЛЬНЫЕ полуразмеры модуля, и берутся они у setBounds:
+        // тот меряет sourceForBounds, объект без трансформаций, то есть по осям
+        // САМОГО модуля. Box3.setFromObject(_currentMesh) для этого не годится
+        // — он даёт габарит по МИРОВЫМ осям, и у модуля, развёрнутого к боковой
+        // стене (поворот 90°), WIDTH и DEPTH меняются местами: коллайдер
+        // отодвигал его от стены на половину ШИРИНЫ (модуль уезжал к центру
+        // комнаты) и пускал боковину за угол в соседнюю стену.
+        //
+        // Заодно уходит прежний расчёт через size.depth/size.width: таких полей
+        // у THREE.Vector3 нет (они есть только у Vector2), DEPTH и WIDTH шли
+        // NaN. У гардеробной системы PROPS.BODY пуст, поэтому фолбэк
+        // BODY_DEPTH ?? DEPTH в OBBCollider отдавал тот же NaN — оба сравнения
+        // с ним ложны, выталкивание из стен молча отключалось целиком.
+        this._currentMesh.userData.trueSizes = body.userData.trueSizes ?? {
+            DEPTH: size.z * 0.5, HEIGHT: size.y * 0.5, WIDTH: size.x * 0.5
         }
+
+        // Смещения центров габарита пересобранного тела: ими коллайдер меряет
+        // расстояние до стены (см. BuildProduct.setBounds/createProductBody)
+        this._currentMesh.userData.obbCenter = body.userData.obbCenter ?? new THREE.Vector3()
+        this._currentMesh.userData.clampCenter = body.userData.clampCenter ?? new THREE.Vector3()
         /** Пересоздаём UNIFORM_TEXTURE*/
         if (UNIFORM_TEXTURE.group !== null) {
 
@@ -1006,9 +1046,22 @@ export class MeshEvents extends BuildersHelper {
 
         //Применение позиционирования после изменений
 
-        if (CONFIG.FREE_TRANSFORM) {
-            this._currentMesh.userData.obb.halfSize.x = data.width * 0.5;
+        // Свежий OBB нужен ДО расчёта позиции: по нему коллайдер выталкивает из
+        // стен объекты на полу. Родитель держал OBB ПЕРВОЙ сборки (ссылка из
+        // createPerentGroup), а setBounds после пересборки пишет новый в
+        // дочерний total — до родителя он не доходил, глубина оставалась старой.
+        const rebuiltObb = body.userData.obb?.clone();
+        if (rebuiltObb) {
+            // У гардеробной системы полуразмеры только измеренные: её сборка
+            // занимает не всю номинальную глубину, и номинальные значения
+            // разъехались бы с trueSizes, по которым идёт выталкивание из стен.
+            if (!isWardrobe) {
+                rebuiltObb.halfSize.x = data.width * 0.5;
+                rebuiltObb.halfSize.y = data.height * 0.5;
+            }
+            this._currentMesh.userData.obb = rebuiltObb;
         }
+        this.syncBoundsToWorld(this._currentMesh);
 
         const adjustedPosition = this.root._roomManager!.adjustPositionWithRaycasting({
             object: this._currentMesh,
@@ -1019,14 +1072,8 @@ export class MeshEvents extends BuildersHelper {
         this._currentMesh.position.copy(adjustedPosition.position);
         this._currentMesh.rotation.copy(adjustedPosition.rotation);
 
-        const center = new THREE.Vector3();
-        this._currentMesh.userData.aabb.getCenter(center);
-        this._currentMesh.userData.obb.center.copy(center);
-        /** @Корректная_коллизия */
-        const { SIZE } = this._currentMesh?.userData.PROPS.CONFIG
-
-        this._currentMesh.userData.obb.halfSize.x = data.width * 0.5;
-        this._currentMesh.userData.obb.halfSize.y = data.height * 0.5;
+        /** @Корректная_коллизия — габариты родителя по факту новой геометрии */
+        this.syncBoundsToWorld(this._currentMesh);
 
         this.root._customBoxHelper!.updateBoxHelper();
 
@@ -1110,12 +1157,32 @@ export class MeshEvents extends BuildersHelper {
             this.root._customBoxHelper.hideGroupBox(this.buildUniformTexture._groupsBoxHelper);
         }
 
-        // Свободно установленный объект коллайдер выталкивает из стен по его OBB,
-        // поэтому новые габариты нужны OBB до расчёта позиции
-        if (CONFIG.FREE_TRANSFORM) {
-            currentMesh.userData.obb.halfSize.x = halfWidth;
-            currentMesh.userData.obb.halfSize.z = halfDepth;
+        // Смещения центров габарита пересобранного тела — см.
+        // BuildProduct.setBounds/createProductBody.
+        // clampCenter парный к тому объёму, по которому коллайдер выталкивает
+        // из стен. Если у товара есть BODY, это его размеры и его же центр.
+        // Если BODY нет, в ход идут trueSizes — а они здесь НОМИНАЛЬНЫЕ
+        // (halfWidth/halfDepth из data), и номинальный габарит центрирован на
+        // origin, поэтому смещение нулевое. Измеренный центр сборки тут не
+        // подходит: он сдвинул бы модуль от стены на величину смещения.
+        currentMesh.userData.obbCenter = body.userData.obbCenter ?? new THREE.Vector3();
+        currentMesh.userData.clampCenter = PROPS.BODY instanceof THREE.Object3D
+            ? (body.userData.clampCenter ?? new THREE.Vector3())
+            : new THREE.Vector3();
+
+        // Коллайдер выталкивает из стен по OBB, поэтому новые габариты нужны ему
+        // ДО расчёта позиции. Родитель до этого держал OBB ПЕРВОЙ сборки (ссылка
+        // из createPerentGroup): полуразмеры по Y оставались от исходной высоты.
+        const rebuiltObb = body.userData.obb?.clone();
+        if (rebuiltObb) {
+            rebuiltObb.halfSize.x = halfWidth;
+            rebuiltObb.halfSize.z = halfDepth;
+            if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
+                rebuiltObb.halfSize.y = data.height * 0.5;
+            }
+            currentMesh.userData.obb = rebuiltObb;
         }
+        this.syncBoundsToWorld(currentMesh);
 
         const adjusted = this.root._roomManager!.adjustPositionWithRaycasting({
             object: currentMesh,
@@ -1126,16 +1193,8 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.position.copy(adjusted.position);
         currentMesh.rotation.copy(adjusted.rotation);
 
-        const center = new THREE.Vector3();
-        currentMesh.userData.aabb.getCenter(center);
-        currentMesh.userData.obb.center.copy(center);
-
-        currentMesh.userData.obb.halfSize.x = halfWidth;
-        currentMesh.userData.obb.halfSize.z = halfDepth;
-
-        if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
-            currentMesh.userData.obb.halfSize.y = data.height * 0.5;
-        }
+        /** @Корректная_коллизия — габариты родителя по факту новой геометрии */
+        this.syncBoundsToWorld(currentMesh);
 
         this.root._customBoxHelper!.updateBoxHelper();
 

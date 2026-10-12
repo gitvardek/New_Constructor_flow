@@ -9,8 +9,8 @@
 // гардеробной системы.
 
 import { useModelState } from "@/store/appliction/useModelState.ts";
-import { WARDROBE_ANGLED_SHELF_ANGLE_DEG, WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT, WARDROBE_SHELF_MIN_GAP_FLAT, WARDROBE_SHELF_MIN_GAP_ANGLED, WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED, WARDROBE_RAIL_MIN_GAP } from "@/Application/F-wardrobeData.ts";
-import { CABINET_MIN_GAP } from "@/components/UMconstructor/cabinet/cabinetData.ts";
+import { WARDROBE_ANGLED_SHELF_ANGLE_DEG, WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT, WARDROBE_SHELF_MIN_GAP_FLAT, WARDROBE_SHELF_MIN_GAP_ANGLED, WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED, WARDROBE_RAIL_MIN_GAP, WARDROBE_SHELF_SIDE_GAP, WARDROBE_RAIL_SIDE_GAP } from "@/Application/F-wardrobeData.ts";
+import { CABINET_MIN_GAP, CABINET_SIDE_INSET } from "@/components/UMconstructor/cabinet/cabinetData.ts";
 import { getCabinetHeight, getWardrobeItemCeilingGap } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
 import type { WardrobeFillingShape } from "@/components/UMconstructor/wardrobe/types.ts";
 
@@ -18,6 +18,21 @@ type PositionedFilling = WardrobeFillingShape & { positionY: number };
 type IdentifiedFilling = PositionedFilling & { id: number };
 
 export const WARDROBE_GRID_CONFIG_KEY = 'WARDROBEGRID' as const;
+
+// Зазор элемента от профиля с каждой стороны, мм: полка 1, штанга 3, тумбочка —
+// свой (CABINET_SIDE_INSET). Значения временные, придут с бэка.
+export function getWardrobeFillingSideGap(type?: string): number {
+    if (type === 'rail') return WARDROBE_RAIL_SIDE_GAP;
+    if (type === 'cabinet') return CABINET_SIDE_INSET;
+    return WARDROBE_SHELF_SIDE_GAP;
+}
+
+// Длина элемента в секции = ширина секции минус зазоры с обеих сторон. Один
+// источник для 3D (ShelfBuilder), 2D (WardrobeSceneBuilder) и корзины
+// (basketMapper) — иначе в заказ уходит не та длина, что построена.
+export function getWardrobeFillingWidth(sectionWidth: number, type?: string): number {
+    return Math.max(Math.floor(sectionWidth - 2 * getWardrobeFillingSideGap(type)), 0);
+}
 
 // Товар — "гардеробная система", если есть запись в каталоге
 // _WARDROBE_SYSTEM. Проверка по каталогу, а не по сравнению с ID модели —
@@ -365,7 +380,10 @@ export function getWardrobeAngledShelfLength(
 // оси на WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT над его низом; в 2D кронштейн
 // отдельно не рисуется, поэтому входит в эту высоту.
 //
-//  1. shelfProjection — проекция полки БЕЗ толщины: depthMm × sin(угол).
+// depthMm — глубина МОДУЛЯ; сама доска длиннее (см.
+// getWardrobeAngledShelfLength), от её длины и считается проекция.
+//
+//  1. shelfProjection — проекция полки БЕЗ толщины: длина доски × sin(угол).
 //  2. frontEdgeProjection — проекция переднего ребра: thickness × cos(угол).
 //  3. dropToLowestCorner = (1 + 2)/2 — спуск от оси до нижнего угла доски;
 //     на столько же доска поднимается над осью.
@@ -379,7 +397,7 @@ function getWardrobeAngledShelfProjection(thicknessMm: number, depthMm: number) 
     const angleRad = (WARDROBE_ANGLED_SHELF_ANGLE_DEG * Math.PI) / 180;
 
     // 1) проекция полки без учёта толщины материала
-    const shelfProjection = depthMm * Math.sin(angleRad);
+    const shelfProjection = angledShelfBoardLength(thicknessMm, depthMm) * Math.sin(angleRad);
     // 2) проекция переднего ребра полки
     const frontEdgeProjection = thicknessMm * Math.cos(angleRad);
 

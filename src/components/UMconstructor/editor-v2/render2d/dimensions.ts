@@ -1,4 +1,4 @@
-// ==== Гардеробная система (WARDROBE) ====
+// ==== Редактор УМ v2 — общий 2D-кит ====
 // Вспомогательные PIXI-примитивы для "динамического обозначения расстояний"
 // на канвасе (уточнение пользователя): ширина секций (внутренняя часть),
 // расстояния между полками, высота профилей, плюс нейминги объектов
@@ -72,17 +72,27 @@ function getContrastTextColor(bgColorHex: string): string {
 // Горизонтальная размерная линия (для ширины секции) — засечки по концам,
 // подпись в мм по центру НАД линией. x1Px/x2Px/yPx — ЛОКАЛЬНЫЕ координаты
 // родительского контейнера (секции), см. createWardrobeSector.
-export function createHorizontalDimension(x1Px: number, x2Px: number, yPx: number, mmValue: number): Container {
+// options — внешний вид линии и подписи (editor-v2/render2d): по умолчанию
+// бледно-серый 10px, как у гардеробной. Тумбочка передаёт свой стиль
+// (крупнее и темнее, "сделать обозначения более видимыми" — уточнение
+// пользователя), не меняя вид гардеробной.
+export interface DimensionStyleOptions {
+    textStyle?: Record<string, any>;
+    lineColor?: number;
+    lineWidth?: number;
+}
+
+export function createHorizontalDimension(x1Px: number, x2Px: number, yPx: number, mmValue: number, options: DimensionStyleOptions = {}): Container {
     const container = new Container();
 
     const graphics = new Graphics();
     graphics.moveTo(x1Px, yPx - DIMENSION_TICK_PX).lineTo(x1Px, yPx + DIMENSION_TICK_PX);
     graphics.moveTo(x2Px, yPx - DIMENSION_TICK_PX).lineTo(x2Px, yPx + DIMENSION_TICK_PX);
     graphics.moveTo(x1Px, yPx).lineTo(x2Px, yPx);
-    graphics.stroke({ width: 1, color: DIMENSION_LINE_COLOR });
+    graphics.stroke({ width: options.lineWidth ?? 1, color: options.lineColor ?? DIMENSION_LINE_COLOR });
     container.addChild(graphics);
 
-    const label = new Text({ text: `${Math.round(mmValue)}`, style: DIMENSION_TEXT_STYLE });
+    const label = new Text({ text: `${Math.round(mmValue)}`, style: { ...DIMENSION_TEXT_STYLE, ...options.textStyle } });
     label.anchor.set(0.5, 1);
     label.position.set((x1Px + x2Px) / 2, yPx - DIMENSION_TICK_PX - 1);
     container.addChild(label);
@@ -103,17 +113,17 @@ export function createHorizontalDimension(x1Px: number, x2Px: number, yPx: numbe
 // haloText — DIMENSION_TEXT_STYLE_HALO вместо DIMENSION_TEXT_STYLE: зазор
 // между полками (режим 'gap') стоит у края секции и почти всегда ложится на
 // тёмный профиль, где обычный серый текст нечитаем.
-export function createVerticalDimension(y1Px: number, y2Px: number, xPx: number, mmValue: number, labelSide: 1 | -1 = 1, haloText = false): Container {
+export function createVerticalDimension(y1Px: number, y2Px: number, xPx: number, mmValue: number, labelSide: 1 | -1 = 1, haloText = false, options: DimensionStyleOptions = {}): Container {
     const container = new Container();
 
     const graphics = new Graphics();
     graphics.moveTo(xPx - DIMENSION_TICK_PX, y1Px).lineTo(xPx + DIMENSION_TICK_PX, y1Px);
     graphics.moveTo(xPx - DIMENSION_TICK_PX, y2Px).lineTo(xPx + DIMENSION_TICK_PX, y2Px);
     graphics.moveTo(xPx, y1Px).lineTo(xPx, y2Px);
-    graphics.stroke({ width: 1, color: DIMENSION_LINE_COLOR });
+    graphics.stroke({ width: options.lineWidth ?? 1, color: options.lineColor ?? DIMENSION_LINE_COLOR });
     container.addChild(graphics);
 
-    const label = new Text({ text: `${Math.round(mmValue)}`, style: haloText ? DIMENSION_TEXT_STYLE_HALO : DIMENSION_TEXT_STYLE });
+    const label = new Text({ text: `${Math.round(mmValue)}`, style: { ...(haloText ? DIMENSION_TEXT_STYLE_HALO : DIMENSION_TEXT_STYLE), ...options.textStyle } });
     label.anchor.set(0.5, 0.5);
     label.rotation = -Math.PI / 2;
     label.position.set(xPx + labelSide * (DIMENSION_TICK_PX + 7), (y1Px + y2Px) / 2);
@@ -132,10 +142,12 @@ export function createVerticalDimension(y1Px: number, y2Px: number, xPx: number,
 // а не на нейтральном фоне секции): текст берётся тёмным на светлом и
 // светлым на тёмном (getContrastTextColor выше). Без параметра —
 // фиксированный тёмный.
-export function createWardrobeNameLabel(text: string, xPx: number, yPx: number, anchorX = 0, anchorY = 0, vertical = false, bgColorHex?: string): Text {
-    const style = bgColorHex
-        ? { ...NAME_LABEL_TEXT_STYLE, fill: getContrastTextColor(bgColorHex) }
-        : NAME_LABEL_TEXT_STYLE;
+export function createNameLabel(text: string, xPx: number, yPx: number, anchorX = 0, anchorY = 0, vertical = false, bgColorHex?: string, options: DimensionStyleOptions = {}): Text {
+    const style = {
+        ...NAME_LABEL_TEXT_STYLE,
+        ...(bgColorHex ? { fill: getContrastTextColor(bgColorHex) } : {}),
+        ...options.textStyle,
+    };
     const label = new Text({ text, style });
     label.anchor.set(anchorX, anchorY);
     label.position.set(xPx, yPx);

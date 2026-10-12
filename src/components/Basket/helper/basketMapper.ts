@@ -6,7 +6,7 @@ import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoo
 import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { useModelState } from "@/store/appliction/useModelState"
-import { getWardrobeAngledShelfLength, getWardrobeShelfDepth, getWardrobeShelfThickness, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
+import { getWardrobeAngledShelfLength, getWardrobeShelfDepth, getWardrobeShelfThickness, getWardrobeFillingWidth, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
 import { getCabinetHeight, getCabinetWidth } from "@/components/UMconstructor/cabinet/CabinetSystem"
 import { WARDROBE_PROFILE_DEPTH } from "@/Application/F-wardrobeData"
 
@@ -179,7 +179,9 @@ function generateDoorsSimple(moduleData) {
 
       section.fasades?.forEach((fasadeArray, doorIndex) => {
         fasadeArray.forEach((fasade, index) => {
-          const doorNum = fasade.door ?? doorIndex + 1; //  doorIndex + 1 для универсальной тумбочки
+          // door проставляет 3D-сборка; у сетки тумбочки его нет — см. комментарий
+          // в convertModuleToLegacyFormat. Откат на 1 свёл бы все двери в первую.
+          const doorNum = fasade.door ?? doorIndex + 1;
           const segmentNum = fasade.id - 1;
           const color = fasade.material.COLOR;
 
@@ -206,7 +208,7 @@ function generateMechanizmSimple(moduleData) {
     section.fasades?.forEach((fasadeArray, doorIndex) => {
       fasadeArray.forEach((fasade, index) => {
         const elem = {}
-        const doorNum = fasade.door ?? doorIndex + 1; //  doorIndex + 1 для универсальной тумбочки
+        const doorNum = fasade.door ?? doorIndex + 1;
         const segmentNum = index;
         elem.mechanizm = fasade.material.MECHANISM
         elem.section = sectionNum
@@ -478,7 +480,11 @@ function convertModuleToLegacyFormat(newModuleObject) {
 
       section.fasades?.forEach((doorGroup, doorIndex) => {
         doorGroup.forEach((fasade, index) => {
-          const doorNumber = fasade.door ?? doorIndex + 1; // doorIndex + 1 для универсальной тумбочки
+          // fasade.door проставляет ModulegridParser при 3D-сборке (door = doorID + 1),
+          // но в сетке тумбочки его нет: она собирается на КОПИИ конфига
+          // (CabinetMeshBuilder), и ключи уходили как "undefined". Номер двери —
+          // это индекс группы в section.fasades, считаем по тому же правилу.
+          const doorNumber = fasade.door ?? doorIndex + 1;
           const fasId = fasade.id - 1
 
           if (!result[fasadesSizeKey][doorNumber]) {
@@ -766,13 +772,16 @@ function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: 
     return result;
   }
 
+  // Длина — фактическая деталь, с зазорами от профилей
+  // (WardrobeSystem.getWardrobeFillingWidth), а не ширина секции: тот же
+  // размер, что построен в 3D.
   if (type === 'rail') {
     return {
       ID: item.productId,
       PRODUCT_TYPE: type,
       VALUE: item.positionY,
       SIZE: {
-        width: sectionWidth,
+        width: getWardrobeFillingWidth(sectionWidth, type),
       },
     };
   }
@@ -782,7 +791,7 @@ function createWardrobeFillingItem(item: any, sectionWidth: number, shelfDepth: 
     PRODUCT_TYPE: type,
     VALUE: item.positionY,
     SIZE: {
-      width: sectionWidth,
+      width: getWardrobeFillingWidth(sectionWidth, type),
       height: 0,
       depth: shelfDepth,
     },
@@ -825,11 +834,14 @@ function createWardrobeGridData(objProps: any, basketId: any = '') {
 
   const wardrobeProductId = grid.productID ?? objProps.CONFIG?.ID;
   const shelfDepth = getWardrobeShelfDepth(grid);
-  const profilesCatalog = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.profile;
 
   // Профилей на один больше, чем секций: они стоят на границах секций и
   // секциям не принадлежат. SIZE — длина профиля (своя у каждого, высота
-  // модуля — максимум по всем).
+  // модуля — максимум по всем), DEPTH — сечение по глубине: каталожное
+  // значение товара-профиля (строкой), откат на константу, по которой профиль
+  // строится в 3D (WardrobeFillingMeshBuilder.buildProfiles).
+  const profilesCatalog = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.profile;
+
   const PROFILES = (grid.wardrobeProfiles ?? []).map((profile: any) => {
 
     const result: any = {
@@ -867,7 +879,7 @@ function createWardrobeGridData(objProps: any, basketId: any = '') {
     },
     PROFILES,
     SECTIONS,
-    BASKETID: basketId,
+    BASKETID: basketId
   };
 }
 
@@ -1012,7 +1024,7 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
           width: el.width,
           serviseData: el.serviseData.filter(el => el.value).map(el => {
 
-            if (el.separated == '0') return
+            if (parseInt(el.separated) === 0) return
             if (el.EURO_WIDTH) {
               return {
                 ID: el.ID,
@@ -1035,13 +1047,17 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
   }
 
   props.USLUGI = []
-  if (objProps.RASPIL.data && objProps.RASPIL.data.length > 1) {
-    props.USLUGI.push("98683");
-    objProps.CONFIG.USLUGI.forEach(el => {
-      if (el.value) {
+  const pushGlobalUslugi = () => {
+    (objProps.CONFIG.USLUGI || []).forEach(el => {
+      if (el.value && parseInt(el.separated) === 0) {
         props.USLUGI.push(el.ID);
       }
     });
+  }
+
+  if (objProps.RASPIL.data && objProps.RASPIL.data.length > 1) {
+    props.USLUGI.push("98683");
+    pushGlobalUslugi();
   }
 
   if (objProps.RASPIL.data) {
@@ -1061,12 +1077,7 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
   }
 
   if (objProps.RASPIL.data && objProps.RASPIL.data.length === 1) {
-
-    objProps.CONFIG.USLUGI.forEach(el => {
-      if (el.value === true) {
-        props.USLUGI.push(el.ID);
-      }
-    });
+    pushGlobalUslugi();
   }
 
   if (objProps.CONFIG.MECHANISM) {

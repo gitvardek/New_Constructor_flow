@@ -608,7 +608,6 @@ export default class FasadesManager {
             (segment.height - (grid.isSlidingDoors ? 0 : 4)) / 2
         );
         // Обновляем высоту последней строки
-
         Object.assign(segment, this.getFasadePositionMinMax(segment))
 
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(

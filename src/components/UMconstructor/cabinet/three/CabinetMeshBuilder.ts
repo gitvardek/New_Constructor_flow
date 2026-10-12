@@ -31,8 +31,10 @@ export class CabinetMeshBuilder {
                 const mesh = this.buildFromConfig(props, item)
                 if (mesh) return mesh
             } catch (error) {
-                console.error("Тумбочка: ошибка сборки УМ, запасной корпус", error)
+                console.error(`Тумбочка ${item.id}: ошибка сборки УМ, запасной корпус (наполнения и фасадов не будет)`, error)
             }
+        } else {
+            console.warn(`Тумбочка ${item.id}: нет конфига УМ, запасной корпус`, item.cabinet)
         }
         return this.buildCarcass(props, item, sectionWidth)
     }
@@ -42,7 +44,10 @@ export class CabinetMeshBuilder {
     // источник для её редактора.
     private buildFromConfig(props: any, item: any): THREE.Object3D | null {
         const umBuilder = this.builder.root?._universalGeometryBuilder?.buildProduct
-        if (!umBuilder) return null
+        if (!umBuilder) {
+            console.warn('Тумбочка: сборщик УМ недоступен')
+            return null
+        }
 
         const cabinetProps = umBuilder.createStartProps(toRaw(getCabinetProduct(item.productId)))
         cabinetProps.CONFIG = cloneUMData(item.cabinet.config)
@@ -52,12 +57,27 @@ export class CabinetMeshBuilder {
         const holder = new THREE.Object3D()
         holder.userData.PROPS = cabinetProps
         const body = umBuilder.createProductBody(holder)
-        if (!body) return null
+        if (!body) {
+            console.warn('Тумбочка: сборщик УМ не вернул тело (нет модели корпуса?)', cabinetProps.CONFIG?.MODELID)
+            return null
+        }
+
+        // Сколько наполнения разобрано из сетки: пусто при непустой сетке —
+        // наполнения не будет и в 3D, и в корзине (оба читают CONFIG.SECTIONS).
+        const parsedFillings = Object.values(cabinetProps.CONFIG.SECTIONS ?? {})
+            .reduce((sum: number, section: any) => sum + (section.fillings?.length ?? 0), 0)
+        if (!parsedFillings) console.warn('Тумбочка: в разобранном конфиге нет наполнения', cabinetProps.CONFIG.MODULEGRID)
 
         // Стрелки размеров — у объекта сцены, не у тумбочки внутри гардеробной.
         cabinetProps.ARROWS?.removeFromParent()
 
-        // Наполнение тумбочки
+        // ЕДИНСТВЕННОЕ, что пишется обратно в конфиг: SECTIONS с наполнением.
+        // Его заполняют ModulegridParser (из сетки) и AdjacencyCalculator
+        // (ADDITIVES) в сборке выше — но на КОПИИ конфига, поэтому в сохранённом
+        // конфиге наполнения не было и оно не доходило до корзины: basketMapper
+        // (convertModuleToLegacyFormat) читает SECTIONSFILLING{n} именно из
+        // CONFIG.SECTIONS[n].fillings, как у УМ на сцене.
+        // Копия — чтобы данные тумбочки не делили объекты с props этой сборки.
         if (item.cabinet?.config) {
             item.cabinet.config.SECTIONS = cloneUMData(cabinetProps.CONFIG.SECTIONS)
         }
@@ -68,7 +88,10 @@ export class CabinetMeshBuilder {
         // сдвигать тумбочку.
         body.updateWorldMatrix(true, true)
         const box = new THREE.Box3().setFromObject(cabinetProps.BODY ?? body)
-        if (box.isEmpty()) return null
+        if (box.isEmpty()) {
+            console.warn('Тумбочка: пустой габарит собранного корпуса')
+            return null
+        }
         const center = box.getCenter(new THREE.Vector3())
         const depth = cabinetProps.CONFIG.MODULEGRID.depth || box.max.z - box.min.z
         const floorY = -props.CONFIG.SIZE.height / 2

@@ -18,6 +18,7 @@ import { Ref, ref } from "vue";
 import { saveUMGrid, ShapeAdjuster } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import { isWardrobeSystemProduct, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { createWardrobeGrid } from "@/components/UMconstructor/wardrobe/createWardrobeGrid.ts";
+import { distributeProportionally } from "@/components/UMconstructor/editor-v2/grid/scaleGridWidth.ts";
 import {
     alertType,
     constructorMode,
@@ -632,7 +633,7 @@ export default class UMconstructorClass {
                         newCell.width = newSection.width;
                         newCell.position.copy(positionCells.clone())
 
-                        if (newCell.position.y - moduleGrid.moduleThickness > newSection.height) {
+                        if (newCell.position.y - newSection.position.y >= newSection.height) {
                             break;
                         }
 
@@ -656,9 +657,25 @@ export default class UMconstructorClass {
                             let newCellsRowArray = <GridCellsRow>[]
                             let positionCellsRow = new THREE.Vector2(newCell.position.x - newCell.width / 2, newCell.position.y)
 
+                            // Ряды делят ширину ячейки ПРОПОРЦИОНАЛЬНО, не уже
+                            // MIN_SECTION_WIDTH, сумма сходится точно. Раньше
+                            // вся разница дописывалась ПОСЛЕДНЕМУ ряду после
+                            // цикла: при сужении секции он уходил в минус
+                            // (ширина -16 на дампе пользователя) и разделитель
+                            // оказывался вне корпуса. Ширины считаются ДО
+                            // цикла — ими же раскладываются позиции и
+                            // наполнение внутри него.
+                            const rowsTotalWidth = newCell.width - (newCell.cellsRows.length - 1) * moduleGrid.moduleThickness
+                            const newRowsWidth = distributeProportionally(
+                                newCell.cellsRows.map((row) => row.width),
+                                rowsTotalWidth,
+                                MIN_SECTION_WIDTH,
+                            )
+
                             newCell.cellsRows.forEach((row, rowIndex) => {
                                 let newRow = <GridCellsRow>{ ...row, position: new THREE.Vector2(row.position.x, row.position.y) }
 
+                                newRow.width = newRowsWidth[rowIndex]
                                 newRow.position.copy(positionCellsRow.clone())
                                 newRow.position.x += newRow.width / 2
                                 newRow.height = newCell.height;
@@ -697,6 +714,10 @@ export default class UMconstructorClass {
 
                                         newExtra.position.copy(positionRowExtras.clone())
                                         newExtra.width = newRow.width;
+
+                                        if (newExtra.position.y - newRow.position.y >= newRow.height) {
+                                            break;
+                                        }
 
                                         lastExtraHeight -= newExtra.height
                                         const shelfAbove = this.getShelfThickness(extras[j + 1], moduleGrid)
@@ -737,33 +758,9 @@ export default class UMconstructorClass {
                                 }
                             })
 
-                            let cellsRowWidthSum = 0;
-                            newCellsRowArray.forEach((row, rowIndex) => {
-                                cellsRowWidthSum += row.width;
-                            })
-                            cellsRowWidthSum += (newCellsRowArray.length - 1) * moduleGrid.moduleThickness;
-
-                            let deltaWidth = newCell.width - cellsRowWidthSum;   //Величина, на которую нужно изменить ширину последней ячейки
-                            if (deltaWidth !== 0) {
-                                let lastRow = newCellsRowArray[newCellsRowArray.length - 1]
-                                lastRow.width += deltaWidth
-                                lastRow.position.x += -deltaWidth / 2
-
-                                if (lastRow.fillings?.length) {
-                                    lastRow.fillings = <FillingObject>[...lastRow.fillings]
-                                    lastRow.fillings.forEach((filling, index) => {
-                                        if (filling.isVerticalItem) {
-                                            this.FILLINGS.updateFilling(lastRow.height, filling, 'height', moduleGrid)
-                                        }
-                                        else {
-                                            if (filling.isProfile) {
-                                                this.FILLINGS.updateFilling((moduleGrid.profilesConfig.onSectionSize || filling.isProfile.isBottomHiTechProfile) ? newSection.width : moduleGrid.width, filling, 'width', moduleGrid)
-                                            } else
-                                                this.FILLINGS.updateFilling(lastRow.width, filling, 'width', moduleGrid)
-                                        }
-                                    })
-                                }
-                            }
+                            // Досчёта дельты последнему ряду здесь больше нет:
+                            // distributeProportionally выше уже даёт сумму
+                            // ровно в ширину ячейки (см. комментарий там же).
 
                             newCell.cellsRows = newCellsRowArray.slice()
                         }
@@ -873,6 +870,7 @@ export default class UMconstructorClass {
             }
 
             module = this.FASADES.updateFasades(module)
+
             this.FASADES.resetRestrictedFasadeMaterials(module)
             this.FASADES.resetErrorFasadeMaterials(module)
             this.FASADES.markOversizedFasades(module)

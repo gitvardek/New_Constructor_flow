@@ -24,8 +24,12 @@ import * as THREE from "three";
 import { LOOPSIDE, TSelectedCell } from "./../../types/UMtypes.ts";
 import RenderContext from "./RenderContext.ts";
 import WardrobeSceneBuilder from "@/components/UMconstructor/wardrobe/render/WardrobeSceneBuilder.ts";
+import CabinetSceneBuilder from "@/components/UMconstructor/cabinet/render/CabinetSceneBuilder.ts";
+import { CABINET_SCENE_PALETTE } from "@/components/UMconstructor/cabinet/render/cabinetPalette.ts";
 import { createTsargaData, isTsargaEligibleWidth } from "./../Tsarga.ts";
 import { WARDROBE_CANVAS_PADDING_PX } from "@/Application/F-wardrobeData.ts";
+import { CABINET_CANVAS_PADDING_PX } from "@/components/UMconstructor/cabinet/cabinetData.ts";
+import { getSegmentLabel } from "../Labels.ts";
 
 
 const positionMap = {
@@ -43,10 +47,19 @@ const positionMap = {
 export default class SceneBuilder {
     ctx: RenderContext
     wardrobe: WardrobeSceneBuilder
+    cabinet: CabinetSceneBuilder
 
     constructor(ctx: RenderContext) {
         this.ctx = ctx
         this.wardrobe = new WardrobeSceneBuilder(ctx)
+        this.cabinet = new CabinetSceneBuilder(ctx)
+    }
+
+    // Цвета общей геометрии (PixiMethods.Shape/Section) задаёт палитра вида
+    // сцены, а не ветки по виду внутри рендера — см. editor-v2/render2d/
+    // palette.ts. box-UM палитры не имеет: цвета прежние.
+    get palette() {
+        return this.ctx.sceneKind === 'cabinet' ? CABINET_SCENE_PALETTE : null
     }
 
     getHandlesPosition(
@@ -123,8 +136,25 @@ export default class SceneBuilder {
         // выбор чистого смещения вместо масштаба). box-UM (moduleKind !==
         // 'wardrobe') — отступ 0, поведение не меняется.
         const isWardrobe = moduleGrid.moduleKind === 'wardrobe'
-        let xOffset = isWardrobe ? WARDROBE_CANVAS_PADDING_PX : 0;
-        let yOffset = isWardrobe ? WARDROBE_CANVAS_PADDING_PX : 0;
+        // Сцена тумбочки (ctx.sceneKind, проп Render2D) — та же box-UM сетка,
+        // но с отступом канваса и слоем обозначений, как у гардеробной
+        // (cabinet/render/CabinetSceneBuilder).
+        const isCabinet = ctx.sceneKind === 'cabinet'
+        const scenePadding = isCabinet ? CABINET_CANVAS_PADDING_PX : (isWardrobe ? WARDROBE_CANVAS_PADDING_PX : 0)
+        let xOffset = scenePadding;
+        let yOffset = scenePadding;
+
+        // Контейнеры сцены сидят на app.stage в (0,0), и всё, что кладётся в
+        // них, адресуется АБСОЛЮТНО (наполнение, номера областей, фасады,
+        // петли, ручки). Отступ канваса сдвигает модуль — значит, и их, иначе
+        // наполнение разъедется с геометрией. Гардеробная прибавляет отступ к
+        // своим координатам вручную (WardrobeSceneBuilder), её контейнеры
+        // остаются в нуле.
+        const containerOffset = isCabinet ? scenePadding : 0;
+        [
+            ctx.sectionsContainer, ctx.lablesContainer, ctx.dementionContainer,
+            ctx.fillingsContainer, ctx.fasadesContainer, ctx.loopsContainer, ctx.handlesContainer,
+        ].forEach((container) => container?.position.set(containerOffset, containerOffset));
 
         if (_moduleGrid) {
             ctx.setModuleGrid(_moduleGrid);
@@ -710,6 +740,12 @@ export default class SceneBuilder {
             });
         }
 
+        // Слой обозначений тумбочки — ПОСЛЕ геометрии: размерные линии и
+        // нейминги считаются по уже проставленным xOffset/yOffset областей.
+        if (isCabinet) {
+            this.cabinet.renderCabinetOverlay(moduleGrid, ctx.sectionLabel);
+        }
+
         this.flushSceneContainers();
     }
 
@@ -764,7 +800,7 @@ export default class SceneBuilder {
         sector.sectorData = moduleData;
         sector.sections = ctx.sections;
 
-        const cell = new Section(moduleData, width, height, sector, false);
+        const cell = new Section(moduleData, width, height, sector, false, 1, this.palette?.module);
         cell.highlightGraphics.visible = false;
 
         // Гардеробная система (временно, черновик) — у неё нет "коробки",
@@ -833,8 +869,13 @@ export default class SceneBuilder {
             width,
             height,
             sector,
-            gridType === ctx.mode.value,
+            // Собственные "N мм" box-UM (Section.drawDimensions) у тумбочки
+            // выключены: их заменяют размерные линии слоя обозначений
+            // (cabinet/render/CabinetSceneBuilder), иначе две разные разметки
+            // на одной области (уточнение пользователя).
+            gridType === ctx.mode.value && ctx.sceneKind !== 'cabinet',
             opacity,
+            this.palette?.cell?.(cellData, gridType),
         );
 
         const selected =
@@ -928,7 +969,13 @@ export default class SceneBuilder {
 
         sector.shapes.forEach((el) => {
             el.sectorBounds = tmpSectorBounds;
-            el.drawBoundaryDistances();
+            // У тумбочки пунктирные линейки box-UM не рисуются: расстояния
+            // показывает слой обозначений (cabinet/render/CabinetSceneBuilder),
+            // две разметки на одной области мешают друг другу — как и
+            // собственные "N мм" Section. САМ вызов обязателен: он считает
+            // data.distances, без которых ModulegridParser выбрасывает
+            // наполнение из 3D и из корзины.
+            el.drawBoundaryDistances(ctx.sceneKind !== 'cabinet');
         });
 
         if (gridType === ctx.mode.value) {
@@ -1032,7 +1079,7 @@ export default class SceneBuilder {
         sector.sectorData = handleData;
         sector.sections = ctx.sections;
 
-        const cell = new Section(handleData, width, height, sector, false, opacity);
+        const cell = new Section(handleData, width, height, sector, false, opacity, this.palette?.handle);
         cell.highlightGraphics.visible = false;
         cell.cellGraphics.eventMode = "static";
 
@@ -1102,6 +1149,7 @@ export default class SceneBuilder {
             customSectorBounds,
             containerShape,
             store: ctx.UMconstructor?.value?.UM_STORE,
+            colors: this.palette?.filling?.(data),
         });
 
         data.sector = filling.sector;
@@ -1178,23 +1226,13 @@ export default class SceneBuilder {
         const yOffset = cell.yOffset || y;
         const opacity = cell.type == "fasade" ? 1 : 0.4;
 
-        let text;
-
-        if (sectionIndex === null) {
-            text =
-                rowIndex !== null
-                    ? `${cellIndex + 1}.${rowIndex + 1}`
-                    : `${cellIndex + 1}`;
-        } else {
-            text =
-                rowIndex !== null
-                    ? `${sectionIndex + 1}.${cellIndex + 1}.${rowIndex + 1}`
-                    : `${sectionIndex + 1}.${cellIndex + 1}`;
-        }
-
-        if (extraIndex !== null) text += `.${extraIndex + 1}`;
-
-        if (itemIndex !== null) text += ` ${itemIndex}`;
+        const text = getSegmentLabel({
+            sectionIndex,
+            cellIndex,
+            rowIndex,
+            extraIndex,
+            itemIndex,
+        });
 
         const cellNumber = new Text({
             text: text,

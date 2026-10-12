@@ -15,6 +15,7 @@ import { useTransformController } from "@/components/ui/transformController/useT
 import { useUniformState } from "@/store/appliction/useUniformState";
 
 import { OBBHelper } from "../Utils/CalculateBoundingBox";
+import { getCenterOffset } from "../Room/OBBCollider";
 import { UniformModeHandler } from "../Utils/UniformModeHandler";
 
 export class MoveManager {
@@ -383,7 +384,12 @@ export class MoveManager {
             this.selectedObject.rotation.copy(adjustedPosition.rotation);
             this.selectedObject.userData.targetPosition = point
 
-            this.selectedObject.userData.obb.center.copy(this.selectedObject.position)
+            // Центр OBB — центр габарита, а не origin объекта: у несимметричной
+            // сборки (гардеробная система) они расходятся, и объект заходил в
+            // стену ровно на величину расхождения.
+            this.selectedObject.userData.obb.center
+                .copy(this.selectedObject.position)
+                .add(getCenterOffset(this.selectedObject, this.selectedObject.rotation, 'obbCenter'))
 
             this.selectedObject.userData.obb.rotation.setFromMatrix4(this.selectedObject.matrixWorld);
 

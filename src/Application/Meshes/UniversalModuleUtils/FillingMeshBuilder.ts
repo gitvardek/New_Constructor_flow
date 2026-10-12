@@ -220,10 +220,11 @@ export class FillingMeshBuilder {
 
     createSubProductObject(filling: Object, data: THREETypes.TObject, props: THREETypes.TObject) {
 
-        let textureUrl = filling.isProfile ? this.builder._COLOR[props.CONFIG['PROFILECOLOR']].TEXTURE :
-            this.builder._FASADE[filling.color ||
-                filling.material ||
-                props.CONFIG['MODULE_COLOR']].TEXTURE
+        let textureUrl = filling.isProfile
+            ? this.builder.getMaterialTexture('COLOR', props.CONFIG['PROFILECOLOR'])
+            : this.builder.getMaterialTexture('FASADE', filling.color
+                || filling.material
+                || props.CONFIG['MODULE_COLOR'])
         let body = this.builder.json_builder.createMesh({ data, textureUrl })
 
         body.position.set(eval(data.corr_x), eval(data.corr_y), eval(data.corr_z));

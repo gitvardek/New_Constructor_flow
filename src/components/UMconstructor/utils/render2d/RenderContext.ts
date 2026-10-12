@@ -23,6 +23,13 @@ export default class RenderContext {
     handlesContainer
     shapeAdjuster
 
+    // Вид сцены: undefined — box-UM, 'cabinet' — тумбочка (отступ канваса и
+    // слой обозначений, cabinet/render/CabinetSceneBuilder). Гардеробная
+    // узнаётся по moduleGrid.moduleKind, пропом её не отмечают.
+    sceneKind
+    // Нейминг секции в обозначениях (editor-v2/policy/editorPolicy).
+    sectionLabel
+
     // Флаг готовности приложения (устанавливается в Render2D.vue::init())
     appReady = false
 
@@ -88,6 +95,8 @@ export default class RenderContext {
     // (reactive()), lastDragEvent — ref, cursorCheck — обычное мутируемое поле
     dragState
     lastDragEvent
+    sanitizeMinWidth
+    getGridMinWidth
     cursorCheck = false
 
     // Колбэки в UMconstructorClass-менеджеры (тонкие обёртки, живут в Render2D.vue)
@@ -115,7 +124,6 @@ export default class RenderContext {
     // Драг полки внутри секции по вертикали — своё изолированное состояние
     // (wardrobeShelfDrag), см. DividerDragEngine.
     onWardrobeShelfDragStart
-
     constructor(fields: Record<string, any>) {
         Object.assign(this, fields)
     }

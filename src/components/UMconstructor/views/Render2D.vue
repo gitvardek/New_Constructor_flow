@@ -26,6 +26,7 @@ import ExternalSizeAdjuster from "./../utils/render2d/ExternalSizeAdjuster.ts";
 import DividerDragEngine from "./../utils/render2d/DividerDragEngine.ts";
 import WardrobeDragEngine from "@/components/UMconstructor/wardrobe/render/WardrobeDragEngine.ts";
 import { WARDROBE_CANVAS_PADDING_PX } from "@/Application/F-wardrobeData.ts";
+import { CABINET_CANVAS_PADDING_PX } from "@/components/UMconstructor/cabinet/cabinetData.ts";
 
 const props = defineProps({
   module: {
@@ -61,6 +62,18 @@ const props = defineProps({
   active: {
     type: Boolean,
     default: true,
+  },
+  // Вид сцены: по умолчанию box-UM, 'cabinet' — тумбочка (отступ канваса и
+  // слой обозначений, см. SceneBuilder.renderGrid/CabinetSceneBuilder).
+  // Гардеробная определяется по module.moduleKind и пропом не отмечается.
+  sceneKind: {
+    type: String,
+    default: undefined,
+  },
+  // Нейминг секции в обозначениях ("Секция тумбочки"), см. editorPolicy.
+  sectionLabel: {
+    type: String,
+    default: "Секция",
   },
 });
 
@@ -118,6 +131,8 @@ const changeConstructorMode = (...args) => selectionHighlighter.changeConstructo
 const adjustSizeFromExternal = (...args) => externalSizeAdjuster.adjustSizeFromExternal(...args);
 const dragMove = (...args) => dividerDragEngine.dragMove(...args);
 const handleGlobalPointerMove = (...args) => dividerDragEngine.handleGlobalPointerMove(...args);
+const sanitizeMinWidth = (...args) => dividerDragEngine.sanitizeMinWidth(...args)
+const getGridMinWidth = (...args) => dividerDragEngine.getGridMinWidth(...args)
 
 let cursorCheck = false;
 let lastDragEvent = ref(null);
@@ -261,7 +276,11 @@ const updateTotalSize = (value, dimension) => {
   const moduleData = currentModule.value ?? module.value;
   const moduleKind = moduleData?.moduleKind;
   const isWardrobe = moduleKind === 'wardrobe';
-  const padding = isWardrobe ? WARDROBE_CANVAS_PADDING_PX : 0;
+  // Тумбочка — тот же отступ, что у гардеробной (проп sceneKind, см.
+  // SceneBuilder.renderGrid): под размерные линии и нейминги над модулем.
+  const padding = props.sceneKind === 'cabinet'
+    ? CABINET_CANVAS_PADDING_PX
+    : (isWardrobe ? WARDROBE_CANVAS_PADDING_PX : 0);
 
   // РАНЬШЕ сверх areaWidth резервировалось ещё (N+1)×WARDROBE_PROFILE_WIDTH:
   // тогда grid.width (= TOTAL_WIDTH) был суммой section.width без профилей, и
@@ -306,6 +325,8 @@ ctx = new RenderContext({
   dragState, lastDragEvent,
   calcDrawersFasades, checkLoopsCollision, resetModule, setModuleGrid,
   renderGrid, selectCell, selectWardrobeProfile, checkSectorsCollision,
+  sanitizeMinWidth, getGridMinWidth,
+  sceneKind: props.sceneKind, sectionLabel: props.sectionLabel,
 });
 sceneBuilder = new SceneBuilder(ctx);
 selectionHighlighter = new SelectionHighlighter(ctx);

@@ -267,6 +267,21 @@
               </div>
             </div>
           </span>
+
+          <!-- Наполнение гардеробной системы: профили и состав секций
+               (PROPS.WARDROBEGRID, basketMapper.createWardrobeGridData) -->
+          <span v-if="propKey === 'WARDROBEGRID' && wardrobeDescription">
+            <div>
+              <span class="basket-item__props-lable">Гардеробная система:</span>
+              <span>{{ wardrobeDescription.size }}</span>
+            </div>
+            <div v-for="group in wardrobeDescription.groups" :key="group.title">
+              <span class="basket-item__props-lable">{{ group.title }}:</span>
+              <ul class="basket-item__props-list">
+                <li v-for="(row, rowIndex) in group.items" :key="rowIndex">{{ row }}</li>
+              </ul>
+            </div>
+          </span>
         </div>
       </div>
 
@@ -355,6 +370,7 @@ import axios from "axios";
 import InfoPopUp from "../popUp/InfoPopUp.vue";
 import { _URL } from "@/types/constants";
 import { getCabinetParentBasketId, propsLabel } from "./helper/basketMapper";
+import { buildWardrobeDescription } from "./helper/wardrobeBasketDescription";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useConfigStore } from "@/store/appStore/useConfigStore";
 import { BASE_DOMAIN } from "@/utils/originalDomain";
@@ -649,10 +665,10 @@ const getTypeName = (
   }
 
   if (type === "HEM" && mainType === "scene") {
-    return appData.value["HEM"][value].NAME;
+    return appData.value["HEM"][value]?.NAME || `[${type}:${value}]`;
   }
   if (type === "MECHANISM" && mainType === "scene") {
-    return appData.value["MECHANISM"][value].NAME;
+    return appData.value["MECHANISM"][value]?.NAME || `[${type}:${value}]`;
   }
 
   if (mainType === "scene") {
@@ -817,6 +833,15 @@ const cabinetParentBasketId = computed(() =>
   getCabinetParentBasketId(props.item.product.BASKETID),
 );
 
+// Состав гардеробной системы: PROPS.WARDROBEGRID возвращается с ценой как есть,
+// в propsLabel его нет — рендерится отдельным блоком (см. шаблон)
+const wardrobeDescription = computed(() =>
+  buildWardrobeDescription(
+    props.item.product.PROPS?.WARDROBEGRID,
+    props.item.product.ID ?? props.item.product.PRODUCT,
+  ),
+);
+
 const goToObject = () => {
   popupStore.closePopup('basket');
   if (props.item.product.TYPE === 'scene' || props.item.product.TYPE === 'umscene') {
@@ -910,7 +935,7 @@ const renderDescription = computed(() => {
           // тогда здесь уже будет id материала
           if (typeof partData === "number") {
             const description =
-              appData.value["FASADE"][partData].NAME ??
+              appData.value["FASADE"][partData]?.NAME ??
               `Неизвестный материал (ID: ${partData})`;
             result.push({
               key: `Цвет фасада ${doorNumber}`,
@@ -919,7 +944,7 @@ const renderDescription = computed(() => {
           } else {
             for (const [elementNumber, materialId] of Object.entries(partData)) {
               const description =
-                appData.value["FASADE"][materialId].NAME ??
+                appData.value["FASADE"][materialId]?.NAME ??
                 `Неизвестный материал (ID: ${materialId})`;
               result.push({
                 key: `Цвет фасада ${doorNumber}`,
@@ -1128,7 +1153,7 @@ const renderDescription = computed(() => {
         value.forEach((doorData, doorNumber) => {
           if (typeof doorData === "number") {
             const description =
-              appData.value[getPropDefinition(key)?.type][doorData].NAME ||
+              appData.value[getPropDefinition(key)?.type]?.[doorData]?.NAME ||
               `Неизвестный материал (ID: ${doorData})`;
             result.push({
               key: getPropDefinition(key)?.NAME,

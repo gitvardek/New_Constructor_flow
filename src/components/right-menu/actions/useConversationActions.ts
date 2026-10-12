@@ -124,6 +124,7 @@ export const useConversationActions = (getModel?: () => any) => {
         const isIgnoreSize = checkIgnore(curModel)
 
 
+
         // Дверные лимиты УМ применимы только к дверям: боковая стенка и накладка
         // ограничены размером листа, поэтому для них ветка isUM пропускается
         const useDoorLimits = isUM && !isPanel

@@ -148,6 +148,8 @@ export default class FillingsManager {
         return this.core.cleanupOrphanFillings(...args)
     }
 
+
+
     // --- Оркестрация размещения/удаления наполнения: генерика вперемешку с
     // короткими вызовами в drawers/shelves/profiles там, где раньше был
     // инлайновый код на конкретный тип (см. DrawerFillingHandler.ts,
@@ -241,6 +243,14 @@ export default class FillingsManager {
 
         this.shelves.normalizeDimensions(product, _type, grid)
 
+        // Высота универсального ящика не приходит в product.height, а выбирается из DROWER_FASADE_HEIGHT
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
+            const { height: universalHeight } = this.drawers.getUniversalDrawerSizes(product, grid)
+            if (universalHeight !== undefined) {
+                product.height = universalHeight
+            }
+        }
+
         const startFillingData = this.createFillingDataToCheck(product, currentModuleSegment, grid, isVerticalItem, !!product.MIN_FASADE_SIZE);
 
 
@@ -293,19 +303,16 @@ export default class FillingsManager {
         };
 
 
-        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID) && product.DROWER_FASADE_HEIGHT) {
-            const heightOptions = Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
-            const firstHeight = heightOptions[0];
-            if (firstHeight !== undefined) {
-                fillingObject.height = firstHeight;
-                fillingObject.size.y = firstHeight;
+        // Запись высоты универсального ящика в объект
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
+            const { height: universalHeight, depth: universalDepth } = this.drawers.getUniversalDrawerSizes(product, grid)
+            if (universalHeight !== undefined) {
+                fillingObject.height = universalHeight;
+                fillingObject.size.y = universalHeight;
             }
-            const maxAllowedDepth = grid.depth - 7;
-            const availableDepths = (product.SIZE_EDIT_DEPTH ?? []).filter((d: number) => d <= maxAllowedDepth);
-            const firstDepth = availableDepths[0];
-            if (firstDepth !== undefined) {
-                fillingObject.depth = firstDepth;
-                fillingObject.size.z = firstDepth;
+            if (universalDepth !== undefined) {
+                fillingObject.depth = universalDepth;
+                fillingObject.size.z = universalDepth;
             }
         }
 

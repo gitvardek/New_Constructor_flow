@@ -123,42 +123,19 @@ export default class DividerDragEngine {
             ctx.dragState.startLeftWidth = cur.width;
             ctx.dragState.startRightWidth = next.width;
 
-            let curMin = cur.maxX;
-            if (cur.cells?.length) {
-                let count = 1;
-                cur.cells.forEach((elem) => {
-                    if (elem.cellsRows?.length > count) {
-                        count = elem.cellsRows.length;
-                    }
-                });
+            const curSectorMin = cur.cells?.length
+                ? engine.sanitizeMinWidth(cur.maxX) :
+                engine.sanitizeMinWidth(ctx.shapeAdjuster.getLeftSectionWidth(curSector, cur.maxX));
 
-                curMin = Math.max(
-                    curMin,
-                    MIN_SECTION_WIDTH * count + module.moduleThickness * (count - 1),
-                );
-                ctx.dragState.minXleft = curMin;
-            } else
-                ctx.dragState.minXleft = ctx.shapeAdjuster.getLeftSectionWidth(curSector, curMin);
+            ctx.dragState.minXleft = Math.max(curSectorMin, engine.getGridMinWidth(cur));
 
-            let nextMin = next.minX;
-            if (next.cells?.length) {
-                let count = 1;
-                next.cells.forEach((elem) => {
-                    if (elem.cellsRows?.length > count) {
-                        count = elem.cellsRows.length;
-                    }
-                });
+            const nextSectorMin = next.cells?.length
+                ? engine.sanitizeMinWidth(next.minX)
+                : engine.sanitizeMinWidth(
+                    ctx.shapeAdjuster.getRightSectionWidth(nextSector, next.minX),
+                );
 
-                nextMin = Math.max(
-                    nextMin,
-                    MIN_SECTION_WIDTH * count + module.moduleThickness * (count - 1),
-                );
-                ctx.dragState.minXRight = nextMin;
-            } else
-                ctx.dragState.minXRight = ctx.shapeAdjuster.getRightSectionWidth(
-                    nextSector,
-                    nextMin,
-                );
+            ctx.dragState.minXRight = Math.max(nextSectorMin, engine.getGridMinWidth(next));
 
             ctx.dragState.element = this;
             this.onDrag = true;
@@ -1099,5 +1076,33 @@ export default class DividerDragEngine {
             // console.log("Курсор вне холста (глобальная проверка)");
             this.onDragEnd();
         }
+    }
+
+    // Границы по наполнению собираются редьюсером от Infinity, поэтому у секции без наполнения
+    // minX остаётся Infinity, а maxX — -Infinity. Такие значения нельзя пускать в Math.max:
+    // Infinity проглатывает конструктивный минимум, а дальше его срезает защита от нечисловых
+    sanitizeMinWidth(value) {
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    // Конструктивный минимум ширины секции: секцию нельзя сузить настолько, чтобы её ячейки
+    // стали уже MIN_SECTION_WIDTH. Считаем по самой дроблёной ячейке — её вертикальные
+    // разделители и сами занимают место. У узлов без ячеек своего минимума нет,
+    // их ширину сторожит MIN_SECTION_WIDTH
+    getGridMinWidth(node) {
+        if (!node?.cells?.length) {
+            return 0;
+        }
+
+        let count = 1;
+        node.cells.forEach((cell) => {
+            if (cell.cellsRows?.length > count) {
+                count = cell.cellsRows.length;
+            }
+        });
+
+        return (
+            MIN_SECTION_WIDTH * count + this.ctx.props.module.moduleThickness * (count - 1)
+        );
     }
 }

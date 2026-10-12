@@ -3,6 +3,7 @@ import { useBasketStore } from "@/store/appStore/useBasketStore";
 import { useRoomState } from "@/store/appliction/useRoomState";
 import { _URL } from "@/types/constants";
 import { useAppData } from "@/store/appliction/useAppData";
+import { buildWardrobeDescriptionRows } from "@/components/Basket/helper/wardrobeBasketDescription";
 
 export const usePrint = () => {
   const printPage = async () => {
@@ -183,6 +184,38 @@ export const usePrint = () => {
           });
         }
 
+        // Опции и услуги столешницы (распила).
+        const resolveUsluga = (id: any): string =>
+          appData?.USLUGI?.[id]?.NAME || `Услуга ${id}`;
+
+        if (props.USLUGIraspil) rows.push(`Распил: ${props.USLUGIraspil}`);
+
+        if (props.PROFILE) rows.push(`Тип завала: ${resolveUsluga(props.PROFILE)}`);
+
+        if (props.KROMKA) {
+          rows.push(`Кромка: ${appData?.HEM?.[props.KROMKA]?.NAME || props.KROMKA}`);
+        }
+
+        if (Array.isArray(props.USLUGI) && props.USLUGI.length) {
+          props.USLUGI.forEach((uslugaId: any) => {
+            rows.push(`Услуга: ${resolveUsluga(uslugaId)}`);
+          });
+        }
+
+        // Услуги частей распила. NAME и width (ширина еврозапила) уже лежат в serviseData
+        if (Array.isArray(props.RASPIL?.data)) {
+          props.RASPIL.data.forEach((part: any, i: number) => {
+            const services = Array.isArray(part?.serviseData) ? part.serviseData : [];
+            if (!services.length) return;
+
+            rows.push(`Услуга ${i + 1}:`);
+            services.forEach((service: any) => {
+              const name = service?.NAME || resolveUsluga(service?.ID);
+              rows.push(`  ${name}${service?.width ? ` — ${service.width} мм` : ''}`);
+            });
+          });
+        }
+
         // Фрезеровка, палитра, патина и стекло секций. У обычных товаров они печатаются
         // из props.FASADE, у УМ приходят посекционно: MILLING1, PALETTE1, PATINA1,
         // GLASS1 — объекты вида { дверь: { индекс: id } }
@@ -233,6 +266,19 @@ export const usePrint = () => {
               rows.push(`  ${idx + 1} ${pName}: — ${pos}`);
             });
           }
+        }
+
+        // Наполнение гардеробной системы — PROPS.WARDROBEGRID (у box-УМ состав
+        // приходит нумерованными SECTIONSFILLING*, см. выше)
+        if (props.WARDROBEGRID) {
+          rows.push(...buildWardrobeDescriptionRows(props.WARDROBEGRID, product?.ID ?? product?.PRODUCT));
+        }
+
+        // Место тумбочки в гардеробной (basketMapper.createCabinetItems): у неё
+        // своя позиция, объекта на сцене нет — как и в корзине
+        if (props.WARDROBE) {
+          if (props.WARDROBE.SECTION != null) rows.push(`Секция: ${props.WARDROBE.SECTION}`);
+          if (props.WARDROBE.POSITION_Y != null) rows.push(`Высота установки: ${props.WARDROBE.POSITION_Y} мм`);
         }
 
         return rows;

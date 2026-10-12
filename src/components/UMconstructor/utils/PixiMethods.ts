@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { MANUFACTURER, TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { useUMStorage, type UMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { BOX_UM_FILLING_COLORS, type ScenePartColors } from "@/components/UMconstructor/editor-v2/render2d/palette.ts";
 
 type TDashedLine = {
     startX: number;
@@ -259,6 +260,7 @@ class Shape extends Helpers {
         customSectorBounds,
         containerShape,
         store,
+        colors,
     }:
         {
             type: string,
@@ -280,6 +282,9 @@ class Shape extends Helpers {
             dragActive: boolean,
             // Стор сессии движка; без него — основной (useUMStorage).
             store?: UMStorage,
+            // Цвета от палитры вида сцены (editor-v2/render2d/palette.ts);
+            // без них — цвета box-UM.
+            colors?: ScenePartColors | null,
         }) {
         super()
 
@@ -335,12 +340,23 @@ class Shape extends Helpers {
         this.highlightGraphics.data = data
         this.highlightGraphics.holeId = data.id
 
+        // Цвета наполнения даёт палитра вида сцены (editor-v2/render2d/
+        // palette.ts): box-UM палитры не имеет и красится как раньше (один
+        // коричневый, выделение — подменой заливки), тумбочка получает цвет
+        // по типу наполнения, а выделение — обводкой поверх своей заливки.
+        const partColors = colors ?? BOX_UM_FILLING_COLORS
+        const partAlpha = partColors.alpha ?? 1
+
         this.graphic.rect(0, 0, this.getPixelWidth(data.width), this.getPixelHeight(data.height))
-        this.graphic.fill("#875003")
-        this.graphic.stroke({ width: 1, color: "#b86c02", alignment: 1 });
+        this.graphic.fill({ color: partColors.fill, alpha: partAlpha })
+        this.graphic.stroke({ width: 1, color: partColors.stroke ?? partColors.fill, alignment: 1 });
         this.highlightGraphics.rect(0, 0, this.getPixelWidth(data.width), this.getPixelHeight(data.height))
-        this.highlightGraphics.fill("#b86c02")
-        this.highlightGraphics.stroke({ width: 1, color: "#875003", alignment: 1 });
+        this.highlightGraphics.fill({ color: partColors.highlightFill ?? partColors.fill, alpha: partAlpha })
+        this.highlightGraphics.stroke({
+            width: partColors.highlightStrokeWidth ?? 1,
+            color: partColors.highlightStroke ?? partColors.stroke ?? partColors.fill,
+            alignment: 1,
+        });
         this.drawersFasadesOffset = this.getPixelHeight(4)
 
         if (position) {
@@ -866,7 +882,11 @@ class Shape extends Helpers {
 
     }
 
-    drawBoundaryDistances() {
+    // drawLines=false — только ПОСЧИТАТЬ расстояния до границ области, без
+    // пунктирных линеек: их рисует сцена со своей разметкой (тумбочка,
+    // SceneBuilder.createSector). Сами данные нужны всегда — на них держатся
+    // правая панель и 3D (ModulegridParser пропускает наполнение без distances).
+    drawBoundaryDistances(drawLines: boolean = true) {
 
         if (this.distanceGraphics) {
             this.dementionContainer.removeChild(this.distanceGraphics);
@@ -897,6 +917,17 @@ class Shape extends Helpers {
         distances.right = this.sectorBounds.x + this.sectorBounds.width - (this.graphic.position.x + this.width);
         distances.top = this.graphic.position.y - this.sectorBounds.y;
         distances.bottom = this.sectorBounds.y + this.sectorBounds.height - (this.graphic.position.y + this.height);
+
+        // Данные для правой панели (CutOptions.vue) и для 3D — до отрисовки:
+        // при drawLines=false дальше идти незачем.
+        this.data.distances = {
+            left: Math.round(this.getMmWidth(distances.left)),
+            right: Math.round(this.getMmWidth(distances.right)),
+            top: Math.round(this.getMmHeight(distances.top)),
+            bottom: Math.round(this.getMmHeight(distances.bottom)),
+        }
+
+        if (!drawLines) return
 
         let left, right, top, bottom
         if (this.sector.shapes.length > 1) {
@@ -1062,16 +1093,6 @@ class Shape extends Helpers {
         }
 
         this.dementionContainer.addChild(graphics);
-
-        // Добавляем данные для отображения в компоненте VUE @CutOptions.vue
-
-        this.data.distances = {
-            left: Math.round(this.getMmWidth(distances.left)),
-            right: Math.round(this.getMmWidth(distances.right)),
-            top: Math.round(this.getMmHeight(distances.top)),
-            bottom: Math.round(this.getMmHeight(distances.bottom)),
-        }
-
     }
 
 }
@@ -1085,8 +1106,11 @@ class Section extends Helpers {
     sector: Container;
     opacity: number;
     _drawDimensions: boolean;
+    // Цвета от палитры вида сцены (editor-v2/render2d/palette.ts); null —
+    // цвета box-UM по типу области (switch в createFormSection).
+    colors: ScenePartColors | null;
 
-    constructor(data: any, width: number, height: number, sector: Container, _drawDimensions: boolean = true, opacity: number = 1) {
+    constructor(data: any, width: number, height: number, sector: Container, _drawDimensions: boolean = true, opacity: number = 1, colors: ScenePartColors | null = null) {
         super();
         this.data = data;
         this.width = width;
@@ -1094,6 +1118,7 @@ class Section extends Helpers {
         this.sector = sector;
         this._drawDimensions = _drawDimensions;
         this.opacity = opacity;
+        this.colors = colors;
 
 
         this.createSection();
@@ -1130,6 +1155,14 @@ class Section extends Helpers {
                 break;
         }
 
+        // Палитра вида сцены перекрывает цвет по типу области; ошибка ниже
+        // перекрывает и палитру — красное всегда видно.
+        const partColors = this.colors
+        if (partColors) {
+            defCellColor = partColors.fill
+            deffHighlightColor = partColors.highlightFill ?? partColors.fill
+        }
+
         if (data.error) {
             defCellColor = '#ad0202'
             deffHighlightColor = '#fa3c3c'
@@ -1152,6 +1185,21 @@ class Section extends Helpers {
         // Отрисовываем пути на графике
         this.cellGraphics.path(cellPath).fill({ color: defCellColor, alpha: opacity });
         this.highlightGraphics.path(highlightPath).fill({ color: deffHighlightColor, alpha: opacity });
+
+        // Обводка — только от палитры (у box-UM областей её нет): у тумбочки
+        // она очерчивает корпус, а выделение области показывается обводкой,
+        // а не подменой заливки (приём гардеробной). Путь для обводки свой:
+        // fill() выше свой уже использовал.
+        if (partColors?.stroke) {
+            this.cellGraphics.path(this.createPath()).stroke({ width: 1, color: partColors.stroke, alignment: 1 });
+        }
+        if (partColors?.highlightStroke) {
+            this.highlightGraphics.path(this.createPath()).stroke({
+                width: partColors.highlightStrokeWidth ?? 1,
+                color: partColors.highlightStroke,
+                alignment: 1,
+            });
+        }
 
         // Отрисовываем размеры
         if (this._drawDimensions) {

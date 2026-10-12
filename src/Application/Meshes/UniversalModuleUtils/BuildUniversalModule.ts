@@ -74,7 +74,8 @@ export class BuildUniversalModule extends BuildProduct {
 
         const { PROPS } = perent_group.userData
         const { CONFIG } = PROPS;
-
+        
+        this.sanitizeProductMaterials(PROPS);
         const defaultConfig: THREETypes.TDefaultOptionsConfig = this.getDefaultOptionsConfig();
 
         const productId = CONFIG.ID

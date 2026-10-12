@@ -167,21 +167,21 @@ onMounted(() => {
         <div :class="['technologist-form-footer-filedrop', { 'technologist-form-errorForm': techFormError['sketch'] }]">
           <p class="technologist-form-footer-filedrop__label">* Техническое задание с размерами</p>
 
-          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
+          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png, .xls, .xlsx"
             @update:files="changeSketchFiles" />
         </div>
 
         <div class="technologist-form-footer-filedrop">
           <p class="technologist-form-footer-filedrop__label">* Фото помещения со всех ракурсов</p>
 
-          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
+          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png, .xls, .xlsx"
             @update:files="changePhotoRoomFiles" />
         </div>
 
         <div class="technologist-form-footer-filedrop">
           <p class="technologist-form-footer-filedrop__label">* Замер помещения</p>
 
-          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png"
+          <DragAndDropFiles accept=".pdf, .txt, .docx, .doc, .rtf, .jpg, .jpeg, .bmp, .png, .xls, .xlsx"
             @update:files="changeMeteringFiles" />
         </div>
 

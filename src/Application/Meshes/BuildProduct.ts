@@ -40,7 +40,14 @@ import { MirrorBuilder } from './MirrorBuilder/MirrorBuilder.ts';
 import { TsargaBuilder } from './TsargaBuilder/TsargaBuilder.ts';
 import { UM_SAMPLE } from '../F-umModulesData.ts';
 import { UM_PARAMS, WITHOUT_START_FASADE } from "@/components/UMconstructor/utils/Const";
-
+import {
+    filterKnownMaterials,
+    hasMaterial,
+    isEmptyMaterialId,
+    TMaterialDictName,
+    TMaterialId,
+    TResolveParams,
+} from './Utils/MaterialResolver'
 //Временно
 import { isWardrobeSystemProduct, migrateWardrobeGrid } from '@/components/UMconstructor/wardrobe/WardrobeSystem.ts';
 import { WardrobeGridParser } from './Wardrobe/WardrobeGridParser.ts';
@@ -326,6 +333,9 @@ export class BuildProduct extends BuildersHelper {
 
         parent_group.userData.aabb = product.userData.aabb ?? aabb;
         parent_group.userData.obb = product.userData.obb ?? obb;
+        // Смещения центров габарита — см. setBounds и createProductBody
+        parent_group.userData.obbCenter = product.userData.obbCenter ?? new THREE.Vector3();
+        parent_group.userData.clampCenter = product.userData.clampCenter ?? new THREE.Vector3();
         parent_group.userData.restrictData = {};
 
         return parent_group;
@@ -516,6 +526,8 @@ export class BuildProduct extends BuildersHelper {
 
         const { PROPS } = parentGroup.userData;
         const { CONFIG } = PROPS;
+        /* Валидация */
+        this.sanitizeProductMaterials(PROPS);
         const defaultConfig: THREETypes.TDefaultOptionsConfig = this.getDefaultOptionsConfig();
 
         PROPS.FASADE = [];
@@ -701,6 +713,14 @@ export class BuildProduct extends BuildersHelper {
 
         if (sourceForBounds) this.setBounds(total, sourceForBounds, size, CONFIG);
 
+        // Центр объёма, которым коллайдер выталкивает из стен. Там в ходу пара
+        // BODY_DEPTH/BODY_WIDTH ?? trueSizes, поэтому и центр берётся у ТОГО ЖЕ
+        // объёма: смещение, посчитанное по другому телу, не сойдётся с
+        // полуразмером и уведёт модуль в стену. У гардеробной системы BODY нет
+        // — там это центр всей сборки.
+        const clampSource = PROPS.BODY instanceof THREE.Object3D ? PROPS.BODY : sourceForBounds;
+        total.userData.clampCenter = new THREE.Box3().setFromObject(clampSource).getCenter(new THREE.Vector3());
+
         if (drowMode) this.useEdgeBuilder.drawingMode(drowMode, total);
 
         total.userData.isTopTable = isTopTable
@@ -762,7 +782,7 @@ export class BuildProduct extends BuildersHelper {
             this._FASADE[moduleColorId]
 
         const moduleColor = isRoomElement ?
-            moduleColorObject.texture :
+            moduleColorObject?.texture :
             moduleColorObject?.TEXTURE;
 
         const isTopTable = texture?.src && !moduleColor;
@@ -852,33 +872,39 @@ export class BuildProduct extends BuildersHelper {
             let top, topFasade_thickness
             if (TOPFASADECOLOR.TABLE) {
                 top = this._PRODUCTS[TOPFASADECOLOR.TABLE];
-                topFasade_thickness = top.height
+                topFasade_thickness = top?.height
             }
             else {
                 top = this._FASADE[TOPFASADECOLOR.COLOR];
-                topFasade_thickness = top.DEPTH
+                topFasade_thickness = top?.DEPTH
             }
 
-            Object.assign(TOPFASADECOLOR, {
-                width: topFasade_width,
-                depth: topFasade_depth,
-                thickness: topFasade_thickness,
-            });
 
-            data.json.items.push({
-                id: 'top_fasade',
-                type: "object",
-                geometry: {
-                    type: "BoxGeometry",
-                    opt: { x: topFasade_width, y: topFasade_thickness, z: topFasade_depth },
-                },
-                rotation: { x: 0, y: 0, z: 0 },
-                position: {
-                    x: 0,
-                    y: startPos.y + CONFIG.SIZE.height + topFasade_thickness / 2,
-                    z: startPos.z + topFasade_depth / 2,
-                },
-            });
+            if (!topFasade_thickness) {
+                console.warn('Верхняя панель пропущена: её материал недоступен', TOPFASADECOLOR)
+            }
+            else {
+                Object.assign(TOPFASADECOLOR, {
+                    width: topFasade_width,
+                    depth: topFasade_depth,
+                    thickness: topFasade_thickness,
+                });
+
+                data.json.items.push({
+                    id: 'top_fasade',
+                    type: "object",
+                    geometry: {
+                        type: "BoxGeometry",
+                        opt: { x: topFasade_width, y: topFasade_thickness, z: topFasade_depth },
+                    },
+                    rotation: { x: 0, y: 0, z: 0 },
+                    position: {
+                        x: 0,
+                        y: startPos.y + CONFIG.SIZE.height + topFasade_thickness / 2,
+                        z: startPos.z + topFasade_depth / 2,
+                    },
+                });
+            }
         }
 
         if (TSARGA) {
@@ -941,6 +967,14 @@ export class BuildProduct extends BuildersHelper {
 
         target.userData.aabb = aabb;
         target.userData.obb = obb;
+
+        // Локальный центр габарита. Origin объекта не обязан совпадать с
+        // центром сборки: у гардеробной системы крепёжные кронштейны уходят
+        // назад по Z, и центр смещён. Коллайдер меряет расстояние до стены от
+        // ЦЕНТРА, поэтому смещение нужно хранить отдельно — obb.center до него
+        // не доживает, SetObject и MoveManager перезаписывают его мировыми
+        // координатами.
+        target.userData.obbCenter = aabb.getCenter(new THREE.Vector3());
     }
 
     private getTableTopPosition(legs, body, tableTop, baseY) {
@@ -975,5 +1009,219 @@ export class BuildProduct extends BuildersHelper {
             plinth,
             handles
         };
+    }
+
+    /* --------- Валидация материалов -------------------------------------------------------------------- */
+
+    /**
+   * Подставляет замену в поле конфига, если сохранённого материала больше нет.
+   * Параметры принимает и функцией: списки доступных материалов стоят недёшево,
+   * а сборка идёт на каждое изменение модели — считаем их, только когда дело дошло
+   * до замены
+   */
+    private applyMaterial(
+        target: THREETypes.TObject | undefined,
+        key: string,
+        dictName: TMaterialDictName,
+        params: TResolveParams | (() => TResolveParams) = {},
+    ) {
+        if (!target) {
+            return;
+        }
+
+        const id = target[key] as TMaterialId;
+
+        if (isEmptyMaterialId(id) || hasMaterial(this.getMaterialDict(dictName), id)) {
+            return;
+        }
+
+        const result = this.resolveMaterial(dictName, id, typeof params === 'function' ? params() : params);
+
+        // Записываем только найденную замену: пустой id ломает сборку не меньше удалённого,
+        // а без замены деталь просто отрисуется без текстуры — за это отвечают билдеры
+        if (result.replaced && !isEmptyMaterialId(result.id)) {
+            target[key] = result.id;
+        }
+    }
+
+    /**
+     * Приводит сохранённые в конфиге материалы к актуальному каталогу. Материал, снятый
+     * с производства, пропадает из справочника, но остаётся в сохранённом проекте, и
+     * дальше на него падает и сборка 3D, и корзина. Замену выбираем по общему правилу:
+     * дефолт проекта, если он доступен товару, иначе первый доступный материал товара
+     */
+    public sanitizeProductMaterials(PROPS: THREETypes.TObject) {
+        const CONFIG = PROPS?.CONFIG;
+        const product = this._PRODUCTS[CONFIG?.ID];
+
+        if (!CONFIG || !product) {
+            return;
+        }
+
+        // У элементов комнаты MODULE_COLOR — это id текстуры стены из справочника WALL,
+        // а не цвет ЛДСП: общее правило замены к нему неприменимо. Пропавшую текстуру
+        // обнуляем — дальше сборка сама возьмёт текущую текстуру стены. Фасадов, кромки
+        // и сетки у таких элементов нет, поэтому на этом и заканчиваем
+        if (product.element_type === 'element_room') {
+            if (!isEmptyMaterialId(CONFIG.MODULE_COLOR) && !hasMaterial(this._WALL, CONFIG.MODULE_COLOR)) {
+                console.warn(`Текстура стены ${CONFIG.MODULE_COLOR} недоступна, берём текущую текстуру комнаты`);
+                CONFIG.MODULE_COLOR = null;
+            }
+
+            return;
+        }
+
+        // Списки доступных материалов считаем лениво и один раз: до замены дело обычно
+        // не доходит, а фильтрация с сортировкой идёт по всему каталогу цветов товара
+        const colorsOf = (field: string) => {
+            let cache: TMaterialId[] | null = null;
+
+            return () => cache ??= (product[field]?.[0] != null
+                ? this.filters.filterModuleColor(product[field])
+                : []);
+        };
+
+        const moduleColors = colorsOf('MODULECOLOR');
+        const backwallColors = colorsOf('BACKWALL');
+        const sideColors = colorsOf('SIDEWALL');
+
+        // Цвет корпуса правим только у товаров, которым он вообще назначается: у столешниц
+        // с собственной текстурой MODULE_COLOR ссылается на другой справочник, и подмена
+        // увела бы его в чужой
+        if (product.MODULECOLOR?.[0] != null) {
+            this.applyMaterial(CONFIG, 'MODULE_COLOR', 'FASADE', () => ({
+                allowed: moduleColors(),
+                fallback: this.project.default_module_color,
+            }));
+        }
+
+        this.applyMaterial(CONFIG.BACKWALL, 'COLOR', 'FASADE', () => ({
+            allowed: backwallColors(),
+            fallback: CONFIG.MODULE_COLOR,
+        }));
+
+        this.applyMaterial(CONFIG.LEFTSIDECOLOR, 'COLOR', 'FASADE', () => ({
+            allowed: sideColors(),
+            fallback: CONFIG.MODULE_COLOR,
+        }));
+        this.applyMaterial(CONFIG.RIGHTSIDECOLOR, 'COLOR', 'FASADE', () => ({
+            allowed: sideColors(),
+            fallback: CONFIG.MODULE_COLOR,
+        }));
+
+        // Деревянная царга идёт в цвет корпуса, металлическая — со своим цветом фурнитуры
+        if (CONFIG.TSARGA?.TYPE === 'wood') {
+            this.applyMaterial(CONFIG.TSARGA, 'COLOR', 'FASADE', () => ({
+                allowed: moduleColors(),
+                fallback: CONFIG.MODULE_COLOR,
+            }));
+        }
+
+        // Покрытия фасада ограничены размерами и конверсиями, поэтому доступный список
+        // здесь не построить — проверяем само существование записи
+        const fasadeFallback = this.project.default_fasade_color;
+
+        this.applyMaterial(CONFIG.TOPFASADECOLOR, 'COLOR', 'FASADE', { fallback: fasadeFallback });
+
+        Object.values(CONFIG.FASADE_PROPS ?? {}).forEach((fasade: THREETypes.TObject) => {
+            this.applyMaterial(fasade, 'COLOR', 'FASADE', { fallback: fasadeFallback });
+            this.applyMaterial(fasade, 'RESET_COLOR', 'FASADE', { fallback: fasadeFallback });
+        });
+
+        // Кромка приходит из карточки товара, и даже рекомендованная (REC_HEM) может
+        // указывать на запись, которой в справочнике уже нет: берём рекомендованную,
+        // если она жива, иначе первую доступную у товара
+        const kromkaParams = (owner: THREETypes.TObject) => () => ({
+            allowed: filterKnownMaterials(this.getMaterialDict('HEM'), owner.HEM),
+            fallback: owner.REC_HEM?.[0],
+        });
+
+        this.applyMaterial(CONFIG, 'KROMKA', 'HEM', kromkaParams(product));
+
+        // У столешницы УМ кромка своя, и список допустимых — у её товара, а не у модуля
+        const topTable = this._PRODUCTS[CONFIG.TOPFASADECOLOR?.TABLE];
+
+        if (topTable) {
+            this.applyMaterial(CONFIG.TOPFASADECOLOR, 'KROMKA', 'HEM', kromkaParams(topTable));
+        }
+
+        this.sanitizeGridMaterials(CONFIG, moduleColors, fasadeFallback);
+    }
+
+    /** Та же уборка для сетки УМ: она хранит собственные копии цветов корпуса и профилей */
+    private sanitizeGridMaterials(
+        CONFIG: THREETypes.TObject,
+        moduleColors: () => TMaterialId[],
+        fasadeFallback: TMaterialId,
+    ) {
+        const grid = CONFIG.MODULEGRID;
+
+        if (!grid?.sections?.length) {
+            return;
+        }
+
+        this.applyMaterial(grid, 'moduleColor', 'FASADE', () => ({
+            allowed: moduleColors(),
+            fallback: CONFIG.MODULE_COLOR,
+        }));
+
+        const profilesConfig = grid.profilesConfig;
+        const profileColors = () => profilesConfig?.colorsList ?? [];
+        const profileParams = () => ({ allowed: profileColors(), fallback: profilesConfig?.COLOR });
+
+        if (profilesConfig) {
+            // Палитра профилей приходит из каталога и тоже может поредеть
+            const knownColors = filterKnownMaterials(this._COLOR, profilesConfig.colorsList);
+
+            if (knownColors.length !== (profilesConfig.colorsList?.length ?? 0)) {
+                profilesConfig.colorsList = knownColors;
+            }
+
+            this.applyMaterial(profilesConfig, 'COLOR', 'COLOR', () => ({ allowed: profileColors() }));
+            this.applyMaterial(profilesConfig.sideProfile, 'COLOR', 'COLOR', profileParams);
+            this.applyMaterial(CONFIG, 'PROFILECOLOR', 'COLOR', profileParams);
+        }
+
+        const sanitizeFasade = (fasade: THREETypes.TObject) => {
+            if (!fasade?.material) {
+                return;
+            }
+
+            this.applyMaterial(fasade.material, 'COLOR', 'FASADE', { fallback: fasadeFallback });
+            this.applyMaterial(fasade.material, 'RESET_COLOR', 'FASADE', { fallback: fasadeFallback });
+        };
+
+        const sanitizeFilling = (filling: THREETypes.TObject) => {
+            if (!filling) {
+                return;
+            }
+
+            // Цвет у наполнения есть только у профилей, остальные красятся корпусом
+            if (filling.isProfile) {
+                this.applyMaterial(filling, 'color', 'COLOR', profileParams);
+                this.applyMaterial(filling.isProfile, 'COLOR', 'COLOR', profileParams);
+            }
+
+            sanitizeFasade(filling.fasade);
+        };
+
+        // Наполнение лежит на всех уровнях вложенности: секция → ячейка → ряд → доп. область
+        const walkContainer = (container: THREETypes.TObject) => {
+            container?.fillings?.forEach(sanitizeFilling);
+            container?.cells?.forEach(walkContainer);
+            container?.cellsRows?.forEach(walkContainer);
+            container?.extras?.forEach(walkContainer);
+        };
+
+        grid.sections.forEach((section: THREETypes.TObject) => {
+            walkContainer(section);
+
+            section.fasades?.forEach((door: THREETypes.TObject[]) => door?.forEach(sanitizeFasade));
+            section.fasadesDrawers?.forEach(sanitizeFasade);
+            section.hiTechProfiles?.forEach(sanitizeFilling);
+        });
+
+        // Двери-купе лежат на самом модуле, а не в секциях
+        grid.fasades?.forEach((door: THREETypes.TObject[]) => door?.forEach(sanitizeFasade));
     }
 }

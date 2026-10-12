@@ -37,7 +37,7 @@ export class ShowcaseBuilder extends MillingBuilder {
         this.createGlass(fasade, fasadePosition, alum)
 
         if (curFasadeData) {
-            const haveHandle = this._FASADE[curFasadeData.COLOR].TYPE_HANDLE
+            const haveHandle = this._FASADE[curFasadeData.COLOR]?.TYPE_HANDLE
 
             // console.log(haveHandle, action, '==== ❌ haveHandle ❌ ====')
 

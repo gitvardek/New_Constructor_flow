@@ -2,8 +2,16 @@
 // Тумбочка — товар УМ; TEST_CABINET_DATA ниже — референс записи каталога с бэка
 // (регистрируется в каталоге, пока товара там нет, см. cabinetProduct.ts).
 
-// Отступ корпуса от профиля с каждой стороны: ширина = section.width - 2 * 28.
-export const CABINET_SIDE_INSET = 28
+// Отступ канваса редактора тумбочки, px. Больше гардеробного
+// (WARDROBE_CANVAS_PADDING_PX): за модуль вынесены И ширина секции (сверху, с
+// подписью над линией), И высота (слева, с повёрнутой подписью) —
+// см. cabinet/render/CabinetSceneBuilder.
+export const CABINET_CANVAS_PADDING_PX = 48
+
+// Отступ корпуса от профиля с каждой стороны, мм: ширина = section.width - 2 *
+// отступ. Временное значение — придёт с бэка вместе с товаром, как и зазоры
+// полки/штанги (F-wardrobeData.WARDROBE_SHELF_SIDE_GAP / WARDROBE_RAIL_SIDE_GAP).
+export const CABINET_SIDE_INSET = 14
 
 // Допустимая высота корпуса, мм.
 export const CABINET_HEIGHT_MIN = 150

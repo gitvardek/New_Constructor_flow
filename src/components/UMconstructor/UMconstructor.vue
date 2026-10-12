@@ -61,7 +61,7 @@ const saveUMData = ({ data, canvasHeight }) => {
     return;
 
   let saveData = universalModule2DConstructor.value.saveGrid()
-  console.log(saveData, 'saveData')
+
   if (!saveData)
     return;
 
@@ -81,6 +81,7 @@ const saveUMData = ({ data, canvasHeight }) => {
   gridUMSaved.value = true;
   toaster.success('Модуль сохранен')
   nextTick(() => {
+    console.log(tmp_result, 'MODULEGRID')
     eventBus.emit("A:UM-update", UMstore.getUMCashGrid());
   });
 };
@@ -233,8 +234,9 @@ defineExpose({
         </WardrobeMainView>
 
         <template v-if="isUMModalOpen">
-          <component :is="level.component" v-for="level in navigation.nested.value" v-show="level.id === navigation.current.value.id"
-            :key="level.id" v-bind="level.props" :level-id="level.id" />
+          <component :is="level.component" v-for="level in navigation.nested.value"
+            v-show="level.id === navigation.current.value.id" :key="level.id" v-bind="level.props"
+            :level-id="level.id" />
         </template>
 
         <div v-if="UMstore.getLoad" class="um-modal-loader-overlay">

@@ -201,9 +201,6 @@ const displayedSubCategories = computed(() => {
 const hasMoreSubCategories = computed(
   () => filteredSubCategories.value.length > 6,
 );
-const priceProduct = computed(() =>
-  catalogStore.updateProductPrice(productPrice.value),
-);
 
 onMounted(async () => {
   console.log(appData.appData.CITY.config);
@@ -217,14 +214,6 @@ onMounted(async () => {
   });
 });
 
-watch(
-  () => productPrice.value,
-  (newValue, oldValue) => {
-    console.log("Цена изменилась:", oldValue, "→", newValue);
-    catalogStore.updateProductPrice(productPrice.value);
-    // Дополнительные действия при изменении
-  },
-);
 
 // Methods
 const handleCategoriesListClick = async (data) => {

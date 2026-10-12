@@ -34,6 +34,14 @@ export const WARDROBE_CANVAS_PADDING_PX = 30
 export const WARDROBE_SECTIONS_QUANTITY_MIN = 1
 export const WARDROBE_SECTIONS_QUANTITY_MAX = 3
 
+// Зазор элемента наполнения от профиля с КАЖДОЙ стороны, мм: длина элемента =
+// ширина секции - 2 * зазор. Пока константы — значения придут с бэка вместе с
+// товаром (у тумбочки свой, cabinet/cabinetData.CABINET_SIDE_INSET, тоже
+// будущий бэковый). Один источник для 3D, 2D и корзины —
+// WardrobeSystem.getWardrobeFillingWidth.
+export const WARDROBE_SHELF_SIDE_GAP = 1
+export const WARDROBE_RAIL_SIDE_GAP = 3
+
 // Сечение профиля (см. предположения ниже про ориентацию осей)
 export const WARDROBE_PROFILE_WIDTH = 25   // ось X
 

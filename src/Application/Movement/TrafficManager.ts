@@ -103,10 +103,11 @@ export class TrafficManager {
                 roomContant: this.room._roomContant
             })
 
+            console.log('OBJ', object.userData);
             // console.log('OBJ_PROPS', object.userData.PROPS);
             console.log('OBJ_CONFIG', object.userData.PROPS.CONFIG);
-            console.log('object.userData.PROPS.PRODUCT', object.userData.PROPS.PRODUCT)
-            console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
+            // console.log('object.userData.PROPS.PRODUCT', object.userData.PROPS.PRODUCT)
+            // console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
 
             const isProd = this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS?.PRODUCT]
 
@@ -216,7 +217,7 @@ export class TrafficManager {
         }
 
         this.events.on('A:RemoveModel', this.onRemoveFromRoom);
-        
+
         this.events.on('A:RemoveModelFromBasket', (payload: any) => {
             let target = payload?.product;
 

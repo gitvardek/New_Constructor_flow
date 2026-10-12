@@ -15,9 +15,10 @@ import { Container, Graphics, Text } from "pixi.js";
 import { Shape, Section } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import RenderContext from "@/components/UMconstructor/utils/render2d/RenderContext.ts";
 import { WARDROBE_PROFILE_WIDTH, WARDROBE_CANVAS_PADDING_PX } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeShelfPixiHeight, getWardrobeFasteningColorFamily, getWardrobeShelfDepth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeShelfPixiHeight, getWardrobeFasteningColorFamily, getWardrobeShelfDepth, getWardrobeFillingSideGap } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { WARDROBE_COLORS, getWardrobeShelfColors } from "./WardrobeColors.ts";
-import { createHorizontalDimension, createVerticalDimension, createWardrobeNameLabel } from "./WardrobeDimensions.ts";
+import { createHorizontalDimension, createVerticalDimension, createNameLabel } from "@/components/UMconstructor/editor-v2/render2d/dimensions.ts";
+import { SELECTION_STROKE_COLOR } from "@/components/UMconstructor/editor-v2/render2d/palette.ts";
 import { isWardrobeCabinet } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
 import { drawWardrobeCabinet, getCabinetSpanPx } from "@/components/UMconstructor/cabinet/render/CabinetGraphics.ts";
 
@@ -29,10 +30,14 @@ export function getWardrobeItemName(shelf, index) {
     return `Полка ${index + 1}`;
 }
 
-// Горизонтальный габарит элемента в локальных px секции: тумбочка уже секции
-// (cabinet/render/CabinetGraphics.getCabinetSpanPx), остальное — во всю ширину.
+// Горизонтальный габарит элемента в локальных px секции: у каждого типа свой
+// зазор от профиля (WardrobeSystem.getWardrobeFillingSideGap), у тумбочки его
+// считает её же хелпер (cabinet/render/CabinetGraphics.getCabinetSpanPx).
 export function getWardrobeItemSpanPx(ctx, shelf, sectorWidthPx) {
-    return isWardrobeCabinet(shelf) ? getCabinetSpanPx(ctx, sectorWidthPx) : { x: 0, width: sectorWidthPx };
+    if (isWardrobeCabinet(shelf)) return getCabinetSpanPx(ctx, sectorWidthPx);
+
+    const gapPx = ctx.getPixelWidth(getWardrobeFillingSideGap(shelf?.type));
+    return { x: gapPx, width: Math.max(sectorWidthPx - 2 * gapPx, 1) };
 }
 
 // Заливка элемента секции в graphic (перед перерисовкой вызывающий делает clear()).
@@ -44,7 +49,8 @@ export function drawWardrobeItem(graphic, ctx, shelf, sectorWidthPx, topPx, heig
     }
 
     const shelfColors = getWardrobeShelfColors(shelf);
-    graphic.rect(0, topPx, sectorWidthPx, heightPx);
+    const span = getWardrobeItemSpanPx(ctx, shelf, sectorWidthPx);
+    graphic.rect(span.x, topPx, span.width, heightPx);
     graphic.fill({ color: shelfColors.fill, alpha: shelf.material === 'glass' ? WARDROBE_COLORS.shelf.glassAlpha : 1 });
     graphic.stroke({ width: 1, color: shelfColors.stroke, alignment: 1 });
 }
@@ -53,8 +59,10 @@ export function drawWardrobeItem(graphic, ctx, shelf, sectorWidthPx, topPx, heig
 // не встречается среди цветов самих полок/профилей (WARDROBE_COLORS), чтобы
 // всегда чётко читаться поверх любой из них. Экспортирован — WardrobeDragEngine.
 // onWardrobeShelfDragMove перерисовывает эту же обводку live во время драга
-// (тем же цветом, не подменяя его на что-то своё).
-export const WARDROBE_SHELF_HIGHLIGHT_COLOR = '#56a55fe2';
+// (тем же цветом, не подменяя его на что-то своё). Само значение — в общем
+// ките (editor-v2/render2d/palette.SELECTION_STROKE_COLOR): тем же цветом
+// обводится выделенная деталь тумбочки.
+export const WARDROBE_SHELF_HIGHLIGHT_COLOR = SELECTION_STROKE_COLOR;
 
 // Размерная линия зазора между ДВУМЯ конкретными полками (режим 'gap') —
 // вынесено из createWardrobeSector в отдельную функцию, чтобы ТУ ЖЕ формулу
@@ -79,7 +87,7 @@ export function createWardrobeGapDimension(ctx, lower, upper, depthMm, wardrobeP
     const upperBottomPx = height - ctx.getPixelHeight(upper.positionY)
     // labelSide=1 (справа, по умолчанию) — уточнение пользователя,
     // haloText=true — контраст независимо от фона под текстом (см.
-    // WardrobeDimensions.DIMENSION_TEXT_STYLE_HALO): подпись здесь почти
+    // editor-v2/render2d/dimensions.DIMENSION_TEXT_STYLE_HALO): подпись здесь почти
     // всегда перекрывает тёмный профиль соседней границы.
     return createVerticalDimension(absY + lowerTopPx, absY + upperBottomPx, absX + width - 4, gapMm, 1, true);
 }
@@ -184,7 +192,7 @@ export default class WardrobeSceneBuilder {
             // Та же логика выбора draggable/edge заливки, что и внутри
             // createWardrobeProfile ниже — нужна ЗДЕСЬ отдельно, чтобы дать
             // подписи "Профиль N" (сидит ПРЯМО на этой заливке) правильный
-            // bgColorHex для контрастности (см. WardrobeDimensions.
+            // bgColorHex для контрастности (см. editor-v2/render2d/dimensions.
             // getContrastTextColor, уточнение пользователя).
             const profileFillColors = WARDROBE_COLORS.profile[colorFamily] ?? WARDROBE_COLORS.profile['floor_ceiling']
             const profileFill = isEdge ? profileFillColors.edge.fill : profileFillColors.draggable.fill
@@ -250,12 +258,12 @@ export default class WardrobeSceneBuilder {
                 ))
 
                 // "Профиль N" (1-based) — ВЕРТИКАЛЬНЫЙ текст
-                // (createWardrobeNameLabel(vertical=true)) по центру ширины и
+                // (createNameLabel(vertical=true)) по центру ширины и
                 // видимой высоты САМОГО профиля. Сбоку подпись у левого
                 // крайнего перекрывалась с "Секция N"/подписью полки, а у
                 // правого уходила за край канваса; внутри профиля она всегда в
                 // его границах, где бы он ни стоял.
-                ctx.sectionLables.push(createWardrobeNameLabel(
+                ctx.sectionLables.push(createNameLabel(
                     `Профиль ${profileIndex + 1}`,
                     moduleOffsetX + profileX + profileWidthPx / 2,
                     moduleOffsetY + heightPx - profileHeightPx / 2,
@@ -382,8 +390,8 @@ export default class WardrobeSceneBuilder {
                 const label = dimensionMode === 'floor' ? `${baseName} — ${Math.round(shelf.positionY)} мм` : baseName;
                 // bgColorHex — подпись сидит прямо на заливке полки/штанги,
                 // контраст подбирается динамически
-                // (WardrobeDimensions.getContrastTextColor).
-                nameLabel = createWardrobeNameLabel(
+                // (editor-v2/render2d/dimensions.getContrastTextColor).
+                nameLabel = createNameLabel(
                     label, absX + width / 2, absY + shelfTopPx + shelfHeightPx / 2, 0.5, 0.5, false,
                     getWardrobeShelfColors(shelf).fill,
                 );
@@ -426,7 +434,7 @@ export default class WardrobeSceneBuilder {
         if (!ctx.wardrobeDragActive) {
             const sectorTopLabelsY = absY - 6;
             ctx.sectionLables.push(createHorizontalDimension(absX + 0, absX + width, sectorTopLabelsY, section.width));
-            ctx.sectionLables.push(createWardrobeNameLabel(`Секция ${sectionIndex + 1}`, absX + 4, sectorTopLabelsY, 0, 1));
+            ctx.sectionLables.push(createNameLabel(`Секция ${sectionIndex + 1}`, absX + 4, sectorTopLabelsY, 0, 1));
         }
 
         if (_sector) _sector.addChild(sector);
@@ -460,7 +468,7 @@ export default class WardrobeSceneBuilder {
         const topPx = bottomPx - heightPx
 
         // Цвет — WardrobeColors.getWardrobeShelfColors, его же берёт
-        // createWardrobeSector для фона подписи (WardrobeDimensions.getContrastTextColor).
+        // createWardrobeSector для фона подписи (editor-v2/render2d/dimensions.getContrastTextColor).
         const graphic = new Graphics();
         drawWardrobeItem(graphic, ctx, shelf, sectorWidthPx, topPx, heightPx);
 

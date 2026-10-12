@@ -5,7 +5,8 @@
 // Каркас в раскладке гардеробной: слева размеры (лимиты — из сессии, см.
 // cabinetEditSession.ts) и опции товара, в центре крошки + режимы + 2D + "Применить"/"Назад",
 // справа панель режима редактора v2 (UMRightPanel) с названиями тумбочки
-// (CABINET_EDITOR_POLICY). 2D пока штатный box-UM. Общие компоненты правого
+// (CABINET_EDITOR_POLICY). 2D — box-UM со слоем обозначений тумбочки
+// (scene-kind="cabinet", cabinet/render/CabinetSceneBuilder). Общие компоненты правого
 // меню (материал, ручки, проверки размеров) работают с моделью движка сессии,
 // а не с выбранным 3D-объектом (гардеробной) — см. UMconstructorClass.getModel.
 //
@@ -93,6 +94,19 @@ watch(
   },
 );
 
+// Режим расстояний наполнения на канвасе — как у гардеробной: чисто
+// визуальная настройка, поэтому рядом с переключателем режима, а не в правой
+// панели. Поле стора то же (wardrobeShelfDimensionMode), но стор у сессии
+// тумбочки свой — с гардеробной не пересекается. renderGrid напрямую: данные
+// сетки не меняются, reset() пересчитывал бы модуль впустую.
+const dimensionMode = ref<"gap" | "floor">(store.wardrobeShelfDimensionMode);
+
+const setDimensionMode = (value: "gap" | "floor") => {
+  dimensionMode.value = value;
+  store.wardrobeShelfDimensionMode = value;
+  engine.RENDER_REF?.renderGrid(store.getUMGrid());
+};
+
 const { module } = useUMEditorLifecycle({
   engine,
   productData: props.session.productData,
@@ -164,10 +178,25 @@ onUnmounted(() => props.session.dispose());
             </button>
           </div>
         </article>
+
+        <article v-if="mode === 'fillings'" class="cabinetDimension-wrapper">
+          <h3>Расстояния: </h3>
+          <div class="cabinetDimension-container">
+            <button :class="['cabinetDimension-button', { active: dimensionMode === 'gap' }]"
+              @click="setDimensionMode('gap')">
+              Между объектами
+            </button>
+            <button :class="['cabinetDimension-button', { active: dimensionMode === 'floor' }]"
+              @click="setDimensionMode('floor')">
+              До дна тумбочки
+            </button>
+          </div>
+        </article>
       </div>
 
       <div class="UM constructor2d-content">
         <Render2D ref="visualizationRef" :mode="mode" :step="1" :module="store.getUMGrid()" :UMconstructor="engine"
+          scene-kind="cabinet" :section-label="CABINET_EDITOR_POLICY.sectionLabel"
           :max-area-height="store.totalHeight" :max-area-width="store.totalWidth" />
       </div>
 
@@ -212,5 +241,49 @@ onUnmounted(() => props.session.dispose());
 
 .cabinet-editor__options {
   margin-top: 5px;
+}
+
+// Переключатель расстояний — тот же вид, что у гардеробной
+// (WardrobeMainView.vue::wardrobeShelfDimension).
+.cabinetDimension {
+
+  &-wrapper,
+  &-container {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  &-wrapper {
+    align-items: center;
+  }
+
+  &-container {
+    width: fit-content;
+  }
+
+  &-button {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    border: 1px solid $dark-grey;
+    border-radius: 5rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: $dark-stroke;
+    white-space: nowrap;
+    transition-property: background-color, color;
+    transition-duration: 0.25s;
+    transition-timing-function: ease;
+
+    @media (hover:hover) {
+      &:hover {
+        background-color: $light-grey;
+      }
+    }
+
+    &.active {
+      color: $white;
+      background-color: $dark-stroke;
+    }
+  }
 }
 </style>

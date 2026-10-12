@@ -285,4 +285,5 @@ export default class SelectionHighlighter {
             }
         }
     }
+
 }

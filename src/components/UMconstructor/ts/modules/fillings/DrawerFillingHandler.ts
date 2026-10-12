@@ -45,6 +45,18 @@ export default class DrawerFillingHandler {
             .every(depth => depth >= this.UNIVERSAL_DRAWER_MIN_THICKNESS)
     };
 
+    // Универсальный ящик приходит из каталога без собственных габаритов: высота корпуса задаётся ключами DROWER_FASADE_HEIGHT, глубина — списком SIZE_EDIT_DEPTH 
+    getUniversalDrawerSizes(_product: any, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const height = Object.keys(_product?.DROWER_FASADE_HEIGHT ?? {})
+            .map(Number)
+            .filter(value => Number.isFinite(value))[0]
+
+        const maxAllowedDepth = grid.depth - 7
+        const depth = (_product?.SIZE_EDIT_DEPTH ?? []).filter((value: number) => value <= maxAllowedDepth)[0]
+
+        return { height, depth }
+    };
+
     // Снимает уже установленные универсальные ящики, когда толщина панелей перестала подходить 
     cleanupUniversalDrawers(grid: GridModule) {
         if (this.isUniversalDrawerAllowed(grid)) return
@@ -370,9 +382,8 @@ export default class DrawerFillingHandler {
         }
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID) && product.DROWER_FASADE_HEIGHT) {
-            const heightOptions = Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
-            const firstHeight = heightOptions[0];
-            const fasadeRange = product.DROWER_FASADE_HEIGHT[String(firstHeight)];
+                const { height: universalHeight } = this.getUniversalDrawerSizes(product, grid)
+                const fasadeRange = product.DROWER_FASADE_HEIGHT[String(universalHeight)];
             if (fasadeRange) {
                 fillingObject.fasade.minY = fasadeRange.min;
                 fillingObject.fasade.maxY = fasadeRange.max;

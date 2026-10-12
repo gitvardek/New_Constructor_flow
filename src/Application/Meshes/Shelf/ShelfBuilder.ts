@@ -8,7 +8,7 @@ import {
     WARDROBE_SHELF_BRACKET_HEIGHT_FLAT,
     WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED,
 } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeShelfThickness, getWardrobeAngledShelfLength, getWardrobeAngledShelfPivotOffset, getWardrobeShelfDepth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeShelfThickness, getWardrobeAngledShelfLength, getWardrobeAngledShelfPivotOffset, getWardrobeShelfDepth, getWardrobeFillingWidth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { createGlassMaterial } from "@/Application/Meshes/Utils/glassMaterial.ts";
 import { createWardrobeMetalMaterial } from "@/Application/Meshes/Wardrobe/WardrobeFillingMeshBuilder.ts";
 import {
@@ -195,10 +195,9 @@ export class ShelfBuilder {
         profileColorId?: number
     ): Object3D {
         const brackets = new Object3D()
-        const shelfWidth = sectionWidth - 4
-        const offsetX = (shelfWidth - WARDROBE_SHELF_BRACKET_WIDTH + 4) / 2
-
-        console.log(height, 'height')
+        // Кронштейн крепится к профилю: его внешняя грань — у края секции,
+        // независимо от зазора самой полки (WARDROBE_SHELF_SIDE_GAP).
+        const offsetX = (sectionWidth - WARDROBE_SHELF_BRACKET_WIDTH) / 2
 
             // Свой материал на каждый кронштейн, не общий инстанс: в него
             // может грузиться текстура (createWardrobeMetalMaterial)
@@ -249,7 +248,7 @@ export class ShelfBuilder {
         if (!productInfo) return null
 
         const isGlass = material === 'glass'
-        const shelfWidth = sectionWidth - 4
+        const shelfWidth = getWardrobeFillingWidth(sectionWidth, 'shelf')
         const shelfColor = !isGlass && colorId ? this.parent._FASADE[colorId] : null
 
         const wardrobeProductId = props.CONFIG.ID != null ? Number(props.CONFIG.ID) : undefined
@@ -367,7 +366,7 @@ export class ShelfBuilder {
         if (!productInfo) return null
 
         const isGlass = material === 'glass'
-        const shelfWidth = sectionWidth - 4                // TODO: не уточнено, та же формула, что у обычной полки, или другая
+        const shelfWidth = getWardrobeFillingWidth(sectionWidth, 'shelf')   // зазор от профиля тот же, что у прямой полки
         const shelfColor = !isGlass && colorId ? this.parent._FASADE[colorId] : null
         const wardrobeProductId = props.CONFIG.ID != null ? Number(props.CONFIG.ID) : undefined
         const shelfThickness = getWardrobeShelfThickness(colorId, material, wardrobeProductId)
@@ -486,7 +485,7 @@ export class ShelfBuilder {
         productId?: number,
     ): Object3D | null {
         const diameter = Number(railHeight) || 16
-        const length = sectionWidth - 4
+        const length = getWardrobeFillingWidth(sectionWidth, 'rail')
 
         const wrapper = new Object3D()
         wrapper.name = 'WARDROBE_RAIL'

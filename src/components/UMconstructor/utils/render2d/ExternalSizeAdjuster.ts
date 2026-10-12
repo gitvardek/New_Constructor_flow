@@ -67,37 +67,19 @@ export default class ExternalSizeAdjuster {
 
             if (dimension === "width") {
                 if (nextRow) {
-                    let curMin = next
-                        ? currentRow.maxX
-                        : currentRow.minX || MIN_SECTION_WIDTH;
-                    if (currentRow.cells?.length) {
-                        let count = 1;
-                        currentRow.cells.forEach((elem) => {
-                            if (elem.cellsRows?.length > count) {
-                                count = elem.cellsRows.length;
-                            }
-                        });
+                    // Конструктивный минимум добавляем поверх границы по наполнению: у пустой секции
+                    // она приходит Infinity и в updateSizes обнуляется вместе с ним
+                    const curMin = Math.max(
+                        MIN_SECTION_WIDTH,
+                        this.ctx.sanitizeMinWidth(next ? currentRow.maxX : currentRow.minX),
+                        this.ctx.getGridMinWidth(currentRow),
+                    );
 
-                        curMin = Math.max(
-                            curMin,
-                            MIN_SECTION_WIDTH * count + module.moduleThickness * (count - 1),
-                        );
-                    }
-
-                    let nextMin = next ? nextRow.minX : nextRow.maxX || MIN_SECTION_WIDTH;
-                    if (nextRow.cells?.length) {
-                        let count = 1;
-                        nextRow.cells.forEach((elem) => {
-                            if (elem.cellsRows?.length > count) {
-                                count = elem.cellsRows.length;
-                            }
-                        });
-
-                        nextMin = Math.max(
-                            nextMin,
-                            MIN_SECTION_WIDTH * count + module.moduleThickness * (count - 1),
-                        );
-                    }
+                    const nextMin = Math.max(
+                        MIN_SECTION_WIDTH,
+                        this.ctx.sanitizeMinWidth(next ? nextRow.minX : nextRow.maxX),
+                        this.ctx.getGridMinWidth(nextRow),
+                    );
 
                     const totalWidth = currentRow.width + nextRow.width;
                     calcValue = this.updateSizes(
