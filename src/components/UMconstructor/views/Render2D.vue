@@ -18,6 +18,7 @@ import { useAppData } from "@/store/appliction/useAppData.ts";
 import * as THREE from "three";
 import { LOOPSIDE, TSelectedCell } from "./../types/UMtypes.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import { getSegmentLabel } from "./../utils/Labels.ts";
 
 const props = defineProps({
   module: {
@@ -1368,26 +1369,18 @@ const createSectioNum = ({
   const yOffset = cell.yOffset || y;
   const opacity = cell.type == "fasade" ? 1 : 0.4;
 
-  let text;
+
 
   const labelRow =
     rowIndex !== null && cell.type === "fasade" && cell.id ? cell.id - 1 : rowIndex;
 
-  if (sectionIndex === null) {
-    text =
-      labelRow !== null
-        ? `${cellIndex + 1}.${labelRow + 1}`
-        : `${cellIndex + 1}`;
-  } else {
-    text =
-      labelRow !== null
-        ? `${sectionIndex + 1}.${cellIndex + 1}.${labelRow + 1}`
-        : `${sectionIndex + 1}.${cellIndex + 1}`;
-  }
-
-  if (extraIndex !== null) text += `.${extraIndex + 1}`;
-
-  if (itemIndex !== null) text += ` ${itemIndex}`;
+  const text = getSegmentLabel({
+    sectionIndex,
+    cellIndex,
+    rowIndex: labelRow,
+    extraIndex,
+    itemIndex,
+  });
 
   const cellNumber = new Text({
     text: text,

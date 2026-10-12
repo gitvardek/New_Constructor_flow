@@ -4,6 +4,7 @@ import "@/components/UMconstructor/styles/UM.scss";
 
 import { _URL } from "@/types/constants.ts";
 import { UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
+import { getSegmentLabel } from "../../utils/Labels";
 import AdvanceCorpusMaterialRedactor from "@/components/ui/color/AdvanceCorpusMaterialRedactor.vue";
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
 import ConfigurationOption from "@/components/right-menu/customiser-pages/ColorRightPage/ConfigurationOption.vue";
@@ -78,6 +79,17 @@ const createFacadeData = (fasadeIndex?: number) => {
 const reset = (grid) => {
   UMconstructor?.value?.reset();
 };
+
+
+// Номер ящика для заголовка — тот же, которым он подписан на схеме
+const getFillingLabel = (filling: FillingObject) =>
+  getSegmentLabel({
+    sectionIndex: filling.sec,
+    cellIndex: filling.cell,
+    rowIndex: filling.row,
+    extraIndex: filling.extra,
+    itemIndex: filling.id,
+  });
 
 const getSegment = (sec, cell, row, extra) => {
   const curSection = module.value.sections[sec];
@@ -466,23 +478,28 @@ watch(
               ]">
               <article class="actions-items actions-items--left">
                 <div class="actions-items--left-wrapper">
-                  <div class="actions-items--title">
-                    <p :class="[
-                      'actions-title',
-                      'actions-title--part',
-                      { 'actions-title--inner-drawer': UM_DRAWERS_IDS.INNER.includes(filling.productGroupID) && curUMId !== UM_PARAMS.RASPASHNOY_ID },
-                    ]" @click="showCurrentCol(secIndex, null, null, null, filling.id)">
-                      {{ filling.name }} №{{ filling.id }}
+                  <div class="filling-heading">
+                    <p class="actions-title actions-title--number">
+                      {{ getFillingLabel(filling) }}
                     </p>
+                    <div class="actions-items--title">
+                      <p :class="[
+                        'actions-title',
+                        'actions-title--part',
+                        { 'actions-title--inner-drawer': UM_DRAWERS_IDS.INNER.includes(filling.productGroupID) && curUMId !== UM_PARAMS.RASPASHNOY_ID },
+                      ]" @click="showCurrentCol(secIndex, null, null, null, filling.id)">
+                        {{ filling.name }} №{{ filling.id }}
+                      </p>
 
-                    <button class="no-select actions-btn actions-icon" @click.stop="
-                      UMconstructor.FILLINGS.deleteFilling(
-                        secIndex,
-                        fillingIndex,
-                      )
-                      ">
-                      <img class="actions-icon--delete" src="/icons/delite.svg" alt="" />
-                    </button>
+                      <button class="no-select actions-btn actions-icon" @click.stop="
+                        UMconstructor.FILLINGS.deleteFilling(
+                          secIndex,
+                          fillingIndex,
+                        )
+                        ">
+                        <img class="actions-icon--delete" src="/icons/delite.svg" alt="" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </article>
@@ -718,20 +735,25 @@ watch(
                     ]">
                     <article class="actions-items actions-items--left">
                       <div class="actions-items--left-wrapper">
-                        <div class="actions-items--title">
-                          <button class="no-select actions-btn actions-icon" @click.stop="
-                            UMconstructor.FILLINGS.deleteFilling(
-                              secIndex,
-                              fillingIndex,
-                              cellIndex,
-                            )
-                            ">
-                            <img class="actions-icon--delete" src="/icons/delite.svg" alt="" />
-                          </button>
-                          <p class="actions-title actions-title--part"
-                            @click="showCurrentCol(secIndex, cellIndex, null, null, filling.id)">
-                            {{ filling.name }} №{{ filling.id }}
+                        <div class="filling-heading">
+                          <p class="actions-title actions-title--number">
+                            {{ getFillingLabel(filling) }}
                           </p>
+                          <div class="actions-items--title">
+                            <button class="no-select actions-btn actions-icon" @click.stop="
+                              UMconstructor.FILLINGS.deleteFilling(
+                                secIndex,
+                                fillingIndex,
+                                cellIndex,
+                              )
+                              ">
+                              <img class="actions-icon--delete" src="/icons/delite.svg" alt="" />
+                            </button>
+                            <p class="actions-title actions-title--part"
+                              @click="showCurrentCol(secIndex, cellIndex, null, null, filling.id)">
+                              {{ filling.name }} №{{ filling.id }}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </article>
@@ -958,21 +980,26 @@ watch(
                         ]">
                         <article class="actions-items actions-items--left">
                           <div class="actions-items--left-wrapper">
-                            <div class="actions-items--title">
-                              <button class="no-select actions-btn actions-icon" @click.stop="
-                                UMconstructor.FILLINGS.deleteFilling(
-                                  secIndex,
-                                  fillingIndex,
-                                  cellIndex,
-                                  rowIndex,
-                                )
-                                ">
-                                <img class="actions-icon--delete" src="/icons/delite.svg" alt="" />
-                              </button>
-                              <p class="actions-title actions-title--part"
-                                @click="showCurrentCol(secIndex, cellIndex, rowIndex, null, filling.id)">
-                                {{ filling.name }} №{{ filling.id }}
+                            <div class="filling-heading">
+                              <p class="actions-title actions-title--number">
+                                {{ getFillingLabel(filling) }}
                               </p>
+                              <div class="actions-items--title">
+                                <button class="no-select actions-btn actions-icon" @click.stop="
+                                  UMconstructor.FILLINGS.deleteFilling(
+                                    secIndex,
+                                    fillingIndex,
+                                    cellIndex,
+                                    rowIndex,
+                                  )
+                                  ">
+                                  <img class="actions-icon--delete" src="/icons/delite.svg" alt="" />
+                                </button>
+                                <p class="actions-title actions-title--part"
+                                  @click="showCurrentCol(secIndex, cellIndex, rowIndex, null, filling.id)">
+                                  {{ filling.name }} №{{ filling.id }}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </article>
@@ -1205,22 +1232,27 @@ watch(
                             ]">
                             <article class="actions-items actions-items--left">
                               <div class="actions-items--left-wrapper">
-                                <div class="actions-items--title">
-                                  <button class="no-select actions-btn actions-icon" @click.stop="
-                                    UMconstructor.FILLINGS.deleteFilling(
-                                      secIndex,
-                                      fillingIndex,
-                                      cellIndex,
-                                      rowIndex,
-                                      extraIndex,
-                                    )
-                                    ">
-                                    <img class="actions-icon--delete" src="/icons/delite.svg" alt="" />
-                                  </button>
-                                  <p class="actions-title actions-title--part"
-                                    @click="showCurrentCol(secIndex, cellIndex, rowIndex, extraIndex, filling.id)">
-                                    {{ filling.name }} №{{ filling.id }}
+                                <div class="filling-heading">
+                                  <p class="actions-title actions-title--number">
+                                    {{ getFillingLabel(filling) }}
                                   </p>
+                                  <div class="actions-items--title">
+                                    <button class="no-select actions-btn actions-icon" @click.stop="
+                                      UMconstructor.FILLINGS.deleteFilling(
+                                        secIndex,
+                                        fillingIndex,
+                                        cellIndex,
+                                        rowIndex,
+                                        extraIndex,
+                                      )
+                                      ">
+                                      <img class="actions-icon--delete" src="/icons/delite.svg" alt="" />
+                                    </button>
+                                    <p class="actions-title actions-title--part"
+                                      @click="showCurrentCol(secIndex, cellIndex, rowIndex, extraIndex, filling.id)">
+                                      {{ filling.name }} №{{ filling.id }}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             </article>
@@ -1427,6 +1459,22 @@ watch(
   &-inputs {
     justify-content: space-between;
   }
+}
+
+.filling-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+
+  .actions-items--title {
+    align-self: flex-start;
+    margin-bottom: 0;
+  }
+}
+
+.actions-title--number {
+  font-weight: 600;
 }
 
 

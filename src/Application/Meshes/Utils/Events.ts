@@ -964,7 +964,7 @@ export class MeshEvents extends BuildersHelper {
         aabb.getSize(size);
 
         /** Для корректного примагничивания к стенам */
-        this._currentMesh.userData.trueSizes = {
+        this._currentMesh.userData.trueSizes = body.userData.trueSizes ?? {
             DEPTH: size.z * 0.5, HEIGHT: size.y * 0.5, WIDTH: size.x * 0.5
         }
         // Смещения центров габарита пересобранного тела: ими коллайдер меряет расстояние до стены (см. BuildProduct.setBounds/createProductBody)
