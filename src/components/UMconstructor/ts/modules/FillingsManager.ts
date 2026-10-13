@@ -305,6 +305,21 @@ export default class FillingsManager {
             .every(depth => depth >= FillingsManager.UNIVERSAL_DRAWER_MIN_THICKNESS)
     };
 
+    // Универсальный ящик приходит из каталога без собственных габаритов: высота корпуса
+    // задаётся ключами DROWER_FASADE_HEIGHT, глубина — списком SIZE_EDIT_DEPTH (глубже
+    // корпуса минус 7 мм ящик не встаёт). Берём первые допустимые значения — те же,
+    // что потом предлагает панель наполнения
+    getUniversalDrawerSizes(product: any, grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const height = Object.keys(product?.DROWER_FASADE_HEIGHT ?? {})
+            .map(Number)
+            .filter(value => Number.isFinite(value))[0]
+
+        const maxAllowedDepth = grid.depth - 7
+        const depth = (product?.SIZE_EDIT_DEPTH ?? []).filter((value: number) => value <= maxAllowedDepth)[0]
+
+        return { height, depth }
+    };
+
     // Снимает уже установленные универсальные ящики, когда толщина панелей перестала
     // подходить — например, после смены материала корпуса или боковой стенки
     cleanupUniversalDrawers(grid: GridModule) {
@@ -605,6 +620,16 @@ export default class FillingsManager {
             product.width = grid.moduleThickness
         }
 
+        // Высота универсального ящика не приходит в product.height, а выбирается из
+        // DROWER_FASADE_HEIGHT. Без подстановки место подбиралось под нулевую высоту:
+        // ящик садился вплотную под дно секции и уходил телом в цоколь
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
+            const { height: universalHeight } = this.getUniversalDrawerSizes(product, grid)
+            if (universalHeight !== undefined) {
+                product.height = universalHeight
+            }
+        }
+
         const startFillingData = this.createFillingDataToCheck(product, currentModuleSegment, grid, isVerticalItem, !!product.MIN_FASADE_SIZE);
 
 
@@ -692,19 +717,16 @@ export default class FillingsManager {
         };
 
 
-        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID) && product.DROWER_FASADE_HEIGHT) {
-            const heightOptions = Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
-            const firstHeight = heightOptions[0];
-            if (firstHeight !== undefined) {
-                fillingObject.height = firstHeight;
-                fillingObject.size.y = firstHeight;
+        // Высоту уже учли при подборе позиции, здесь остаётся записать её в сам объект
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
+            const { height: universalHeight, depth: universalDepth } = this.getUniversalDrawerSizes(product, grid)
+            if (universalHeight !== undefined) {
+                fillingObject.height = universalHeight;
+                fillingObject.size.y = universalHeight;
             }
-            const maxAllowedDepth = grid.depth - 7;
-            const availableDepths = (product.SIZE_EDIT_DEPTH ?? []).filter((d: number) => d <= maxAllowedDepth);
-            const firstDepth = availableDepths[0];
-            if (firstDepth !== undefined) {
-                fillingObject.depth = firstDepth;
-                fillingObject.size.z = firstDepth;
+            if (universalDepth !== undefined) {
+                fillingObject.depth = universalDepth;
+                fillingObject.size.z = universalDepth;
             }
         }
 
@@ -800,9 +822,8 @@ export default class FillingsManager {
 
 
             if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID) && product.DROWER_FASADE_HEIGHT) {
-                const heightOptions = Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
-                const firstHeight = heightOptions[0];
-                const fasadeRange = product.DROWER_FASADE_HEIGHT[String(firstHeight)];
+                const { height: universalHeight } = this.getUniversalDrawerSizes(product, grid)
+                const fasadeRange = product.DROWER_FASADE_HEIGHT[String(universalHeight)];
                 if (fasadeRange) {
                     fillingObject.fasade.minY = fasadeRange.min;
                     fillingObject.fasade.maxY = fasadeRange.max;

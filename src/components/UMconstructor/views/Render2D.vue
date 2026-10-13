@@ -14,6 +14,7 @@ import {
 import { Application, Container, Graphics, Text } from "pixi.js";
 import { Shape, ShapeAdjuster, Section } from "./../utils/PixiMethods.ts";
 import { UM_PARAMS, UM_DRAWERS_IDS, WITH_TSARGA, MODULE_TSARGA_OPTIONS } from "./../utils/Const.ts";
+import { getSegmentLabel } from "./../utils/Labels.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import * as THREE from "three";
 import { LOOPSIDE, TSelectedCell } from "./../types/UMtypes.ts";
@@ -1403,29 +1404,19 @@ const createSectioNum = ({
   const yOffset = cell.yOffset || y;
   const opacity = cell.type == "fasade" ? 1 : 0.4;
 
-  let text;
-
   // У фасадов номер показывается из id: он сквозной по секции — фасады ящиков и сегменты
   // двери нумеруются вместе снизу вверх. rowIndex — это индекс в массиве, по нему сектор
   // сопоставляется с выделением, и с появлением разделения он с номером разошёлся
   const labelRow =
     rowIndex !== null && cell.type === "fasade" && cell.id ? cell.id - 1 : rowIndex;
 
-  if (sectionIndex === null) {
-    text =
-      labelRow !== null
-        ? `${cellIndex + 1}.${labelRow + 1}`
-        : `${cellIndex + 1}`;
-  } else {
-    text =
-      labelRow !== null
-        ? `${sectionIndex + 1}.${cellIndex + 1}.${labelRow + 1}`
-        : `${sectionIndex + 1}.${cellIndex + 1}`;
-  }
-
-  if (extraIndex !== null) text += `.${extraIndex + 1}`;
-
-  if (itemIndex !== null) text += ` ${itemIndex}`;
+  const text = getSegmentLabel({
+    sectionIndex,
+    cellIndex,
+    rowIndex: labelRow,
+    extraIndex,
+    itemIndex,
+  });
 
   const cellNumber = new Text({
     text: text,
