@@ -178,6 +178,7 @@ export class MoveManager {
 
 
         this.leftDown = false
+        this.eventBus.emit('A:MouseUp');
     }
 
     private onWheel(event: WheelEvent) {
