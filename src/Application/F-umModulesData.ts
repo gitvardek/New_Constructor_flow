@@ -260,6 +260,26 @@ export const UM_SAMPLE = () => {
                         ],
                         "close": "1",
                         "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
                     }
                 ],
                 "USLUGI": [],
@@ -743,6 +763,26 @@ export const UM_SAMPLE = () => {
                     },
                     {
                         "id": "12682903",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
                         "active": false,
                         "group": "549",
                         "section": [
@@ -1894,6 +1934,26 @@ export const UM_SAMPLE = () => {
                     },
                     {
                         "id": "12682903",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
                         "active": false,
                         "group": "549",
                         "section": [

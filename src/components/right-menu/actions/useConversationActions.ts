@@ -75,9 +75,6 @@ export const useConversationActions = () => {
                 width <= MAX_WIDTH &&
                 width >= MIN_WIDTH;
 
-            // console.log(`Полоно HEIGHT:${MAX_HEIGHT} - ${MIN_HEIGHT}, WIDTH: ${MAX_WIDTH} - ${MIN_WIDTH}`);
-            // console.log(`Размер фасада: HEIGHT:${height}, WIDTH:${width}`)
-
             if (!check) {
                 eventBus.emit("A:Delite-Fasad", key);
                 toaster.error(`Фасад №${key + 1} удалён`)
@@ -321,7 +318,7 @@ export const useConversationActions = () => {
         const { _FASADE, _FASADE_SECTION, _FASADE_SIZE_RESTRICT } = modelState
         return (product?.FACADE ?? []).some((facadeId) => {
             const section = _FASADE_SECTION[(_FASADE as TFasadeItem[])[facadeId]?.IBLOCK_SECTION_ID]
-            return !!section && Number(_FASADE_SIZE_RESTRICT[section.ID]?.IGNORE_PRODUCT ?? 0) !== 0
+            return !!section && Number(_FASADE_SIZE_RESTRICT[section?.ID]?.IGNORE_PRODUCT ?? 0) !== 0
         })
     }
 
