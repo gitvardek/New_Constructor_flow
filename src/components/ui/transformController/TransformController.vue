@@ -29,9 +29,11 @@ const curControllerValue = ref<string>("Позиционирование");
 const curControllerType = ref<string>("translate");
 const curAngleParam = ref<number>(1);
 
+const iconUrl = (fileName: string) => `${import.meta.env.BASE_URL}icons/${fileName}`;
+
 const controllerValue = ref([
-  { name: "Позиционирование", type: "translate", icon: "/icons/move.svg", description:". Для выхода из режима, повторно кликните по кнопке" },
-  { name: "Вращение", type: "rotate", icon: "/icons/rotate.svg", description:". Для выхода из режима, повторно кликните по кнопке" },
+  { name: "Позиционирование", type: "translate", icon: iconUrl("move.svg"), description:". Для выхода из режима, повторно кликните по кнопке" },
+  { name: "Вращение", type: "rotate", icon: iconUrl("rotate.svg"), description:". Для выхода из режима, повторно кликните по кнопке" },
 ]);
 
 const emit = defineEmits<{
