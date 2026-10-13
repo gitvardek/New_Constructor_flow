@@ -41,6 +41,10 @@ const app = useAppData();
 const exceptionNames = ["MODEL", "UNIVERSAL", "TOP_TABLE"];
 
 const currentModel = ref(null);
+
+const showCustomiser = ref(false)
+const isPointerDown = ref(false)
+
 const buttonVisibles = ref<TButtonVisibles>({
   ruler: true,
   color: false,
@@ -67,8 +71,11 @@ const checkSelect = (el) => {
     return;
   }
 
+  const isNewSelection =
+    currentModel.value !== el.object || !customiserStore.isCustomiserOpen;
+
   currentModel.value = el.object;
-  customiserStore.showCustomiserPopup();
+
 
   modelState.setCurrentModel(el.object);
   if (el.object.userData.elementType === "raspil") {
@@ -76,6 +83,11 @@ const checkSelect = (el) => {
     return;
   }
 
+  if (isPointerDown.value && isNewSelection) {
+    showCustomiser.value = false;
+  }
+
+  customiserStore.showCustomiserPopup();
   checkData(el.object);
 
   if (exceptionNames.includes(el.object.name)) {
@@ -109,16 +121,41 @@ const checkData = (object) => {
   buttonVisibles.value.moving = checkOptions;
 };
 
+const onSceneMouseDown = () => {
+  isPointerDown.value = true;
+};
+
+const onSceneMove = () => {
+  showCustomiser.value = false;
+};
+
+const onSceneMouseUp = () => {
+  isPointerDown.value = false;
+  showCustomiser.value = true;
+};
+
 onMounted(() => {
   eventBus.on("A:Selected", checkSelect);
   eventBus.on("A:ClearSelected", checkSelect);
   eventBus.on("A:RemoveModel", closeCustomiser);
   eventBus.on("A:Duplicate", closeCustomiser);
+
+  eventBus.on("A:MouseDown", onSceneMouseDown);
+  eventBus.on("A:Move", onSceneMove);
+  eventBus.on("A:MouseUp", onSceneMouseUp);
+
+  // Страховка: кнопку могут отпустить вне canvas 
+  window.addEventListener("pointerup", onSceneMouseUp, true);
 });
 
 onBeforeUnmount(() => {
   eventBus.off("A:Selected", checkSelect);
   eventBus.off("A:ClearSelected", checkSelect);
+  eventBus.off("A:MouseDown", onSceneMouseDown);
+  eventBus.off("A:Move", onSceneMove);
+  eventBus.off("A:MouseUp", onSceneMouseUp);
+
+  window.removeEventListener("pointerup", onSceneMouseUp, true);
 });
 
 const getName = computed(() => {
@@ -134,7 +171,7 @@ onUnmounted(() => {
 
 <template>
   <transition name="slide--right">
-    <div v-if="customiserStore.isCustomiserOpen" class="customiser">
+    <div v-if="customiserStore.isCustomiserOpen && showCustomiser" class="customiser">
       <div class="customiser__container">
         <div class="customiser-header">
           <div class="customiser__title">
