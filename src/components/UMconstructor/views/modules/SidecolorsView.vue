@@ -222,8 +222,8 @@ const getCurrentValue = computed(() => {
       result = objectData.value.CONFIG[currentOption.value];
 
       elementSize.value = {
-        FASADE_WIDTH: module.value.width,
-        FASADE_HEIGHT: module.value.depth,
+        FASADE_WIDTH: Math.min(module.value.width, module.value.depth),
+        FASADE_HEIGHT: Math.max(module.value.width, module.value.depth),
         isPanel: true,
       };
 
@@ -275,13 +275,12 @@ const getMaterialsList = () => {
   return materialList.value;
 };
 
-const createFacadeData = (fasadeIndex) => {
+const createFacadeData = () => {
 
   const productId = modelState.getCurrentModel.userData.PROPS.PRODUCT;
   const { FACADE } = modelState._PRODUCTS[productId];
   modelState.createCurrentModelFasadesData({
     data: FACADE,
-    fasadeNdx: fasadeIndex,
     productId,
   });
 };
