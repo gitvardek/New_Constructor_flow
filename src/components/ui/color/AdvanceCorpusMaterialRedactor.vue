@@ -827,11 +827,9 @@ onBeforeUnmount(() => {
           @delete-choise="deleteSelectedOptions" />
       </template>
 
-      <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList"
-        @change="onChangeIntegratedHandlePos" />
+      <LoopPositionSelect v-if="isFasadeTypesExist" :options="fasadeTypesList" @change="onChangeIntegratedHandlePos" />
 
-      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList"
-        @change="onChangeMillingHandlePos" />
+      <LoopPositionSelect v-if="isFasadeHandleExist" :options="fasadeHandleList" @change="onChangeMillingHandlePos" />
     </div>
 
     <!-- Редактор выбранной опции: список значений, выбор уходит в обработчик опции -->
@@ -850,8 +848,8 @@ onBeforeUnmount(() => {
     <PatinaRedactor v-if="currentEditableOption === 'patina'" :patinaList="patina.list"
       :selectedId="selectedValues?.PATINA" @select_patina="onSelectPatina" />
 
-    <GlassRedactor v-if="currentEditableOption === 'glass'" :glassList="glass.list"
-      :selectedId="selectedValues?.GLASS" @select_glass="onSelectGlass" />
+    <GlassRedactor v-if="currentEditableOption === 'glass'" :glassList="glass.list" :selectedId="selectedValues?.GLASS"
+      @select_glass="onSelectGlass" />
 
     <ShowcaseRedactor v-if="currentEditableOption === 'showcase'" :showcaseList="showcase.list"
       :selectedId="selectedValues?.SHOWCASE" @select_showcase="onSelectShowcase" />

@@ -223,10 +223,12 @@ const getCurrentValue = computed(() => {
       result = objectData.value.CONFIG[currentOption.value];
 
       // Раньше размер здесь не задавался вовсе, и накладка наследовала габариты
-      // боковой стенки, открытой до неё
+      // боковой стенки, открытой до неё.
+      // Накладка кроится из листа и жёсткой ориентации не имеет: длинную сторону
+      // сверяем с длиной листа (HEIGHT), короткую — с его шириной (WIDTH)
       elementSize.value = {
-        FASADE_WIDTH: module.value.width,
-        FASADE_HEIGHT: module.value.depth,
+        FASADE_WIDTH: Math.min(module.value.width, module.value.depth),
+        FASADE_HEIGHT: Math.max(module.value.width, module.value.depth),
         isPanel: true,
       };
 
@@ -251,8 +253,6 @@ const getMaterialsList = () => {
     case "RIGHTSIDECOLOR":
     case "LEFTSIDECOLOR":
       materialList.value = modelState.getCurrentSidewallData;
-    console.log(materialList.value , 'materialList.value  ============== ')
-
       break;
     case "PROFILECOLOR":
       materialList.value = module.value.profilesConfig.colorsList.map(
@@ -279,13 +279,13 @@ const getMaterialsList = () => {
   return materialList.value;
 };
 
-const createFacadeData = (fasadeIndex) => {
+const createFacadeData = () => {
 
   const productId = modelState.getCurrentModel.userData.PROPS.PRODUCT;
   const { FACADE } = modelState._PRODUCTS[productId];
+
   modelState.createCurrentModelFasadesData({
     data: FACADE,
-    fasadeNdx: fasadeIndex,
     productId,
   });
 };
@@ -630,7 +630,8 @@ onBeforeUnmount(() => {
             :element-data="getCurrentValue" :element-index="currentOption" :material-list="materialList"
             :fasade-size="elementSize"
             :no-glass="currentOption === 'LEFTSIDECOLOR' || currentOption === 'RIGHTSIDECOLOR' || currentOption === 'TOPFASADECOLOR'"
-            @parent-callback="selectOption" @select_material="emit('eccentric-action')" />
+            @parent-callback="selectOption"
+            @select_material="emit('eccentric-action')" />
           <CorpusMaterialRedactor v-else class="color--left-select-item" :is2Dconstructor="true"
             :material-list="materialList" :type="currentOption === 'BACKWALL' ? 'backwall' : 'surface'"
             @parent-callback="selectOption" />
