@@ -1766,6 +1766,7 @@ function CatalogApp() {
 			const cityID = useConfigStore().cityID || '17281';
 			urlEncodedData.append('userid', userId);
 			urlEncodedData.append('cityid', cityID);
+			urlEncodedData.append('debug_source', '2');
 			console.log('test')
 
 			fetch(apiPath + "/API/catalog.element.getprice.php", {

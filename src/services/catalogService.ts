@@ -84,6 +84,7 @@ export const CatalogService = {
         : new FormData(formData as HTMLFormElement)
       data.append('userid', userId)
       data.append('cityid', cityID)
+      data.append('debug_source', '1')
 
       const url = `https://${BASE_DOMAIN}/local/templates/constructor/API/catalog.element.getprice.php`
       const response = await axios.post(url, data, {
