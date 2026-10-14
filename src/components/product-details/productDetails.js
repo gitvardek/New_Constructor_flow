@@ -1,4 +1,4 @@
-// import { useCatalogStore } from '@/store/appStore/catalogStore';
+import { useCatalogStore } from '@/store/appStore/catalogStore';
 import { useBasketStore } from "@/store/appStore/useBasketStore";
 import { useAuthStore } from "@/store/appStore/authStore";
 import { useConfigStore } from "@/store/appStore/useConfigStore";
@@ -1786,6 +1786,8 @@ function CatalogApp() {
 					const addToBasketPriceEl = container.querySelector(".props .add-to-basket .price");
 					if (priceTextEl) priceTextEl.innerHTML = msg;
 					if (addToBasketPriceEl) addToBasketPriceEl.innerHTML = msg;
+
+					useCatalogStore().hidePriceSpinner();
 
 					const notDiscountInput = form.querySelector('input[name="NOT_DISCOUNT"]');
 					if (notDiscountInput) {
