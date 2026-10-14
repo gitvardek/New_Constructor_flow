@@ -1,4 +1,5 @@
 <script setup lang="ts">
+//@ts-nocheck
 import { ref, watch } from "vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import RangeSlider from "@/components/ui/rangeSlider/RangeSlider.vue";

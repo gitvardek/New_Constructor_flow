@@ -73,6 +73,7 @@ export class MeshEvents extends BuildersHelper {
 
     private onChangeFasade: ({ data, fasadeNdx }: TDataWithNdx) => void;
     private onChangeTotalFasadsTexture: ({ data, type }: TDataWithType) => void;
+    private onApplyFasadeToProduct: ({ fasadeNdx, targets }: { fasadeNdx: number, targets: number[] }) => void;
 
     private onChangeGlobalTopTable: ({ data, type }: TDataWithType) => void;
 
@@ -151,6 +152,7 @@ export class MeshEvents extends BuildersHelper {
 
         this.onChangeFasade = this.changeFasade.bind(root);
         this.onChangeTotalFasadsTexture = this.changeTotalFasadsTexture.bind(root);
+        this.onApplyFasadeToProduct = this.applyFasadeToProduct.bind(root);
 
         this.onChangeGlobalTopTable = this.changeGlobalTopTable.bind(root);
 
@@ -503,6 +505,139 @@ export class MeshEvents extends BuildersHelper {
         setTimeout(() => {
             this.events.emit('A:GlobalParamsSelect');
         }, 10)
+    }
+
+    //------------------
+    /** @Применение_отделки_ко_всем_фасадам_объекта  */
+    //------------------
+
+    /**
+     * Отделка фасада fasadeNdx переносится на фасады targets того же объекта («Применить ко
+     * всем» в редакторе фасада). Порядок действий над каждым фасадом тот же, что в
+     * changeTotalFasadsTexture: полотно → витрина → значения в конфиг → палитра → фрезеровка →
+     * стекло, иначе отрисовка затирает только что записанные значения. Размер фасада, тип
+     * фасада и положения ручек не переносятся — они свои у каждой позиции. Фасад-источник
+     * без полотна снимает фасады с остальных позиций. Допустимость полотна для позиции и её
+     * размера проверяет вызывающая сторона (useApplyToAllFasades): сюда приходят только те
+     * фасады, которым полотно подходит
+     */
+    public async applyFasadeToProduct({ fasadeNdx, targets }: { fasadeNdx: number, targets: number[] }) {
+
+        const product = this._currentMesh;
+
+        if (!product || !Array.isArray(targets) || targets.length === 0) return;
+
+        const { PROPS } = product.userData;
+        const { CONFIG, FASADE, PRODUCT } = PROPS;
+        const { FASADE_PROPS, FASADE_POSITIONS } = CONFIG;
+
+        const source = FASADE_PROPS[fasadeNdx];
+
+        if (!source) return;
+
+        // У источника нет полотна — переносится само «Без фасада»: фасады снимаются
+        const isNoFasade = !source.COLOR || source.COLOR == 7397;
+        const material = this._FASADE[source.COLOR];
+
+        if (!isNoFasade && !material) return;
+
+        for (const ndx of targets) {
+            const fasadeProp = FASADE_PROPS[ndx];
+
+            if (ndx === fasadeNdx || !fasadeProp || !FASADE[ndx]) continue;
+
+            // Снятие фасада: updateFasade сбрасывает полотно и все зависящие от него значения
+            if (isNoFasade) {
+                await this.catchDeliteFasade(ndx, product);
+                continue;
+            }
+
+            const isShowcase = FASADE_POSITIONS[ndx]?.SHOWCASE === 1;
+
+            // Полотно: COLOR, ALUM и пересборка фасада. Внутри уже применяются палитра,
+            // текстура или алюминий, а на витринной позиции — рамка витрины
+            await this.catchFasadeChange({ data: material, fasadeNdx: ndx, mesh: product });
+
+            // Витрина источника — только на витринной позиции и не под алюминием:
+            // у остальных фасадов витрины нет (FasadeBuilder держит SHOWCASE = null)
+            if (source.SHOWCASE && isShowcase && !fasadeProp.ALUM) {
+                fasadeProp.SHOWCASE = source.SHOWCASE;
+                this.changeShowcase({ data: source.SHOWCASE, fasadeNdx: ndx, mesh: product });
+            }
+
+            // Фрезеровка источника — только если она есть в списке этого фасада (список
+            // фильтруется по его размеру), иначе первая из списка: правило глобальной смены
+            const millingList = this.modelState.createCurrentMillingData({
+                fasadeId: fasadeProp.COLOR,
+                productId: PRODUCT,
+                fasadeNdx: ndx,
+                fasadeSize: FASADE[ndx]?.userData?.trueSize,
+            });
+
+            const nextMilling = millingList.find(item => item.ID == source.MILLING) ?? millingList[0] ?? null;
+
+            // Патина источника — если новая фрезеровка её допускает (PATINAOFF == 0), иначе
+            // по умолчанию для фрезеровки. Полотно у фасадов общее, значит и список патин тот же.
+            // Пишем до отрисовки: палитра и фрезеровка рисуют патину из конфига
+            fasadeProp.PATINA = nextMilling?.PATINAOFF == 0 && source.PATINA
+                ? source.PATINA
+                : this.getDefaultFasadePatina(fasadeProp.COLOR, nextMilling?.PATINAOFF);
+
+            if (source.PALETTE) {
+                await this.changePaletteColor({ data: source.PALETTE, fasadeNdx: ndx, mesh: product });
+            }
+
+            // Положение интегрированной ручки у каждого фасада своё, но оно должно быть
+            // допустимо для фрезеровки: прежнее оставляем, иначе первое допустимое
+            fasadeProp.MILLING_TYPE = this.resolveHandleTypeForMilling(
+                nextMilling,
+                FASADE_POSITIONS[ndx]?.FASADE_TYPE,
+                fasadeProp.MILLING_TYPE,
+            );
+
+            if (nextMilling) {
+                if (isShowcase) {
+                    // На витрине фрезеровка только в конфиге (для заказа и цены), без отрисовки
+                    fasadeProp.MILLING = nextMilling.ID;
+                } else {
+                    const action = this.modelState.getCurrentMillingActionMap(fasadeProp.MILLING_TYPE, nextMilling.ID) ?? null;
+                    await this.catchChangeMilling({ data: nextMilling.ID, fasadeNdx: ndx, action, mesh: product });
+                }
+            }
+
+            // Стекло есть только у витрин и алюминиевых полотен; список — по полотну и продукту,
+            // то есть общий с фасадом-источником
+            if (source.GLASS && (isShowcase || fasadeProp.ALUM)) {
+                await this.catchChangeGlassColor({ data: source.GLASS, fasadeNdx: ndx });
+            }
+        }
+
+        // От цвета фасадов зависит видимость опций (SHOW_ON_FASADE), а вместе с ней и
+        // обязательные опции. Пересчитываем до GlobalParamsSelect, чтобы корзина собралась
+        // уже по новому набору — так же, как после глобальной смены полотна
+        this.options.syncOptions(product);
+
+        setTimeout(() => {
+            this.events.emit('A:GlobalParamsSelect');
+        }, 10)
+    }
+
+    /**
+     * Положение интегрированной ручки, допустимое для фрезеровки и позиции фасада: прежнее,
+     * если оно ещё допустимо, иначе первое из допустимых. У фрезеровки без положений — null
+     */
+    private resolveHandleTypeForMilling(
+        milling: { fasade_type?: (number | null)[] } | null,
+        fasadeTypes: number[] | undefined,
+        currentType: number | null,
+    ) {
+        if (milling?.fasade_type?.[0] == null) return null;
+
+        const allowed = milling.fasade_type.filter(typeId => fasadeTypes?.includes(typeId));
+
+        if (allowed.length === 0) return null;
+
+        return allowed.includes(currentType) ? currentType : allowed[0];
     }
 
     //------------------
@@ -1428,6 +1563,10 @@ export class MeshEvents extends BuildersHelper {
             this.changeTotalFasadsTexture({ data, palitte, milling, type })
         }
 
+        this.onApplyFasadeToProduct = ({ fasadeNdx, targets }) => {
+            this.applyFasadeToProduct({ fasadeNdx, targets })
+        }
+
         this.onChangeGlobalTopTable = ({ data, type }) => {
             this.changeGlobalTopTable({ data, type })
         }
@@ -1548,6 +1687,8 @@ export class MeshEvents extends BuildersHelper {
         this.events.on('A:ChangeFasadsTopTexture', this.onChangeTotalFasadsTexture)
         this.events.on('A:ChangeFasadsBottomTexture', this.onChangeTotalFasadsTexture)
 
+        this.events.on('A:ApplyFasadeToProduct', this.onApplyFasadeToProduct)
+
         this.events.on("A:ChangeTableTop", this.onChangeGlobalTopTable)
 
         this.events.on('A:ChangePaletteColor', this.onChangePaletteColor);
@@ -1600,6 +1741,7 @@ export class MeshEvents extends BuildersHelper {
         this.events.off('A:ChangeModuleTotalTexture', this.onChangeModuleTexture);
 
         this.events.off('A:ChangeFasade', this.onChangeFasade);
+        this.events.off('A:ApplyFasadeToProduct', this.onApplyFasadeToProduct);
         this.events.off('A:ChangePaletteColor', this.onChangePaletteColor);
         this.events.off('A:ChangeGlassColor', this.onChangeGlassColor);
 

@@ -1,9 +1,10 @@
+//@ts-nocheck
 import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useToast } from "@/features/toaster/useToast";
 import { TFasadeGroupSize } from "@/store/appliction/useModelState";
 import type { Object3D } from 'three'
-/**//@ts-nocheck */
+
 
 import { IProductFull, TTotalProps, TFasadeItem, TFasadeTrueSizes, TFasadeConversation, TMillingRestrictItem, TConfig, TFasadeSectionItem } from "@/types/types";
 

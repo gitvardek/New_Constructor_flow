@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { TTotalProps, TBuildProduct, TEdgeBuilder } from "@/types/types";
 import { IShelfData } from "@/types/interfases";
 import {

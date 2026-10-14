@@ -38,7 +38,7 @@ export const UM_PARAMS = {
 }
 
 export const UM_DRAWERS_IDS = {
-    INNER: [15222587, 2166308],
+    INNER: [15222587], //2166308
     OUTER: [5726092, 6560591],
     UNIVERSAL: [15309443]
 }

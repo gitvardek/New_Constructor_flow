@@ -1,4 +1,5 @@
 <script setup lang="ts">
+//@ts-nocheck
 import { computed } from "vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import {

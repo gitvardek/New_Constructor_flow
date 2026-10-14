@@ -33,12 +33,12 @@ import { useFasadeSize } from "./composables/useFasadeSize";
 import { useFasadeHandles } from "./composables/useFasadeHandles";
 import { useFasadeCommands } from "./composables/useFasadeCommands";
 import { useFasadeOptionsState } from "./composables/useFasadeOptionsState";
+import { useApplyToAllFasades } from "./composables/useApplyToAllFasades";
 import { scrollToActiveOption } from "./composables/scrollToActiveOption";
 import {
   FASADE_OPTION_KEYS,
   toImageView,
   toColorView,
-  isPatinaAvailableForMilling,
   getDefaultPatinaForMilling,
   resolveMillingRepair,
   resolveOptionsOnMaterialSelect,
@@ -117,6 +117,12 @@ const {
 
 // Все записи в конфиг фасада и события сцены — через команды
 const commands = useFasadeCommands(
+  () => props.tabIndex,
+  () => productData.value,
+);
+
+// Перенос отделки этого фасада на остальные фасады объекта («Применить ко всем»)
+const { isApplyToAllVisible, applyToAll } = useApplyToAllFasades(
   () => props.tabIndex,
   () => productData.value,
 );
@@ -221,46 +227,18 @@ const updateMillingDependents = (data) => {
   // Проверка на существование свойств productData.value.PROPS.CONFIG
   if (!productData.value?.PROPS?.CONFIG) return;
 
-  const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
-  const fasadeProps = FASADE_PROPS[props.tabIndex];
+  // Патина по умолчанию для выбранной фрезеровки — то же правило, что в Events.deliteMilling:
+  // при PATINAOFF == 0 (data.patina приходит из MillingRedactor) первая патина списка,
+  // иначе без патины. Список берём готовый, а не сырой PATINA полотна: он отфильтрован
+  // по справочнику патин, а в сыром попадаются id, которых в справочнике нет — на полотне
+  // без патин сборка карточки падала на них. Патина пересчитывается и для витрин:
+  // там она пишется только в конфиг, без отрисовки
+  const defaultPatina = getDefaultPatinaForMilling(data.patina, patina.list);
 
-  // Проверка на существование fasadeProps
-  if (!fasadeProps) {
-    console.warn('FASADE_PROPS is undefined or null');
-    return;
-  }
+  patina.exists = defaultPatina !== null;
+  patina.current = defaultPatina ? toImageView(defaultPatina) : {};
 
-  const rootDataPatina = _FASADE[fasadeProps.COLOR]?.PATINA;
-
-  // Проверка на существование rootDataPatina и его свойств
-  if (!rootDataPatina) {
-    console.warn('rootDataPatina is undefined or null');
-    return;
-  }
-
-  // Патина пересчитывается и для витрин: там она пишется только в конфиг, без отрисовки.
-  // data.patina — PATINAOFF выбранной фрезеровки (см. MillingRedactor)
-  patina.exists = isPatinaAvailableForMilling(data.patina, rootDataPatina);
-
-  /** @Если у выбранной фрезы нет патина */
-  try {
-    if (!patina.exists && patina.list.length > 0) {
-      commands.setPatina(null);
-    } else {
-      commands.setPatina(rootDataPatina[0]);
-
-      const { NAME, PREVIEW_PICTURE } = _APP?.PATINA[rootDataPatina[0]];
-
-      if (!NAME || !PREVIEW_PICTURE) {
-        console.warn('Missing PATINA data');
-        return;
-      }
-
-      patina.current = { name: NAME, imgSrc: PREVIEW_PICTURE };
-    }
-  } catch (e) {
-    console.warn(e, "в методе onSelectMilling");
-  }
+  commands.setPatina(defaultPatina?.ID ?? null);
 
   /** @Отображение_положения_петель */
   applyMillingHandles(data);
@@ -549,6 +527,11 @@ onBeforeUnmount(() => {
           Ширина: {{ getFasadesize.FASADE_WIDTH ?? "н/о" }} мм.
         </p>
       </div>
+
+      <button v-if="isApplyToAllVisible" class="container__apply-all" type="button"
+        title="Применить конфигурацию этого фасада ко всем фасадам объекта" @click="applyToAll">
+        Применить ко всем
+      </button>
     </div>
     <div class="configuration" v-if="surface.selected">
       <ConfigurationOption :type="'surface'" :data="surface.current" @choose-option="setCurrentEditableOption"
@@ -608,12 +591,35 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     font-size: 1rem;
     font-weight: 400;
 
     &--params {
       display: flex;
       gap: 1rem;
+    }
+  }
+
+  &__apply-all {
+    border: 1px solid $light-stroke;
+    border-radius: 10px;
+    background: $white;
+    color: $strong-grey;
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition-property: background-color, color;
+    transition-duration: 0.25s;
+    transition-timing-function: ease;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: $red;
+        color: $white;
+      }
     }
   }
 

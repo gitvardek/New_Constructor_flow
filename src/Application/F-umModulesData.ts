@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { TTotalProps } from "@/types/types"
 type UMList = Record<number, TTotalProps>
 

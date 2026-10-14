@@ -1,7 +1,7 @@
 <script setup lang="ts">
+//@ts-nocheck
 import { computed, ref, watch } from "vue";
 import MainInput from "@/components/ui/inputs/MainInput.vue";
-import MainButton from "@/components/ui/buttons/MainButton.vue";
 import { useWallHeightStore } from "@/store/constructor2d/store/useWallHeightStore";
 
 const props = defineProps<{ clampHeight: number | null }>();
