@@ -32,12 +32,16 @@ export default class FillingsManager {
             collisionWith: 'loop'
         },
         {
-            // 2166308 исключается из коллизий петель только для НЕ-распашного шкафа.
-            // Для распашного (RASPASHNOY_ID) — участвует в коллизии.
+            // 2166308 исключается из коллизий петель везде, кроме распашного шкафа
+            // (RASPASHNOY_ID) и стандартного УМ (DEFAULT_UM_ID): там пересечение ящика
+            // с петлёй — ошибка ErrorsType.loops. Правила проверяются через some(),
+            // поэтому условие должно быть одним: два отдельных правила дали бы "или"
+            // и исключали ящик в обоих модулях сразу
             prop: 'productGroupID',
             values: [2166308],
             collisionWith: 'loop',
             condition: (grid) => grid.productID !== UM_PARAMS.RASPASHNOY_ID
+                && grid.productID !== UM_PARAMS.DEFAULT_UM_ID
         }
     ]
     private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
@@ -368,7 +372,7 @@ export default class FillingsManager {
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
 
-        console.log(_product,productGroupID, 'productGroupID')
+        console.log(_product, productGroupID, 'productGroupID')
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
             if (!this.isUniversalDrawerAllowed(grid)) {
@@ -1033,11 +1037,34 @@ export default class FillingsManager {
         }
     };
 
+    // Приводит значение поля к числу и ограничивает допустимым диапазоном.
+    // Пустое или нечисловое поле (значение стёрли) — не повод двигать наполнение, вернём null
+    private clampPosition(
+        value: number | string,
+        conversation: { min: number, max: number },
+    ): number | null {
+        const raw = typeof value === "string" ? value.trim() : value
+
+        if (raw === "" || raw === null || raw === undefined) return null
+
+        const result = Number(raw)
+
+        if (!Number.isFinite(result)) return null
+
+        const min = Number(conversation?.min)
+        const max = Number(conversation?.max)
+
+        return Math.max(
+            Number.isFinite(min) ? min : -Infinity,
+            Math.min(result, Number.isFinite(max) ? max : Infinity),
+        )
+    }
+
     changeFillingPositionX(
         conversation: {
             min: number,
             max: number
-        },
+        } | null,
         _value: number,
         key: number,
         secIndex: number,
@@ -1047,9 +1074,6 @@ export default class FillingsManager {
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
         this.scope.debounce("changeFillingPositionX", () => {
-            let value = Math.min(+_value, conversation.max);
-            value = Math.max(+value, conversation.min);
-
             const sec = grid.sections[secIndex];
             const currentColl = sec.cells?.[cellIndex];
             const currentRow = currentColl?.cellsRows?.[rowIndex];
@@ -1059,6 +1083,15 @@ export default class FillingsManager {
 
             const currentfilling = current.fillings[key];
 
+            if (!currentfilling) return;
+
+            // Пределы считаем здесь, а не в панели: за время debounce сетка могла пересобраться
+            const value = this.clampPosition(_value, conversation ?? {
+                min: 0,
+                max: current.width - currentfilling.width,
+            });
+            if (value === null) return;
+
             this.selectCell(secIndex, cellIndex, rowIndex, extraIndex, currentfilling?.id ?? key);
 
             if (currentfilling?.isProfile?.isBottomHiTechProfile) {
@@ -1067,9 +1100,9 @@ export default class FillingsManager {
             }
 
             const prevValue = currentfilling.position.x; //Предыдущее значение
-            const prevValueLeft = currentfilling.distances.left; //Предыдущее значение
+            const prevValueLeft = currentfilling.distances?.left ?? this.calcDistanceLeft(currentfilling, current); //Предыдущее значение
 
-            let delta = +value - prevValueLeft
+            let delta = value - prevValueLeft
             const newValue = prevValue + delta
 
             let tmpSector = currentfilling.sector
@@ -1086,11 +1119,11 @@ export default class FillingsManager {
 
             if (check) {
                 currentfilling.position.x = newValue;
-                currentfilling.distances.left = +value
+                this.setDistanceLeft(currentfilling, current, value)
             } else {
                 this.scope.callAlert("error", `Нельзя изменить позицию на ${+_value}`)
                 currentfilling.position.x = prevValue;
-                currentfilling.distances.left = prevValueLeft
+                this.setDistanceLeft(currentfilling, current, prevValueLeft)
             }
 
             currentfilling.sector = tmpSector;
@@ -1102,6 +1135,11 @@ export default class FillingsManager {
         }, 1000)
     };
 
+    // Единая система отсчёта позиции по вертикали — distances.bottom: расстояние в мм
+    // от дна сегмента (секции/ячейки/ряда/субъячейки), в котором лежит наполнение, до его низа.
+    // В ней же работает 2D-слой (Shape.drawBoundaryDistances), 3D-сборка (BuildUniversalModule)
+    // и поле "Позиция" в панели, поэтому min/max считаем здесь без привязки к cell.position.y
+    // (та координата абсолютная — от пола модуля, включая цоколь и дно).
     calcMinMaxPositionY = (
         type: "min" | "max",
         filling: FillingObject,
@@ -1115,58 +1153,85 @@ export default class FillingsManager {
                 result = cell.height - filling.height + (filling.isProfile ? grid.moduleThickness : 0)
                 if (filling.fasade) {
                     result += (grid.moduleThickness - 2) - filling.fasade.height + filling.fasade.manufacturerOffset + filling.height
-                    // distances.bottom измеряется от sectorBounds.y = moduleThickness, поэтому cell.position.y не добавляем
-                    return result
                 }
                 break;
             case "min":
                 result = 0 - (filling.isProfile ? grid.moduleThickness : 0)
                 if (filling.fasade) {
                     result = result - (grid.moduleThickness - 2) + filling.fasade.manufacturerOffset
-                    // distances.bottom измеряется от sectorBounds.y = moduleThickness, поэтому cell.position.y не добавляем
-                    return result
                 }
                 break;
         }
 
-        return cell.position.y + result
+        return result
     }
 
+    // Позиция наполнения в системе distances.bottom. distances считает 2D-слой при отрисовке;
+    // пока его не было (например, сразу после загрузки конфига) — выводим из координат сетки.
     getAbsolutePositionY(
         filling: FillingObject,
         cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-        let resultPos = filling.position.y;
-
         if (filling.distances) {
-            const grid = this.scope.UM_STORE.getUMGrid()
-            resultPos = cell.position.y + filling.distances.bottom - (grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness))
+            return filling.distances.bottom
         }
 
-        return resultPos >= 0 ? resultPos : 0;
+        return this.calcDistanceBottom(filling, cell, grid)
     }
 
-    getLocalPositionY(
-        value: number,
+    // Пересчёт distances.bottom из координат: filling.position.y — координата верха наполнения
+    // в системе 2D-слоя (от верха модуля вниз), cell.position.y — низ сегмента от пола модуля.
+    // Поправка на "без дна": позиции сегментов по-прежнему считаются с толщиной дна,
+    // а 2D-слой рисует секцию от верха модуля, поэтому низ сегмента оказывается ниже
+    calcDistanceBottom(
         filling: FillingObject,
         cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
-        isMinMax: boolean = false,
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
     ) {
-        const grid = this.scope.UM_STORE.getUMGrid()
-        let result = value - cell.position.y
+        const noBottomShift = grid.noBottom ? grid.moduleThickness : 0
 
-        if (!isMinMax) {
-            result += (grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness))
-        }
+        return grid.height - cell.position.y - (filling.position.y + filling.height) + noBottomShift
+    }
 
-        return result >= 0 ? result : 0;
+    // Отступ от левого края сегмента: по горизонтали координаты сетки и 2D-слоя считаются
+    // от левого края модуля, поэтому достаточно вычесть левую границу сегмента
+    calcDistanceLeft(
+        filling: FillingObject,
+        cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
+    ) {
+        return filling.position.x - (cell.position.x - cell.width / 2)
+    }
+
+    private setDistanceLeft(
+        filling: FillingObject,
+        cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
+        left: number,
+    ) {
+        if (!filling.distances) return
+
+        filling.distances.left = left
+        filling.distances.right = cell.width - filling.width - left
+    }
+
+    // Записывает вертикальные отступы наполнения. 2D-слой пересчитает их при следующей отрисовке,
+    // но до неё значением пользуются панель, сборка 3D и сохранение конфига
+    private setDistanceBottom(
+        filling: FillingObject,
+        cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
+        bottom: number,
+    ) {
+        if (!filling.distances) return
+
+        filling.distances.bottom = bottom
+        filling.distances.top = cell.height - filling.height - bottom
     }
 
     changeFillingPositionY(
         conversation: {
             min: number,
             max: number
-        },
+        } | null,
         _value: number,
         key: number,
         secIndex: number,
@@ -1177,9 +1242,6 @@ export default class FillingsManager {
         time: number = 1000,
     ) {
         this.scope.debounce("changeFillingPositionY", () => {
-            let value = Math.min(+_value, conversation.max);
-            value = Math.max(+value, conversation.min);
-
             const sec = grid.sections[secIndex];
             const currentColl = sec.cells?.[cellIndex];
             const currentRow = currentColl?.cellsRows?.[rowIndex];
@@ -1188,6 +1250,15 @@ export default class FillingsManager {
             const current = currentExtra || currentRow || currentColl || sec;
 
             const currentfilling = current.fillings[key];
+
+            if (!currentfilling) return;
+
+            // Пределы считаем здесь, а не в панели: за время debounce сетка могла пересобраться
+            const value = this.clampPosition(_value, conversation ?? {
+                min: this.calcMinMaxPositionY("min", currentfilling, current, grid),
+                max: this.calcMinMaxPositionY("max", currentfilling, current, grid),
+            });
+            if (value === null) return;
 
             // item = filling.id (1-based), а не key (0-based индекс массива)
             this.selectCell(secIndex, cellIndex, rowIndex, extraIndex, currentfilling?.id ?? key);
@@ -1198,9 +1269,10 @@ export default class FillingsManager {
             }
 
             const prevValue = currentfilling.position.y; //Предыдущее значение
-            const prevValueBottom = currentfilling.distances.bottom; //Предыдущее значение
+            const prevValueBottom = this.getAbsolutePositionY(currentfilling, current, grid); //Предыдущее значение
 
-            let delta = +value - currentfilling.distances.bottom
+            // distances.bottom растёт вверх, position.y (система 2D-слоя) — вниз, поэтому знак обратный
+            let delta = +value - prevValueBottom
             const newValue = prevValue - delta
 
 
@@ -1228,76 +1300,79 @@ export default class FillingsManager {
             const pixiSector = current.sector;
 
             const isOuterDrawer = this.OUTER_DRAWER_IDS.includes(currentfilling?.productGroupID)
+            const isInnerDrawer = this.INNER_DRAWER_IDS.includes(currentfilling?.productGroupID)
 
-            // Для внешних ящиков: исключаем внутренние ящики из проверки коллизии (как в setupDraggable)
+            // Набор фигур для проверки коллизии должен совпадать с тем, что видит перетаскивание
+            // (setupDraggable): внешний ящик не сталкивается со своим наполнением, а внутренний
+            // живёт в пространстве фасада внешнего и сталкивается только с другими внутренними.
             let originalShapes = null
-            if (isOuterDrawer && pixiSector?.shapes) {
+            if (pixiSector?.shapes && (isOuterDrawer || (isInnerDrawer && currentfilling.innerDrawerConstraint))) {
                 originalShapes = pixiSector.shapes
-                pixiSector.shapes = pixiSector.shapes.filter(
-                    s => !this.INNER_DRAWER_IDS.includes(s.data?.productGroupID)
-                )
+                pixiSector.shapes = isOuterDrawer
+                    ? pixiSector.shapes.filter(s => !this.INNER_DRAWER_IDS.includes(s.data?.productGroupID))
+                    : pixiSector.shapes.filter(s => this.INNER_DRAWER_IDS.includes(s.data?.productGroupID))
             }
 
             // Проверяем коллизию
             const check = this.scope.SHAPE_ADJUSTER.checkToCollision(pixiSector, false, fillingData);
 
-            if (originalShapes !== null) {
-                pixiSector.shapes = originalShapes
-            }
+            // Позиция, которая реально применится: запрошенная либо ближайшая допустимая.
+            // Ближайшую ищем по тому же набору фигур, что и коллизию, поэтому shapes восстанавливаем после
+            let appliedY = null
 
             if (check) {
-                currentfilling.position.y = newValue;
-                currentfilling.distances.bottom = +value
-
-                // Для внешних ящиков: перемещаем только вложенные ящики этого конкретного внешнего
-                if (isOuterDrawer) {
-                    current.fillings.forEach(innerFilling => {
-                        if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID) &&
-                            innerFilling.innerDrawerConstraint?.outerDrawerGroupId === currentfilling.innerDrawerGroupId) {
-                            innerFilling.position.y = (innerFilling.position.y || 0) - delta
-                            if (innerFilling.distances) {
-                                innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + delta
-                            }
-                            if (innerFilling.innerDrawerConstraint) {
-                                innerFilling.innerDrawerConstraint.startY = newValue - innerFilling.innerDrawerConstraint.height
-                            }
-                        }
-                    })
-                }
+                appliedY = newValue
             } else {
-                let tmpPos = {
+                const tmpPos = {
                     x: fillingData.position.x,
                     y: newValue,
                 }
                 fillingData.position.y = prevValue;
-                fillingData.distances.bottom = prevValueBottom;
-                let closestPos = this.scope.SHAPE_ADJUSTER.getClosestPosition(pixiSector, fillingData, tmpPos)
-
-                this.scope.callAlert("error", `Нельзя изменить позицию на ${+_value}`)
-                if (closestPos) {
-                    currentfilling.position.y = closestPos.y;
-                    currentfilling.distances.bottom = current.height - (currentfilling.position.y + currentfilling.height) + grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness)
-
-                    // Для внешних ящиков: перемещаем только вложенные ящики этого конкретного внешнего
-                    if (isOuterDrawer) {
-                        const actualDelta = prevValue - closestPos.y
-                        current.fillings.forEach(innerFilling => {
-                            if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID) &&
-                                innerFilling.innerDrawerConstraint?.outerDrawerGroupId === currentfilling.innerDrawerGroupId) {
-                                innerFilling.position.y = (innerFilling.position.y || 0) - actualDelta
-                                if (innerFilling.distances) {
-                                    innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + actualDelta
-                                }
-                                if (innerFilling.innerDrawerConstraint) {
-                                    innerFilling.innerDrawerConstraint.startY = closestPos.y - innerFilling.innerDrawerConstraint.height
-                                }
-                            }
-                        })
-                    }
-                } else {
-                    currentfilling.position.y = prevValue;
-                    currentfilling.distances.bottom = prevValueBottom;
+                if (fillingData.distances) {
+                    fillingData.distances.bottom = prevValueBottom;
                 }
+                const closestPos = this.scope.SHAPE_ADJUSTER.getClosestPosition(pixiSector, fillingData, tmpPos)
+
+                if (closestPos) {
+                    appliedY = closestPos.y
+                    this.scope.callAlert("info", `Позиция ${+_value} занята — наполнение сдвинуто в ближайшую свободную`)
+                } else {
+                    this.scope.callAlert("error", `Нельзя изменить позицию на ${+_value}`)
+                }
+            }
+
+            if (originalShapes !== null) {
+                pixiSector.shapes = originalShapes
+            }
+
+            // Без допустимой позиции наполнение остаётся там, где было
+            const resultY = appliedY !== null ? appliedY : prevValue
+            const appliedDelta = prevValue - resultY //Насколько наполнение сдвинулось вверх
+
+            currentfilling.position.y = resultY;
+
+            // Запрошенное значение применяем как есть, подобранное — пересчитываем из фактической позиции
+            let resultBottom = prevValueBottom
+            if (appliedY !== null) {
+                resultBottom = check ? value : this.calcDistanceBottom(currentfilling, current, grid)
+            }
+
+            this.setDistanceBottom(currentfilling, current, resultBottom)
+
+            // Для внешних ящиков: перемещаем только вложенные ящики этого конкретного внешнего
+            if (isOuterDrawer && appliedDelta !== 0) {
+                current.fillings.forEach(innerFilling => {
+                    if (this.INNER_DRAWER_IDS.includes(innerFilling?.productGroupID) &&
+                        innerFilling.innerDrawerConstraint?.outerDrawerGroupId === currentfilling.innerDrawerGroupId) {
+                        innerFilling.position.y = (innerFilling.position.y || 0) - appliedDelta
+                        if (innerFilling.distances) {
+                            innerFilling.distances.bottom = (innerFilling.distances.bottom || 0) + appliedDelta
+                        }
+                        if (innerFilling.innerDrawerConstraint) {
+                            innerFilling.innerDrawerConstraint.startY = resultY - innerFilling.innerDrawerConstraint.height
+                        }
+                    }
+                })
             }
 
             if (currentfilling.fasade) {

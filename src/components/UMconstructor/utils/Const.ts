@@ -27,6 +27,7 @@ export const UM_PARAMS = {
     SECTOR_PADDING: 0,
 
     RASPASHNOY_ID: 1942652, // ID распашного шкафа
+    DEFAULT_UM_ID: 3954672, // ID стандартного УМ
 
     MIN_TSARGA_WIDTH: 900, // Минимальная ширина царги
     MAX_TSARGA_WIDTH: 1200,  // Максимальная ширина царги
