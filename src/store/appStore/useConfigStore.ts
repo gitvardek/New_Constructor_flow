@@ -59,7 +59,8 @@ export const useConfigStore = defineStore('config', () => {
     isFeedbackProject,
     styleData,
     configData,
-    
+    cityID,
+
     // Методы
     getArticleByProductId,
     getArticleByFasadId

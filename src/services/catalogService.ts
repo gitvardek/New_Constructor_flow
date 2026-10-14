@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { useAuthStore } from '@/store/appStore/authStore'
+import { useConfigStore } from '@/store/appStore/useConfigStore'
 
 // Константы
 // const API_URL = 'https://vardek.ru'
@@ -31,8 +33,10 @@ export const CatalogService = {
     try {
       let filter = ''
       if (query) filter = `&filter=${query}`
+      const userId = useAuthStore().userData?.id ?? '22541'
+      const cityID = useConfigStore().cityID || '17281'
       const { data } = await axios.get(
-        `${BASE_API_URL}?config=${config}&style=${style}&cityid=17281&cityidprice=17281&section=${idSection}&type=catalog&page=${page}${filter}&userid=22541`,
+        `${BASE_API_URL}?config=${config}&style=${style}&cityid=${cityID}&cityidprice=${cityID}&section=${idSection}&type=catalog&page=${page}${filter}&userid=${userId}`,
         // `${BASE_API_URL}?config=43830&style=689680&cityid=17281&cityidprice=17281&section=${idSection}&type=catalog&page=${page}${filter}&userid=22541`,
         // `${BASE_API_URL}/data.get.php?config=43830&style=689680&cityid=17281&cityidprice=17281&section=${idSection}&type=catalog&page=${page}${filter}`,
         // https://dev.vardek.online/api/modeller/catalog/getlist/?config=43830&style=689680&cityid=17281&cityidprice=17281&section=2483&type=catalog&page=1
@@ -72,8 +76,16 @@ export const CatalogService = {
   },
   async getProductPrice(formData: ProductRequestData): Promise<ProductPriceResponse> {
     try {
+      const userId = useAuthStore().userData?.id ?? '22541'
+      const cityID = useConfigStore().cityID || '17281'
+      const data = formData instanceof FormData
+        ? formData
+        : new FormData(formData as HTMLFormElement)
+      data.append('userid', userId)
+      data.append('cityid', cityID)
+
       const url = `https://vardek.ru/local/templates/constructor/API/catalog.element.getprice.php`
-      const response = await axios.post(url, formData, {
+      const response = await axios.post(url, data, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },

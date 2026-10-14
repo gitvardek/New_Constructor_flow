@@ -1,5 +1,7 @@
 // import { useCatalogStore } from '@/store/appStore/catalogStore';
 import { useBasketStore } from "@/store/appStore/useBasketStore";
+import { useAuthStore } from "@/store/appStore/authStore";
+import { useConfigStore } from "@/store/appStore/useConfigStore";
 
 // const catalogStore = useCatalogStore();
 
@@ -1759,6 +1761,11 @@ function CatalogApp() {
 			for (const [key, value] of formData) {
 				urlEncodedData.append(key, value);
 			}
+			const userId = useAuthStore().userData?.id ?? '22541';
+			const cityID = useConfigStore().cityID || '17281';
+			urlEncodedData.append('userid', userId);
+			urlEncodedData.append('cityid', cityID);
+			console.log('test')
 
 			fetch(apiPath + "/API/catalog.element.getprice.php", {
 				method: "POST",
