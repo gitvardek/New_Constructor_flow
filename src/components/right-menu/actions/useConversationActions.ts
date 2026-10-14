@@ -15,12 +15,6 @@ type TsizeData = {
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
-// Сводка по глобальному применению фасада: сюда копятся товары, где фасад не применился
-// (размер не подошёл для секции с ограничением). Модульный уровень — общий для всех инстансов,
-// т.к. сборка идёт по товарам отдельными вызовами.
-let _globalApplySkips: { product: string; index: number }[] = []
-let _globalApplyFlushTimer: ReturnType<typeof setTimeout> | null = null
-
 export const useConversationActions = () => {
 
     const modelState = useModelState();
@@ -60,8 +54,11 @@ export const useConversationActions = () => {
         const curModel = modelState.getCurrentModel as Object3D
         if (!curModel) return
 
-        // Игнор размеров решается по-фасадно внутри restrictData:
-        // createFasadeConversations уже вернул Infinity для секций без IGNORE_PRODUCT
+
+        if (checkIgnore(curModel)) {
+            return
+        }
+
         const restrictData = curModel?.userData.restrictData
 
         const { FASADE } = curModel?.userData.PROPS as TTotalProps;
@@ -118,7 +115,7 @@ export const useConversationActions = () => {
         const fasadeData = (_FASADE as TFasadeItem[])[fasadeId]
         const section = _FASADE_SECTION[fasadeData?.IBLOCK_SECTION_ID];
         const groupId = section?.UF_GROUP ?? section;
-        const isIgnoreSize = checkIgnore(curModel, null, fasadeId)
+        const isIgnoreSize = checkIgnore(curModel)
 
         // if (!groupId || isIgnoreSize) return temp
         // const toCheck = modelState._FASADE_SIZE_RESTRICT[section.ID];
@@ -160,7 +157,7 @@ export const useConversationActions = () => {
 
         const curModel = curmodel;
 
-        if (checkIgnore(null, currentProduct, fasadeId)) {
+        if (checkIgnore(null, currentProduct)) {
             return true;
         }
 
@@ -190,7 +187,7 @@ export const useConversationActions = () => {
 
         const curModel = modelState.getCurrentModel as Object3D
 
-        if (checkIgnore(curModel, null, fasadeId)) {
+        if (checkIgnore(curModel)) {
             return true
         }
 
@@ -247,11 +244,12 @@ export const useConversationActions = () => {
     };
 
     const filterMaterialsConversations = (materialList: TFasadeConversation[], fasadeSize: TFasadeTrueSizes) => {
+        const isSizeIgnore = checkIgnore(modelState.getCurrentModel as Object3D)
+
         const tempList = materialList.map((el) => {
             if (el.FASADES && Array.isArray(el.FASADES)) {
                 let tmp_fasades = el.FASADES.map(item => {
-                    // item — id фасада (секция), игнор решается по-секционно внутри checkFasadeConversations
-                    if (checkFasadeConversations(item, fasadeSize)) {
+                    if (isSizeIgnore || checkFasadeConversations(item, fasadeSize)) {
                         return item;
                     }
                 }).filter(Boolean);
@@ -314,16 +312,17 @@ export const useConversationActions = () => {
         return isObject ? JSON.parse(replaced) : replaced as T;
     }
 
-    // IGNORE_PRODUCT у ограничения (FASADE_SIZE_RESTRICT) отменяет продуктовый IGNORE_SIZE
-    // ТОЛЬКО для секции этого фасада. Проверяется по конкретному fasadeId.
-    const isIgnoreProductSection = (fasadeId?: number): boolean => {
-        if (fasadeId == null) return false
+    // IGNORE_PRODUCT у секции (FASADE_SIZE_RESTRICT) отменяет продуктовый IGNORE_SIZE.
+    // Флаг берём «глобально» по всем секциям фасадов продукта.
+    const isIgnoreProduct = (product: IProductFull | null): boolean => {
         const { _FASADE, _FASADE_SECTION, _FASADE_SIZE_RESTRICT } = modelState
-        const section = _FASADE_SECTION[(_FASADE as TFasadeItem[])[fasadeId]?.IBLOCK_SECTION_ID]
-        return !!section && Number(_FASADE_SIZE_RESTRICT[section?.ID]?.IGNORE_PRODUCT ?? 0) !== 0
+        return (product?.FACADE ?? []).some((facadeId) => {
+            const section = _FASADE_SECTION[(_FASADE as TFasadeItem[])[facadeId]?.IBLOCK_SECTION_ID]
+            return !!section && Number(_FASADE_SIZE_RESTRICT[section?.ID]?.IGNORE_PRODUCT ?? 0) !== 0
+        })
     }
 
-    const checkIgnore = (curModel: Object3D | null, currentProduct?: IProductFull | null, fasadeId?: number): boolean => {
+    const checkIgnore = (curModel: Object3D | null, currentProduct?: IProductFull | null): boolean => {
         const PROPS = curModel?.userData?.PROPS as TTotalProps
 
         if (!PROPS && !currentProduct) {
@@ -332,28 +331,13 @@ export const useConversationActions = () => {
 
         const product = currentProduct ?? modelState._PRODUCTS[+PROPS.PRODUCT]
 
-        // У секции с IGNORE_PRODUCT ограничения по размеру действуют даже при IGNORE_SIZE —
-        // поэтому для такого фасада игнор выключаем, у остальных IGNORE_SIZE работает как обычно
-        if (isIgnoreProductSection(fasadeId)) {
+        // Если у продукта есть секция с IGNORE_PRODUCT — IGNORE_SIZE не действует,
+        // ограничения по размеру применяются как обычно
+        if (isIgnoreProduct(product)) {
             return false
         }
 
         return Number(product?.IGNORE_SIZE ?? 0) !== 0
-    }
-
-    // Регистрирует «непримененный» глобальный фасад и показывает одну сводку (дебаунс),
-    // т.к. товары собираются по очереди — иначе был бы тостер на каждый фасад
-    const recordGlobalApplySkip = (product: string, index: number) => {
-        _globalApplySkips.push({ product, index })
-        if (_globalApplyFlushTimer) clearTimeout(_globalApplyFlushTimer)
-        _globalApplyFlushTimer = setTimeout(() => {
-            const count = _globalApplySkips.length
-            if (count) {
-                toaster.error(`Глобальный фасад не применён к ${count} фасад(ам): размер не подходит для секции с ограничением`)
-            }
-            _globalApplySkips = []
-            _globalApplyFlushTimer = null
-        }, 300)
     }
 
     return {
@@ -367,8 +351,7 @@ export const useConversationActions = () => {
         checkMillingConversations,
         onResizeMillingCheck,
         expressionsReplace,
-        checkIgnore,
-        recordGlobalApplySkip
+        checkIgnore
     }
 
 }
