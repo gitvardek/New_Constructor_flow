@@ -69,15 +69,6 @@ const getProductHTML = (id) => {
           }
         });
       });
-      try {
-        const price = await catalogStore.fetchProductPrice(formElement);
-        // Скрываем спиннер по факту завершения запроса, а не по изменению значения цены
-        catalogStore.updateProductPrice(price);
-      } catch (err) {
-        console.error('Не удалось получить цену товара:', err);
-        // Спиннер нельзя оставлять висеть и при ошибке запроса
-        catalogStore.hidePriceSpinner();
-      }
       initAddLisiner();
 
     });

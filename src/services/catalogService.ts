@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { useAuthStore } from '@/store/appStore/authStore'
 import { useConfigStore } from '@/store/appStore/useConfigStore'
+import { BASE_DOMAIN } from '@/utils/originalDomain'
 
 // Константы
 // const API_URL = 'https://vardek.ru'
-const API_URL = 'https://dev.vardek.online/'
+const API_URL = `https://${BASE_DOMAIN}/`
 // const BASE_API_URL = `${API_URL}/local/templates/constructor/API`
 const BASE_API_URL = `${API_URL}api/modeller/catalog/getlist/`
 const REQUEST_TIMEOUT = 10000
@@ -59,7 +60,7 @@ export const CatalogService = {
 
   async getProductDetails( data: ProductRequestData): Promise<ProductDetailsResponse> {
     try {
-      const url = `https://vardek.ru/local/templates/constructor/API/catalog.element.get.php`
+      const url = `https://${BASE_DOMAIN}/local/templates/constructor/API/catalog.element.get.php`
       const response = await axios.post(url, data, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -83,8 +84,9 @@ export const CatalogService = {
         : new FormData(formData as HTMLFormElement)
       data.append('userid', userId)
       data.append('cityid', cityID)
+      data.append('debug_source', '1')
 
-      const url = `https://vardek.ru/local/templates/constructor/API/catalog.element.getprice.php`
+      const url = `https://${BASE_DOMAIN}/local/templates/constructor/API/catalog.element.getprice.php`
       const response = await axios.post(url, data, {
         headers: {
           'Content-Type': 'multipart/form-data'

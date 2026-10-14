@@ -1,7 +1,8 @@
-// import { useCatalogStore } from '@/store/appStore/catalogStore';
+import { useCatalogStore } from '@/store/appStore/catalogStore';
 import { useBasketStore } from "@/store/appStore/useBasketStore";
 import { useAuthStore } from "@/store/appStore/authStore";
 import { useConfigStore } from "@/store/appStore/useConfigStore";
+import { BASE_DOMAIN } from "@/utils/originalDomain";
 
 // const catalogStore = useCatalogStore();
 
@@ -13,7 +14,7 @@ function CatalogApp() {
 	this.raspil = this.raspil || {};
 
 	// var apiPath = '/ajax';
-	var apiPath = 'https://vardek.ru/local/templates/constructor';
+	var apiPath = `https://${BASE_DOMAIN}/local/templates/constructor`;
 
 	this.minBasketTimer = 0;
 	this.UpMenuTimer = 0;
@@ -1765,6 +1766,7 @@ function CatalogApp() {
 			const cityID = useConfigStore().cityID || '17281';
 			urlEncodedData.append('userid', userId);
 			urlEncodedData.append('cityid', cityID);
+			urlEncodedData.append('debug_source', '2');
 			console.log('test')
 
 			fetch(apiPath + "/API/catalog.element.getprice.php", {
@@ -1784,6 +1786,8 @@ function CatalogApp() {
 					const addToBasketPriceEl = container.querySelector(".props .add-to-basket .price");
 					if (priceTextEl) priceTextEl.innerHTML = msg;
 					if (addToBasketPriceEl) addToBasketPriceEl.innerHTML = msg;
+
+					useCatalogStore().hidePriceSpinner();
 
 					const notDiscountInput = form.querySelector('input[name="NOT_DISCOUNT"]');
 					if (notDiscountInput) {
