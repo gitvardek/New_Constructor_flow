@@ -2,6 +2,7 @@
 import { useBasketStore } from "@/store/appStore/useBasketStore";
 import { useAuthStore } from "@/store/appStore/authStore";
 import { useConfigStore } from "@/store/appStore/useConfigStore";
+import { BASE_DOMAIN } from "@/utils/originalDomain";
 
 // const catalogStore = useCatalogStore();
 
@@ -13,7 +14,7 @@ function CatalogApp() {
 	this.raspil = this.raspil || {};
 
 	// var apiPath = '/ajax';
-	var apiPath = 'https://vardek.ru/local/templates/constructor';
+	var apiPath = `https://${BASE_DOMAIN}/local/templates/constructor`;
 
 	this.minBasketTimer = 0;
 	this.UpMenuTimer = 0;
