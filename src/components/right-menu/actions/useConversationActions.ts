@@ -312,16 +312,6 @@ export const useConversationActions = () => {
         return isObject ? JSON.parse(replaced) : replaced as T;
     }
 
-    // IGNORE_PRODUCT у секции (FASADE_SIZE_RESTRICT) отменяет продуктовый IGNORE_SIZE.
-    // Флаг берём «глобально» по всем секциям фасадов продукта.
-    const isIgnoreProduct = (product: IProductFull | null): boolean => {
-        const { _FASADE, _FASADE_SECTION, _FASADE_SIZE_RESTRICT } = modelState
-        return (product?.FACADE ?? []).some((facadeId) => {
-            const section = _FASADE_SECTION[(_FASADE as TFasadeItem[])[facadeId]?.IBLOCK_SECTION_ID]
-            return !!section && Number(_FASADE_SIZE_RESTRICT[section?.ID]?.IGNORE_PRODUCT ?? 0) !== 0
-        })
-    }
-
     const checkIgnore = (curModel: Object3D | null, currentProduct?: IProductFull | null): boolean => {
         const PROPS = curModel?.userData?.PROPS as TTotalProps
 
@@ -329,15 +319,11 @@ export const useConversationActions = () => {
             return false
         }
 
-        const product = currentProduct ?? modelState._PRODUCTS[+PROPS.PRODUCT]
-
-        // Если у продукта есть секция с IGNORE_PRODUCT — IGNORE_SIZE не действует,
-        // ограничения по размеру применяются как обычно
-        if (isIgnoreProduct(product)) {
-            return false
+        if (currentProduct) {
+            return Number(currentProduct.IGNORE_SIZE ?? 0) !== 0
         }
 
-        return Number(product?.IGNORE_SIZE ?? 0) !== 0
+        return Number(modelState._PRODUCTS[+PROPS.PRODUCT]?.IGNORE_SIZE ?? 0) !== 0
     }
 
     return {
