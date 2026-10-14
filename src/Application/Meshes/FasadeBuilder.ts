@@ -270,7 +270,7 @@ export class FasadeBuilder {
     }): THREE.Object3D {
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
-        const { deffShowcase, defPatina } = defaultConfig;
+        const { deffShowcase, defPatina, fasadsTop, fasadsBottom } = defaultConfig;
         const currentProduct = this.modelState._PRODUCTS[PRODUCT];
 
         const startPosition = this.parent.getStartPosition(SIZE);
@@ -281,6 +281,7 @@ export class FasadeBuilder {
 
         for (let key = 0; key < FASADE_PROPS.length; key++) {
             const fasadeData = FASADE_PROPS[key];
+            const prevColor = fasadeData.COLOR; // сохранённый цвет товара до возможного глобального override
             const haveShowcase = FASADE_POSITIONS[key].SHOWCASE === 1;
             const fasadePositionData = this.getFasadePosition(CONFIG, key, isUMmodule);
             const { color, pallite, milling } = this.resolveColorId(
@@ -319,31 +320,65 @@ export class FasadeBuilder {
             const check = this.conversationActions.validateAndPurgeFasadeOnBuild(fasadeData.COLOR, key, trueSize, result, currentProduct)
 
             if (!check) {
-                result.geometry = FASADE_DEFAULT[key].geometry.clone();
+                // Глобальное применение фасада (блок «параметры помещения»)
+                const isGlobalApply = ELEMENT_TYPE === 'element_up'
+                    ? !!fasadsTop?.global
+                    : ELEMENT_TYPE === 'element_down' ? !!fasadsBottom?.global : false;
 
-                fasadeData.COLOR = 7397;
-                fasadeData.PALETTE = null;
-                fasadeData.SHOW = false;
-                fasadeData.GLASS = null;
-                fasadeData.PATINA = null;
-                fasadeData.SHOWCASE = null;
-                fasadeData.ALUM = null;
-                fasadeData.HANDLES = this.handlesBuilder.restoreDefaultHandleData(fasadeData);
-                fasadeData.MILLING_TYPE = null;
-                fasadeData.TYPE = null;
-                fasadeData.MILLING = null;
+                // Вариант 2+4: при глобальном применении пробуем оставить прежний фасад товара,
+                // если он валиден для секции; иначе — обнуляем в 7397 (как раньше). В сводку
+                // попадает любой товар, где глобальный фасад не применился.
+                let keepPrev = false;
+                if (isGlobalApply) {
+                    const prevIsReal = !!prevColor
+                        && prevColor !== 7397
+                        && prevColor !== this.parent.project.default_fasade_color
+                        && prevColor !== fasadeData.COLOR;
 
-                const canKeepException = result.userData.curBodyExceptions && result instanceof THREE.Mesh;
-                if (canKeepException) {
-                    result.material = result.userData.curBodyExceptionsMaterial.clone();
-                    result.material.needsUpdate = true;
-                    result.visible = true;
-                } else {
-                    result.visible = false;
+                    if (prevIsReal) {
+                        const lim = this.conversationActions.createFasadeConversations(prevColor, result);
+                        const fits = trueSize.FASADE_HEIGHT <= lim.MAX_HEIGHT
+                            && trueSize.FASADE_HEIGHT >= lim.MIN_HEIGHT
+                            && trueSize.FASADE_WIDTH <= lim.MAX_WIDTH
+                            && trueSize.FASADE_WIDTH >= lim.MIN_WIDTH;
+                        if (fits) {
+                            fasadeData.COLOR = prevColor;
+                            keepPrev = true;
+                        }
+                    }
+
+                    this.conversationActions.recordGlobalApplySkip(currentProduct?.NAME ?? String(PRODUCT), key);
                 }
 
-                this.uniformeTextureStartData = [];
-                continue;
+                if (!keepPrev) {
+                    result.geometry = FASADE_DEFAULT[key].geometry.clone();
+
+                    fasadeData.COLOR = 7397;
+                    fasadeData.PALETTE = null;
+                    fasadeData.SHOW = false;
+                    fasadeData.GLASS = null;
+                    fasadeData.PATINA = null;
+                    fasadeData.SHOWCASE = null;
+                    fasadeData.ALUM = null;
+                    fasadeData.HANDLES = this.handlesBuilder.restoreDefaultHandleData(fasadeData);
+                    fasadeData.MILLING_TYPE = null;
+                    fasadeData.TYPE = null;
+                    fasadeData.MILLING = null;
+
+                    const canKeepException = result.userData.curBodyExceptions && result instanceof THREE.Mesh;
+                    if (canKeepException) {
+                        result.material = result.userData.curBodyExceptionsMaterial.clone();
+                        result.material.needsUpdate = true;
+                        result.visible = true;
+                    } else {
+                        result.visible = false;
+                    }
+
+                    this.uniformeTextureStartData = [];
+                    continue;
+                }
+                // keepPrev: прежний фасад валиден — продолжаем обычную сборку уже с prevColor
+                fasadeData.SHOW = true;
             }
 
             const millingList = this.parent.modelState.createCurrentMillingData({
@@ -418,6 +453,18 @@ export class FasadeBuilder {
     // обновление одного фасада по индексу (Events)
     // ---------------------------------------------------------------------------
 
+    // Влезает ли фасад данного цвета в секцию с учётом посекционного IGNORE_PRODUCT.
+    // Гейт как в validateAndPurgeFasadeOnBuild: сначала checkIgnore с currentProduct
+    // (иначе у меша фасада нет PROPS и IGNORE_SIZE не учтётся), затем сравнение с лимитами.
+    public fasadeFitsSection(colorId: number, trueSize: any, curModel: THREE.Object3D, currentProduct: any): boolean {
+        if (this.conversationActions.checkIgnore(null, currentProduct, colorId)) return true;
+        const lim = this.conversationActions.createFasadeConversations(colorId, curModel);
+        return trueSize.FASADE_HEIGHT <= lim.MAX_HEIGHT
+            && trueSize.FASADE_HEIGHT >= lim.MIN_HEIGHT
+            && trueSize.FASADE_WIDTH <= lim.MAX_WIDTH
+            && trueSize.FASADE_WIDTH >= lim.MIN_WIDTH;
+    }
+
     public updateFasade({
         props,
         fasadeNdx,
@@ -439,7 +486,7 @@ export class FasadeBuilder {
     }): void {
         const { FASADE_DEFAULT, FASADE, CONFIG, PRODUCT } = props;
         const { SIZE, FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE, ELEMENT_TYPE, SHOWCASE, OPTIONS } = CONFIG;
-        const { deffShowcase, defPatina } = defaultConfig;
+        const { deffShowcase, defPatina, fasadsTop, fasadsBottom } = defaultConfig;
         const currentProduct = this.modelState._PRODUCTS[PRODUCT];
         const startPosition = this.parent.getStartPosition(SIZE);
         const modelType = this._APP.MODELS[CONFIG.MODELID]?.type ?? "left";
@@ -458,6 +505,7 @@ export class FasadeBuilder {
         this.indexedFasadeToUtiformTexturing(props, isUMmodule);
 
         const fasadeData: THREETypes.TFasadeProp = FASADE_PROPS[fasadeNdx];
+        const prevColor = fasadeData.COLOR; // цвет до возможного глобального override
         const { color, pallite, milling } = this.resolveColorId(
             fasadeData.COLOR, fasadeData.MANUAL_NO_FASADE, ELEMENT_TYPE, defaultConfig, isLoad
         );
@@ -507,6 +555,57 @@ export class FasadeBuilder {
 
         fasadeData.COLOR = curFasadeList.includes(color) ? color : 7397;
         fasadeData.SHOW = curBodyExceptions ? true : fasadeData.COLOR !== 7397;
+
+        // Ограничение по размеру (посекционный IGNORE_PRODUCT) для применяемого цвета.
+        // Главное для глобального применения фасада ко всем товарам (A:ChangeFasade → updateFasade),
+        // где раньше проверки размера не было вовсе.
+        if (fasadeData.COLOR !== 7397 && !this.fasadeFitsSection(fasadeData.COLOR, trueSize, curFasade, currentProduct)) {
+            const isGlobalApply = ELEMENT_TYPE === 'element_up'
+                ? !!fasadsTop?.global
+                : ELEMENT_TYPE === 'element_down' ? !!fasadsBottom?.global : false;
+
+            // Вариант 2+4: при глобальном применении оставляем прежний фасад, если он валиден
+            let keepPrev = false;
+            if (isGlobalApply) {
+                const prevIsReal = !!prevColor && prevColor !== 7397
+                    && prevColor !== this.parent.project.default_fasade_color
+                    && prevColor !== fasadeData.COLOR;
+                if (prevIsReal && this.fasadeFitsSection(prevColor, trueSize, curFasade, currentProduct)) {
+                    fasadeData.COLOR = prevColor;
+                    fasadeData.SHOW = true;
+                    keepPrev = true;
+                }
+                this.conversationActions.recordGlobalApplySkip(currentProduct?.NAME ?? String(PRODUCT), fasadeNdx);
+            }
+
+            if (!keepPrev) {
+                fasadeData.COLOR = 7397;
+                fasadeData.PALETTE = null;
+                fasadeData.SHOW = false;
+                fasadeData.GLASS = null;
+                fasadeData.PATINA = null;
+                fasadeData.SHOWCASE = null;
+                fasadeData.ALUM = null;
+                fasadeData.HANDLES = this.handlesBuilder.restoreDefaultHandleData(fasadeData);
+                fasadeData.MILLING_TYPE = null;
+                fasadeData.TYPE = null;
+                fasadeData.MILLING = null;
+
+                curFasade.geometry = FASADE_DEFAULT[fasadeNdx].geometry.clone();
+                const canKeepException = curFasade.userData.curBodyExceptions && curFasade instanceof THREE.Mesh;
+                if (canKeepException) {
+                    curFasade.material = curFasade.userData.curBodyExceptionsMaterial.clone();
+                    curFasade.material.needsUpdate = true;
+                    curFasade.visible = true;
+                } else {
+                    curFasade.visible = false;
+                }
+                curFasade.userData.SHOW = false;
+                this.uniformeTextureStartData = [];
+                this.checkFasadeOptions(OPTIONS, FASADE, FASADE_DEFAULT);
+                return;
+            }
+        }
 
 
         if (fasadeData.SHOW && haveShowcase && !fasadeData.ALUM) {

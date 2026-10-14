@@ -431,8 +431,26 @@ export class MeshEvents extends BuildersHelper {
                         const prevColor = fasadeProp.COLOR;
                         const prevMilling = fasadeProp.MILLING;
 
+                        const fitsSection = this.buildProduct.fasade_builder.fasadeFitsSection(
+                            data.ID, fasade.userData?.trueSize, el, currentProduct
+                        );
+
                         if (data.ID == 7397 || !includeIncomeFasade) {
                             await this.catchDeliteFasade(fasadeNdx, el);
+                        } else if (!fitsSection) {
+                            // Вариант 2+4: глобальный фасад не влезает в секцию с IGNORE_PRODUCT.
+                            // Оставляем прежний фасад, если он валиден; иначе убираем (без фасада). Пишем в сводку.
+                            const prevIsReal = !!prevColor && prevColor !== 7397
+                                && prevColor !== this.buildProduct.project.default_fasade_color;
+                            const prevFits = prevIsReal && this.buildProduct.fasade_builder.fasadeFitsSection(
+                                prevColor, fasade.userData?.trueSize, el, currentProduct
+                            );
+                            if (!prevFits) {
+                                await this.catchDeliteFasade(fasadeNdx, el);
+                            }
+                            this.buildProduct.fasade_builder.conversationActions.recordGlobalApplySkip(
+                                currentProduct?.NAME ?? String(PRODUCT), fasadeNdx
+                            );
                         } else {
                             await this.catchFasadeChange({ data, fasadeNdx, mesh: el });
 
