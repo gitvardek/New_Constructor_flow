@@ -40,7 +40,6 @@ const props = defineProps({
   },
 });
 
-type axis = "X" | "Y";
 type workMode = "config" | "add";
 const mode = ref<workMode>("add");
 const changeConstructorMode = (_mode: workMode) => {
@@ -81,7 +80,8 @@ const reset = (grid) => {
 };
 
 
-// Номер ящика для заголовка — тот же, которым он подписан на схеме
+// Номер ящика для заголовка — тот же, которым он подписан на схеме: по нему
+// выбранный на схеме элемент находится в списке
 const getFillingLabel = (filling: FillingObject) =>
   getSegmentLabel({
     sectionIndex: filling.sec,
@@ -213,7 +213,8 @@ const selectHandle = (data: any, type: string) => {
 };
 
 const selectOption = (value: Object, type: string, palette: Object = false) => {
-
+  // prepareData шлёт сырые ID (числа), onSelectMaterial — объекты справочника.
+  // Без фолбэка на само значение число превращалось бы в undefined и затирало MILLING/PATINA/GLASS
   currentFasadeMaterial.value.data[type] = value ? value.ID ?? value : null;
   if (palette) currentFasadeMaterial.value.data["PALETTE"] = palette;
 
@@ -299,56 +300,96 @@ const handleCellSelect = () => {
   );
 };
 
-const getAbsolutePosition = (
-  axis: axis,
-  filling: FillingObject,
-  cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
+type segment = GridSection | GridCell | GridCellsRow | GridRowExtra;
+
+// Поле "Позиция" работает в той же системе, что 2D-слой и сборка 3D: distances от дна
+// и левого края сегмента, в котором лежит наполнение. Поэтому введённое значение уходит
+// в менеджер как есть, без пересчёта координат
+const getPositionY = (filling: FillingObject, cell: segment) =>
+  UMconstructor?.value?.FILLINGS.getAbsolutePositionY(
+    filling,
+    cell,
+    module.value,
+  );
+
+const getPositionLimitsY = (filling: FillingObject, cell: segment) => ({
+  min: UMconstructor?.value?.FILLINGS.calcMinMaxPositionY(
+    "min",
+    filling,
+    cell,
+    module.value,
+  ),
+  max: UMconstructor?.value?.FILLINGS.calcMinMaxPositionY(
+    "max",
+    filling,
+    cell,
+    module.value,
+  ),
+});
+
+const applyPositionY = (
+  event: Event,
+  fillingIndex: number,
+  secIndex: number,
+  cellIndex: number | null = null,
+  rowIndex: number | null = null,
+  extraIndex: number | null = null,
 ) => {
-  let resultPos = 0;
+  const value = (event.target as HTMLInputElement).value;
 
-  switch (axis) {
-    case "X":
-      break;
-    case "Y":
-      resultPos = UMconstructor?.value?.FILLINGS.getAbsolutePositionY(
-        filling,
-        cell,
+  UMconstructor?.value?.debounce(
+    "applyFillingPosition",
+    () => {
+      // Пределы менеджер пересчитает сам на момент применения — за время debounce
+      // сетка могла пересобраться, и значения из полей min/max успели бы устареть
+      UMconstructor?.value?.FILLINGS.changeFillingPositionY(
+        null,
+        value,
+        fillingIndex,
+        secIndex,
+        cellIndex,
+        rowIndex,
+        extraIndex,
+        module.value,
+        0,
       );
-      break;
-  }
-
-  return resultPos;
+    },
+    1000,
+  );
 };
 
-const getLocalPosition = (
-  axis: axis,
-  value: number,
-  filling: FillingObject,
-  cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
-  isMinMax: boolean = false,
+const applyPositionX = (
+  event: Event,
+  fillingIndex: number,
+  secIndex: number,
+  cellIndex: number | null = null,
+  rowIndex: number | null = null,
+  extraIndex: number | null = null,
 ) => {
-  let resultPos = 0;
+  const value = (event.target as HTMLInputElement).value;
 
-  switch (axis) {
-    case "X":
-      break;
-    case "Y":
-      resultPos = UMconstructor?.value?.FILLINGS.getLocalPositionY(
+  UMconstructor?.value?.debounce(
+    "applyFillingPosition",
+    () => {
+      UMconstructor?.value?.FILLINGS.changeFillingPositionX(
+        null,
         value,
-        filling,
-        cell,
-        isMinMax,
+        fillingIndex,
+        secIndex,
+        cellIndex,
+        rowIndex,
+        extraIndex,
+        module.value,
       );
-      break;
-  }
-
-  return resultPos;
+    },
+    1000,
+  );
 };
 
 const getUniversalDepthOptions = (filling: FillingObject): number[] => {
   const product = UMconstructor.value?.APP?.CATALOG?.PRODUCTS?.[filling.product];
   if (!product?.SIZE_EDIT_DEPTH?.length) return [];
-  const maxAllowed = (module.value?.depth ?? 0) - 50;
+  const maxAllowed = (module.value?.depth ?? 0) - 70;
   return product.SIZE_EDIT_DEPTH.filter((d: number) => d <= maxAllowed);
 };
 
@@ -524,75 +565,13 @@ watch(
                         <div :class="['actions-input--container']">
                           <input v-if="filling.isVerticalItem" type="number" :step="1"
                             :max="section.width - filling.width" min="0" class="actions-input"
-                            :value="filling.distances?.left" @input="
-                              UMconstructor.FILLINGS.changeFillingPositionX(
-                                $event,
-                                $event.target.value,
-                                fillingIndex,
-                                secIndex,
-                              )
-                              " />
-                          <input v-else type="number" :step="1" :max="UMconstructor.FILLINGS.calcMinMaxPositionY(
-                            'max',
-                            filling,
-                            section,
-                            module,
-                          )
-                            " :min="UMconstructor.FILLINGS.calcMinMaxPositionY(
-                              'min',
-                              filling,
-                              section,
-                              module,
-                            )
-                              " class="actions-input" :value="filling.distances?.bottom" @input="
-                                (event) => {
-                                  UMconstructor?.debounce(
-                                    'getLocalPosition',
-                                    () => {
-                                      let convertValue = getLocalPosition(
-                                        'Y',
-                                        parseInt(event.target.value),
-                                        filling,
-                                        section,
-                                      );
-                                      if (convertValue >= 0) {
-                                        UMconstructor.FILLINGS.changeFillingPositionY(
-                                          {
-                                            min: getLocalPosition(
-                                              'Y',
-                                              event.target.min,
-                                              filling,
-                                              section,
-                                              true,
-                                            ),
-                                            max: getLocalPosition(
-                                              'Y',
-                                              event.target.max,
-                                              filling,
-                                              section,
-                                              true,
-                                            ),
-                                          },
-                                          convertValue,
-                                          fillingIndex,
-                                          secIndex,
-                                          false,
-                                          false,
-                                          false,
-                                          module,
-                                          0,
-                                        );
-                                      } else {
-                                        UMconstructor.callAlert(
-                                          'error',
-                                          'Нельзя переместить сюда, т.к. позиция выходит за пределы ячейки',
-                                        );
-                                      }
-                                    },
-                                    1000,
-                                  );
-                                }
-                              " />
+                            :value="filling.distances?.left"
+                            @input="applyPositionX($event, fillingIndex, secIndex)" />
+                          <input v-else type="number" :step="1"
+                            :min="getPositionLimitsY(filling, section).min"
+                            :max="getPositionLimitsY(filling, section).max" class="actions-input"
+                            :value="getPositionY(filling, section)"
+                            @input="applyPositionY($event, fillingIndex, secIndex)" />
                         </div>
                       </div>
                     </div>
@@ -661,27 +640,27 @@ watch(
                           currentFasadeMaterial.item === filling.id,
                       },
                     ]" :type="filling.fasade.material.PALETTE ? 'palette' : 'surface'
-                      " :data="filling.fasade.material.PALETTE
-                        ? {
-                          ...UMconstructor.APP.PALETTE[
-                          filling.fasade.material.PALETTE
-                          ],
-                          hex: UMconstructor.APP.PALETTE[
+                        " :data="filling.fasade.material.PALETTE
+                          ? {
+                            ...UMconstructor.APP.PALETTE[
                             filling.fasade.material.PALETTE
-                          ].HTML,
-                        }
-                        : UMconstructor.APP.FASADE[
-                        filling.fasade.material.COLOR
-                        ]
+                            ],
+                            hex: UMconstructor.APP.PALETTE[
+                              filling.fasade.material.PALETTE
+                            ].HTML,
+                          }
+                          : UMconstructor.APP.FASADE[
+                          filling.fasade.material.COLOR
+                          ]
                         " @click.stop="
-                          openFasadeSelector(
-                            secIndex,
-                            null,
-                            null,
-                            null,
-                            fillingIndex,
-                          )
-                          " />
+                        openFasadeSelector(
+                          secIndex,
+                          null,
+                          null,
+                          null,
+                          fillingIndex,
+                        )
+                        " />
 
                     <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                       {
@@ -692,13 +671,13 @@ watch(
                           currentHandle.item === filling.id,
                       },
                     ]" :type="'Handles'" :data="filling.fasade.material.HANDLES
-                      ? {
-                        ...UMconstructor.APP.CATALOG.PRODUCTS[
-                        filling.fasade.material.HANDLES.id
-                        ],
-                      }
-                      : false
-                      " @click.stop="
+                          ? {
+                            ...UMconstructor.APP.CATALOG.PRODUCTS[
+                            filling.fasade.material.HANDLES.id
+                            ],
+                          }
+                          : false
+                        " @click.stop="
                         openHandleSelector(
                           secIndex,
                           null,
@@ -713,7 +692,6 @@ watch(
             </div>
 
             <div class="accordion" v-if="section.cells.length">
-
               <div v-for="(cell, cellIndex) in section.cells" :key="cellIndex">
                 <Accordion v-if="cell.fillings?.length" :open="false" class="item-group">
                   <template #title>
@@ -766,76 +744,13 @@ watch(
                             <div :class="['actions-input--container']">
                               <input v-if="filling.isVerticalItem" type="number" :step="1"
                                 :max="cell.width - filling.width" min="0" class="actions-input"
-                                :value="filling.distances?.left" @input="
-                                  UMconstructor.FILLINGS.changeFillingPositionX(
-                                    $event,
-                                    $event.target.value,
-                                    fillingIndex,
-                                    secIndex,
-                                    cellIndex,
-                                  )
-                                  " />
-                              <input v-else type="number" :step="1" :max="UMconstructor.FILLINGS.calcMinMaxPositionY(
-                                'max',
-                                filling,
-                                cell,
-                                module,
-                              )
-                                " :min="UMconstructor.FILLINGS.calcMinMaxPositionY(
-                                  'min',
-                                  filling,
-                                  cell,
-                                  module,
-                                )
-                                  " class="actions-input" :value="getAbsolutePosition('Y', filling, cell)" @input="
-                                    (event) => {
-                                      UMconstructor?.debounce(
-                                        'getLocalPosition',
-                                        () => {
-                                          let convertValue = getLocalPosition(
-                                            'Y',
-                                            parseInt(event.target.value),
-                                            filling,
-                                            cell,
-                                          );
-                                          if (convertValue >= 0) {
-                                            UMconstructor.FILLINGS.changeFillingPositionY(
-                                              {
-                                                min: getLocalPosition(
-                                                  'Y',
-                                                  event.target.min,
-                                                  filling,
-                                                  cell,
-                                                  true,
-                                                ),
-                                                max: getLocalPosition(
-                                                  'Y',
-                                                  event.target.max,
-                                                  filling,
-                                                  cell,
-                                                  true,
-                                                ),
-                                              },
-                                              convertValue,
-                                              fillingIndex,
-                                              secIndex,
-                                              cellIndex,
-                                              false,
-                                              false,
-                                              module,
-                                              0,
-                                            );
-                                          } else {
-                                            UMconstructor.callAlert(
-                                              'error',
-                                              'Нельзя переместить сюда, т.к. позиция выходит за пределы ячейки',
-                                            );
-                                          }
-                                        },
-                                        1000,
-                                      );
-                                    }
-                                  " />
+                                :value="filling.distances?.left"
+                                @input="applyPositionX($event, fillingIndex, secIndex, cellIndex)" />
+                              <input v-else type="number" :step="1"
+                                :min="getPositionLimitsY(filling, cell).min"
+                                :max="getPositionLimitsY(filling, cell).max" class="actions-input"
+                                :value="getPositionY(filling, cell)"
+                                @input="applyPositionY($event, fillingIndex, secIndex, cellIndex)" />
                             </div>
                           </div>
                         </div>
@@ -902,29 +817,29 @@ watch(
                               currentFasadeMaterial.item === filling.id,
                           },
                         ]" :type="filling.fasade.material.PALETTE
-                          ? 'palette'
-                          : 'surface'
-                          " :data="filling.fasade.material.PALETTE
-                            ? {
-                              ...UMconstructor.APP.PALETTE[
-                              filling.fasade.material.PALETTE
-                              ],
-                              hex: UMconstructor.APP.PALETTE[
+                              ? 'palette'
+                              : 'surface'
+                            " :data="filling.fasade.material.PALETTE
+                              ? {
+                                ...UMconstructor.APP.PALETTE[
                                 filling.fasade.material.PALETTE
-                              ].HTML,
-                            }
-                            : UMconstructor.APP.FASADE[
-                            filling.fasade.material.COLOR
-                            ]
+                                ],
+                                hex: UMconstructor.APP.PALETTE[
+                                  filling.fasade.material.PALETTE
+                                ].HTML,
+                              }
+                              : UMconstructor.APP.FASADE[
+                              filling.fasade.material.COLOR
+                              ]
                             " @click.stop="
-                              openFasadeSelector(
-                                secIndex,
-                                cellIndex,
-                                null,
-                                null,
-                                fillingIndex,
-                              )
-                              " />
+                            openFasadeSelector(
+                              secIndex,
+                              cellIndex,
+                              null,
+                              null,
+                              fillingIndex,
+                            )
+                            " />
 
                         <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                           {
@@ -935,13 +850,13 @@ watch(
                               currentHandle.item === filling.id,
                           },
                         ]" :type="'Handles'" :data="filling.fasade.material.HANDLES
-                          ? {
-                            ...UMconstructor.APP.CATALOG.PRODUCTS[
-                            filling.fasade.material.HANDLES.id
-                            ],
-                          }
-                          : false
-                          " @click.stop="
+                              ? {
+                                ...UMconstructor.APP.CATALOG.PRODUCTS[
+                                filling.fasade.material.HANDLES.id
+                                ],
+                              }
+                              : false
+                            " @click.stop="
                             openHandleSelector(
                               secIndex,
                               cellIndex,
@@ -1012,78 +927,13 @@ watch(
                                 <div :class="['actions-input--container']">
                                   <input v-if="filling.isVerticalItem" type="number" :step="1"
                                     :max="row.width - filling.width" min="0" class="actions-input"
-                                    :value="filling.distances?.left" @input="
-                                      UMconstructor.FILLINGS.changeFillingPositionX(
-                                        $event,
-                                        $event.target.value,
-                                        fillingIndex,
-                                        secIndex,
-                                        cellIndex,
-                                        rowIndex,
-                                      )
-                                      " />
-                                  <input v-else type="number" :step="1" :max="UMconstructor.FILLINGS.calcMinMaxPositionY(
-                                    'max',
-                                    filling,
-                                    row,
-                                    module,
-                                  )
-                                    " :min="UMconstructor.FILLINGS.calcMinMaxPositionY(
-                                      'min',
-                                      filling,
-                                      row,
-                                      module,
-                                    )
-                                      " class="actions-input" :value="getAbsolutePosition('Y', filling, row)
-                                        " @input="
-                                          (event) => {
-                                            UMconstructor?.debounce(
-                                              'getLocalPosition',
-                                              () => {
-                                                let convertValue = getLocalPosition(
-                                                  'Y',
-                                                  parseInt(event.target.value),
-                                                  filling,
-                                                  row,
-                                                );
-                                                if (convertValue >= 0) {
-                                                  UMconstructor.FILLINGS.changeFillingPositionY(
-                                                    {
-                                                      min: getLocalPosition(
-                                                        'Y',
-                                                        event.target.min,
-                                                        filling,
-                                                        row,
-                                                        true,
-                                                      ),
-                                                      max: getLocalPosition(
-                                                        'Y',
-                                                        event.target.max,
-                                                        filling,
-                                                        row,
-                                                        true,
-                                                      ),
-                                                    },
-                                                    convertValue,
-                                                    fillingIndex,
-                                                    secIndex,
-                                                    cellIndex,
-                                                    rowIndex,
-                                                    false,
-                                                    module,
-                                                    0,
-                                                  );
-                                                } else {
-                                                  UMconstructor.callAlert(
-                                                    'error',
-                                                    'Нельзя переместить сюда, т.к. позиция выходит за пределы ячейки',
-                                                  );
-                                                }
-                                              },
-                                              1000,
-                                            );
-                                          }
-                                        " />
+                                    :value="filling.distances?.left"
+                                    @input="applyPositionX($event, fillingIndex, secIndex, cellIndex, rowIndex)" />
+                                  <input v-else type="number" :step="1"
+                                    :min="getPositionLimitsY(filling, row).min"
+                                    :max="getPositionLimitsY(filling, row).max" class="actions-input"
+                                    :value="getPositionY(filling, row)"
+                                    @input="applyPositionY($event, fillingIndex, secIndex, cellIndex, rowIndex)" />
                                 </div>
                               </div>
                             </div>
@@ -1153,29 +1003,29 @@ watch(
                                   currentFasadeMaterial.item === filling.id,
                               },
                             ]" :type="filling.fasade.material.PALETTE
-                              ? 'palette'
-                              : 'surface'
-                              " :data="filling.fasade.material.PALETTE
-                                ? {
-                                  ...UMconstructor.APP.PALETTE[
-                                  filling.fasade.material.PALETTE
-                                  ],
-                                  hex: UMconstructor.APP.PALETTE[
+                                  ? 'palette'
+                                  : 'surface'
+                                " :data="filling.fasade.material.PALETTE
+                                  ? {
+                                    ...UMconstructor.APP.PALETTE[
                                     filling.fasade.material.PALETTE
-                                  ].HTML,
-                                }
-                                : UMconstructor.APP.FASADE[
-                                filling.fasade.material.COLOR
-                                ]
+                                    ],
+                                    hex: UMconstructor.APP.PALETTE[
+                                      filling.fasade.material.PALETTE
+                                    ].HTML,
+                                  }
+                                  : UMconstructor.APP.FASADE[
+                                  filling.fasade.material.COLOR
+                                  ]
                                 " @click.stop="
-                                  openFasadeSelector(
-                                    secIndex,
-                                    cellIndex,
-                                    rowIndex,
-                                    null,
-                                    fillingIndex,
-                                  )
-                                  " />
+                                openFasadeSelector(
+                                  secIndex,
+                                  cellIndex,
+                                  rowIndex,
+                                  null,
+                                  fillingIndex,
+                                )
+                                " />
 
                             <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                               {
@@ -1186,13 +1036,13 @@ watch(
                                   currentHandle.item === filling.id,
                               },
                             ]" :type="'Handles'" :data="filling.fasade.material.HANDLES
-                              ? {
-                                ...UMconstructor.APP.CATALOG.PRODUCTS[
-                                filling.fasade.material.HANDLES.id
-                                ],
-                              }
-                              : false
-                              " @click.stop="
+                                  ? {
+                                    ...UMconstructor.APP.CATALOG.PRODUCTS[
+                                    filling.fasade.material.HANDLES.id
+                                    ],
+                                  }
+                                  : false
+                                " @click.stop="
                                 openHandleSelector(
                                   secIndex,
                                   cellIndex,
@@ -1265,86 +1115,13 @@ watch(
                                     <div :class="['actions-input--container']">
                                       <input v-if="filling.isVerticalItem" type="number" :step="1"
                                         :max="extra.width - filling.width" min="0" class="actions-input"
-                                        :value="filling.distances?.left" @input="
-                                          UMconstructor.FILLINGS.changeFillingPositionX(
-                                            $event,
-                                            $event.target.value,
-                                            fillingIndex,
-                                            secIndex,
-                                            cellIndex,
-                                            rowIndex,
-                                            extraIndex,
-                                          )
-                                          " />
-                                      <input v-else type="number" :step="1" :max="UMconstructor.FILLINGS.calcMinMaxPositionY(
-                                        'max',
-                                        filling,
-                                        extra,
-                                        module,
-                                      )
-                                        " :min="UMconstructor.FILLINGS.calcMinMaxPositionY(
-                                          'min',
-                                          filling,
-                                          extra,
-                                          module,
-                                        )
-                                          " class="actions-input" :value="getAbsolutePosition(
-                                            'Y',
-                                            filling,
-                                            extra,
-                                          )
-                                            " @input="
-                                              (event) => {
-                                                UMconstructor?.debounce(
-                                                  'getLocalPosition',
-                                                  () => {
-                                                    let convertValue =
-                                                      getLocalPosition(
-                                                        'Y',
-                                                        parseInt(
-                                                          event.target.value,
-                                                        ),
-                                                        filling,
-                                                        extra,
-                                                      );
-                                                    if (convertValue >= 0) {
-                                                      UMconstructor.FILLINGS.changeFillingPositionY(
-                                                        {
-                                                          min: getLocalPosition(
-                                                            'Y',
-                                                            event.target.min,
-                                                            filling,
-                                                            extra,
-                                                            true,
-                                                          ),
-                                                          max: getLocalPosition(
-                                                            'Y',
-                                                            event.target.max,
-                                                            filling,
-                                                            extra,
-                                                            true,
-                                                          ),
-                                                        },
-                                                        convertValue,
-                                                        fillingIndex,
-                                                        secIndex,
-                                                        cellIndex,
-                                                        rowIndex,
-                                                        extraIndex,
-                                                        module,
-                                                        0,
-                                                      );
-                                                    } else {
-                                                      UMconstructor.callAlert(
-                                                        'error',
-                                                        'Нельзя переместить сюда, т.к. позиция выходит за пределы ячейки',
-                                                      );
-                                                    }
-                                                  },
-                                                  1000,
-                                                );
-                                              }
-                                            " />
+                                        :value="filling.distances?.left"
+                                        @input="applyPositionX($event, fillingIndex, secIndex, cellIndex, rowIndex, extraIndex)" />
+                                      <input v-else type="number" :step="1"
+                                        :min="getPositionLimitsY(filling, extra).min"
+                                        :max="getPositionLimitsY(filling, extra).max" class="actions-input"
+                                        :value="getPositionY(filling, extra)"
+                                        @input="applyPositionY($event, fillingIndex, secIndex, cellIndex, rowIndex, extraIndex)" />
                                     </div>
                                   </div>
                                 </div>
@@ -1461,6 +1238,8 @@ watch(
   }
 }
 
+
+// Номер ящика стоит заголовком над его названием — так же, как «Позиция» над полем ввода
 .filling-heading {
   display: flex;
   flex-direction: column;
@@ -1476,7 +1255,6 @@ watch(
 .actions-title--number {
   font-weight: 600;
 }
-
 
 .actions-title--inner-drawer {
   color: #888;
