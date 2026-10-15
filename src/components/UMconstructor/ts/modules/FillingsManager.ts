@@ -10,7 +10,7 @@ import {
     MANUFACTURER, GridSection, GridCell, GridCellsRow, GridRowExtra, FasadeObject, LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import { TFasadeProp } from "@/types/types.ts";
-import { FILLINGS_RESTRICTION_EXCEPTIONS, UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
+import { FILLINGS_RESTRICTION_EXCEPTIONS, FILLINGS_WIDTH_UNRESTRICTED_GROUPS, UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
 
 type TCollisionExclusionRule = {
     prop: string
@@ -32,12 +32,16 @@ export default class FillingsManager {
             collisionWith: 'loop'
         },
         {
-            // 2166308 исключается из коллизий петель только для НЕ-распашного шкафа.
-            // Для распашного (RASPASHNOY_ID) — участвует в коллизии.
+            // 2166308 исключается из коллизий петель везде, кроме распашного шкафа
+            // (RASPASHNOY_ID) и стандартного УМ (DEFAULT_UM_ID): там пересечение ящика
+            // с петлёй — ошибка ErrorsType.loops. Правила проверяются через some(),
+            // поэтому условие должно быть одним: два отдельных правила дали бы "или"
+            // и исключали ящик в обоих модулях сразу
             prop: 'productGroupID',
             values: [2166308],
             collisionWith: 'loop',
-            condition: (grid) => grid.productID !== UM_PARAMS.RASPASHNOY_ID && grid.productID !== UM_PARAMS.DEFAULT_UM_ID
+            condition: (grid) => grid.productID !== UM_PARAMS.RASPASHNOY_ID
+                && grid.productID !== UM_PARAMS.DEFAULT_UM_ID
         }
     ]
     private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
@@ -542,9 +546,15 @@ export default class FillingsManager {
         const currentExtra = currentRow?.extras?.[extra];
 
         let currentModuleSegment = currentExtra || currentRow || currentCell || currentSection
+
+        // Наполнение из списка исключений ставится без ограничений по размерам области
         const isRestrictionException = FILLINGS_RESTRICTION_EXCEPTIONS.includes(+product.ID)
 
-        if (!isRestrictionException && currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
+        // Группы из списка не упираются в предел ширины: их можно ставить в область
+        // любого уровня (секция, ячейка, ряд, extra) шире FILLINGS_MAX_WIDTH
+        const isWidthUnrestrictedGroup = FILLINGS_WIDTH_UNRESTRICTED_GROUPS.includes(+productGroupID)
+
+        if (!isRestrictionException && !isWidthUnrestrictedGroup && currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
             this.scope.callAlert("error", `Нельзя добавить наполнение: ширина области (${currentModuleSegment.width} мм) превышает ${UM_PARAMS.FILLINGS_MAX_WIDTH} мм`)
             return;
         }
@@ -1185,22 +1195,6 @@ export default class FillingsManager {
         filling.distances.top = cell.height - filling.height - bottom
     }
 
-    getLocalPositionY(
-        value: number,
-        filling: FillingObject,
-        cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
-        isMinMax: boolean = false,
-    ) {
-        const grid = this.scope.UM_STORE.getUMGrid()
-        let result = value - cell.position.y
-
-        if (!isMinMax) {
-            result += (grid.horizont + (grid.noBottom ? 0 : grid.moduleThickness))
-        }
-
-        return result >= 0 ? result : 0;
-    }
-
     changeFillingPositionY(
         conversation: {
             min: number,
@@ -1709,7 +1703,13 @@ export default class FillingsManager {
             if (!segment?.fillings?.length || segment.width <= maxWidth) return;
             // Удаляем в обратном порядке чтобы не сбивать индексы
             for (let i = segment.fillings.length - 1; i >= 0; i--) {
-                if (segment.fillings[i]?.type !== 'tsarga') {
+                const filling = segment.fillings[i];
+                // Группы из FILLINGS_WIDTH_UNRESTRICTED_GROUPS разрешены в широких областях,
+                // поэтому расширение секции их не снимает
+                if (FILLINGS_WIDTH_UNRESTRICTED_GROUPS.includes(+filling?.productGroupID)) {
+                    continue;
+                }
+                if (filling?.type !== 'tsarga') {
                     this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false);
                 }
             }

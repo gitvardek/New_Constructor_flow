@@ -43,6 +43,7 @@ export const UM_DRAWERS_IDS = {
 
 // Наполнение, которое можно добавлять без ограничений по ширине и высоте области
 export const FILLINGS_RESTRICTION_EXCEPTIONS = [6513263];
+export const FILLINGS_WIDTH_UNRESTRICTED_GROUPS = [6174300];
 
 export const WITH_TSARGA = [3954672];
 export const MODULE_TSARGA_OPTIONS = [7250589, 7250452];

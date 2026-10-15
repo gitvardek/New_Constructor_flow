@@ -4,7 +4,12 @@ import "@/components/UMconstructor/styles/UM.scss";
 
 import { computed, ref } from "vue";
 import { _URL } from "@/types/constants.ts";
-import {FILLINGS_RESTRICTION_EXCEPTIONS, UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
+import {
+  FILLINGS_RESTRICTION_EXCEPTIONS,
+  FILLINGS_WIDTH_UNRESTRICTED_GROUPS,
+  UM_DRAWERS_IDS,
+  UM_PARAMS,
+} from "../../utils/Const";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
@@ -46,10 +51,8 @@ const isFillingHeightRestricted = computed(() => {
   return (segment?.height ?? 0) <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT;
 });
 
-const isFillingsRestricted = computed(() => {
-  const segment = getSelectSegment();
-  return (segment?.width ?? 0) > UM_PARAMS.FILLINGS_MAX_WIDTH || (segment?.height ?? 0) <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT;
-})
+const isWidthUnrestrictedGroup = (groupID: string | number) =>
+  FILLINGS_WIDTH_UNRESTRICTED_GROUPS.includes(+groupID);
 
 // Универсальный ящик, стенки не менее 18 мм
 const isUniversalDrawerBlocked = computed(
@@ -60,7 +63,8 @@ const isFillingBlocked = (groupID: string | number, filling?: any) => {
   if (FILLINGS_RESTRICTION_EXCEPTIONS.includes(+filling?.ID)) {
     return false;
   }
-  return isFillingsRestricted.value ||
+  return (isFillingWidthRestricted.value && !isWidthUnrestrictedGroup(groupID)) ||
+    isFillingHeightRestricted.value ||
     (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
 };
 
@@ -85,7 +89,7 @@ const onSearchChange = (e: Event, totalMaterialList: Array<any>) => {
 <template>
   <div class="UM splitter-container--product-data">
     <div v-if="isFillingWidthRestricted" class="UM filling-width-warning">
-      Добавление недоступно: ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм
+      Ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм: доступны только аксессуары
     </div>
 
     <div v-if="isFillingHeightRestricted" class="UM filling-width-warning">
