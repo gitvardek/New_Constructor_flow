@@ -18,6 +18,8 @@ import { cloneUMData } from "@/components/UMconstructor/editor-v2/session/cloneU
 import { getCabinetWidth, getCabinetHeight, getCabinetThickness, removeExcludedCabinetOptions } from "../CabinetSystem.ts";
 import { getCabinetProduct } from "../cabinetProduct.ts";
 
+const BUILDER_FILLED_CONFIG_KEYS = ['SECTIONS', 'TOPFASADECOLOR'] as const
+
 export class CabinetMeshBuilder {
     private builder: any
 
@@ -71,15 +73,17 @@ export class CabinetMeshBuilder {
         // Стрелки размеров — у объекта сцены, не у тумбочки внутри гардеробной.
         cabinetProps.ARROWS?.removeFromParent()
 
-        // ЕДИНСТВЕННОЕ, что пишется обратно в конфиг: SECTIONS с наполнением.
-        // Его заполняют ModulegridParser (из сетки) и AdjacencyCalculator
-        // (ADDITIVES) в сборке выше — но на КОПИИ конфига, поэтому в сохранённом
-        // конфиге наполнения не было и оно не доходило до корзины: basketMapper
-        // (convertModuleToLegacyFormat) читает SECTIONSFILLING{n} именно из
-        // CONFIG.SECTIONS[n].fillings, как у УМ на сцене.
-        // Копия — чтобы данные тумбочки не делили объекты с props этой сборки.
+        // Поля, которые ЗАПОЛНЯЕТ сама сборка, пишутся обратно в конфиг
+        // тумбочки: она идёт на КОПИИ конфига, поэтому у товара на сцене эти
+        // данные оказываются в живом CONFIG сами собой, а у тумбочки — только
+        // отсюда. Без них корзина получает неполный модуль (см.
+        // BUILDER_FILLED_CONFIG_KEYS). Копией — чтобы данные тумбочки не делили
+        // объекты с props этой сборки.
         if (item.cabinet?.config) {
-            item.cabinet.config.SECTIONS = cloneUMData(cabinetProps.CONFIG.SECTIONS)
+            BUILDER_FILLED_CONFIG_KEYS.forEach((key) => {
+                if (cabinetProps.CONFIG[key] === undefined) return
+                item.cabinet.config[key] = cloneUMData(cabinetProps.CONFIG[key])
+            })
         }
 
         // Положение по измеренному габариту КОРПУСА (PROPS.BODY — его пишет
