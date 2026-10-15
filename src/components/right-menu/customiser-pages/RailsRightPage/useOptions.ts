@@ -30,20 +30,13 @@ export const useOptions = ({ withMechanism = true } = {}) => {
     // MECHANISM_TEMP. Движку, который только синхронизирует опции, он не нужен
     const mechanismList = withMechanism ? createMeckhanizmList() : [];
 
-    // Цоколь убирают две независимые опции — «Навесной» и «Без дна». Флаг общий,
-    // поэтому присваивать его из ветки одной опции нельзя: снятие одной возвращало
-    // цоколь, пока вторая ещё активна. Считаем от текущего состояния обеих
-    const NO_HORIZONT_OPTIONS = [4722965, 5738924]
-    const syncHorizont = (options: any[]) => {
-        UM_STORE.onHorizont = !options.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id) && opt.active)
-    }
-
-    // Модуль ниже 250 мм: цоколь и опоры в него не помещаются. «Навесной» включается
-    // принудительно, «Без дна» и группа опор скрываются и блокируются — управлять ими
-    // вручную уже нельзя
+    // Модуль ниже 250 мм: цоколь и опоры в него не помещаются. Цоколь выключен всегда,
+    // «Без дна» и группы опор скрываются, «Без присадки под петли» включается
+    // принудительно — управлять ими вручную нельзя. «Навесной» остаётся обычной
+    // опцией: её можно и добавить, и снять
     const LOW_MODULE_MIN_HEIGHT = 150
     const LOW_MODULE_MAX_HEIGHT = 249
-    const LOW_MODULE_FORCED_OPTION = [4722965, 3955910]
+    const LOW_MODULE_FORCED_OPTION = [3955910]
     const LOW_MODULE_HIDDEN_OPTIONS = [5738924]
     const LOW_MODULE_HIDDEN_GROUPS = [548, 549]
 
@@ -70,10 +63,28 @@ export const useOptions = ({ withMechanism = true } = {}) => {
     const isLowModuleLocked = (option: any) => LOW_MODULE_FORCED_OPTION.includes(+(option?.id ?? option?.ID))
         || isLowModuleRestricted(option)
 
+    // Цоколь убирают две независимые опции — «Навесной» и «Без дна». Флаг общий,
+    // поэтому присваивать его из ветки одной опции нельзя: снятие одной возвращало
+    // цоколь, пока вторая ещё активна. Считаем от текущего состояния обеих
+    const NO_HORIZONT_OPTIONS = [4722965, 5738924]
+    const syncHorizont = (options: any[], props: TTotalProps = modelState.getCurrentModel?.userData?.PROPS) => {
+        // Низкий модуль: цоколь в него не помещается при любом наборе опций
+        if (isLowModule(props)) {
+            UM_STORE.onHorizont = false
+            return
+        }
+
+        UM_STORE.onHorizont = !options.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id) && opt.active)
+    }
+
     // Скрытые опции снимет filterGroups — она сама гасит active у невидимых.
-    // Здесь остаётся только принудительное включение
+    // Здесь остаются выключенный цоколь и принудительное включение
     const applyLowModuleRules = (options: TOption[], props: TTotalProps) => {
         if (!isLowModule(props)) return
+
+        // Цоколь гасим до проверки принудительных опций: он не зависит ни от них, ни от
+        // «Навесного», который теперь переключают вручную
+        syncHorizont(options, props)
 
         // Включаем все принудительные опции, а не первую подходящую: одна из них может
         // быть уже активна, и на ней поиск останавливался, не дойдя до остальных
@@ -84,7 +95,6 @@ export const useOptions = ({ withMechanism = true } = {}) => {
 
         forced.forEach(option => { option.active = true })
 
-        syncHorizont(options)
         eventBus.emit("A:SelectModelOption")
     }
 
@@ -152,7 +162,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
 
         // Низкий модуль: принудительно включённую опцию выключить нельзя. Возвращаем
         // текущее состояние — вызывающий по нему вернёт чекбокс обратно, как и для
-        // обязательных групп
+        // обязательных групп. «Навесной» в этот список не входит: его снимают вручную
         if (!values && isLowModule(PROPS) && LOW_MODULE_FORCED_OPTION.includes(+curOpt.id))
             return curOpt.active;
 
@@ -296,7 +306,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
             disabledOptions.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id))
 
         if (horizontAffected)
-            syncHorizont(OPTIONS)
+            syncHorizont(OPTIONS, PROPS)
 
         // setEccentricOption зовёт checkActive с урезанной опцией ({ ID: 8390271 }),
         // у которой нет NAME. Подписчики (MeshEvents.processOptions) читают NAME,
