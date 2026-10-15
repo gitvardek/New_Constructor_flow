@@ -28,14 +28,20 @@ export const useOptions = ({ withMechanism = true } = {}) => {
     const cutOptionsTempSize = 20;
     const LOW_MODULE_MIN_HEIGHT = 150
     const LOW_MODULE_MAX_HEIGHT = 249
-    const LOW_MODULE_FORCED_OPTION = [4722965, 3955910]
+    const LOW_MODULE_FORCED_OPTION = [3955910]
     const LOW_MODULE_HIDDEN_OPTIONS = [5738924]
     const LOW_MODULE_HIDDEN_GROUPS = [548, 549]
     const NO_LOOPS_OPTION = 1795067
 
     const mechanismList = withMechanism ? createMeckhanizmList() : [];
 
-    const syncHorizont = (options: any[]) => {
+    const syncHorizont = (options: any[], props: TTotalProps = modelState.getCurrentModel?.userData?.PROPS) => {
+        // Низкий модуль: цоколь в него не помещается при любом наборе опций
+        if (isLowModule(props)) {
+            UM_STORE.onHorizont = false
+            return
+        }
+
         UM_STORE.onHorizont = !options.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id) && opt.active)
     }
 
@@ -62,14 +68,13 @@ export const useOptions = ({ withMechanism = true } = {}) => {
     const applyLowModuleRules = (options: TOption[], props: TTotalProps) => {
         if (!isLowModule(props)) return
 
+        syncHorizont(options, props)
+
         const forced = options?.filter(option =>
             LOW_MODULE_FORCED_OPTION.includes(+option.id) && !option.active) ?? []
 
         if (!forced.length) return
-
         forced.forEach(option => { option.active = true })
-
-        syncHorizont(options)
         eventBus.emit("A:SelectModelOption")
     }
 
@@ -280,7 +285,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
             disabledOptions.some(opt => NO_HORIZONT_OPTIONS.includes(+opt.id))
 
         if (horizontAffected) {
-            syncHorizont(OPTIONS)
+            syncHorizont(OPTIONS, PROPS)
         }
 
 
