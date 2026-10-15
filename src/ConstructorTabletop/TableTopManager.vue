@@ -516,6 +516,7 @@ const checkProfileDisablegroups = (keepValues = true) => {
           // иначе при перезаходе в редактор оно сбрасывается на значение по умолчанию из глобального списка услуг
           EURO_WIDTH: el.EURO_WIDTH && curUsluga?.EURO_WIDTH ? curUsluga.EURO_WIDTH : el.EURO_WIDTH,
           CORNER: el.CORNER,
+          CORNER_DEPTH: el.CORNER_DEPTH,
           separated: el.separated,
           visible: el.visible,
           show_props: el.show_props,
@@ -1058,6 +1059,7 @@ const createServiseData = () => {
       RADIUS: el.RADIUS,
       EURO_WIDTH: el.EURO_WIDTH,
       CORNER: el.CORNER,
+      CORNER_DEPTH: el.CORNER_DEPTH,
       separated: el.separated,
       visible: el.visible,
       show_props: el.show_props,

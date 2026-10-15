@@ -9,6 +9,9 @@ export const CUTTER_PARAMS = {
     MAX_HOLE_SIZE_MM: 1000, // Максимальный размер отверстия в мм,
     BACKGROUND_COLOR: "#FFFFFF",
     HOLE_OFFSET: 10,// Отступ от краёв
+    // Катет скоса по глубине столешницы для услуг, у которых бек не отдал CORNER_DEPTH.
+    // null — скос остаётся симметричным, то есть катет по глубине равен CORNER
+    CORNER_DEPTH_DEFAULT: 240,
     CUT_SERVISES: [
         { ID: 182294, NAME: "Кромкование торцов", pos: 'KROMKA_FULL_TOREC_ZEB', value: false },
 

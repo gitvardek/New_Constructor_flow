@@ -203,10 +203,26 @@ class Helpers {
     const tr_radius = topRight.radius || 0;
     const bl_radius = bottomLeft.radius || 0;
     const br_radius = bottomRight.radius || 0;
-    const tl_corner = topLeft.corner || 0;
-    const tr_corner = topRight.corner || 0;
-    const bl_corner = bottomLeft.corner || 0;
-    const br_corner = bottomRight.corner || 0;
+    // Скос описывается двумя катетами: X — вдоль длины столешницы, Y — вдоль её глубины.
+    // Проверки по ширине секции берут X, проверки по высоте — Y
+    const tl_cornerX = topLeft.cornerX || 0;
+    const tr_cornerX = topRight.cornerX || 0;
+    const bl_cornerX = bottomLeft.cornerX || 0;
+    const br_cornerX = bottomRight.cornerX || 0;
+    const tl_cornerY = topLeft.cornerY || 0;
+    const tr_cornerY = topRight.cornerY || 0;
+    const bl_cornerY = bottomLeft.cornerY || 0;
+    const br_cornerY = bottomRight.cornerY || 0;
+
+    // Непройденная проверка гасит все срезы части разом — поведение прежнее,
+    // хелпер лишь убирает повтор литерала из каждой ветки
+    const invalidValues = () => ({
+      tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
+      tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
+      tl_cornerX: 0, tr_cornerX: 0, bl_cornerX: 0, br_cornerX: 0,
+      tl_cornerY: 0, tr_cornerY: 0, bl_cornerY: 0, br_cornerY: 0,
+      error: "101"
+    });
 
     // Проверка ширины секции относительно всех углов
     if (
@@ -218,17 +234,12 @@ class Helpers {
       sectionWidth <= tr_radius ||
       sectionWidth <= bl_radius ||
       sectionWidth <= br_radius ||
-      sectionWidth <= tl_corner ||
-      sectionWidth <= tr_corner ||
-      sectionWidth <= bl_corner ||
-      sectionWidth <= br_corner
+      sectionWidth <= tl_cornerX ||
+      sectionWidth <= tr_cornerX ||
+      sectionWidth <= bl_cornerX ||
+      sectionWidth <= br_cornerX
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка пересечения по ширине (между левыми и правыми углами)
@@ -238,27 +249,17 @@ class Helpers {
       sectionWidth - bl_width <= br_width ||
       sectionWidth - br_width <= bl_width
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка пересечения углов (corner) по ширине
     if (
-      sectionWidth - tl_corner <= tr_corner ||
-      sectionWidth - tr_corner <= tl_corner ||
-      sectionWidth - bl_corner <= br_corner ||
-      sectionWidth - br_corner <= bl_corner
+      sectionWidth - tl_cornerX <= tr_cornerX ||
+      sectionWidth - tr_cornerX <= tl_cornerX ||
+      sectionWidth - bl_cornerX <= br_cornerX ||
+      sectionWidth - br_cornerX <= bl_cornerX
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка пересечения радиусов по ширине
@@ -268,12 +269,7 @@ class Helpers {
       sectionWidth - bl_radius <= br_radius ||
       sectionWidth - br_radius <= bl_radius
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка смешанных пересечений (ширина и радиус)
@@ -287,50 +283,35 @@ class Helpers {
       sectionWidth - bl_radius <= br_width ||
       sectionWidth - br_radius <= bl_width
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка смешанных пересечений (ширина и угол)
     if (
-      sectionWidth - tl_width <= tr_corner ||
-      sectionWidth - tr_width <= tl_corner ||
-      sectionWidth - bl_width <= br_corner ||
-      sectionWidth - br_width <= bl_corner ||
-      sectionWidth - tl_corner <= tr_width ||
-      sectionWidth - tr_corner <= tl_width ||
-      sectionWidth - bl_corner <= br_width ||
-      sectionWidth - br_corner <= bl_width
+      sectionWidth - tl_width <= tr_cornerX ||
+      sectionWidth - tr_width <= tl_cornerX ||
+      sectionWidth - bl_width <= br_cornerX ||
+      sectionWidth - br_width <= bl_cornerX ||
+      sectionWidth - tl_cornerX <= tr_width ||
+      sectionWidth - tr_cornerX <= tl_width ||
+      sectionWidth - bl_cornerX <= br_width ||
+      sectionWidth - br_cornerX <= bl_width
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка смешанных пересечений (радиус и угол)
     if (
-      sectionWidth - tl_radius <= tr_corner ||
-      sectionWidth - tr_radius <= tl_corner ||
-      sectionWidth - bl_radius <= br_corner ||
-      sectionWidth - br_radius <= bl_corner ||
-      sectionWidth - tl_corner <= tr_radius ||
-      sectionWidth - tr_corner <= tl_radius ||
-      sectionWidth - bl_corner <= br_radius ||
-      sectionWidth - br_corner <= bl_radius
+      sectionWidth - tl_radius <= tr_cornerX ||
+      sectionWidth - tr_radius <= tl_cornerX ||
+      sectionWidth - bl_radius <= br_cornerX ||
+      sectionWidth - br_radius <= bl_cornerX ||
+      sectionWidth - tl_cornerX <= tr_radius ||
+      sectionWidth - tr_cornerX <= tl_radius ||
+      sectionWidth - bl_cornerX <= br_radius ||
+      sectionWidth - br_cornerX <= bl_radius
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка высоты секции относительно радиусов и углов
@@ -339,17 +320,12 @@ class Helpers {
       sectionHeight <= tr_radius ||
       sectionHeight <= bl_radius ||
       sectionHeight <= br_radius ||
-      sectionHeight <= tl_corner ||
-      sectionHeight <= tr_corner ||
-      sectionHeight <= bl_corner ||
-      sectionHeight <= br_corner
+      sectionHeight <= tl_cornerY ||
+      sectionHeight <= tr_cornerY ||
+      sectionHeight <= bl_cornerY ||
+      sectionHeight <= br_cornerY
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка пересечения радиусов по высоте (между верхними и нижними углами)
@@ -359,53 +335,39 @@ class Helpers {
       sectionHeight - bl_radius <= tl_radius ||
       sectionHeight - br_radius <= tr_radius
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка пересечения углов по высоте
     if (
-      sectionHeight - tl_corner <= bl_corner ||
-      sectionHeight - tr_corner <= br_corner ||
-      sectionHeight - bl_corner <= tl_corner ||
-      sectionHeight - br_corner <= tr_corner
+      sectionHeight - tl_cornerY <= bl_cornerY ||
+      sectionHeight - tr_cornerY <= br_cornerY ||
+      sectionHeight - bl_cornerY <= tl_cornerY ||
+      sectionHeight - br_cornerY <= tr_cornerY
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Проверка смешанных пересечений (радиус и угол) по высоте
     if (
-      sectionHeight - tl_radius <= bl_corner ||
-      sectionHeight - tr_radius <= br_corner ||
-      sectionHeight - bl_radius <= tl_corner ||
-      sectionHeight - br_radius <= tr_corner ||
-      sectionHeight - tl_corner <= bl_radius ||
-      sectionHeight - tr_corner <= br_radius ||
-      sectionHeight - bl_corner <= tl_radius ||
-      sectionHeight - br_corner <= tr_radius
+      sectionHeight - tl_radius <= bl_cornerY ||
+      sectionHeight - tr_radius <= br_cornerY ||
+      sectionHeight - bl_radius <= tl_cornerY ||
+      sectionHeight - br_radius <= tr_cornerY ||
+      sectionHeight - tl_cornerY <= bl_radius ||
+      sectionHeight - tr_cornerY <= br_radius ||
+      sectionHeight - bl_cornerY <= tl_radius ||
+      sectionHeight - br_cornerY <= tr_radius
     ) {
-      return {
-        tl_width: 0, tr_width: 0, bl_width: 0, br_width: 0,
-        tl_radius: 0, tr_radius: 0, bl_radius: 0, br_radius: 0,
-        tl_corner: 0, tr_corner: 0, bl_corner: 0, br_corner: 0,
-        error: "101"
-      };
+      return invalidValues();
     }
 
     // Если все проверки пройдены, возвращаем валидные значения
     return {
       tl_width, tr_width, bl_width, br_width,
       tl_radius, tr_radius, bl_radius, br_radius,
-      tl_corner, tr_corner, bl_corner, br_corner,
+      tl_cornerX, tr_cornerX, bl_cornerX, br_cornerX,
+      tl_cornerY, tr_cornerY, bl_cornerY, br_cornerY,
       error: false
     };
   }
@@ -1048,8 +1010,31 @@ class Section extends Helpers {
       if (el.RADIUS) {
         return { type: 'rounded', radius: this.getPixelWidth(el.RADIUS) };
       }
-      if (el.CORNER) {
-        return { type: 'corner', corner: this.getPixelWidth(el.CORNER) };
+
+      // Катеты скоса независимы: CORNER — вдоль длины столешницы (ось X),
+      // CORNER_DEPTH — вдоль её глубины (ось Y). Если бек не отдал CORNER_DEPTH,
+      // берём CORNER_DEPTH_DEFAULT, а когда и он не задан — скос остаётся симметричным,
+      // каким был до появления асимметрии.
+      // Размер читаем через parseFloat, а не проверкой на truthy: с бека он приходит
+      // строкой, и "0" в CORNER давал срез нулевого размера вместо прямого угла
+      const cornerX = parseFloat(el.CORNER) || 0;
+
+      if (cornerX > 0) {
+        const depth = parseFloat(el.CORNER_DEPTH) || 0;
+        let cornerY = depth || CUTTER_PARAMS.CORNER_DEPTH_DEFAULT || cornerX;
+
+        // Дефолт — догадка фронта: для таких услуг бек знает только CORNER. Если он не
+        // влезает в глубину части, оставляем скос симметричным, иначе узкие части
+        // краснели бы ошибкой 101 там, где прежде спокойно рисовались
+        if (!depth && this.getPixelWidth(cornerY) >= this.height) {
+          cornerY = cornerX;
+        }
+
+        return {
+          type: 'corner',
+          cornerX: this.getPixelWidth(cornerX),
+          cornerY: this.getPixelWidth(cornerY)
+        };
       }
       return { type: 'simple' };
     };
@@ -1149,7 +1134,8 @@ class Section extends Helpers {
     const {
       tl_width, tr_width, bl_width, br_width,
       tl_radius, tr_radius, bl_radius, br_radius,
-      tl_corner, tr_corner, bl_corner, br_corner,
+      tl_cornerX, tr_cornerX, bl_cornerX, br_cornerX,
+      tl_cornerY, tr_cornerY, bl_cornerY, br_cornerY,
       error
     } = validValue;
 
@@ -1166,8 +1152,8 @@ class Section extends Helpers {
             path.lineTo(x, y + tl_radius);
             path.quadraticCurveTo(x, y, x + tl_radius, y);
           } else if (topLeft.type === 'corner') {
-            path.moveTo(x, y + tl_corner);
-            path.lineTo(x + tl_corner, y);
+            path.moveTo(x, y + tl_cornerY);
+            path.lineTo(x + tl_cornerX, y);
           } else if (topLeft.type === 'inward') {
             path.moveTo(x, y + tl_radius);
             path.lineTo(x + tl_width - tl_radius, y + tl_radius);
@@ -1186,8 +1172,8 @@ class Section extends Helpers {
             path.lineTo(x + W - tr_radius, y);
             path.quadraticCurveTo(x + W, y, x + W, y + tr_radius);
           } else if (topRight.type === 'corner') {
-            path.lineTo(x + W - tr_corner, y);
-            path.lineTo(x + W, y + tr_corner);
+            path.lineTo(x + W - tr_cornerX, y);
+            path.lineTo(x + W, y + tr_cornerY);
           } else if (topRight.type === 'inward') {
             path.lineTo(x + W - tr_width, y);
             path.quadraticCurveTo(x + W - tr_width, y + tr_radius, x + W - (tr_width - tr_radius), y + tr_radius);
@@ -1206,8 +1192,8 @@ class Section extends Helpers {
             path.lineTo(x + W, y + H - br_radius);
             path.quadraticCurveTo(x + W, y + H, x + W - br_radius, y + H);
           } else if (bottomRight.type === 'corner') {
-            path.lineTo(x + W, y + H - br_corner);
-            path.lineTo(x + W - br_corner, y + H);
+            path.lineTo(x + W, y + H - br_cornerY);
+            path.lineTo(x + W - br_cornerX, y + H);
           } else if (bottomRight.type === 'inward') {
             path.lineTo(x + W, y + H - br_radius);
             path.lineTo(x + W - (br_width - br_radius), y + H - br_radius);
@@ -1227,8 +1213,8 @@ class Section extends Helpers {
             path.lineTo(x + bl_radius, y + H);
             path.quadraticCurveTo(x, y + H, x, y + H - bl_radius);
           } else if (bottomLeft.type === 'corner') {
-            path.lineTo(x + bl_corner, y + H);
-            path.lineTo(x, y + H - bl_corner);
+            path.lineTo(x + bl_cornerX, y + H);
+            path.lineTo(x, y + H - bl_cornerY);
           } else if (bottomLeft.type === 'inward') {
             path.lineTo(x + bl_width, y + H);
             path.lineTo(x + bl_width, y + H);
