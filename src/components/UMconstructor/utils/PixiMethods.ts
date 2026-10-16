@@ -4,7 +4,7 @@ import { Container, Graphics, GraphicsPath, Text, TextStyle } from "pixi.js";
 import * as THREE from "three";
 import { MANUFACTURER } from "@/types/constructor2d/interfaсes.ts";
 import { TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
-import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 
 type TDashedLine = {

@@ -1,9 +1,9 @@
 //@ts-nocheck
 
-import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import {  ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
 import * as THREE from "three";
-import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
+import { GridModule, GridSection, LoopZone } from "@/components/UMconstructor/types/UMtypes.ts";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 
@@ -90,7 +90,7 @@ export default class LoopsManager {
         }
     }
 
-    private isFillingExcludedFromCollision(filling: any, targetType: string = 'loop', grid?: GridModule): boolean {
+    public isFillingExcludedFromCollision(filling: any, targetType: string = 'loop', grid?: GridModule): boolean {
         return this.collisionExclusionRules.some(rule => {
             if (filling[rule.prop] === undefined || !rule.values.has(filling[rule.prop])) return false
             if (rule.condition && grid && !rule.condition(grid)) return false
@@ -98,6 +98,28 @@ export default class LoopsManager {
             const types = Array.isArray(rule.collisionWith) ? rule.collisionWith : [rule.collisionWith]
             return types.includes(targetType)
         })
+    }
+
+    // Зоны петель секции прямоугольниками — та же геометрия, что строит checkLoopsCollision,
+    // но доступная снаружи: по ней FillingsManager уводит наполнение с петель после ресайза.
+    // Система отсчёта — от пола модуля вверх (как cell.position.y)
+    public getLoopZones(section: GridSection): LoopZone[] {
+        const zones = []
+
+        Object.values(section?.loops ?? {}).forEach((doorLoops: any) => {
+            doorLoops?.forEach((loop: any) => {
+                loop?.coords?.forEach((coord: number) => {
+                    zones.push({
+                        minY: coord - loop.height / 2,
+                        maxY: coord + loop.height / 2,
+                        minX: loop.positionX,
+                        maxX: loop.positionX + loop.width,
+                    })
+                })
+            })
+        })
+
+        return zones
     }
 
     // -----------------------------------------------------------------------------------------------

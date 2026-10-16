@@ -11,7 +11,7 @@ import {
 import {TFasadeProp} from "@/types/types.ts";
 import {UM_PARAMS} from "@/components/UMconstructor/utils/Const.ts";
 
-import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 
 // Группа сегментов одного разделения: идентификатор, сколько сегментов в ней было
 // до пересборки списка фасадов, границы области, которую она занимала, и настройки

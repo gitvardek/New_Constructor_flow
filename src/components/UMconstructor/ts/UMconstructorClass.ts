@@ -827,6 +827,9 @@ export default class UMconstructorClass {
             this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.cleanupUniversalDrawers(module)
+            // После уборок: оставшееся наполнение подгоняется под новые размеры сегментов,
+            // а не проходящее по ним — снимается. Габариты правятся и с наполнением внутри
+            this.FILLINGS.cleanupInvalidFillings(module)
 
             // Стеклянные полки в областях, ставших слишком широкими, снимаются вместе
             // с границей — ячейки сливаются, поэтому раскладку нужно построить заново.

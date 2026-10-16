@@ -123,6 +123,14 @@ export interface GridSection {
     fillings?: FillingObject[];
 }
 
+// Зона, занимаемая петлёй, в координатах от пола модуля вверх
+export interface LoopZone {
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+}
+
 export const ErrorsType = {
     "loops": 'LOOPS',
     'fasades': 'FASADES',
