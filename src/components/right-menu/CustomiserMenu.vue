@@ -90,7 +90,7 @@ const checkSelect = (el) => {
     showCustomiser.value = false;
   }
 
-  customiserStore.showCustomiserPopup();
+  // customiserStore.showCustomiserPopup();
 
   checkData(el.object);
 
@@ -141,9 +141,9 @@ onMounted(() => {
   eventBus.on("A:RemoveModel", closeCustomiser);
   eventBus.on("A:Duplicate", closeCustomiser);
 
-  eventBus.on("A:MouseDown", onSceneMouseDown);
-  eventBus.on("A:Move", onSceneMove);
-  eventBus.on("A:MouseUp", onSceneMouseUp);
+  // eventBus.on("A:MouseDown", onSceneMouseDown);
+  // eventBus.on("A:Move", onSceneMove);
+  // eventBus.on("A:MouseUp", onSceneMouseUp);
 
   // Страховка: кнопку могут отпустить вне canvas (либо это касание)
   window.addEventListener("pointerup", onSceneMouseUp, true);
