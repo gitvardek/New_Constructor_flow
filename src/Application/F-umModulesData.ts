@@ -116,7 +116,7 @@ export const UM_SAMPLE = () => {
                 "SIZE_EDIT": {
                     "SIZE_EDIT_WIDTH_MIN": 150,
                     "SIZE_EDIT_WIDTH_MAX": 2750,
-                    "SIZE_EDIT_HEIGHT_MIN": 250,
+                    "SIZE_EDIT_HEIGHT_MIN": 150,
                     "SIZE_EDIT_HEIGHT_MAX": 2700,
                     "SIZE_EDIT_STEP_WIDTH": 1,
                     "SIZE_EDIT_STEP_HEIGHT": 1,
@@ -253,6 +253,26 @@ export const UM_SAMPLE = () => {
                     },
                     {
                         "id": "12682903",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
                         "active": false,
                         "group": "549",
                         "section": [
@@ -743,6 +763,26 @@ export const UM_SAMPLE = () => {
                     },
                     {
                         "id": "12682903",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
                         "active": false,
                         "group": "549",
                         "section": [
@@ -1894,6 +1934,26 @@ export const UM_SAMPLE = () => {
                     },
                     {
                         "id": "12682903",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
                         "active": false,
                         "group": "549",
                         "section": [

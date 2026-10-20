@@ -2,7 +2,12 @@
 // слишком широкая или низкая область, универсальный ящик при тонких стенках.
 // Общая логика "Вставки" обычного УМ (FillingsInsertPanel) и редактора v2.
 import { computed } from "vue";
-import { FILLINGS_RESTRICTION_EXCEPTIONS, UM_DRAWERS_IDS, UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
+import {
+    FILLINGS_RESTRICTION_EXCEPTIONS,
+    FILLINGS_WIDTH_UNRESTRICTED_GROUPS,
+    UM_DRAWERS_IDS,
+    UM_PARAMS,
+} from "../../utils/Const";
 import { resolveCellPath } from "../grid/cellPath.ts";
 
 interface UseFillingInsertRulesOptions {
@@ -16,11 +21,16 @@ export const useFillingInsertRules = ({ getEngine, getModule }: UseFillingInsert
         return resolveCellPath(getModule(), { sec, cell, row, extra })?.area ?? null;
     });
 
+    const isWidthUnrestrictedGroup = (groupID: string | number) =>
+        FILLINGS_WIDTH_UNRESTRICTED_GROUPS.includes(+groupID);
+
     const isFillingWidthRestricted = computed(() => (selectedArea.value?.width ?? 0) > UM_PARAMS.FILLINGS_MAX_WIDTH);
 
     const isFillingHeightRestricted = computed(
         () => (selectedArea.value?.height ?? 0) <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT,
     );
+
+
 
     // Универсальный ящик — только при стенках не тоньше 18 мм.
     const isUniversalDrawerBlocked = computed(() => !getEngine()?.FILLINGS.drawers.isUniversalDrawerAllowed(getModule()));
@@ -28,9 +38,9 @@ export const useFillingInsertRules = ({ getEngine, getModule }: UseFillingInsert
     const isFillingBlocked = (groupID: string | number, filling?: any) => {
         if (FILLINGS_RESTRICTION_EXCEPTIONS.includes(+filling?.ID)) return false;
 
-        return isFillingWidthRestricted.value
-            || isFillingHeightRestricted.value
-            || (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
+        return (isFillingWidthRestricted.value && !isWidthUnrestrictedGroup(groupID)) ||
+            isFillingHeightRestricted.value ||
+            (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
     };
 
     return {

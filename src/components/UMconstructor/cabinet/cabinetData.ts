@@ -23,6 +23,14 @@ export const CABINET_DEFAULT_HEIGHT = 400
 // соседей (правила пар — WardrobeSystem.getWardrobeShelfMinGap).
 export const CABINET_MIN_GAP = 2
 
+// Зазоры по глубине, мм: корпус, фасад и крышка вместе укладываются в глубину
+// гардеробной системы (правила — cabinetDepth.ts).
+// - TOP_FRONT — свес крышки над передом корпуса (или фасада);
+// - FASADE — зазор корпус->фасад, тот же, что у УМ на сцене
+//   (ModulegridParser: POSITION_Z = SIZE.depth + 2).
+export const CABINET_TOP_FRONT_GAP = 2
+export const CABINET_FASADE_GAP = 2
+
 // Опции товара, которых у тумбочки нет (висит между профилями): 4722965 —
 // "Навесной", 5738924 — "Без дна", группа 548 — "Опоры".
 export const CABINET_EXCLUDED_OPTION_IDS = [4722965, 5738924]

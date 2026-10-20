@@ -32,6 +32,8 @@ export class ShelfBuilder {
     private parent: TBuildProduct
 
     private edgeBuilder: TEdgeBuilder
+    // Последняя сообщённая недостача глубины доски, мм — см. fitWardrobeShelfBoard.
+    private warnedBoardDeficit = 0
     materialMap: Record<string, Material> = {
         MeshBasicMaterial: new MeshBasicMaterial(),
         MeshStandardMaterial: new MeshStandardMaterial(),
@@ -177,6 +179,47 @@ export class ShelfBuilder {
             : props.CONFIG.SIZE.depth
     }
 
+    // ==== Гардеробная система (WARDROBE) — доска по ЗАКАЗАННОМУ размеру ====
+    // Каталожная модель товара-полки не слушается переданных размеров:
+    // - толщину она берёт из токена #MATERIAL_THICKNESS# (а не из #Y#), а тот
+    //   в BuildersHelper.createModelData считается от props.CONFIG.MODULE_COLOR
+    //   (_FASADE[...]?.DEPTH || 18). Товар общий с box-UM, где MODULE_COLOR
+    //   всегда есть; у гардеробной системы его нет, и токен молча падает на 18
+    //   при любом shelfSize.height (на стекле в 6мм было видно сразу);
+    // - глубину она считает своей формулой, с зазорами box-UM (под фасад и
+    //   заднюю стенку), которых у гардеробной нет. Доска выходила КОРОЧЕ
+    //   grid.depth, а центрирование по габариту раскладывало недостачу поровну
+    //   вперёд и назад: сзади щель до пластины к стене, спереди полка короче
+    //   тумбочки (та строится сборщиком УМ, ровно в свою SIZE.depth).
+    //
+    // createModelData — общая функция с десятками вызывающих, не трогаем:
+    // меряем построенную доску и досчитываем. Правим ГЕОМЕТРИЮ, а не
+    // body.scale — createEdge/createVisibleEdge строят кромку из mesh.geometry
+    // и явно игнорируют scale (matrix.decompose(..., Vector3(1,1,1))), так что
+    // кромка осталась бы прежней. Звать ДО createEdge и ДО поворота наклонной
+    // полки: у прямоугольной доски масштаб по Y/Z меняет только толщину и длину,
+    // а после rotation.x габарит дал бы смешанную Y/Z-проекцию.
+    private fitWardrobeShelfBoard(body: Object3D, thickness: number, depth: number): void {
+        const size = new Box3().setFromObject(body).getSize(new Vector3())
+        const scaleY = size.y > 0 && Math.abs(size.y - thickness) > 0.01 ? thickness / size.y : 1
+        const scaleZ = size.z > 0 && Math.abs(size.z - depth) > 0.01 ? depth / size.z : 1
+
+        if (scaleY === 1 && scaleZ === 1) return
+
+        // Недостача по глубине одна на все полки (формула модели одна), поэтому
+        // сообщаем только при её изменении — иначе предупреждение шло бы на
+        // каждую полку при каждой пересборке сцены.
+        const deficit = Math.round((depth - size.z) * 100) / 100
+        if (deficit && deficit !== this.warnedBoardDeficit) {
+            this.warnedBoardDeficit = deficit
+            console.warn(`Полка гардеробной: модель дала глубину ${size.z} вместо ${depth} (недостача ${deficit}мм) — доска растянута до заказанной`)
+        }
+
+        body.traverse((child) => {
+            if (child instanceof Mesh) child.geometry.scale(1, scaleY, scaleZ)
+        })
+    }
+
     // ==== Гардеробная система (WARDROBE) — крепёжные кронштейны полки ====
     // Пара пластин 4×50, держащих полку — по одной у левого и правого
     // профиля сектора; ставятся вровень с торцами доски, внутри её габарита.
@@ -279,27 +322,9 @@ export class ShelfBuilder {
             })
         }
 
-        // Толщину доски задаёт НЕ #Y# (shelfSize.height), а отдельный токен
-        // #MATERIAL_THICKNESS# в BuildersHelper.createModelData — он берётся
-        // из props.CONFIG.MODULE_COLOR (_FASADE[...]?.DEPTH || 18). Товар
-        // общий с box-UM, где MODULE_COLOR всегда есть; у гардеробной системы
-        // его нет, и токен молча падает на 18 при любом shelfSize.height (на
-        // стекле в 6мм было видно сразу).
-        //
-        // createModelData — общая функция с десятками вызывающих, не трогаем:
-        // измеряем построенную толщину и досчитываем. Правим ГЕОМЕТРИЮ, а не
-        // body.scale.y — createEdge/createVisibleEdge строят кромку из
-        // mesh.geometry и явно игнорируют scale (matrix.decompose(...,
-        // Vector3(1,1,1))), так что кромка осталась бы прежней. Геометрия
-        // правится ДО createEdge; у прямоугольной доски масштаб по Y меняет
-        // только толщину.
-        const rawThickness = new Box3().setFromObject(body).getSize(new Vector3()).y
-        if (rawThickness > 0 && Math.abs(rawThickness - desiredThickness) > 0.01) {
-            const scaleFactor = desiredThickness / rawThickness
-            body.traverse((child) => {
-                if (child instanceof Mesh) child.geometry.scale(1, scaleFactor, 1)
-            })
-        }
+        // Толщина и глубина доски — по заказанным, а не по тем, что отдала
+        // модель (см. fitWardrobeShelfBoard выше).
+        this.fitWardrobeShelfBoard(body, desiredThickness, shelfSize.depth)
 
         // Центрируем по X/Z ИЗМЕРЕННЫМ bounding box'ом, а не position.set:
         // локальный (0,0,0) каталожной JSON-модели не обязан совпадать с её
@@ -398,16 +423,10 @@ export class ShelfBuilder {
             })
         }
 
-        // Коррекция толщины — см. подробный комментарий в buildWardrobeShelf.
-        // Здесь дополнительно: измеряем ДО поворота, иначе Box3 после
-        // rotation.x даст смешанную Y/Z-проекцию, а не чистую толщину.
-        const rawThickness = new Box3().setFromObject(body).getSize(new Vector3()).y
-        if (rawThickness > 0 && Math.abs(rawThickness - shelfThickness) > 0.01) {
-            const scaleFactor = shelfThickness / rawThickness
-            body.traverse((child) => {
-                if (child instanceof Mesh) child.geometry.scale(1, scaleFactor, 1)
-            })
-        }
+        // Толщина и ДЛИНА доски — по заказанным (fitWardrobeShelfBoard).
+        // Обязательно до поворота: длина наклонной доски лежит по Z только
+        // пока rotation.x нулевой.
+        this.fitWardrobeShelfBoard(body, shelfThickness, shelfSize.depth)
 
         const angle = (WARDROBE_ANGLED_SHELF_ANGLE_DEG * Math.PI) / 180.0;
         body.rotation.x = angle

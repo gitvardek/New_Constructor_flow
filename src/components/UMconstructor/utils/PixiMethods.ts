@@ -1473,7 +1473,9 @@ class ShapeAdjuster extends Helpers {
 
     findClosestPosition(sector, shape, inputPosition) {
 
-        const bounds = this.getSectorBounds(sector)
+        // У внутренних ящиков границы свои — пространство фасада внешнего ящика,
+        // поэтому берём bounds самой фигуры, а к сектору обращаемся только как к запасному варианту
+        const bounds = shape.sectorBounds ?? this.getSectorBounds(sector)
 
         const margin = 0;
         let { width, height } = shape;
@@ -1507,68 +1509,64 @@ class ShapeAdjuster extends Helpers {
         else {
             const x = bounds.x
 
-            let findTopMaxY = inputPosition.y
             let findTopMinY = bounds.y
-            let topHeight = findTopMaxY - findTopMinY
-
             let findBottomMaxY = bounds.y + bounds.height
-            let findBottomMinY = inputPosition.y
-            let bottomStartY = findBottomMinY
-
-            /*if (shape.data?.fasade) {
-                let manufacturerOffset = shape.data.fasade.manufacturerOffset
-                let moduleData = this.scope.UM_STORE.getUMGrid()
-
-                findTopMaxY = findTopMaxY + this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
-                findTopMinY = findTopMinY - this.getPixelHeight(moduleData.moduleThickness - 2)
-
-                findBottomMaxY = findBottomMaxY + this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
-                findBottomMinY = findBottomMinY + this.getPixelHeight(moduleData.moduleThickness - 2)
-                bottomStartY = findBottomMinY + this.getPixelHeight(shape.data.fasade.height - shape.data.height - manufacturerOffset - (moduleData.moduleThickness - 2) * 2)
-            }*/
 
             const mmToPixel = this.getPixelHeight(1)
 
-            let findPositionTop = null
-            let totalMax = this.getMmHeight(topHeight - height)
-            for (let i = 0; i < totalMax; i += this.step) {
-                const pixel_i = i * mmToPixel
-                const y = this.convertToTen(findTopMinY + (topHeight - height) - pixel_i);
+            // Запрошенная позиция, прижатая к границам сектора: от неё и отсчитываем поиск
+            const startY = Math.max(findTopMinY, Math.min(inputPosition.y, findBottomMaxY - height))
 
+            // strict учитывает ещё и выход за границы сектора (у ящика за них может выйти фасад,
+            // который выступает за тело). Если так ничего не нашлось — ищем повторно по одним
+            // пересечениям, чтобы деталь, уже стоящая впритык к границе, не перестала двигаться вовсе
+            const isFree = (y: number, strict: boolean) => {
                 shape.graphic.position.x = x;
                 shape.graphic.position.y = y;
 
-                if (
-                    !sector.shapes.some(
-                        (other) => other !== shape && shape.checkOverlap(other)
-                    )
-                ) {
-                    shape.graphic.position.x = origX;
-                    shape.graphic.position.y = origY;
-                    findPositionTop = { x, y }
-                    break;
+                let free = !sector.shapes.some(
+                    (other) => other !== shape && shape.checkOverlap(other)
+                )
+
+                if (free && strict) {
+                    free = shape.isPositionInsideSector({
+                        x: this.getMmWidth(x),
+                        y: this.getMmHeight(y),
+                    })
                 }
+
+                shape.graphic.position.x = origX;
+                shape.graphic.position.y = origY;
+
+                return free
             }
 
-            let findPositionBottom = null
-            totalMax = this.getMmHeight(findBottomMaxY - findBottomMinY - height)
-            for (let i = 0; i < totalMax; i += this.step) {
-                const pixel_i = i * mmToPixel
-                const y = this.convertToTen(bottomStartY + pixel_i);
-
-                shape.graphic.position.x = x;
-                shape.graphic.position.y = y;
-
-                if (
-                    !sector.shapes.some(
-                        (other) => other !== shape && shape.checkOverlap(other)
-                    )
-                ) {
-                    shape.graphic.position.x = origX;
-                    shape.graphic.position.y = origY;
-                    findPositionBottom = { x, y }
-                    break;
+            // Шаг поиска — step мм вверх и вниз от запрошенной позиции, а не «на высоту детали»:
+            // иначе сдвиг на 1 мм в занятую зону отбрасывал деталь на всю её высоту
+            const searchUp = (strict: boolean) => {
+                const totalMax = this.getMmHeight(startY - findTopMinY)
+                for (let i = 0; i <= totalMax; i += this.step) {
+                    const y = startY - i * mmToPixel;
+                    if (isFree(y, strict)) return { x, y }
                 }
+                return null
+            }
+
+            const searchDown = (strict: boolean) => {
+                const totalMax = this.getMmHeight(findBottomMaxY - height - startY)
+                for (let i = 0; i <= totalMax; i += this.step) {
+                    const y = startY + i * mmToPixel;
+                    if (isFree(y, strict)) return { x, y }
+                }
+                return null
+            }
+
+            let findPositionTop = searchUp(true)
+            let findPositionBottom = searchDown(true)
+
+            if (!findPositionTop && !findPositionBottom) {
+                findPositionTop = searchUp(false)
+                findPositionBottom = searchDown(false)
             }
 
             let topOffset = findPositionTop ? Math.abs(inputPosition.y - findPositionTop.y) : Infinity
@@ -1586,6 +1584,16 @@ class ShapeAdjuster extends Helpers {
     checkToCollision(sector: Container, shapeType: string, shapeData: THoleData) {
         const shapes = sector.shapes;
 
+        let customSectorBounds = undefined
+        if (shapeData.innerDrawerConstraint) {
+            const c = shapeData.innerDrawerConstraint
+            customSectorBounds = {
+                x: this.getPixelWidth(c.x),
+                y: this.getPixelHeight(c.startY),
+                width: this.getPixelWidth(c.width),
+                height: this.getPixelHeight(c.height),
+            }
+        }
 
         const tempShape = new Shape({
             type: shapeType,
@@ -1596,7 +1604,9 @@ class ShapeAdjuster extends Helpers {
             getMmHeight: this.getMmHeight,
             getPixelWidth: this.getPixelWidth,
             getPixelHeight: this.getPixelHeight,
-            store: this.scope.UM_STORE,
+            // Без правил исключения проверка видела бы коллизии, которых при перетаскивании нет
+            collisionExclusionRules: this.scope?.LOOPS?.getCollisionExclusionRules(),
+            customSectorBounds,
         });
 
         const insideSector = tempShape.isPositionInsideSector(shapeData.position || {

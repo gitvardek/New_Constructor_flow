@@ -867,8 +867,11 @@ export class BuildProduct extends BuildersHelper {
         const startPos = this.getStartPosition(CONFIG.SIZE);
 
         if (TOPFASADECOLOR?.SHOW) {
-            const topFasade_width = CONFIG.SIZE.width;
-            const topFasade_depth = CONFIG.SIZE.depth + moduleThickness + 2;
+            // По умолчанию накладка в ширину корпуса и глубже него на фасад со
+            // свесом; тумбочка гардеробной задаёт свои габариты (ширина — по
+            // секции, глубина — по глубине системы) — CabinetMeshBuilder.
+            const topFasade_width = CONFIG.TOPFASADE_WIDTH ?? CONFIG.SIZE.width;
+            const topFasade_depth = CONFIG.TOPFASADE_DEPTH ?? CONFIG.SIZE.depth + moduleThickness + 2;
             let top, topFasade_thickness
             if (TOPFASADECOLOR.TABLE) {
                 top = this._PRODUCTS[TOPFASADECOLOR.TABLE];

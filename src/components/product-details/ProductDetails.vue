@@ -28,15 +28,11 @@ const handleBack = () => {
 const clickHandler = (e) => {
   e.preventDefault();
 
-  // Логика добавления в корзину
 };
 
 const inputHandler = (e) => {
-
   const formElement = e.currentTarget;
-
   catalogStore.fetchProductPrice(formElement);
-
 };
 
 const getProductHTML = (id) => {
@@ -55,6 +51,10 @@ const getProductHTML = (id) => {
       if (addToCartButton) {
         addToCartButton.addEventListener('click', clickHandler);
       }
+      // const addQuantitiButton = document.querySelector('[name="QUANTITY"]');
+      // if (addQuantitiButton) {
+      //   addQuantitiButton.addEventListener('click', clickQuantity);
+      // }
 
       const addTargetLink = document.querySelector('.product-details').querySelectorAll('a');
 
@@ -69,16 +69,6 @@ const getProductHTML = (id) => {
           }
         });
       });
-
-      try {
-        const price = await catalogStore.fetchProductPrice(formElement);
-        // Скрываем спиннер по факту завершения запроса, а не по изменению значения цены
-        catalogStore.updateProductPrice(price);
-      } catch (err) {
-        console.error('Не удалось получить цену товара:', err);
-        // Спиннер нельзя оставлять висеть и при ошибке запроса
-        catalogStore.hidePriceSpinner();
-      }
       initAddLisiner();
 
     });

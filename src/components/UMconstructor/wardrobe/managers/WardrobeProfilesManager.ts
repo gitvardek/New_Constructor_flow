@@ -8,6 +8,7 @@
 // scope.WARDROBE.profiles.
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
+import { WardrobeProfile } from "@/components/UMconstructor/wardrobe/types.ts";
 import { getWardrobeProfileMaterials, getWardrobeProfileHeightRange } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 export default class WardrobeProfilesManager {
@@ -33,14 +34,19 @@ export default class WardrobeProfilesManager {
         const profile = this.findWardrobeProfile(grid, profileId);
         if (!profile) return;
 
+        this.applyProfileType(grid, profile, profileProductId);
+        this.scope.reset(grid);
+    }
+
+    // Тело правки ОДНОГО профиля без reset() — общее для селектора карточки и
+    // для глобального "Все профили" (там reset() один на все профили).
+    private applyProfileType(grid: GridModule, profile: WardrobeProfile, profileProductId: number) {
         profile.profileProductId = profileProductId;
 
         const availableColors = getWardrobeProfileMaterials(grid.productID, profileProductId);
         if (!availableColors.some((c) => c.ID === profile.colorId)) {
             profile.colorId = availableColors[0]?.ID;
         }
-
-        this.scope.reset(grid);
     }
 
     // "Крепление профиля" (переименовано с "Тип профиля" — раньше был
@@ -53,10 +59,59 @@ export default class WardrobeProfilesManager {
         const profile = this.findWardrobeProfile(grid, profileId);
         if (!profile) return;
 
+        this.applyProfileFastening(grid, profile, fasteningId);
+        this.scope.reset(grid);
+    }
+
+    private applyProfileFastening(grid: GridModule, profile: WardrobeProfile, fasteningId: number) {
         profile.fasteningId = fasteningId;
 
         const range = getWardrobeProfileHeightRange(grid.productID, fasteningId);
         profile.height = Math.min(Math.max(profile.height, range.min), range.max);
+    }
+
+    // ==== Глобальные правки: блок "Все профили" в WardrobeProfilesView.vue ====
+    // Настройки у профилей модуля почти всегда одинаковые, проходить по каждой
+    // карточке незачем. Правила те же, что у одиночных методов выше (сброс
+    // цвета при смене типа, кламп высоты при смене крепления), reset(grid) —
+    // один на всё.
+    updateAllWardrobeProfilesType(grid: GridModule, profileProductId: number) {
+        const profiles = grid.wardrobeProfiles;
+        if (!profiles?.length) return;
+
+        profiles.forEach((profile) => this.applyProfileType(grid, profile, profileProductId));
+        this.scope.reset(grid);
+    }
+
+    updateAllWardrobeProfilesFastening(grid: GridModule, fasteningId: number) {
+        const profiles = grid.wardrobeProfiles;
+        if (!profiles?.length) return;
+
+        profiles.forEach((profile) => this.applyProfileFastening(grid, profile, fasteningId));
+        this.scope.reset(grid);
+    }
+
+    // Список цветов зависит от товара-профиля (getWardrobeProfileMaterials), а
+    // тип у профилей может быть разным — тем, у кого такого цвета в каталоге
+    // нет, он не ставится, о чём предупреждаем (как applyModuleHeightToProfiles).
+    updateAllWardrobeProfilesColor(grid: GridModule, colorId: number) {
+        const profiles = grid.wardrobeProfiles;
+        if (!profiles?.length) return;
+
+        let skipped = 0;
+
+        profiles.forEach((profile) => {
+            const availableColors = getWardrobeProfileMaterials(grid.productID, profile.profileProductId);
+            if (!availableColors.some((c) => c.ID === colorId)) {
+                skipped += 1;
+                return;
+            }
+            profile.colorId = colorId;
+        });
+
+        if (skipped) {
+            this.scope.callAlert("warning", `Цвет не применён к профилям (${skipped}) — он недоступен для их типа профиля`);
+        }
 
         this.scope.reset(grid);
     }

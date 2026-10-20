@@ -196,12 +196,20 @@ export const useModuleMaterials = ({ getEngine, getModule, getProductData, onCha
                 result = { ...objectData.CONFIG[currentPart.value] };
                 if (!result.COLOR) result.COLOR = objectData.CONFIG.MODULE_COLOR;
 
-                elementSize.value = { FASADE_WIDTH: module.depth, FASADE_HEIGHT: module.height, isPanel: true };
+                elementSize.value = {
+                    FASADE_WIDTH: module.depth,
+                    FASADE_HEIGHT: module.height,
+                    isPanel: true
+                };
                 break;
 
             case "TOPFASADECOLOR":
                 result = objectData.CONFIG[currentPart.value];
-                elementSize.value = { FASADE_WIDTH: module.width, FASADE_HEIGHT: module.depth, isPanel: true };
+                elementSize.value = {
+                    FASADE_WIDTH: Math.min(module.width, module.depth),
+                    FASADE_HEIGHT: Math.max(module.width, module.depth),
+                    isPanel: true,
+                };
                 break;
 
             default:

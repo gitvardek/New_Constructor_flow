@@ -51,7 +51,8 @@ const onAddFilling = (filling: any, groupID: number) => {
 <template>
   <div class="UM splitter-container--product-data">
     <div v-if="isFillingWidthRestricted" class="UM filling-width-warning">
-      Добавление недоступно: ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм
+      <!-- Добавление недоступно: ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм  -->
+      Ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм: доступны только аксессуары
     </div>
 
     <div v-if="isFillingHeightRestricted" class="UM filling-width-warning">
@@ -76,7 +77,7 @@ const onAddFilling = (filling: any, groupID: number) => {
                 v-for="(filling, itemKey) in (isSearch ? filteredMaterialList : fillingGroup.items)"
                 :key="itemKey + filling.NAME">
                 <ProductCard :name="filling.NAME" :image="_URL + filling.PREVIEW_PICTURE"
-                  :disabled="isFillingWidthRestricted || isFillingBlocked(fillingGroup.groupID, filling)"
+                  :disabled="isFillingBlocked(fillingGroup.groupID, filling)"
                   @click="onAddFilling(filling, fillingGroup.groupID)" />
               </li>
             </ul>

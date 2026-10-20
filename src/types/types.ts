@@ -519,6 +519,10 @@ export type TConfig = {
   LEFTSIDECOLOR?: TFasadeProp,
   RIGHTSIDECOLOR?: TFasadeProp,
   TOPFASADECOLOR?: TFasadeProp | TToptableUMProp,
+  /** Ширина накладки на крышку, мм, если она не равна ширине корпуса (тумбочка гардеробной) */
+  TOPFASADE_WIDTH?: number,
+  /** Глубина накладки на крышку, мм, если она не равна расчётной от корпуса (тумбочка гардеробной) */
+  TOPFASADE_DEPTH?: number,
   LOOPS?: {},
   isHiTech?: boolean,
   isSlideDoor?: boolean,

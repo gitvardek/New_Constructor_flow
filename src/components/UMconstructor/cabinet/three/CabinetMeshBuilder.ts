@@ -13,11 +13,21 @@
 
 import * as THREE from "three";
 import { toRaw } from "vue";
-import { getWardrobeShelfDepth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeShelfDepth, getWardrobeFillingWidth } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { cloneUMData } from "@/components/UMconstructor/editor-v2/session/cloneUMData.ts";
 import { getCabinetWidth, getCabinetHeight, getCabinetThickness, removeExcludedCabinetOptions } from "../CabinetSystem.ts";
 import { getCabinetProduct } from "../cabinetProduct.ts";
 
+// Что сборка дописывает в CONFIG и что из этого нужно снаружи:
+// - SECTIONS — наполнение секций: его заполняют ModulegridParser (из сетки) и
+//   AdjacencyCalculator (ADDITIVES); basketMapper читает SECTIONSFILLING{n}
+//   именно из CONFIG.SECTIONS[n].fillings, как у УМ на сцене;
+// - TOPFASADECOLOR — габариты накладки на крышку (width/depth/thickness), их
+//   считает BuildProduct.applyBodyOverrides по толщине материала и размеру
+//   модуля, кроме ширины и глубины: их задаёт buildFromConfig по секции и
+//   глубине системы (CONFIG.TOPFASADE_WIDTH / TOPFASADE_DEPTH); в корзину
+//   TOPFASADECOLOR уходит как есть, и без них накладка приезжает без размеров
+//   (в отличие от обычного УМ).
 const BUILDER_FILLED_CONFIG_KEYS = ['SECTIONS', 'TOPFASADECOLOR'] as const
 
 export class CabinetMeshBuilder {
@@ -30,7 +40,7 @@ export class CabinetMeshBuilder {
     build(props: any, item: any, sectionWidth: number): THREE.Object3D | null {
         if (item.cabinet?.config?.MODULEGRID) {
             try {
-                const mesh = this.buildFromConfig(props, item)
+                const mesh = this.buildFromConfig(props, item, sectionWidth)
                 if (mesh) return mesh
             } catch (error) {
                 console.error(`Тумбочка ${item.id}: ошибка сборки УМ, запасной корпус (наполнения и фасадов не будет)`, error)
@@ -44,7 +54,7 @@ export class CabinetMeshBuilder {
     // PROPS собирается заново на каждую сборку из копии конфига: сборщик пишет в
     // PROPS/CONFIG (FASADE, FASADE_POSITIONS, SIZE_OFFSET...), а конфиг тумбочки —
     // источник для её редактора.
-    private buildFromConfig(props: any, item: any): THREE.Object3D | null {
+    private buildFromConfig(props: any, item: any, sectionWidth: number): THREE.Object3D | null {
         const umBuilder = this.builder.root?._universalGeometryBuilder?.buildProduct
         if (!umBuilder) {
             console.warn('Тумбочка: сборщик УМ недоступен')
@@ -55,6 +65,13 @@ export class CabinetMeshBuilder {
         cabinetProps.CONFIG = cloneUMData(item.cabinet.config)
         // Конфиги, сохранённые до исключения опций (опоры и т.п.).
         removeExcludedCabinetOptions(cabinetProps.CONFIG)
+        // Накладная крышка идёт по ширине СЕКЦИИ, а не корпуса: зазор от профилей
+        // тот же, что у полки, т.е. накладка свисает над корпусом с обеих сторон.
+        // Глубина — ровно в глубину системы (вместо формулы УМ от корпуса):
+        // корпус уже уменьшен на свес крышки и фасад, см. cabinet/cabinetDepth.ts.
+        // Оба поля подставляет BuildProduct.applyBodyOverrides.
+        cabinetProps.CONFIG.TOPFASADE_WIDTH = getWardrobeFillingWidth(sectionWidth, 'shelf')
+        cabinetProps.CONFIG.TOPFASADE_DEPTH = this.getDepth(props)
 
         const holder = new THREE.Object3D()
         holder.userData.PROPS = cabinetProps
@@ -97,12 +114,16 @@ export class CabinetMeshBuilder {
             return null
         }
         const center = box.getCenter(new THREE.Vector3())
-        const depth = cabinetProps.CONFIG.MODULEGRID.depth || box.max.z - box.min.z
+        // По глубине СИСТЕМЫ, а не корпуса: корпус мельче на свес крышки и
+        // фасад (cabinet/cabinetDepth.ts), и эти миллиметры должны уйти в
+        // перед, а не развести тумбочку с полками по задней грани.
+        const depth = this.getDepth(props) || box.max.z - box.min.z
         const floorY = -props.CONFIG.SIZE.height / 2
 
         body.position.x -= center.x
         body.position.y += floorY + item.positionY - box.min.y
-        // Задняя грань корпуса — на -D/2, фасад выступает вперёд на свою толщину.
+        // Задняя грань корпуса (и накладки — у неё та же задняя плоскость) —
+        // на -D/2, фасад выступает вперёд на свою толщину.
         body.position.z += -depth / 2 - box.min.z
 
         const group = new THREE.Object3D()

@@ -52,8 +52,10 @@ const toggleGroup = (groupId: number, isOpen: boolean) => {
   filteredItems.value = [];
 };
 
+// Ширину проверяет сам isFillingBlocked: группам из FILLINGS_WIDTH_UNRESTRICTED_GROUPS
+// широкая область не мешает.
 const isDisabled = (group: FillingGroup, item: any) =>
-  isFillingWidthRestricted.value || isFillingBlocked(group.groupID, item);
+  isFillingBlocked(group.groupID, item);
 
 const addFilling = (group: FillingGroup, item: any) => {
   if (isDisabled(group, item)) return;
@@ -71,7 +73,7 @@ const addFilling = (group: FillingGroup, item: any) => {
       <p class="UM no-select um-fillings-insert__target">Добавить в: {{ targetTitle }}</p>
 
       <div v-if="isFillingWidthRestricted" class="UM filling-width-warning">
-        Добавление недоступно: ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм
+        Ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм: доступны только аксессуары
       </div>
       <div v-if="isFillingHeightRestricted" class="UM filling-width-warning">
         Добавление недоступно: высота области меньше {{ UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT }} мм

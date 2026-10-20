@@ -12,6 +12,7 @@ import { useModelState } from "@/store/appliction/useModelState.ts";
 import { WARDROBE_ANGLED_SHELF_ANGLE_DEG, WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT, WARDROBE_SHELF_MIN_GAP_FLAT, WARDROBE_SHELF_MIN_GAP_ANGLED, WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED, WARDROBE_RAIL_MIN_GAP, WARDROBE_SHELF_SIDE_GAP, WARDROBE_RAIL_SIDE_GAP } from "@/Application/F-wardrobeData.ts";
 import { CABINET_MIN_GAP, CABINET_SIDE_INSET } from "@/components/UMconstructor/cabinet/cabinetData.ts";
 import { getCabinetHeight, getWardrobeItemCeilingGap } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
+import { getWardrobeCabinetTopThickness } from "@/components/UMconstructor/cabinet/cabinetTopPanel.ts";
 import type { WardrobeFillingShape } from "@/components/UMconstructor/wardrobe/types.ts";
 
 type PositionedFilling = WardrobeFillingShape & { positionY: number };
@@ -474,15 +475,21 @@ export function getWardrobeAngledShelfFlatGapAbove(
 // материала; наклонная — свою проекцию вместе с кронштейном (см.
 // getWardrobeAngledShelfProjection); штанга — свой railHeight напрямую
 // (item.height каталога), минуя getWardrobeShelfThickness: у неё нет ни
-// material, ни colorId; тумбочка — высоту корпуса (cabinet.height).
+// material, ни colorId; тумбочка — высоту корпуса (cabinet.height) ПЛЮС
+// крышку, если она включена: крышка стоит на корпусе и занимает место в
+// секции так же, как он (cabinet/cabinetTopPanel.ts).
 // wardrobeProductId нужен только для толщины стекла.
+//
+// Отсюда высоту берут и 2D (WardrobeSceneBuilder.createWardrobeShelf), и вся
+// коллизия — зазоры пар, поиск свободного места, границы драга и проверка
+// "помещается ли" при пересчёте, поэтому крышка учитывается везде сразу.
 export function getWardrobeShelfPixiHeight(
     shelf: WardrobeFillingShape,
     depthMm: number,
     wardrobeProductId?: number,
 ): number {
     if (shelf.type === 'rail') return Number(shelf.railHeight) || 0;
-    if (shelf.type === 'cabinet') return getCabinetHeight(shelf);
+    if (shelf.type === 'cabinet') return getCabinetHeight(shelf) + getWardrobeCabinetTopThickness(shelf);
 
     const thicknessMm = getWardrobeShelfThickness(shelf.colorId, shelf.material, wardrobeProductId);
     if (shelf.shelfType !== 'angled') return thicknessMm;

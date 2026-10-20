@@ -20,7 +20,7 @@ import { WARDROBE_COLORS, getWardrobeShelfColors } from "./WardrobeColors.ts";
 import { createHorizontalDimension, createVerticalDimension, createNameLabel } from "@/components/UMconstructor/editor-v2/render2d/dimensions.ts";
 import { SELECTION_STROKE_COLOR } from "@/components/UMconstructor/editor-v2/render2d/palette.ts";
 import { isWardrobeCabinet } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
-import { drawWardrobeCabinet, getCabinetSpanPx } from "@/components/UMconstructor/cabinet/render/CabinetGraphics.ts";
+import { drawWardrobeCabinet, getCabinetOuterSpanPx } from "@/components/UMconstructor/cabinet/render/CabinetGraphics.ts";
 
 // Подпись элемента секции на канвасе. index — порядок в wardrobeFilling (как в
 // WardrobeFillingsView.vue). Общая для createWardrobeSector и WardrobeDragEngine.
@@ -32,9 +32,10 @@ export function getWardrobeItemName(shelf, index) {
 
 // Горизонтальный габарит элемента в локальных px секции: у каждого типа свой
 // зазор от профиля (WardrobeSystem.getWardrobeFillingSideGap), у тумбочки его
-// считает её же хелпер (cabinet/render/CabinetGraphics.getCabinetSpanPx).
+// считает её же хелпер (cabinet/render/CabinetGraphics.getCabinetOuterSpanPx —
+// с крышкой габарит шире корпуса на её свес).
 export function getWardrobeItemSpanPx(ctx, shelf, sectorWidthPx) {
-    if (isWardrobeCabinet(shelf)) return getCabinetSpanPx(ctx, sectorWidthPx);
+    if (isWardrobeCabinet(shelf)) return getCabinetOuterSpanPx(ctx, shelf, sectorWidthPx);
 
     const gapPx = ctx.getPixelWidth(getWardrobeFillingSideGap(shelf?.type));
     return { x: gapPx, width: Math.max(sectorWidthPx - 2 * gapPx, 1) };

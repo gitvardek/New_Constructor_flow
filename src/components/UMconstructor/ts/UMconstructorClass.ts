@@ -365,9 +365,6 @@ export default class UMconstructorClass {
     getMinMaxModuleSize(productData: TTotalProps, _dimension: string, _minmax: string) {
         const dimension = _dimension.toUpperCase()
         const minmax = _minmax.toUpperCase()
-
-        if (dimension === 'HEIGHT' && minmax === 'MIN') return 150
-
         return +productData.CONFIG.SIZE_EDIT[`SIZE_EDIT_` + dimension + `_` + minmax];
     }
 

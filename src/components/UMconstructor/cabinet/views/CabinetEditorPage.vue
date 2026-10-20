@@ -23,6 +23,8 @@ import UMRightPanel from "@/components/UMconstructor/editor-v2/views/UMRightPane
 import { provideEditorPolicy } from "@/components/UMconstructor/editor-v2/policy/editorPolicy.ts";
 import type { constructorMode } from "@/components/UMconstructor/types/UMtypes.ts";
 import { CABINET_EDITOR_POLICY } from "../cabinetEditorPolicy.ts";
+import { getCabinetBodyDepth } from "../cabinetDepth.ts";
+import { getCabinetTopPanelThickness } from "../cabinetTopPanel.ts";
 import UMLoader from "@/components/UMconstructor/UMLoader.vue";
 import EditorBreadcrumbs from "@/components/UMconstructor/editor-v2/navigation/EditorBreadcrumbs.vue";
 import { useEditorNavigation } from "@/components/UMconstructor/editor-v2/navigation/editorNavigation.ts";
@@ -117,6 +119,24 @@ const { module } = useUMEditorLifecycle({
     navigation?.pop();
   },
 });
+
+// Глубина КОРПУСА (cabinet/cabinetDepth.ts) и предел его высоты зависят от
+// крышки и фасадов, а их меняют в правой панели уже после старта сессии.
+// Следим за расчётной глубиной и толщиной крышки: getter читает TOPFASADECOLOR
+// и полотна сетки, поэтому реагирует на любую их правку, а примитивное
+// значение не даёт ложных срабатываний на пересборке сетки. Толщина крышки
+// нужна в сигнатуре отдельно: от смены её МАТЕРИАЛА глубина корпуса не
+// меняется (вычет на свес постоянный), а высота — меняется.
+watch(
+  () => {
+    const config = store.getUMData()?.CONFIG;
+    const depth = getCabinetBodyDepth(props.session.limits.systemDepth, config, store.getUMGrid());
+    return `${depth}|${getCabinetTopPanelThickness(config)}`;
+  },
+  () => {
+    if (module.value) props.session.syncSize(engine, store.getUMGrid());
+  },
+);
 
 // Точка отсчёта несохранённых изменений — после первого пересчёта сетки.
 let baseline: string | null = null;

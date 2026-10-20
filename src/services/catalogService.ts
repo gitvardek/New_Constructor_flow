@@ -1,8 +1,11 @@
 import axios from 'axios'
+import { useAuthStore } from '@/store/appStore/authStore'
+import { useConfigStore } from '@/store/appStore/useConfigStore'
+import { BASE_DOMAIN } from '@/utils/originalDomain'
 
 // Константы
 // const API_URL = 'https://vardek.ru'
-const API_URL = 'https://dev.vardek.online/'
+const API_URL = `https://${BASE_DOMAIN}/`
 // const BASE_API_URL = `${API_URL}/local/templates/constructor/API`
 const BASE_API_URL = `${API_URL}api/modeller/catalog/getlist/`
 const REQUEST_TIMEOUT = 10000
@@ -31,8 +34,10 @@ export const CatalogService = {
     try {
       let filter = ''
       if (query) filter = `&filter=${query}`
+      const userId = useAuthStore().userData?.id ?? '22541'
+      const cityID = useConfigStore().cityID || '17281'
       const { data } = await axios.get(
-        `${BASE_API_URL}?config=${config}&style=${style}&cityid=17281&cityidprice=17281&section=${idSection}&type=catalog&page=${page}${filter}&userid=22541`,
+        `${BASE_API_URL}?config=${config}&style=${style}&cityid=${cityID}&cityidprice=${cityID}&section=${idSection}&type=catalog&page=${page}${filter}&userid=${userId}`,
         // `${BASE_API_URL}?config=43830&style=689680&cityid=17281&cityidprice=17281&section=${idSection}&type=catalog&page=${page}${filter}&userid=22541`,
         // `${BASE_API_URL}/data.get.php?config=43830&style=689680&cityid=17281&cityidprice=17281&section=${idSection}&type=catalog&page=${page}${filter}`,
         // https://dev.vardek.online/api/modeller/catalog/getlist/?config=43830&style=689680&cityid=17281&cityidprice=17281&section=2483&type=catalog&page=1
@@ -53,9 +58,9 @@ export const CatalogService = {
     }
   },
 
-  async getProductDetails( data: ProductRequestData): Promise<ProductDetailsResponse> {
+  async getProductDetails(data: ProductRequestData): Promise<ProductDetailsResponse> {
     try {
-      const url = `https://vardek.ru/local/templates/constructor/API/catalog.element.get.php`
+      const url = `https://${BASE_DOMAIN}/local/templates/constructor/API/catalog.element.get.php`
       const response = await axios.post(url, data, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -72,8 +77,17 @@ export const CatalogService = {
   },
   async getProductPrice(formData: ProductRequestData): Promise<ProductPriceResponse> {
     try {
-      const url = `https://vardek.ru/local/templates/constructor/API/catalog.element.getprice.php`
-      const response = await axios.post(url, formData, {
+      const userId = useAuthStore().userData?.id ?? '22541'
+      const cityID = useConfigStore().cityID || '17281'
+      const data = formData instanceof FormData
+        ? formData
+        : new FormData(formData as HTMLFormElement)
+      data.append('userid', userId)
+      data.append('cityid', cityID)
+      data.append('debug_source', '1')
+
+      const url = `https://${BASE_DOMAIN}/local/templates/constructor/API/catalog.element.getprice.php`
+      const response = await axios.post(url, data, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -125,5 +139,5 @@ export const CatalogService = {
       throw error
     }
   },
-  
+
 }

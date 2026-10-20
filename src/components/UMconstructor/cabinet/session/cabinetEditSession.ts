@@ -17,7 +17,9 @@ import { cloneUMData } from "@/components/UMconstructor/editor-v2/session/cloneU
 import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import { scaleGridWidth } from "@/components/UMconstructor/editor-v2/grid/scaleGridWidth.ts";
 import { getCabinetProduct } from "../cabinetProduct.ts";
-import { getCabinetEditLimits, type CabinetEditLimits } from "../cabinetLimits.ts";
+import { getCabinetEditLimits, getCabinetMaxCarcassHeight, type CabinetEditLimits } from "../cabinetLimits.ts";
+import { getCabinetBodyDepth } from "../cabinetDepth.ts";
+import { getCabinetTopPanelThickness } from "../cabinetTopPanel.ts";
 import { createDefaultCabinetConfig, getCabinetHeight, removeExcludedCabinetOptions } from "../CabinetSystem.ts";
 
 interface SessionTarget {
@@ -55,7 +57,10 @@ const prepareConfig = (engine: UMconstructorClass, product: any, CONFIG: any, li
     const hasGrid = CONFIG.MODULEGRID && Object.keys(CONFIG.MODULEGRID).length > 0;
     const sourceHeight = (hasGrid && CONFIG.MODULEGRID.height) || fallbackHeight;
     const height = Math.min(Math.max(sourceHeight, limits.minHeight), limits.maxHeight);
-    const size = { width: limits.width, height, depth: limits.depth };
+    // Глубина — по ЭТОМУ конфигу, а не limits.depth: при сбросе содержимого
+    // (resetContent) фасадов в нём уже нет, а крышка осталась.
+    const depth = getCabinetBodyDepth(limits.systemDepth, CONFIG);
+    const size = { width: limits.width, height, depth };
 
     CONFIG.SIZE = { ...CONFIG.SIZE, ...size };
     engine.BUILDER.getProductSize(CONFIG, { ...product, ...size });
@@ -76,8 +81,8 @@ const prepareConfig = (engine: UMconstructorClass, product: any, CONFIG: any, li
         ...CONFIG.SIZE_EDIT,
         SIZE_EDIT_WIDTH_MIN: limits.width,
         SIZE_EDIT_WIDTH_MAX: limits.width,
-        SIZE_EDIT_DEPTH_MIN: limits.depth,
-        SIZE_EDIT_DEPTH_MAX: limits.depth,
+        SIZE_EDIT_DEPTH_MIN: depth,
+        SIZE_EDIT_DEPTH_MAX: depth,
         SIZE_EDIT_HEIGHT_MIN: limits.minHeight,
         SIZE_EDIT_HEIGHT_MAX: limits.maxHeight,
     };
@@ -140,6 +145,58 @@ export const createCabinetEditSession = ({ wardrobeEngine, wardrobeGrid: grid, s
         if (isNew) editorEngine.applyHorizont(grid, 0);
     };
 
+    // Глубина корпуса (cabinetDepth.ts) и предел его высоты зависят от крышки и
+    // фасадов, а их включают уже после prepareConfig — в самом редакторе.
+    // Путь тот же, что у ручной правки "Глубины"/"Высоты"
+    // (UMconstructorClass.updateTotalDepth/updateTotalHeight), но без debounce:
+    // источник размеров для reset() — UM_STORE.totalDepth/totalHeight, поля
+    // ввода читают их же, поэтому обновляются и стор, и сетка, и SIZE/SIZE_EDIT.
+    // editorEngine — реактивная обёртка движка со страницы (как у prepareGrid).
+    // true — что-то изменилось и сетка пересчитана.
+    const syncSize = (editorEngine: UMconstructorClass, grid: any): boolean => {
+        const store = engine.UM_STORE;
+        const CONFIG = store.getUMData().CONFIG;
+
+        const depth = getCabinetBodyDepth(limits.systemDepth, CONFIG, grid);
+        const depthChanged = depth !== store.totalDepth || depth !== CONFIG.SIZE.depth;
+
+        // Крышка стоит НА корпусе и занимает место в секции вместе с ним, так
+        // что её толщина вычитается из доступной высоты корпуса.
+        const maxHeight = getCabinetMaxCarcassHeight(limits.maxTotalHeight, getCabinetTopPanelThickness(CONFIG));
+        const height = Math.min(Math.max(grid.height, limits.minHeight), maxHeight);
+        const heightChanged = height !== store.totalHeight || height !== grid.height;
+        const squeezed = height < grid.height;
+
+        if (!depthChanged && !heightChanged && CONFIG.SIZE_EDIT.SIZE_EDIT_HEIGHT_MAX === maxHeight) return false;
+
+        if (depthChanged) {
+            CONFIG.SIZE.depth = depth;
+            CONFIG.SIZE_EDIT.SIZE_EDIT_DEPTH_MIN = depth;
+            CONFIG.SIZE_EDIT.SIZE_EDIT_DEPTH_MAX = depth;
+            grid.depth = store.totalDepth = depth;
+        }
+
+        CONFIG.SIZE_EDIT.SIZE_EDIT_HEIGHT_MAX = maxHeight;
+
+        if (heightChanged) {
+            CONFIG.SIZE.height = height;
+            grid.height = store.totalHeight = height;
+            // Масштаб канваса считается от высоты модуля — как при правке поля.
+            // RENDER_REF объявлен ref'ом компонента, а внутри движка он уже
+            // развёрнут реактивностью (см. CabinetEditorPage) — отсюда приведение.
+            (editorEngine.RENDER_REF as any)?.updateTotalSize?.(height, "height");
+        }
+
+        editorEngine.checkSideColorsConversations();
+        editorEngine.reset(grid);
+
+        if (squeezed) {
+            editorEngine.callAlert("warning", `Высота корпуса уменьшена до ${height} мм: сверху встала крышка`);
+        }
+
+        return true;
+    };
+
     // Запись результата в тумбочку без пересчёта гардеробной.
     // grid — проверенная сетка редактора (без grid.errors).
     const writeBack = (grid: any) => {
@@ -167,6 +224,7 @@ export const createCabinetEditSession = ({ wardrobeEngine, wardrobeGrid: grid, s
         productData: { PROPS, globalData: product.ID },
         limits,
         prepareGrid,
+        syncSize,
         snapshot,
         writeBack,
         apply,

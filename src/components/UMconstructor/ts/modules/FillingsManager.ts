@@ -6,7 +6,7 @@ import {
     GridModule,
     FillingObject,
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import { FILLINGS_RESTRICTION_EXCEPTIONS, UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
+import { FILLINGS_RESTRICTION_EXCEPTIONS, FILLINGS_WIDTH_UNRESTRICTED_GROUPS, UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
 import {
     FILLING_TYPE_BY_GROUP_ID,
     classifyFillingType,
@@ -57,6 +57,7 @@ export default class FillingsManager {
             values: [2166308],
             collisionWith: 'loop',
             condition: (grid) => grid.productID !== UM_PARAMS.RASPASHNOY_ID
+                && grid.productID !== UM_PARAMS.DEFAULT_UM_ID
         }
     ]
     private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
@@ -207,8 +208,9 @@ export default class FillingsManager {
 
         let currentModuleSegment = currentExtra || currentRow || currentCell || currentSection
         const isRestrictionException = FILLINGS_RESTRICTION_EXCEPTIONS.includes(+product.ID)
+        const isWidthUnrestrictedGroup = FILLINGS_WIDTH_UNRESTRICTED_GROUPS.includes(+productGroupID)
 
-        if (!isRestrictionException && currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
+        if (!isRestrictionException && !isWidthUnrestrictedGroup && currentModuleSegment.width > UM_PARAMS.FILLINGS_MAX_WIDTH) {
             this.scope.callAlert("error", `Нельзя добавить наполнение: ширина области (${currentModuleSegment.width} мм) превышает ${UM_PARAMS.FILLINGS_MAX_WIDTH} мм`)
             return;
         }
