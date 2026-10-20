@@ -527,6 +527,15 @@ export default class ExternalFasadesManager {
             return
         }
 
+        this.fitStack(secIndex, grid, delta)
+    };
+
+    // Та же укладка, но без привязки к цоколю: delta — на сколько уехал пол, при изменении
+    // габаритов он на месте и delta = 0, а меняется потолок. Нужна после ресайза, потому что
+    // фасад выше своего тела: телам места ещё хватает, а фасады уже наезжают друг на друга.
+    // Возвращает тела, не влезшие в фасадную зону даже после ужатия промежутков (сверху вниз),
+    // и признак того, что стопка сдвинулась
+    fitStack(secIndex: number, grid: GridModule, delta: number = 0): { overflow: any[], moved: boolean } {
         const OTSTUP = UM_PARAMS.FASADES_MIN_GAP
 
         const section = grid.sections?.[secIndex]
@@ -572,7 +581,7 @@ export default class ExternalFasadesManager {
         })
 
         if (!bodies.length) {
-            return
+            return { overflow: [], moved: false }
         }
 
         // Считаем в координатах фасадов — тех, что раскладывает calcDrawersFasadesPositons.
@@ -678,6 +687,12 @@ export default class ExternalFasadesManager {
             const body = sorted.find(item => item.id === fasade.item)
             placeFasade(fasade, body)
         })
+
+        // Промежутки ужаты до предела, а стопка всё равно упирается в потолок: этим телам
+        // места в фасадной зоне нет. Отдаём сверху вниз — снимать их нужно в этом порядке
+        const overflow = sorted.filter((body, index) => target[index] + boxes[index].height > ceiling).reverse()
+
+        return { overflow, moved: sorted.some(body => shiftOf.get(body) !== 0) }
     };
 
     calcDrawersFasadesPositons(secIndex: number, _grid: GridModule){
