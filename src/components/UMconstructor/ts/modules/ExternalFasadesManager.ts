@@ -11,7 +11,7 @@ import {
 import { TFasadeProp } from "@/types/types.ts";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
-import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 
 
 type SplitGroup = {
@@ -482,7 +482,7 @@ export default class ExternalFasadesManager {
                     height: Math.floor(upperFasadeSize),
                     type: "fasade",
                 })
-                
+
             if (upperFasadeSize > 0) {
                 fullFasadelSize = fullFasadelSize - upperFasadeSize - (box.isProfile || topBox?.isProfile ? 0 : otstup)
                 bottomFasadePosition = bottomFasadePosition + upperFasadeSize + (box.isProfile || topBox?.isProfile ? 0 : otstup)
@@ -606,6 +606,15 @@ export default class ExternalFasadesManager {
             return
         }
 
+        this.fitStack(secIndex, grid, delta)
+    };
+
+    // Та же укладка, но без привязки к цоколю: delta — на сколько уехал пол, при изменении
+    // габаритов он на месте и delta = 0, а меняется потолок. Нужна после ресайза, потому что
+    // фасад выше своего тела: телам места ещё хватает, а фасады уже наезжают друг на друга.
+    // Возвращает тела, не влезшие в фасадную зону даже после ужатия промежутков (сверху вниз),
+    // и признак того, что стопка сдвинулась
+    fitStack(secIndex: number, grid: GridModule, delta: number = 0): { overflow: any[], moved: boolean } {
         const OTSTUP = UM_PARAMS.FASADES_MIN_GAP
 
         const section = grid.sections?.[secIndex]
@@ -629,6 +638,10 @@ export default class ExternalFasadesManager {
             }
         })
 
+        // Профиль берём из наполнения: после saveUMGrid копия в hiTechProfiles — уже другой
+        // объект, а 2D и 3D строят профиль по fillings. Раньше в стопку попадала копия,
+        // и двигалась только она: фасады раскладывались по одной позиции профиля, а рисовался
+        // он по другой — стык фасадов уезжал от профиля
         section?.hiTechProfiles?.forEach(profile => {
             const twin = this.scope.FILLINGS.getFillingObject({
                 grid,
@@ -647,7 +660,7 @@ export default class ExternalFasadesManager {
         })
 
         if (!bodies.length) {
-            return
+            return { overflow: [], moved: false }
         }
 
         // Считаем в координатах фасадов — тех, что раскладывает calcDrawersFasadesPositons.
@@ -676,8 +689,10 @@ export default class ExternalFasadesManager {
         const floor = (grid.horizont ?? 0) + delta + 2
         const ceiling = grid.height - 2
 
-        // Сначала уносим всю стопку за полом: расстояние до цоколя у каждого ящика
-        // сохраняется. Дальше двумя проходами загоняем её в фасадную зону
+        // Сначала уносим за полом ящики: расстояние до цоколя у каждого сохраняется.
+        // Профиль за полом не идёт — он закреплён к боковинам, и его высота в модуле
+        // от цоколя не зависит. Дальше двумя проходами загоняем стопку в фасадную зону:
+        // там профиль и уступит место, если ящикам его не хватит
         const target = boxes.map((box, index) => box.y + (sorted[index].isProfile ? 0 : delta))
 
         // Сверху вниз: выше потолка подниматься некуда, и каждый нижний уступает соседу.
@@ -718,7 +733,9 @@ export default class ExternalFasadesManager {
             body.position.y -= shift
             if (body.distances) {
                 // Потолок секции на месте, а пол ушёл на delta: до потолка стало ближе
-                // ровно на сдвиг, до пола — на разницу сдвига и цоколя
+                // ровно на сдвиг, до пола — на разницу сдвига и цоколя. Деталь могла
+                // и остаться на месте (профиль, или ящик, которому сдвиг срезал потолок) —
+                // пол под ней всё равно уехал, поэтому расстояния пересчитываем всегда
                 body.distances.top -= shift
                 body.distances.bottom += shift - delta
             }
@@ -749,5 +766,11 @@ export default class ExternalFasadesManager {
             const body = sorted.find(item => item.id === fasade.item)
             placeFasade(fasade, body)
         })
+
+        // Промежутки ужаты до предела, а стопка всё равно упирается в потолок: этим телам
+        // места в фасадной зоне нет. Отдаём сверху вниз — снимать их нужно в этом порядке
+        const overflow = sorted.filter((body, index) => target[index] + boxes[index].height > ceiling).reverse()
+
+        return { overflow, moved: sorted.some(body => shiftOf.get(body) !== 0) }
     };
 }

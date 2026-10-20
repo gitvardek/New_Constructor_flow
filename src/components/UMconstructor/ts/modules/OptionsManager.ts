@@ -1,6 +1,6 @@
 //@ts-nocheck
 
-import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import {GridModule} from "@/types/constructor2d/interfaсes.ts";
 
 export default class OptionsManager {

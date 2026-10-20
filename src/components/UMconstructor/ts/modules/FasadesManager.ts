@@ -1,6 +1,6 @@
 //@ts-nocheck
 
-import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import ExternalFasadesManager from "@/components/UMconstructor/ts/modules/ExternalFasadesManager.ts";
 import { FasadeObject, GridModule, LOOPSIDE, TSelectedCell } from "./../../types/UMtypes.ts";
 import { TFasadeProp } from "@/types/types.ts";

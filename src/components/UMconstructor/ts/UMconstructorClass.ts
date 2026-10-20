@@ -800,6 +800,8 @@ export default class UMconstructorClass {
             this.FILLINGS.cleanupOversizedFillings(module)
             this.FILLINGS.cleanupUniversalDrawers(module)
 
+            this.FILLINGS.cleanupInvalidFillings(module)
+
             // Сторона бокового профиля зависит от петель крайних секций и ширины модуля —
             // пересчитываем, когда петли уже разложены
             this.PROFILES.updateSideProfile(module)

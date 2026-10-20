@@ -1,13 +1,13 @@
 //@ts-nocheck
 
-import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import * as THREE from "three";
 import {
     GridModule,
     TSelectedCell,
     DrawerFasadeObject,
     FillingObject,
-    MANUFACTURER, GridSection, GridCell, GridCellsRow, GridRowExtra, FasadeObject, LOOPSIDE
+    MANUFACTURER, GridSection, GridCell, GridCellsRow, GridRowExtra, FasadeObject, LOOPSIDE, LoopZone
 } from "@/components/UMconstructor/types/UMtypes.ts";
 import { TFasadeProp } from "@/types/types.ts";
 import { FILLINGS_RESTRICTION_EXCEPTIONS, FILLINGS_WIDTH_UNRESTRICTED_GROUPS, UM_DRAWERS_IDS, UM_PARAMS } from "../../utils/Const";
@@ -1691,7 +1691,7 @@ export default class FillingsManager {
         })
     }
 
-    cleanupOversizedFillings(grid: GridModule) {
+     cleanupOversizedFillings(grid: GridModule) {
         const maxWidth = UM_PARAMS.FILLINGS_MAX_WIDTH;
         const deleteOversized = (
             segment: any,
@@ -1726,5 +1726,563 @@ export default class FillingsManager {
                 });
             });
         });
+    }
+
+    // Габариты модуля правятся и при установленном наполнении, поэтому после каждого
+    // пересчёта сетки наполнение нужно привести к новым размерам сегментов: позиции
+    // в сетке сдвинулись, а наполнение осталось на старых координатах и уезжало за
+    // пределы модуля. Сначала подгоняем, и только если место не нашлось — удаляем
+    cleanupInvalidFillings(grid: GridModule) {
+        let removed = 0
+        const touchedSections = new Set<number>()
+
+        // Где лежит каждое наполнение: укладка стопки работает со ссылками на тела,
+        // а для удаления нужны сегмент и индексы
+        const locations = new Map<any, { segment: any, secIndex: number, cellIndex: number | null, rowIndex: number | null, extraIndex: number | null }>()
+
+        const processSegment = (
+            segment: any,
+            secIndex: number,
+            cellIndex: number | null,
+            rowIndex: number | null,
+            extraIndex: number | null,
+        ) => {
+            if (!segment?.fillings?.length) {
+                return
+            }
+
+            // Удаляем в обратном порядке чтобы не сбивать индексы
+            for (let i = segment.fillings.length - 1; i >= 0; i--) {
+                const filling = segment.fillings[i]
+
+                if (!filling || this.isFillingPlacedByOwner(filling)) {
+                    continue
+                }
+
+                if (this.getFillingRejectReason(filling, segment, grid)) {
+                    this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false)
+                    removed++
+                    touchedSections.add(secIndex)
+                    continue
+                }
+
+                if (this.refitFilling(filling, segment, secIndex, grid)) {
+                    touchedSections.add(secIndex)
+                }
+
+                locations.set(filling, { segment, secIndex, cellIndex, rowIndex, extraIndex })
+            }
+        }
+
+        grid.sections?.forEach((section, secIndex) => {
+            processSegment(section, secIndex, null, null, null)
+            section.cells?.forEach((cell, cellIndex) => {
+                processSegment(cell, secIndex, cellIndex, null, null)
+                cell.cellsRows?.forEach((row, rowIndex) => {
+                    processSegment(row, secIndex, cellIndex, rowIndex, null)
+                    row.extras?.forEach((extra, extraIndex) => {
+                        processSegment(extra, secIndex, cellIndex, rowIndex, extraIndex)
+                    })
+                })
+            })
+        })
+
+        // Позиции внутри сегмента расставлены — теперь разводим стопку ящиков целиком:
+        // по отдельности тела помещаются, а их фасады могут наезжать друг на друга
+        grid.sections?.forEach((section, secIndex) => {
+            if (!section.fasadesDrawers?.length && !section.hiTechProfiles?.length) {
+                return
+            }
+
+            const stack = this.fitDrawersStack(secIndex, grid, locations)
+
+            removed += stack.removed
+
+            if (stack.removed || stack.moved) {
+                touchedSections.add(secIndex)
+            }
+        })
+
+        // Ящики встали на свои места — разводим с ними остальное наполнение: петли и зона
+        // фасада ящика заняты, и штанга под выдвижным ящиком стоять не может
+        removed += this.resolveZoneConflicts(grid, locations, touchedSections)
+
+        // Раскладка фасадов ящиков и ошибки петель считаются от позиций тел наполнения,
+        // поэтому пересчитываем их только там, где наполнение реально поменялось
+        touchedSections.forEach(secIndex => {
+            const section = grid.sections?.[secIndex]
+
+            if (!section) {
+                return
+            }
+
+            if (section.fasadesDrawers?.length || section.hiTechProfiles?.length) {
+                this.scope.FASADES.EXTERNAL_FASADES.calcDrawersFasades(secIndex, false, grid)
+            }
+
+            this.scope.LOOPS.checkLoopsCollision(secIndex, grid)
+        })
+
+        if (removed) {
+            this.scope.callAlert("warning", `Наполнение не поместилось в новые габариты и было удалено (${removed} шт.)`)
+        }
+    }
+
+    // Фасад ящика выше своего тела и свисает ниже него, поэтому после ресайза телам места
+    // хватает, а фасады наезжают друг на друга. Раскладываем стопку целиком тем же алгоритмом,
+    // что и смена цоколя (промежутки ужимаются до FASADES_MIN_GAP, порядок сохраняется),
+    // а что не влезло даже так — снимаем сверху вниз. Профиль в стопке остаётся на месте:
+    // он крепится к боковинам и только уступает место ящикам
+    private fitDrawersStack(
+        secIndex: number,
+        grid: GridModule,
+        locations: Map<any, { segment: any, secIndex: number, cellIndex: number | null, rowIndex: number | null, extraIndex: number | null }>,
+    ): { removed: number, moved: boolean } {
+        let removed = 0
+        let moved = false
+
+        // Каждое снятие меняет стопку, поэтому укладываем заново, пока всё не поместится.
+        // Предел итераций — число ящиков: больше снимать нечего
+        const limit = (grid.sections?.[secIndex]?.fasadesDrawers?.length ?? 0) + 1
+
+        for (let i = 0; i < limit; i++) {
+            const stack = this.scope.FASADES.EXTERNAL_FASADES.fitStack(secIndex, grid)
+
+            moved = moved || stack.moved
+
+            const victim = stack.overflow.find(body => !body.isProfile && locations.has(body))
+
+            if (!victim) {
+                break
+            }
+
+            const place = locations.get(victim)
+            const index = place.segment.fillings?.indexOf(victim) ?? -1
+
+            locations.delete(victim)
+
+            if (index === -1) {
+                break
+            }
+
+            this.deleteFilling(secIndex, index, place.cellIndex, place.rowIndex, place.extraIndex, grid, false)
+            removed++
+        }
+
+        return { removed, moved }
+    }
+
+    // Позицию этих объектов задаёт не сегмент: встраиваемый ящик двигается вместе со своим
+    // внешним, царга — часть конструктива секции
+    private isFillingPlacedByOwner(filling: FillingObject) {
+        return filling.type === 'tsarga' || !!filling.innerDrawerConstraint
+    }
+
+    // Причина, по которой наполнение больше нельзя оставить в сегменте. Набор проверок
+    // повторяет установку (addFilling / createFillingDataToCheck): после изменения габаритов
+    // наполнение должно проходить их так же, как при добавлении. null — наполнение валидно
+    private getFillingRejectReason(filling: FillingObject, segment: any, grid: GridModule): string | null {
+        // Наполнение из списка исключений ставится без ограничений по размерам области
+        if (FILLINGS_RESTRICTION_EXCEPTIONS.includes(+filling.product)) {
+            return null
+        }
+
+        if (segment.height <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT) {
+            return "segment"
+        }
+
+        // У полок и вертикальных разделителей своей высоты нет — их тянет по сегменту updateFilling
+        const isStretched = filling.isVerticalItem || filling.type === 'shelf' || filling.type === 'glass_shelf'
+        if (!isStretched && !filling.isProfile && filling.height > segment.height) {
+            return "height"
+        }
+
+        // Допустимый диапазон позиций схлопнулся: у ящика с фасадом он учитывает и фасад,
+        // который в низкий сегмент может не поместиться даже при влезающем теле
+        if (!isStretched && !filling.isProfile) {
+            const min = this.calcMinMaxPositionY("min", filling, segment, grid)
+            const max = this.calcMinMaxPositionY("max", filling, segment, grid)
+
+            if (max < min) {
+                return "fit"
+            }
+        }
+
+        const product = this.scope.APP?.CATALOG?.PRODUCTS?.[filling.product]
+
+        // Товара нет в каталоге (например, снят с производства) — габариты проверить нечем,
+        // такое наполнение разбирает резолвер удалённых материалов, а не уборка
+        if (!product) {
+            return null
+        }
+
+        // Как и при установке (createFillingDataToCheck): глубину проверяем только у того,
+        // что ставится поперёк модуля — вертикальный разделитель её не занимает
+        const isSlidingDoors = grid.fasades?.length ? 100 : 0
+        if (!filling.isVerticalItem && product.ACTUAL_DEPT && product.ACTUAL_DEPT > grid.depth - isSlidingDoors) {
+            return "depth"
+        }
+
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(+filling.productGroupID)) {
+            const minDepth = product.SIZE_EDIT_DEPTH?.length
+                ? Math.min(...product.SIZE_EDIT_DEPTH) + 7
+                : 0
+
+            if (grid.depth < minDepth) {
+                return "depth"
+            }
+        }
+
+        return null
+    }
+
+    // Возвращает наполнение в границы сегмента и подгоняет глубину. Эталон вертикальной
+    // позиции — distances.bottom (отступ от дна своего сегмента): сам сегмент после
+    // пересчёта мог сместиться, поэтому координату 2D-слоя выводим из отступа заново
+    private refitFilling(
+        filling: FillingObject,
+        segment: any,
+        secIndex: number,
+        grid: GridModule,
+    ): boolean {
+        let changed = this.refitFillingDepth(filling, grid)
+
+        // Г-образный профиль стоит на дне модуля, а не в сегменте: его высоту задаёт цоколь
+        if (filling.isProfile?.isBottomHiTechProfile) {
+            const bottomProfileY = grid.height - grid.horizont - filling.height
+
+            if (filling.position.y !== bottomProfileY) {
+                filling.position.y = bottomProfileY
+                changed = true
+            }
+
+            return changed
+        }
+
+        const min = this.calcMinMaxPositionY("min", filling, segment, grid)
+        const max = this.calcMinMaxPositionY("max", filling, segment, grid)
+
+        // Куда наполнение попало после пересчёта сетки. Координата position.y отсчитывается
+        // от верха модуля, поэтому при смене высоты наполнение съезжает относительно дна,
+        // даже оставаясь в границах сегмента
+        const actual = this.calcDistanceBottom(filling, segment, grid)
+
+        // Возвращаем на прежний отступ от дна — distances.bottom на этот момент ещё описывает
+        // положение до пересчёта (2D перепишет их только на следующей отрисовке). Ужимаем
+        // до новых границ и округляем в точности distances — целые мм
+        const bottom = Math.round(Math.max(min, Math.min(filling.distances?.bottom ?? actual, max)))
+
+        if (bottom !== actual) {
+            const positionY = Math.round(this.calcPositionYFromBottom(filling, segment, grid, bottom))
+
+            if (positionY !== filling.position.y) {
+                const delta = filling.position.y - positionY //Насколько наполнение сдвинулось вверх
+
+                filling.position.y = positionY
+                this.shiftInnerDrawers(filling, segment, delta)
+                changed = true
+            }
+
+            this.setDistanceBottom(filling, segment, bottom)
+        }
+
+        if (this.syncFasadeToBody(filling, secIndex, grid)) {
+            changed = true
+        }
+
+        return changed
+    }
+
+    // Фасад ящика стоит по телу — тело единственный источник истины (так же его ставят
+    // calcDrawersFasades и shiftStackWithHorizont). Позиция фасада отсчитывается от пола,
+    // тела — от верха модуля, поэтому после смены высоты формула даёт другое значение:
+    // без пересчёта фасад остаётся на прежнем месте и отрывается от ящика, а раскладка
+    // двери (calcDrawersFasadesPositons) строится по фасадам и уезжает следом
+    private syncFasadeToBody(filling: FillingObject, secIndex: number, grid: GridModule): boolean {
+        if (!filling.fasade?.position) {
+            return false
+        }
+
+        const fasadeY = grid.height - (filling.position.y + filling.height + filling.fasade.manufacturerOffset)
+
+        if (filling.fasade.position.y === fasadeY) {
+            return false
+        }
+
+        filling.fasade.position.y = fasadeY
+        this.syncDrawerFasade(secIndex, filling, grid)
+
+        return true
+    }
+
+    // Обратное преобразование calcDistanceBottom: из отступа от дна сегмента в координату
+    // 2D-слоя (отсчёт от верха модуля вниз)
+    private calcPositionYFromBottom(
+        filling: FillingObject,
+        segment: any,
+        grid: GridModule,
+        bottom: number,
+    ) {
+        const noBottomShift = grid.noBottom ? grid.moduleThickness : 0
+
+        return grid.height - segment.position.y - bottom - filling.height + noBottomShift
+    }
+
+    // Низ наполнения от пола модуля — система, в которой заданы зоны петель
+    private calcAbsoluteBottom(segment: any, grid: GridModule, bottom: number) {
+        const noBottomShift = grid.noBottom ? grid.moduleThickness : 0
+
+        return segment.position.y + bottom - noBottomShift
+    }
+
+    private calcBottomFromAbsolute(segment: any, grid: GridModule, absoluteBottom: number) {
+        const noBottomShift = grid.noBottom ? grid.moduleThickness : 0
+
+        return absoluteBottom - segment.position.y + noBottomShift
+    }
+
+    // Глубина наполнения привязана к глубине модуля: регулируемое тянется за ней,
+    // универсальный ящик встаёт только в размер из собственного списка SIZE_EDIT_DEPTH
+    private refitFillingDepth(filling: FillingObject, grid: GridModule): boolean {
+        const product = this.scope.APP?.CATALOG?.PRODUCTS?.[filling.product]
+
+        if (!product) {
+            return false
+        }
+
+        let depth = null
+
+        if (UM_DRAWERS_IDS.UNIVERSAL.includes(+filling.productGroupID)) {
+            const current = filling.depth ?? filling.size?.z
+
+            if (current > grid.depth - 7) {
+                depth = this.getUniversalDrawerSizes(product, grid).depth ?? null
+            }
+        }
+        else if (product.SIZE_EDIT_DEPTH_MAX) {
+            depth = grid.depth
+
+            const moduleProductInfo = this.scope.APP.CATALOG.PRODUCTS[grid.productID]
+            if (moduleProductInfo?.moduleType?.CODE === "wardrobe") {
+                depth -= 100
+            }
+        }
+
+        if (depth === null || depth === undefined || filling.size?.z === depth) {
+            return false
+        }
+
+        if (filling.size) {
+            filling.size.z = depth
+        }
+
+        if (filling.depth !== undefined) {
+            filling.depth = depth
+        }
+
+        return true
+    }
+
+    // Встраиваемые ящики живут в пространстве фасада внешнего и двигаются вместе с ним
+    private shiftInnerDrawers(filling: FillingObject, segment: any, delta: number) {
+        if (!delta || !this.OUTER_DRAWER_IDS.includes(filling.productGroupID)) {
+            return
+        }
+
+        segment.fillings?.forEach(inner => {
+            if (!this.INNER_DRAWER_IDS.includes(inner?.productGroupID)) {
+                return
+            }
+
+            if (inner.innerDrawerConstraint?.outerDrawerGroupId !== filling.innerDrawerGroupId) {
+                return
+            }
+
+            inner.position.y = (inner.position.y || 0) - delta
+
+            if (inner.distances) {
+                inner.distances.bottom = (inner.distances.bottom || 0) + delta
+            }
+
+            if (inner.innerDrawerConstraint) {
+                inner.innerDrawerConstraint.startY = filling.position.y - inner.innerDrawerConstraint.height
+            }
+        })
+    }
+
+    // Разводит наполнение с занятыми зонами: петлями и ящиками. Ящик занимает не только
+    // своё тело, но и всю высоту фасада, поэтому под ним не может стоять ни штанга, ни полка.
+    // Что удалось — двигаем, остальное снимаем; ящики при этом не трогаем, их держит
+    // раскладка стопки. Возвращает число удалённых
+    private resolveZoneConflicts(
+        grid: GridModule,
+        locations: Map<any, { segment: any, secIndex: number, cellIndex: number | null, rowIndex: number | null, extraIndex: number | null }>,
+        touchedSections: Set<number>,
+    ): number {
+        let removed = 0
+
+        locations.forEach((place, filling) => {
+            if (!this.isZoneSensitive(filling)) {
+                return
+            }
+
+            const { segment, secIndex, cellIndex, rowIndex, extraIndex } = place
+            const zones = this.getBlockingZones(filling, segment, grid, secIndex)
+            const bottom = this.calcDistanceBottom(filling, segment, grid)
+
+            if (!zones.length || !this.hasZoneOverlap(filling, segment, grid, zones, bottom)) {
+                return
+            }
+
+            const min = this.calcMinMaxPositionY("min", filling, segment, grid)
+            const max = this.calcMinMaxPositionY("max", filling, segment, grid)
+            const free = this.findFreeBottom(filling, segment, grid, zones, bottom, min, max)
+
+            touchedSections.add(secIndex)
+
+            if (free === null) {
+                const index = segment.fillings?.indexOf(filling) ?? -1
+
+                // Свободного места не нашлось — наполнение осталось бы за фасадом ящика
+                if (index !== -1) {
+                    this.deleteFilling(secIndex, index, cellIndex, rowIndex, extraIndex, grid, false)
+                    locations.delete(filling)
+                    removed++
+                }
+
+                return
+            }
+
+            filling.position.y = Math.round(this.calcPositionYFromBottom(filling, segment, grid, free))
+            this.setDistanceBottom(filling, segment, Math.round(free))
+        })
+
+        return removed
+    }
+
+    // Наполнение, которое обязано уступать место ящикам и петлям. Сами ящики и профили
+    // расставляет раскладка стопки, полка и разделитель растянуты по сегменту —
+    // двигать их некуда
+    private isZoneSensitive(filling: FillingObject) {
+        const isDrawer = this.OUTER_DRAWER_IDS.includes(filling?.productGroupID)
+            || this.INNER_DRAWER_IDS.includes(filling?.productGroupID)
+            || this.UNIVERSAL_DROWER.includes(filling?.productGroupID)
+
+        return !isDrawer
+            && !filling.isProfile
+            && !filling.isVerticalItem
+            && filling.type !== 'tsarga'
+            && filling.type !== 'shelf'
+            && filling.type !== 'glass_shelf'
+    }
+
+    // Зоны, в которые наполнению нельзя: ящики сегмента плюс петли секции. Исключения
+    // по петлям те же, что в 2D и в проверке ошибок, — на ящики они не распространяются
+    private getBlockingZones(filling: FillingObject, segment: any, grid: GridModule, secIndex: number): LoopZone[] {
+        const zones = this.getDrawerZones(segment, grid)
+
+        if (!this.scope.LOOPS.isFillingExcludedFromCollision(filling, 'loop', grid)) {
+            zones.push(...this.scope.LOOPS.getLoopZones(grid.sections?.[secIndex]))
+        }
+
+        return zones
+    }
+
+    // Ящик занимает по высоте весь свой фасад: тот выше тела и свисает ниже него
+    // на manufacturerOffset. Так же считает 2D (Shape.checkOverlap), поэтому и зазор
+    // берём тот же — FASADES_MIN_GAP. По ширине ящик занимает сегмент целиком
+    private getDrawerZones(segment: any, grid: GridModule): LoopZone[] {
+        const gap = UM_PARAMS.FASADES_MIN_GAP
+        const minX = segment.position.x - segment.width / 2
+
+        return (segment.fillings ?? [])
+            .filter(item => this.OUTER_DRAWER_IDS.includes(item?.productGroupID)
+                || this.UNIVERSAL_DROWER.includes(item?.productGroupID))
+            .map(drawer => {
+                const absoluteBottom = this.calcAbsoluteBottom(segment, grid, this.calcDistanceBottom(drawer, segment, grid))
+                const fasade = drawer.fasade
+
+                const bottom = fasade ? absoluteBottom - fasade.manufacturerOffset - gap / 2 : absoluteBottom
+                const height = fasade ? fasade.height + gap : drawer.height
+
+                return <LoopZone>{
+                    minX,
+                    maxX: minX + segment.width,
+                    minY: bottom,
+                    maxY: bottom + height,
+                }
+            })
+    }
+
+    // Ближайшее смещение по вертикали, где наполнение не задевает ни занятые зоны,
+    // ни соседей. Не нашли — null
+    private findFreeBottom(
+        filling: FillingObject,
+        segment: any,
+        grid: GridModule,
+        zones: LoopZone[],
+        bottom: number,
+        min: number,
+        max: number,
+    ): number | null {
+        // Границы зон включены (как в checkLoopsCollision), поэтому позиция впритык
+        // считается пересечением — отступаем на миллиметр. Зазор для ящиков уже заложен
+        // в саму зону
+        const candidates = []
+        zones.forEach(zone => {
+            candidates.push(this.calcBottomFromAbsolute(segment, grid, zone.maxY + 1)) //Над зоной
+            candidates.push(this.calcBottomFromAbsolute(segment, grid, zone.minY - filling.height - 1)) //Под зоной
+        })
+
+        const fitting = candidates
+            .map(value => Math.round(value))
+            .filter(value => value >= min && value <= max)
+            .filter(value => !this.hasZoneOverlap(filling, segment, grid, zones, value))
+            .filter(value => !this.hasNeighbourOverlap(filling, segment, grid, value))
+            .sort((a, b) => Math.abs(a - bottom) - Math.abs(b - bottom))
+
+        return fitting.length ? fitting[0] : null
+    }
+
+    private hasZoneOverlap(
+        filling: FillingObject,
+        segment: any,
+        grid: GridModule,
+        zones: LoopZone[],
+        bottom: number,
+    ) {
+        const absoluteBottom = this.calcAbsoluteBottom(segment, grid, bottom)
+        const absoluteTop = absoluteBottom + filling.height
+        const left = filling.position.x
+        const right = filling.position.x + filling.width
+
+        // Границы включены — тот же расчёт, что в LoopsManager.checkLoopsCollision
+        return zones.some(zone =>
+            zone.minY <= absoluteTop && zone.maxY >= absoluteBottom &&
+            ((zone.minX <= right && zone.maxX >= right) || (zone.minX <= left && zone.maxX >= left))
+        )
+    }
+
+    private hasNeighbourOverlap(filling: FillingObject, segment: any, grid: GridModule, bottom: number) {
+        const top = bottom + filling.height
+        const left = filling.position.x
+        const right = left + filling.width
+
+        return (segment.fillings ?? []).some(other => {
+            if (!other || other === filling || this.INNER_DRAWER_IDS.includes(other.productGroupID)) {
+                return false
+            }
+
+            // Вертикальный разделитель стоит в своей колонке и тянется на всю высоту:
+            // без проверки по ширине он закрывал бы сегмент целиком
+            const otherLeft = other.position.x
+            if (otherLeft + other.width <= left || otherLeft >= right) {
+                return false
+            }
+
+            const otherBottom = this.calcDistanceBottom(other, segment, grid)
+
+            return otherBottom < top && (otherBottom + other.height) > bottom
+        })
     }
 }
