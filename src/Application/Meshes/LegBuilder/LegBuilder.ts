@@ -1,7 +1,7 @@
 // @ts-nocheck
 import * as THREE from 'three'
 import type { TBuildProduct, TRootOptionType, TTotalProps } from '@/types/types'
-import { WARDROBE_LEG_HEIGHT, WARDROBE_PROFILE_WIDTH, WARDROBE_PROFILE_DEPTH } from '@/Application/F-wardrobeData.ts'
+import { WARDROBE_LEG_HEIGHT, WARDROBE_LEG_PLATE_HEIGHT, WARDROBE_LEG_PLATE_WIDTH, WARDROBE_LEG_STEM_WIDTH, WARDROBE_PROFILE_WIDTH, WARDROBE_PROFILE_DEPTH } from '@/Application/F-wardrobeData.ts'
 import { createWardrobeMetalMaterial } from '@/Application/Meshes/Wardrobe/WardrobeFillingMeshBuilder.ts'
 
 type OptionData = {
@@ -137,8 +137,10 @@ export class LegBuilder {
     }
 
     // ==== Гардеробная система (WARDROBE) - Регулировочная ножка профиля ====
-    // Высота фиксирована — WARDROBE_LEG_HEIGHT,
-    // той же цифрой пользуется 2D-рендер профилей (SceneBuilder.ts).
+    // legHeight — ОБЩАЯ высота ножки, мм: приходит с профилем
+    // (WardrobeGridParser, высота из каталога крепления), по умолчанию
+    // дефолт WARDROBE_LEG_HEIGHT. Габариты частей — те же константы, что у
+    // 2D-схемы ножки (WardrobeSceneBuilder.createWardrobeProfileLeg).
     // ЧЕРНОВИК: форма (плита + стержень) собрана из примитивов по аналогии с
     // createLeg() выше, с реальной опорой не сверялась.
     //
@@ -146,18 +148,20 @@ export class LegBuilder {
     // Локально y=0 — сама точка примыкания к торцу профиля, геометрия
     // строится только в сторону direction, поэтому при позиционировании
     // ровно на торец нога не утапливается в тело профиля.
-    createWardrobeLeg(direction: 1 | -1 = 1): THREE.Object3D {
+    createWardrobeLeg(direction: 1 | -1 = 1, legHeight: number = WARDROBE_LEG_HEIGHT): THREE.Object3D {
         const material = new THREE.MeshPhongMaterial({
             emissive: '#000000',
             color: '#333333',
             reflectivity: 0.05,
         })
 
-        const plateHeight = 8
-        const stemHeight = WARDROBE_LEG_HEIGHT - plateHeight
+        const plateHeight = Math.min(WARDROBE_LEG_PLATE_HEIGHT, legHeight)
+        const stemHeight = Math.max(legHeight - plateHeight, 0)
+        const plateRadius = WARDROBE_LEG_PLATE_WIDTH / 2
+        const stemRadius = WARDROBE_LEG_STEM_WIDTH / 2
 
-        const plateGeometry = new THREE.CylinderGeometry(12, 12, plateHeight, 16)
-        const stemGeometry = new THREE.CylinderGeometry(5, 5, stemHeight, 12)
+        const plateGeometry = new THREE.CylinderGeometry(plateRadius, plateRadius, plateHeight, 16)
+        const stemGeometry = new THREE.CylinderGeometry(stemRadius, stemRadius, stemHeight, 12)
         plateGeometry.computeBoundingBox()
         stemGeometry.computeBoundingBox()
 
@@ -225,13 +229,14 @@ export class LegBuilder {
     // короче "Пол-потолок", и верхняя ножка короткого иначе повисла бы на
     // уровне соседнего высокого. Нижняя всегда на полу — профили растут вверх.
     //
-    // fasteningType читается как "низ_верх", но НОЖКА СНИЗУ есть у всех типов:
-    // у "стена-стена" нижний торец профиля закрыт такой же ножкой, как верхний
-    // (уточнение пользователя). Сверху ножка у "floor_ceiling" и "wall_wall", у
-    // "floor_wall" вместо неё крепёжная пластина (createWardrobeWallBracket).
+    // legBottom/legTop — высоты ножек ЭТОГО профиля, мм (0 — ножки нет):
+    // считает WardrobeGridParser по типу крепления, тем же хелпером, что и 2D
+    // (WardrobeSystem.getWardrobeFasteningLegs). "Пол-потолок" опирается в
+    // пол и в потолок, "пол-стена" — только в пол (сверху крепёжная пластина,
+    // createWardrobeWallBracket), "стена-стена" — без ножек, обе пластины.
     buildWardrobeLegs(
         props: TTotalProps,
-        profilePositions: { x: number, z: number, height?: number, fasteningType?: 'floor_ceiling' | 'floor_wall' | 'wall_wall', colorId?: number }[]
+        profilePositions: { x: number, z: number, height?: number, fasteningType?: 'floor_ceiling' | 'floor_wall' | 'wall_wall', legBottom?: number, legTop?: number, colorId?: number }[]
     ): THREE.Object3D {
         const size = props.CONFIG.SIZE
         const legsGroup = new THREE.Object3D()
@@ -239,20 +244,18 @@ export class LegBuilder {
         // floorY = -size.height/2: геометрия ЦЕНТРИРОВАНА относительно Y=0,
         const floorY = -size.height / 2
 
-        profilePositions.forEach(({ x, z, height, fasteningType, colorId }, index) => {
-            const hasTopLeg = fasteningType === 'floor_ceiling'
+        profilePositions.forEach(({ x, z, height, fasteningType, legBottom, legTop, colorId }, index) => {
             const topY = floorY + (height ?? size.height)
 
-            const bottomLeg = this.createWardrobeLeg(-1)
-            bottomLeg.position.set(x, floorY, z)
-            bottomLeg.name = `WARDROBE_LEG_BOTTOM_${index}`
-
-            if (fasteningType !== 'wall_wall') {
+            if (legBottom > 0) {
+                const bottomLeg = this.createWardrobeLeg(-1, legBottom)
+                bottomLeg.position.set(x, floorY, z)
+                bottomLeg.name = `WARDROBE_LEG_BOTTOM_${index}`
                 legsGroup.add(bottomLeg)
             }
 
-            if (hasTopLeg) {
-                const topLeg = this.createWardrobeLeg(1)
+            if (legTop > 0) {
+                const topLeg = this.createWardrobeLeg(1, legTop)
                 topLeg.position.set(x, topY, z)
                 topLeg.name = `WARDROBE_LEG_TOP_${index}`
                 legsGroup.add(topLeg)

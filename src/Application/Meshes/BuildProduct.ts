@@ -49,7 +49,7 @@ import {
     TResolveParams,
 } from './Utils/MaterialResolver'
 //Временно
-import { isWardrobeSystemProduct, migrateWardrobeGrid } from '@/components/UMconstructor/wardrobe/WardrobeSystem.ts';
+import { isWardrobeSystemProduct, migrateWardrobeGrid, getWardrobeProfilesSpan } from '@/components/UMconstructor/wardrobe/WardrobeSystem.ts';
 import { WardrobeGridParser } from './Wardrobe/WardrobeGridParser.ts';
 import { WardrobeFillingMeshBuilder } from './Wardrobe/WardrobeFillingMeshBuilder.ts';
 import { createWardrobeGrid } from '@/components/UMconstructor/wardrobe/createWardrobeGrid.ts';
@@ -613,6 +613,21 @@ export class BuildProduct extends BuildersHelper {
         const wardrobeLegs = wardrobeParsed
             ? this.leg_builder.buildWardrobeLegs(PROPS, wardrobeParsed.profiles)
             : null;
+
+        // Размерная подпись ВЫСОТЫ в 3D (Ruler.drawRullerObjects читает
+        // userData.prodSize, см. addArrowSize ниже) у гардеробной системы —
+        // ОБЩАЯ высота вместе с ножками: они уходят ниже пола и выше торца
+        // профиля, и подпись по CONFIG.SIZE.height занижала габарит на них.
+        // Та же величина, что у размерной линии слева в 2D
+        // (WardrobeSystem.getWardrobeTotalHeight) — считается одним хелпером.
+        //
+        // Сам CONFIG.SIZE НЕ меняется (это высота профилей: длина #Y#,
+        // диапазоны креплений, поле "Высота", корзина), поэтому здесь копия,
+        // а не правка объекта.
+        if (wardrobeParsed) {
+            const span = getWardrobeProfilesSpan(wardrobeParsed.profiles);
+            total.userData.prodSize = { ...PROPS.CONFIG.SIZE, height: Math.round(span.above + span.below) };
+        }
 
         const fasade = fasadeProps.length
             ? this.fasade_builder.buildAllFasades({ props: PROPS, defaultConfig, curBodyExceptions, isLoad, nstShalfs })

@@ -28,6 +28,7 @@ import CabinetSceneBuilder from "@/components/UMconstructor/cabinet/render/Cabin
 import { CABINET_SCENE_PALETTE } from "@/components/UMconstructor/cabinet/render/cabinetPalette.ts";
 import { createTsargaData, isTsargaEligibleWidth } from "./../Tsarga.ts";
 import { WARDROBE_CANVAS_PADDING_PX } from "@/Application/F-wardrobeData.ts";
+import { getWardrobeLegReservePx } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { CABINET_CANVAS_PADDING_PX } from "@/components/UMconstructor/cabinet/cabinetData.ts";
 import { getSegmentLabel } from "../Labels.ts";
 
@@ -141,8 +142,15 @@ export default class SceneBuilder {
         // (cabinet/render/CabinetSceneBuilder).
         const isCabinet = ctx.sceneKind === 'cabinet'
         const scenePadding = isCabinet ? CABINET_CANVAS_PADDING_PX : (isWardrobe ? WARDROBE_CANVAS_PADDING_PX : 0)
+        // Ножки профилей гардеробной рисуются ВНЕ габарита модуля
+        // (WardrobeSceneBuilder.createWardrobeProfileLeg), поэтому модуль
+        // сдвигается вниз на верхний запас, а канвас увеличен на оба —
+        // Render2D.updateTotalSize считает ту же величину тем же хелпером.
+        const legReserve = isWardrobe
+            ? getWardrobeLegReservePx(moduleGrid, ctx.getPixelHeight)
+            : { top: 0, bottom: 0 }
         let xOffset = scenePadding;
-        let yOffset = scenePadding;
+        let yOffset = scenePadding + legReserve.top;
 
         // Контейнеры сцены сидят на app.stage в (0,0), и всё, что кладётся в
         // них, адресуется АБСОЛЮТНО (наполнение, номера областей, фасады,

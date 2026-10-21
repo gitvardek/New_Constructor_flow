@@ -45,9 +45,17 @@ export const WARDROBE_RAIL_SIDE_GAP = 3
 // Сечение профиля (см. предположения ниже про ориентацию осей)
 export const WARDROBE_PROFILE_WIDTH = 25   // ось X
 
-// Общая высота регулировочной ножки (LegBuilder.createWardrobeLeg + 2D-рендер
-// профилей в SceneBuilder.ts — держим одно число на обе стороны)
+// Регулировочная ножка профиля. WARDROBE_LEG_HEIGHT — ДЕФОЛТНАЯ общая
+// высота: реальная придёт с бэка в составе крепления, читается одним
+// геттером (WardrobeSystem.getWardrobeLegHeight).
+//
+// Части ножки — одно число на 3D (LegBuilder.createWardrobeLeg, цилиндры:
+// радиус = ширина/2) и 2D (WardrobeSceneBuilder.createWardrobeProfileLeg —
+// та же схема "стержень + опорная плита" плоскими прямоугольниками).
 export const WARDROBE_LEG_HEIGHT = 45
+export const WARDROBE_LEG_PLATE_HEIGHT = 8
+export const WARDROBE_LEG_PLATE_WIDTH = 24
+export const WARDROBE_LEG_STEM_WIDTH = 10
 export const WARDROBE_PROFILE_DEPTH = 50   // ось Z (глубина в сцене)
 
 // Угол наклона наклонной (обувной) полки. Общий для 2D

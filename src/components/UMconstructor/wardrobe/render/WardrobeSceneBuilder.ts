@@ -14,8 +14,8 @@
 import { Container, Graphics, Text } from "pixi.js";
 import { Shape, Section } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import RenderContext from "@/components/UMconstructor/utils/render2d/RenderContext.ts";
-import { WARDROBE_PROFILE_WIDTH, WARDROBE_CANVAS_PADDING_PX } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeShelfPixiHeight, getWardrobeFasteningColorFamily, getWardrobeShelfDepth, getWardrobeFillingSideGap } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { WARDROBE_PROFILE_WIDTH, WARDROBE_CANVAS_PADDING_PX, WARDROBE_LEG_PLATE_HEIGHT, WARDROBE_LEG_PLATE_WIDTH, WARDROBE_LEG_STEM_WIDTH } from "@/Application/F-wardrobeData.ts";
+import { getWardrobeShelfPixiHeight, getWardrobeFasteningColorFamily, getWardrobeShelfDepth, getWardrobeFillingSideGap, getWardrobeFasteningLegs, getWardrobeTotalHeight } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { WARDROBE_COLORS, getWardrobeShelfColors } from "./WardrobeColors.ts";
 import { createHorizontalDimension, createVerticalDimension, createNameLabel } from "@/components/UMconstructor/editor-v2/render2d/dimensions.ts";
 import { SELECTION_STROKE_COLOR } from "@/components/UMconstructor/editor-v2/render2d/palette.ts";
@@ -178,6 +178,11 @@ export default class WardrobeSceneBuilder {
         // ВЫСОКОМУ профилю (UMconstructorClass.reset()); каждый профиль
         // рисуется СВОЕЙ высотой от пола вверх, короткие ("Стена") до верха
         // не достают (см. createWardrobeProfile).
+        // Крайние точки сборки по вертикали (с ножками) — набираются в цикле
+        // под размерную линию общей высоты после него.
+        let spanTopY = Infinity
+        let spanBottomY = -Infinity
+
         for (let profileIndex = 0; profileIndex <= sections.length; profileIndex++) {
             const isEdge = profileIndex === 0 || profileIndex === sections.length
 
@@ -216,6 +221,46 @@ export default class WardrobeSceneBuilder {
             // ней (нужен ВСЕГДА, не только вне драга) — вынесен из-под if,
             // формула идентична createWardrobeProfile.
             const profileHeightPx = Math.min(Math.max(ctx.getPixelHeight(profileHeightMm), 2), heightPx)
+
+            // Ножки профиля — ВНЕ габарита модуля: нижняя уходит под пол,
+            // верхняя (только "пол-потолок") поднимается над верхним торцом
+            // профиля. Место под них зарезервировано на канвасе
+            // (WardrobeSystem.getWardrobeLegReservePx, см. SceneBuilder.
+            // renderGrid/Render2D.updateTotalSize), поэтому они не обрезаются
+            // краем и не читаются как часть высоты профиля. Состав ножек —
+            // по типу крепления, то же правило, что в 3D-сборке.
+            const legs = getWardrobeFasteningLegs(moduleGrid.productID, profileData?.fasteningId)
+            const floorY = moduleOffsetY + heightPx
+            const profileTopY = floorY - profileHeightPx
+            const legBottomPx = legs.bottom > 0 ? ctx.getPixelHeight(legs.bottom) : 0
+            const legTopPx = legs.top > 0 ? ctx.getPixelHeight(legs.top) : 0
+
+            if (legBottomPx > 0) {
+                this.createWardrobeProfileLeg({
+                    x: profileX + moduleOffsetX,
+                    widthPx: profileWidthPx,
+                    yBase: floorY,
+                    heightPx: legBottomPx,
+                    direction: 1,
+                    colorFamily,
+                    draggable: !isEdge,
+                })
+            }
+
+            if (legTopPx > 0) {
+                this.createWardrobeProfileLeg({
+                    x: profileX + moduleOffsetX,
+                    widthPx: profileWidthPx,
+                    yBase: profileTopY,
+                    heightPx: legTopPx,
+                    direction: -1,
+                    colorFamily,
+                    draggable: !isEdge,
+                })
+            }
+
+            spanTopY = Math.min(spanTopY, profileTopY - legTopPx)
+            spanBottomY = Math.max(spanBottomY, floorY + legBottomPx)
 
             // Выделение двустороннее: канвас <-> "Настройка профилей".
             // Обводка ПОВЕРХ профиля, не подмена заливки (как у полки в
@@ -272,6 +317,21 @@ export default class WardrobeSceneBuilder {
                     profileFill,
                 ))
             }
+        }
+
+        // Общая высота системы (самый высокий профиль + ножки) — внешняя
+        // вертикальная размерная линия СЛЕВА от модуля, в отступе канваса:
+        // высоты профилей подписаны справа от своих профилей, слева свободно.
+        // Подпись тоже влево (labelSide=-1), чтобы не наезжать на профиль 1.
+        //
+        // Только при РЕАЛЬНО существующих ножках ("пол-потолок"/"пол-стена"):
+        // у "стена-стена" общая высота равна высоте самого высокого профиля,
+        // и линия дублировала бы его собственную.
+        const totalHeightMm = getWardrobeTotalHeight(moduleGrid)
+        if (!ctx.wardrobeDragActive && totalHeightMm > (moduleGrid.height || 0)) {
+            ctx.sectionLables.push(createVerticalDimension(
+                spanTopY, spanBottomY, moduleOffsetX - 10, totalHeightMm, -1,
+            ))
         }
     }
 
@@ -485,10 +545,11 @@ export default class WardrobeSceneBuilder {
     // Профиль — тонкая вертикальная планка на границе секции(й). Крайние
     // (draggable=false) статичны, внутренние — тянутся (см. DividerDragEngine.
     // onWardrobeProfileDragStart), меняя ширину двух соседних секций.
-    // Ножки в 2D сознательно НЕ рисуются: в 3D они уходят ЗА пределы #Y#
-    // (720 + 45 + 45 = 810мм, см. LegBuilder.buildWardrobeLegs), а здесь
-    // планка идёт на всю moduleGrid.height — усечённые ножки поверх неё
-    // читались бы так, будто 720 это высота вместе с ними.
+    // Сама планка — только высота профиля, без ножек: те рисуются отдельно
+    // (createWardrobeProfileLeg из renderWardrobeGrid) и ВНЕ габарита
+    // модуля, чтобы moduleGrid.height по-прежнему читалось как высота
+    // профиля, а не вместе с ними (общую высоту подписывает отдельная
+    // размерная линия слева).
     //
     // У каждого профиля СВОЯ высота (profileHeightMm): он крепится к полу и
     // растёт ВВЕРХ, поэтому короткие просто не достают до totalHeightPx
@@ -535,6 +596,44 @@ export default class WardrobeSceneBuilder {
         ctx.deviders.push(profile);
 
         return profile;
+    }
+
+    // Регулировочная ножка профиля — схема "стержень + опорная плита", та же
+    // геометрия, что в 3D (LegBuilder.createWardrobeLeg, там цилиндры с
+    // радиусом = половина этих ширин). Рисуется в цвете СВОЕГО профиля:
+    // ножка принадлежит ему, а форма отличает её от продолжения планки.
+    //
+    // yBase — точка примыкания к торцу профиля (пол для нижней, верхний
+    // торец для верхней), direction: 1 — вниз, -1 — вверх. Геометрия растёт
+    // ТОЛЬКО в сторону direction, как и в 3D, поэтому ножка не утапливается
+    // в тело профиля.
+    createWardrobeProfileLeg({ x, widthPx, yBase, heightPx, direction, colorFamily, draggable }) {
+        const ctx = this.ctx
+        const colors = WARDROBE_COLORS.profile[colorFamily] ?? WARDROBE_COLORS.profile['floor_ceiling']
+        const color = draggable ? colors.draggable : colors.edge
+
+        // Минимум 1px: на мелком масштабе 10мм стержня и 8мм плиты
+        // округляются в ноль, и ножка пропала бы совсем.
+        const stemWidthPx = Math.max(ctx.getPixelWidth(WARDROBE_LEG_STEM_WIDTH), 1)
+        const plateWidthPx = Math.max(ctx.getPixelWidth(WARDROBE_LEG_PLATE_WIDTH), stemWidthPx)
+        const plateHeightPx = Math.min(Math.max(ctx.getPixelHeight(WARDROBE_LEG_PLATE_HEIGHT), 1), heightPx)
+        const stemHeightPx = Math.max(heightPx - plateHeightPx, 0)
+
+        const centerX = x + widthPx / 2
+        const stemY = direction === 1 ? yBase : yBase - stemHeightPx
+        const plateY = direction === 1 ? yBase + stemHeightPx : yBase - heightPx
+
+        const leg = new Graphics();
+        leg.rect(centerX - stemWidthPx / 2, stemY, stemWidthPx, stemHeightPx);
+        leg.rect(centerX - plateWidthPx / 2, plateY, plateWidthPx, plateHeightPx);
+        leg.fill(color.fill);
+        leg.stroke({ width: 1, color: color.stroke, alignment: 1 });
+
+        // В тот же контейнер, что профили (ctx.deviders) — ножка не
+        // интерактивна: драг/выделение остаются на планке профиля.
+        ctx.deviders.push(leg);
+
+        return leg;
     }
 
 }

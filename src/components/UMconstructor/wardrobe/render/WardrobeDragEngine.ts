@@ -25,6 +25,7 @@ import {
     getWardrobeSectionInstallableHeight,
     getWardrobeShelfDepth,
     getWardrobeShelfPixiHeight,
+    getWardrobeLegReservePx,
     resolveWardrobeShelfDragPositionY,
 } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import {
@@ -263,7 +264,11 @@ export default class WardrobeDragEngine {
             // "пропадали". Удаление отложено до ПЕРВОГО реального move (см.
             // gapLinesInitialized в onWardrobeShelfDragMove).
             engine.wardrobeShelfDrag.absX = section.xOffset + WARDROBE_CANVAS_PADDING_PX
+            // По Y к отступу канваса добавляется запас под верхние ножки
+            // профилей — ровно как в SceneBuilder.renderGrid (yOffset), иначе
+            // live-обводка и подпись разъедутся с полкой на эту величину.
             engine.wardrobeShelfDrag.absY = WARDROBE_CANVAS_PADDING_PX
+                + getWardrobeLegReservePx(module, ctx.getPixelHeight).top
             engine.wardrobeShelfDrag.gapDimensionContainers = []
             engine.wardrobeShelfDrag.gapLinesInitialized = false
 
@@ -392,7 +397,7 @@ export default class WardrobeDragEngine {
         // тоже обновляем на каждый move. .position.x НЕ трогаем — не
         // меняется в течение Y-драга (по центру той же ширины секции).
         if (drag.nameLabel) {
-            drag.nameLabel.position.y = WARDROBE_CANVAS_PADDING_PX + topPx + heightPx / 2
+            drag.nameLabel.position.y = drag.absY + topPx + heightPx / 2
             if (drag.dimensionMode === 'floor') {
                 drag.nameLabel.text = `${drag.baseName} — ${Math.round(shelf.positionY)} мм`
             }

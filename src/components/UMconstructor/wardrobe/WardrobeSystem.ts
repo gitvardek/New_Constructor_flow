@@ -9,7 +9,7 @@
 // гардеробной системы.
 
 import { useModelState } from "@/store/appliction/useModelState.ts";
-import { WARDROBE_ANGLED_SHELF_ANGLE_DEG, WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT, WARDROBE_SHELF_MIN_GAP_FLAT, WARDROBE_SHELF_MIN_GAP_ANGLED, WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED, WARDROBE_RAIL_MIN_GAP, WARDROBE_SHELF_SIDE_GAP, WARDROBE_RAIL_SIDE_GAP } from "@/Application/F-wardrobeData.ts";
+import { WARDROBE_ANGLED_SHELF_ANGLE_DEG, WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT, WARDROBE_SHELF_MIN_GAP_FLAT, WARDROBE_SHELF_MIN_GAP_ANGLED, WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED, WARDROBE_RAIL_MIN_GAP, WARDROBE_SHELF_SIDE_GAP, WARDROBE_RAIL_SIDE_GAP, WARDROBE_LEG_HEIGHT } from "@/Application/F-wardrobeData.ts";
 import { CABINET_MIN_GAP, CABINET_SIDE_INSET } from "@/components/UMconstructor/cabinet/cabinetData.ts";
 import { getCabinetHeight, getWardrobeItemCeilingGap } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
 import { getWardrobeCabinetTopThickness } from "@/components/UMconstructor/cabinet/cabinetTopPanel.ts";
@@ -243,6 +243,130 @@ export function getWardrobeFasteningColorFamily(
     if (type === 'floor_ceiling') return 'floor_ceiling';
     if (type === 'wall_wall') return 'wall_wall';
     return 'floor_wall';
+}
+
+// ==== Ножки профиля и общая высота системы ====
+
+// Высота регулировочной ножки, мм. Своё значение у каждого крепления —
+// придёт с бэка в составе fastenings (точное имя поля уточнится, пока
+// проверяем правдоподобные), до тех пор дефолт WARDROBE_LEG_HEIGHT.
+// Единственный источник: 2D (WardrobeSceneBuilder), 3D (LegBuilder через
+// WardrobeGridParser) и общая высота считаются от него.
+export function getWardrobeLegHeight(
+    wardrobeProductId: number,
+    fasteningId: number | null | undefined,
+): number {
+    const modelState = useModelState();
+    const fastening = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.fastenings?.[fasteningId];
+    const height = Number(fastening?.leg_height ?? fastening?.legHeight ?? fastening?.leg);
+    return Number.isFinite(height) && height > 0 ? height : WARDROBE_LEG_HEIGHT;
+}
+
+// Ножки по ТИПУ крепления, мм (0 — ножки нет). Правило повторяет 3D-сборку
+// (LegBuilder.buildWardrobeLegs): "пол-потолок" опирается ножками и в пол, и
+// в потолок; "пол-стена" — только в пол (сверху пластина к стене, она выше
+// профиля не выступает); "стена-стена" — без ножек вовсе.
+export function getWardrobeLegsByFasteningType(
+    type: 'floor_ceiling' | 'floor_wall' | 'wall_wall',
+    legHeight: number = WARDROBE_LEG_HEIGHT,
+): { bottom: number; top: number } {
+    if (type === 'wall_wall') return { bottom: 0, top: 0 };
+    return { bottom: legHeight, top: type === 'floor_ceiling' ? legHeight : 0 };
+}
+
+// То же для КОНКРЕТНОГО крепления каталога. Тип — через
+// getWardrobeFasteningColorFamily, т.е. нераспознанное крепление считается
+// "пол-стена" (одна ножка снизу), как и в цветах 2D.
+export function getWardrobeFasteningLegs(
+    wardrobeProductId: number,
+    fasteningId: number | null | undefined,
+): { bottom: number; top: number } {
+    return getWardrobeLegsByFasteningType(
+        getWardrobeFasteningColorFamily(wardrobeProductId, fasteningId),
+        getWardrobeLegHeight(wardrobeProductId, fasteningId),
+    );
+}
+
+// Вертикальный габарит сборки, мм, по списку профилей с УЖЕ посчитанными
+// ножками ({height, legTop, legBottom}): above — сколько занято над полом,
+// below — под полом. Профили стоят на полу и растут вверх, поэтому это
+// объединение, а не максимум сумм: верхнюю точку может задать один профиль
+// (высокий "стена-стена"), нижнюю — другой (короткий с ножкой).
+//
+// Общая для 2D (сетка) и 3D (WardrobeGridParser.profiles).
+export function getWardrobeProfilesSpan(
+    profiles: { height?: number; legTop?: number; legBottom?: number }[] | null | undefined,
+): { above: number; below: number } {
+    let above = 0;
+    let below = 0;
+
+    (profiles ?? []).forEach((profile) => {
+        above = Math.max(above, (profile?.height || 0) + (profile?.legTop || 0));
+        below = Math.max(below, profile?.legBottom || 0);
+    });
+
+    return { above, below };
+}
+
+// Профили сетки с посчитанными ножками — связка каталога с формулами выше.
+function getWardrobeGridProfilesWithLegs(grid: any) {
+    return (grid?.wardrobeProfiles ?? []).map((profile: any) => {
+        const legs = getWardrobeFasteningLegs(grid?.productID, profile?.fasteningId);
+        return { height: profile?.height ?? grid?.height ?? 0, legTop: legs.top, legBottom: legs.bottom };
+    });
+}
+
+// Ножки СВЕРХ габарита модуля (grid.height — максимум по высотам профилей,
+// UMconstructorClass.reset), мм: снизу вся нижняя ножка, сверху только то,
+// что вылезло выше самого высокого профиля. РЕАЛЬНАЯ геометрия текущих
+// креплений — отсюда общая высота (getWardrobeTotalHeight); место на
+// канвасе резервируется с запасом, см. getWardrobeLegCanvasReserveMm.
+export function getWardrobeLegReserveMm(grid: any): { top: number; bottom: number } {
+    const span = getWardrobeProfilesSpan(getWardrobeGridProfilesWithLegs(grid));
+    return { top: Math.max(span.above - (grid?.height || 0), 0), bottom: span.below };
+}
+
+// Запас КАНВАСА под ножки, мм — в отличие от getWardrobeLegReserveMm не
+// зависит от текущих креплений: берётся самая высокая ножка среди креплений
+// товара и резервируется и сверху, и снизу, даже если сейчас таких профилей
+// нет. Канвас пересчитывается только при смене высоты/ширины
+// (RENDER_REF.updateTotalSize), а смена крепления идёт через reset ->
+// renderGrid: от "живого" запаса модуль уезжал вниз на появившуюся верхнюю
+// ножку, а нижняя вылезала за край канваса. Постоянный запас держит модуль
+// на месте при любом переключении крепления.
+export function getWardrobeLegCanvasReserveMm(grid: any): { top: number; bottom: number } {
+    const wardrobeProductId = grid?.productID;
+    const legHeights = getWardrobeProfileFastenings(wardrobeProductId)
+        .map((fastening: any) => getWardrobeLegHeight(wardrobeProductId, fastening?.id));
+    const legHeight = legHeights.length ? Math.max(...legHeights) : WARDROBE_LEG_HEIGHT;
+
+    return { top: legHeight, bottom: legHeight };
+}
+
+// Тот же запас в пикселях канваса — ОДНА формула для габарита канваса
+// (Render2D.updateTotalSize), сдвига модуля вниз (SceneBuilder.renderGrid) и
+// абсолютных координат драга (WardrobeDragEngine): разойдутся — ножки
+// обрежутся краем. getPixelHeight — конвертер текущего масштаба
+// (ViewportUnits), округление вверх, чтобы не терять последний пиксель плиты.
+export function getWardrobeLegReservePx(
+    grid: any,
+    getPixelHeight: (mm: number) => number,
+): { top: number; bottom: number } {
+    const reserve = getWardrobeLegCanvasReserveMm(grid);
+    return {
+        top: reserve.top > 0 ? Math.ceil(getPixelHeight(reserve.top)) : 0,
+        bottom: reserve.bottom > 0 ? Math.ceil(getPixelHeight(reserve.bottom)) : 0,
+    };
+}
+
+// ОБЩАЯ высота гардеробной системы, мм — профили вместе с ножками. Только
+// ОТОБРАЖЕНИЕ (размерная линия слева в 2D и подпись размера в 3D, см.
+// BuildProduct/Ruler): grid.height, поле "Высота", CONFIG.SIZE и корзина
+// по-прежнему живут высотой самого высокого профиля. Без ножек
+// ("стена-стена") равна ей же.
+export function getWardrobeTotalHeight(grid: any): number {
+    const reserve = getWardrobeLegReserveMm(grid);
+    return (grid?.height || 0) + reserve.top + reserve.bottom;
 }
 
 // Список доступных цветов КОНКРЕТНОГО товара-профиля — colors лежит НЕ

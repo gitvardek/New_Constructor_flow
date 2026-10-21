@@ -18,7 +18,7 @@
 // шириной САМОГО СЕКТОРА и уводила профили на ~WARDROBE_PROFILE_WIDTH/2.
 
 import { WARDROBE_PROFILE_WIDTH } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeFasteningColorFamily } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeFasteningColorFamily, getWardrobeFasteningLegs } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import type { WardrobeCabinetConfig } from "@/components/UMconstructor/cabinet/types.ts";
 import type { WardrobeFillingType, WardrobeShelfType } from "@/components/UMconstructor/wardrobe/types.ts";
 
@@ -27,10 +27,15 @@ export interface ParsedWardrobeProfile {
     x: number;
     z: number;
     height: number;
-    // Тип крепления (getWardrobeFasteningColorFamily) — от него зависит,
-    // нужны ли ножки снизу/сверху: у "Пол-стена" нога только снизу, см.
-    // LegBuilder.buildWardrobeLegs.
+    // Тип крепления (getWardrobeFasteningColorFamily) — от него зависят
+    // крепёжные пластины к стене, см. LegBuilder.buildWardrobeLegs.
     fasteningType: 'floor_ceiling' | 'floor_wall' | 'wall_wall';
+    // Ножки профиля, мм (0 — ножки нет): состав по типу крепления, высота —
+    // из каталога с дефолтом (WardrobeSystem.getWardrobeFasteningLegs, один
+    // источник с 2D). По ним LegBuilder.buildWardrobeLegs строит опоры, а
+    // BuildProduct считает общую высоту для размерной подписи.
+    legBottom: number;
+    legTop: number;
     // Цвет из _COLOR (тот же каталог, что у "Настройки профилей" в 2D) —
     // для материала профиля в 3D, см. WardrobeFillingMeshBuilder.buildProfiles.
     colorId: number | undefined;
@@ -76,6 +81,7 @@ export class WardrobeGridParser {
 
         for (let profileIndex = 0; profileIndex <= sections.length; profileIndex++) {
             const profileData = grid?.wardrobeProfiles?.[profileIndex]
+            const legs = getWardrobeFasteningLegs(grid.productID, profileData?.fasteningId)
 
             profiles.push({
                 id: profileData?.id,
@@ -83,6 +89,8 @@ export class WardrobeGridParser {
                 z: 0, // TODO: смещение к стене/относительно глубины модуля не уточнено (см. WARDROBE_MODEL_DATA.ts)
                 height: profileData?.height ?? grid.height,
                 fasteningType: getWardrobeFasteningColorFamily(grid.productID, profileData?.fasteningId),
+                legBottom: legs.bottom,
+                legTop: legs.top,
                 colorId: profileData?.colorId,
             })
             cursor += profileWidth

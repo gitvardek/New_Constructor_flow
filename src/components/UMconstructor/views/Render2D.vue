@@ -26,6 +26,7 @@ import ExternalSizeAdjuster from "./../utils/render2d/ExternalSizeAdjuster.ts";
 import DividerDragEngine from "./../utils/render2d/DividerDragEngine.ts";
 import WardrobeDragEngine from "@/components/UMconstructor/wardrobe/render/WardrobeDragEngine.ts";
 import { WARDROBE_CANVAS_PADDING_PX } from "@/Application/F-wardrobeData.ts";
+import { getWardrobeLegCanvasReserveMm, getWardrobeLegReservePx } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { CABINET_CANVAS_PADDING_PX } from "@/components/UMconstructor/cabinet/cabinetData.ts";
 
 const props = defineProps({
@@ -237,11 +238,35 @@ const resetModule = () => {
 const pixelRatioWidth = computed(() => TOTAL_WIDTH.value / areaWidth.value);
 const pixelRatioHeight = computed(() => TOTAL_HEIGHT.value / areaHeight.value);
 
+// Всё, что канвас занимает СВЕРХ самого модуля: отступ под обозначения
+// (px, не масштабируется) и место под ножки профилей гардеробной (мм,
+// масштабируется вместе с модулем). currentModule.value на самый первый
+// вызов может быть ещё не проставлен watcher'ом — запасной источник
+// props.module. Тумбочка — тот же отступ, что у гардеробной (проп
+// sceneKind, см. SceneBuilder.renderGrid).
+const getSceneReserve = () => {
+  const moduleData = currentModule.value ?? module.value;
+  const isWardrobe = moduleData?.moduleKind === 'wardrobe';
+  const padding = props.sceneKind === 'cabinet'
+    ? CABINET_CANVAS_PADDING_PX
+    : (isWardrobe ? WARDROBE_CANVAS_PADDING_PX : 0);
+  const legs = isWardrobe
+    ? getWardrobeLegCanvasReserveMm(moduleData)
+    : { top: 0, bottom: 0 };
+
+  return { moduleData, isWardrobe, padding, legsMm: legs.top + legs.bottom };
+};
+
 const calcMaxAreaSize = () => {
   calcMaxAreaSizeConst();
+  // В MAX_AREA_* должен влезть КАНВАС ЦЕЛИКОМ, а не только модуль: иначе он
+  // вылезал за зону средней колонки (с ножками — заметно, на них канвас
+  // вырос). Отступ в пикселях вычитается из доступной области, ножки в мм
+  // прибавляются к измеряемой высоте — масштаб у них общий с модулем.
+  const { padding, legsMm } = getSceneReserve();
   let scale = Math.min(
-    MAX_AREA_WIDTH.value / TOTAL_WIDTH.value,
-    MAX_AREA_HEIGHT.value / TOTAL_HEIGHT.value,
+    Math.max(MAX_AREA_WIDTH.value - padding * 2, 1) / TOTAL_WIDTH.value,
+    Math.max(MAX_AREA_HEIGHT.value - padding * 2, 1) / (TOTAL_HEIGHT.value + legsMm),
   );
 
   areaWidth.value = TOTAL_WIDTH.value * scale;
@@ -271,16 +296,9 @@ const updateTotalSize = (value, dimension) => {
   // (pixelRatio*, getPixelWidth/Height/getMmWidth/Height через ViewportUnits)
   // не меняются — отступ влияет ТОЛЬКО на canvas.style/renderer.resize, чтобы
   // мм↔px соотношение осталось прежним (иначе сломался бы расчёт драга, см.
-  // комментарий у константы). currentModule.value на самый первый вызов может
-  // быть ещё не проставлен watcher'ом — запасной источник props.module.
-  const moduleData = currentModule.value ?? module.value;
-  const moduleKind = moduleData?.moduleKind;
-  const isWardrobe = moduleKind === 'wardrobe';
-  // Тумбочка — тот же отступ, что у гардеробной (проп sceneKind, см.
-  // SceneBuilder.renderGrid): под размерные линии и нейминги над модулем.
-  const padding = props.sceneKind === 'cabinet'
-    ? CABINET_CANVAS_PADDING_PX
-    : (isWardrobe ? WARDROBE_CANVAS_PADDING_PX : 0);
+  // комментарий у константы). Место под отступ и ножки уже заложено в
+  // масштаб (calcMaxAreaSize выше, тот же getSceneReserve).
+  const { moduleData, isWardrobe, padding } = getSceneReserve();
 
   // РАНЬШЕ сверх areaWidth резервировалось ещё (N+1)×WARDROBE_PROFILE_WIDTH:
   // тогда grid.width (= TOTAL_WIDTH) был суммой section.width без профилей, и
@@ -289,8 +307,16 @@ const updateTotalSize = (value, dimension) => {
   // секций уже с вычтенным бюджетом под профили, — так что areaWidth
   // (= TOTAL_WIDTH×scale) уже включает их. Резерв поверх стал двойным учётом
   // и давал большой пустой отступ справа от канваса.
+  // Ножки профилей гардеробной рисуются ВНЕ габарита модуля (вниз от пола и
+  // вверх от торца короткого профиля), поэтому канвас увеличен на их запас
+  // сверху и снизу, а модуль сдвинут вниз на верхнюю часть — тем же
+  // хелпером в SceneBuilder.renderGrid (разойдутся — ножки обрежутся).
+  const legReserve = isWardrobe
+    ? getWardrobeLegReservePx(moduleData, getPixelHeight)
+    : { top: 0, bottom: 0 };
+
   const canvasWidth = areaWidth.value + padding * 2;
-  const canvasHeight = areaHeight.value + padding * 2;
+  const canvasHeight = areaHeight.value + padding * 2 + legReserve.top + legReserve.bottom;
 
   app.canvas.style.width = `${canvasWidth}px`;
   app.canvas.style.height = `${canvasHeight}px`;
