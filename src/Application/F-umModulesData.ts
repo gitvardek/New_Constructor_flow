@@ -262,16 +262,6 @@ export const UM_SAMPLE = () => {
                         "visible": false
                     },
                     {
-                        "id": "563454",
-                        "active": false,
-                        "group": "549",
-                        "section": [
-                            211
-                        ],
-                        "close": "0",
-                        "visible": true
-                    },
-                    {
                         "id": "15278897",
                         "active": false,
                         "group": "549",
@@ -769,7 +759,7 @@ export const UM_SAMPLE = () => {
                             2892
                         ],
                         "close": "1",
-                        "visible": true
+                        "visible": false
                     },
                     {
                         "id": "12682903",
@@ -779,17 +769,7 @@ export const UM_SAMPLE = () => {
                             2892
                         ],
                         "close": "1",
-                        "visible": true
-                    },
-                    {
-                        "id": "563454",
-                        "active": false,
-                        "group": "549",
-                        "section": [
-                            211
-                        ],
-                        "close": "0",
-                        "visible": true
+                        "visible": false
                     },
                     {
                         "id": "15278897",
@@ -799,7 +779,7 @@ export const UM_SAMPLE = () => {
                             2892
                         ],
                         "close": "1",
-                        "visible": true
+                        "visible": false
                     },
                     {
                         "id": "15278898",
@@ -809,7 +789,7 @@ export const UM_SAMPLE = () => {
                             2892
                         ],
                         "close": "1",
-                        "visible": true
+                        "visible": false
                     }
                 ],
                 "USLUGI": [],
@@ -1961,16 +1941,6 @@ export const UM_SAMPLE = () => {
                         ],
                         "close": "1",
                         "visible": false
-                    },
-                    {
-                        "id": "563454",
-                        "active": false,
-                        "group": "549",
-                        "section": [
-                            211
-                        ],
-                        "close": "0",
-                        "visible": true
                     },
                     {
                         "id": "15278897",
