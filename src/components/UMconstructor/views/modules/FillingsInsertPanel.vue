@@ -55,9 +55,8 @@ const isWidthUnrestrictedGroup = (groupID: string | number) =>
   FILLINGS_WIDTH_UNRESTRICTED_GROUPS.includes(+groupID);
 
 // Универсальный ящик, стенки не менее 18 мм
-const isUniversalDrawerBlocked = computed(
-  () => !props.UMconstructor.FILLINGS.isUniversalDrawerAllowed(props.module),
-);
+const isUniversalDrawerBlocked = (filling: any) =>
+  !props.UMconstructor.FILLINGS.isUniversalDrawerAllowed(props.module, filling);
 
 const isFillingBlocked = (groupID: string | number, filling?: any) => {
   if (FILLINGS_RESTRICTION_EXCEPTIONS.includes(+filling?.ID)) {
@@ -65,7 +64,7 @@ const isFillingBlocked = (groupID: string | number, filling?: any) => {
   }
   return (isFillingWidthRestricted.value && !isWidthUnrestrictedGroup(groupID)) ||
     isFillingHeightRestricted.value ||
-    (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
+    (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked(filling));
 };
 
 const toggleFillingGroup = (key: string | number, isOpen: boolean) => {
