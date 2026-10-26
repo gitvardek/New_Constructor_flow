@@ -148,6 +148,8 @@ export default class ProfilesManager {
             return
         }
 
+        grid.profilesConfig.sideProfile.size.x = grid.height
+
         this.applyProfileSide(side, grid)
     }
 }
