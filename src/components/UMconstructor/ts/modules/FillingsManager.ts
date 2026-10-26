@@ -292,13 +292,27 @@ export default class FillingsManager {
         return height - outerDrawer.fasade.manufacturerOffset - outerDrawer.height
     };
 
-    // Универсальный ящик крепится к боковинам корпуса, поэтому тонкая панель для него
-    // не годится
-    static readonly UNIVERSAL_DRAWER_MIN_THICKNESS = 18
+    // Универсальный ящик крепится к боковинам корпуса и изготавливается под конкретную
+    // толщину панели: сейчас выпускаются ящики под 16 и под 18 мм
+    static readonly UNIVERSAL_DRAWER_THICKNESSES = [16, 18]
+
+    // Товар без drawerBoxThickness (каталог ещё не обновлён) считаем ящиком под 18 мм —
+    // так правило работало до появления ящиков под 16 мм
+    static readonly UNIVERSAL_DRAWER_DEFAULT_THICKNESS = 18
+
+    // drawerBoxThickness приходит с бэка в товаре ящика и говорит, под какую толщину
+    // панели он рассчитан
+    getUniversalDrawerThickness(product: any): number {
+        const thickness = Number(product?.drawerBoxThickness ?? product?.DRAWER_BOX_THICKNESS)
+
+        return FillingsManager.UNIVERSAL_DRAWER_THICKNESSES.includes(thickness)
+            ? thickness
+            : FillingsManager.UNIVERSAL_DRAWER_DEFAULT_THICKNESS
+    };
 
     // Толщину берём так же, как reset: у стенки без собственного цвета она корпусная.
-    // Не подходит любая из трёх панелей — корпус, левая или правая стенка
-    isUniversalDrawerAllowed(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+    // Смотрим все три панели — корпус, левую и правую стенку
+    private getUniversalDrawerPanelThicknesses(grid: GridModule): number[] {
         const { CONFIG } = this.scope.UM_STORE.getUMData() ?? {}
         const FASADE = this.scope.APP.FASADE ?? {}
 
@@ -306,7 +320,22 @@ export default class FillingsManager {
         const sideThickness = (side: string) => FASADE[CONFIG?.[side]?.COLOR]?.DEPTH || moduleThickness
 
         return [moduleThickness, sideThickness("LEFTSIDECOLOR"), sideThickness("RIGHTSIDECOLOR")]
-            .every(depth => depth >= FillingsManager.UNIVERSAL_DRAWER_MIN_THICKNESS)
+    };
+
+    // Ящик встаёт только в корпус той толщины, под которую изготовлен, поэтому все три
+    // панели должны совпадать с его drawerBoxThickness. Без filling (общая проверка)
+    // достаточно, чтобы панели подходили под какой-нибудь из типов ящика — 16 или 18
+    isUniversalDrawerAllowed(grid: GridModule = this.scope.UM_STORE.getUMGrid(), filling?: any) {
+        const thicknesses = this.getUniversalDrawerPanelThicknesses(grid)
+
+        if (filling) {
+            const required = this.getUniversalDrawerThickness(filling)
+
+            return thicknesses.every(depth => depth === required)
+        }
+
+        return FillingsManager.UNIVERSAL_DRAWER_THICKNESSES
+            .some(allowed => thicknesses.every(depth => depth === allowed))
     };
 
     // Универсальный ящик приходит из каталога без собственных габаритов: высота корпуса
@@ -327,9 +356,10 @@ export default class FillingsManager {
     // Снимает уже установленные универсальные ящики, когда толщина панелей перестала
     // подходить — например, после смены материала корпуса или боковой стенки
     cleanupUniversalDrawers(grid: GridModule) {
-        if (this.isUniversalDrawerAllowed(grid)) return
-
         let removed = false
+
+        // Толщины, под которые рассчитаны снятые ящики — нужны только для сообщения
+        const requiredThicknesses = new Set<number>()
 
         const deleteUniversal = (
             segment: any,
@@ -342,8 +372,22 @@ export default class FillingsManager {
 
             // Удаляем в обратном порядке чтобы не сбивать индексы
             for (let i = segment.fillings.length - 1; i >= 0; i--) {
-                if (!UM_DRAWERS_IDS.UNIVERSAL.includes(segment.fillings[i]?.productGroupID)) continue
+                const filling = segment.fillings[i]
 
+                if (!UM_DRAWERS_IDS.UNIVERSAL.includes(filling?.productGroupID)) {
+                    continue
+                }
+
+                // Тип ящика (16 или 18) лежит в товаре каталога, в наполнении его нет.
+                // Товара нет — проверить нечем, такое наполнение разбирает резолвер
+                // удалённых материалов, а не уборка
+                const product = this.scope.APP?.CATALOG?.PRODUCTS?.[filling.product]
+
+                if (!product || this.isUniversalDrawerAllowed(grid, product)) {
+                    continue
+                }
+
+                requiredThicknesses.add(this.getUniversalDrawerThickness(product))
                 this.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false)
                 removed = true
             }
@@ -362,8 +406,10 @@ export default class FillingsManager {
             })
         })
 
-        if (removed)
-            this.scope.callAlert("error", `Универсальный ящик удалён: толщина панели меньше ${FillingsManager.UNIVERSAL_DRAWER_MIN_THICKNESS} мм`)
+        if (removed) {
+            const required = [...requiredThicknesses].sort((a, b) => a - b).join(" или ")
+            this.scope.callAlert("error", `Универсальный ящик удалён: он рассчитан на панель ${required} мм, а толщина корпуса или боковой стенки другая`)
+        }
     };
 
     addFilling(
@@ -375,8 +421,9 @@ export default class FillingsManager {
         console.log(_product, productGroupID, 'productGroupID')
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID)) {
-            if (!this.isUniversalDrawerAllowed(grid)) {
-                this.scope.callAlert("error", `Невозможно установить универсальный ящик: толщина корпуса или боковой стенки меньше ${FillingsManager.UNIVERSAL_DRAWER_MIN_THICKNESS} мм`)
+            if (!this.isUniversalDrawerAllowed(grid, _product)) {
+                const required = this.getUniversalDrawerThickness(_product)
+                this.scope.callAlert("error", `Невозможно установить универсальный ящик: он рассчитан на панель ${required} мм, а толщина корпуса или боковой стенки другая`)
                 return;
             }
 

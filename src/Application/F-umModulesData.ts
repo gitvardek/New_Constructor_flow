@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { TTotalProps } from "@/types/types"
 type UMList = Record<number, TTotalProps>
 
@@ -254,6 +253,26 @@ export const UM_SAMPLE = () => {
                     },
                     {
                         "id": "12682903",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
                         "active": false,
                         "group": "549",
                         "section": [
@@ -744,6 +763,26 @@ export const UM_SAMPLE = () => {
                     },
                     {
                         "id": "12682903",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
                         "active": false,
                         "group": "549",
                         "section": [
@@ -1895,6 +1934,26 @@ export const UM_SAMPLE = () => {
                     },
                     {
                         "id": "12682903",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278897",
+                        "active": false,
+                        "group": "549",
+                        "section": [
+                            2892
+                        ],
+                        "close": "1",
+                        "visible": false
+                    },
+                    {
+                        "id": "15278898",
                         "active": false,
                         "group": "549",
                         "section": [

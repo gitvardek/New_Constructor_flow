@@ -53,10 +53,10 @@ const isFillingHeightRestricted = computed(() => {
 const isWidthUnrestrictedGroup = (groupID: string | number) =>
   FILLINGS_WIDTH_UNRESTRICTED_GROUPS.includes(+groupID);
 
-// Универсальный ящик крепится к боковинам и требует панелей не тоньше 18 мм
-const isUniversalDrawerBlocked = computed(
-  () => !props.UMconstructor.FILLINGS.isUniversalDrawerAllowed(props.module),
-);
+// Универсальный ящик крепится к боковинам и изготавливается под толщину панели 16 или
+// 18 мм (drawerBoxThickness товара), поэтому проверяем каждый ящик отдельно
+const isUniversalDrawerBlocked = (filling: any) =>
+  !props.UMconstructor.FILLINGS.isUniversalDrawerAllowed(props.module, filling);
 
 const isFillingBlocked = (groupID: string | number, filling?: any) => {
   if (FILLINGS_RESTRICTION_EXCEPTIONS.includes(+filling?.ID)) {
@@ -64,7 +64,7 @@ const isFillingBlocked = (groupID: string | number, filling?: any) => {
   }
   return (isFillingWidthRestricted.value && !isWidthUnrestrictedGroup(groupID)) ||
     isFillingHeightRestricted.value ||
-    (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
+    (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked(filling));
 };
 
 const toggleFillingGroup = (key: string | number, isOpen: boolean) => {
