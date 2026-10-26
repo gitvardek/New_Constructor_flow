@@ -38,6 +38,7 @@ import {
   getWardrobeProfileHeightRange,
   getWardrobeProfilePositionYRange,
   isWardrobeProfileFloating,
+  getWardrobeProfilesCommonValue,
 } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import { _URL } from "@/types/constants";
@@ -131,17 +132,9 @@ const onPositionYChange = (profileId: number, value: number) => {
 // Одно значение, если оно одинаково у ВСЕХ профилей; null — "разные" (не
 // значение первого профиля: иначе селектор врал бы о состоянии остальных).
 // AccordionSelect на null показывает "—".
-const commonProfileValue = (key: string) => {
-  const profiles = module.value?.wardrobeProfiles ?? [];
-  if (!profiles.length) return undefined;
-
-  const first = profiles[0][key];
-  return profiles.every((p) => p[key] === first) ? first : null;
-};
-
-const commonProfileProductId = computed(() => commonProfileValue("profileProductId"));
-const commonFasteningId = computed(() => commonProfileValue("fasteningId"));
-const commonColorId = computed(() => commonProfileValue("colorId"));
+const commonProfileProductId = computed(() => getWardrobeProfilesCommonValue(module.value, "profileProductId"));
+const commonFasteningId = computed(() => getWardrobeProfilesCommonValue(module.value, "fasteningId"));
+const commonColorId = computed(() => getWardrobeProfilesCommonValue(module.value, "colorId"));
 
 // Каталог цветов зависит от товара-профиля: берём общий для всех, а при
 // разных типах — первого профиля (профилям, у которых выбранного цвета нет,
@@ -243,8 +236,8 @@ const currentProfileColorName = (profile: any) => currentProfileColor(profile)?.
           <p class="actions-title">Отступ от края профиля</p>
           <div class="actions-input--container">
             <MainInput :type="'number'" :inputClass="'actions-input'" :modelValue="profile.positionY ?? 0"
-              :min="profilePositionYRange(profile).min" :max="profilePositionYRange(profile).max" :step="1"
-              :isUM="true" @update:modelValue="(value) => onPositionYChange(profile.id, Number(value))" />
+              :min="profilePositionYRange(profile).min" :max="profilePositionYRange(profile).max" :step="1" :isUM="true"
+              @update:modelValue="(value) => onPositionYChange(profile.id, Number(value))" />
           </div>
         </div>
       </div>

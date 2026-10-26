@@ -446,6 +446,42 @@ export function getWardrobeProfileMaterials(wardrobeProductId: number, profilePr
         .filter(Boolean);
 }
 
+// Общее значение поля по ВСЕМ профилям модуля: само значение, если у всех
+// профилей оно одинаково, иначе null ("разные"), undefined — профилей нет.
+// Единый источник и для блока "Все профили" (WardrobeProfilesView.vue), и
+// для дефолтов нового профиля (getWardrobeNewProfileColorId ниже) — иначе
+// "общий материал ГС" считался бы в двух местах по-разному.
+export function getWardrobeProfilesCommonValue(grid: any, key: string): any {
+    const profiles = grid?.wardrobeProfiles ?? [];
+    if (!profiles.length) return undefined;
+
+    const first = profiles[0][key];
+    return profiles.every((p: any) => p[key] === first) ? first : null;
+}
+
+// Цвет НОВОГО профиля — новая секция (WardrobeSectionsManager.addWardrobeSector)
+// и авто-разбиение секций при правке общей ширины (WardrobeGridReset, тот же
+// addWardrobeSector): берётся общий материал профилей ГС, а не первый цвет
+// каталога, иначе новая граница выпадала из уже настроенного модуля.
+//
+// При РАЗНЫХ цветах у профилей — цвет первого профиля (решение пользователя).
+// Тип профиля новому профилю не наследуется (каталожный, как и крепление),
+// поэтому унаследованный цвет проверяется по списку ЕГО товара-профиля: не
+// подошёл — первый доступный, тот же откат, что в
+// WardrobeProfilesManager.applyProfileType.
+export function getWardrobeNewProfileColorId(grid: any, profileProductId: number): number | undefined {
+    if (!profileProductId) return undefined;
+
+    const available = getWardrobeProfileMaterials(grid?.productID, profileProductId);
+    const fallbackColorId = available[0]?.ID;
+
+    const common = getWardrobeProfilesCommonValue(grid, 'colorId');
+    const inherited = common ?? grid?.wardrobeProfiles?.[0]?.colorId;
+    if (!inherited) return fallbackColorId;
+
+    return available.some((c: any) => c.ID === inherited) ? inherited : fallbackColorId;
+}
+
 // Группы наполнения вкладки "Наполнение" -> "Вставка" (кроме "Полки" — та
 // отдельный, всегда видимый элемент). Тот же путь, что у box-UM
 // RightPanelView.vue::getFillings (_PRODUCTS[...].FILLING_SECTION ->

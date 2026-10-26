@@ -15,7 +15,7 @@ import {
     WARDROBE_SECTIONS_QUANTITY_MAX,
     WARDROBE_PROFILE_WIDTH,
 } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeProfileProducts, getWardrobeProfileFastenings, getWardrobeProfileMaterials } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeProfileProducts, getWardrobeProfileFastenings, getWardrobeNewProfileColorId } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 export default class WardrobeSectionsManager {
     scope: UMconstructorClass
@@ -86,13 +86,12 @@ export default class WardrobeSectionsManager {
             // profileProductId/fasteningId — первые доступные из каталога,
             // тот же принцип, что у createDefaultWardrobeProfiles.
             const newProfileProductId = getWardrobeProfileProducts(grid.productID)[0]?.id
+            const newProfileId = Math.max(0, ...(grid.wardrobeProfiles ?? []).map((p) => p.id || 0)) + 1
             grid.wardrobeProfiles?.splice(secIndex + 1 + i, 0, {
-                id: (grid.wardrobeProfiles?.length || 0) + 1,
+                id: newProfileId,
                 profileProductId: newProfileProductId,
                 fasteningId: getWardrobeProfileFastenings(grid.productID)[0]?.id,
-                colorId: newProfileProductId
-                    ? getWardrobeProfileMaterials(grid.productID, newProfileProductId)[0]?.ID
-                    : undefined,
+                colorId: getWardrobeNewProfileColorId(grid, newProfileProductId),
                 height: grid.height,
             })
         }
