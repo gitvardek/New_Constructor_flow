@@ -245,6 +245,57 @@ export function getWardrobeFasteningColorFamily(
     return 'floor_wall';
 }
 
+// ==== Вертикальное положение профиля ("стена-стена") ====
+
+// Профиль с креплением "стена-стена" держится на двух стенах и в пол не
+// упирается (поэтому у него нет и ножек, getWardrobeLegsByFasteningType) —
+// такой профиль можно поднимать по Y. Остальные крепления стоят на полу,
+// отступ у них всегда 0.
+export function isWardrobeProfileFloating(
+    wardrobeProductId: number,
+    fasteningId: number | null | undefined,
+): boolean {
+    return getWardrobeFasteningColorFamily(wardrobeProductId, fasteningId) === 'wall_wall';
+}
+
+// Диапазон отступа профиля от пола, мм: верхний торец остаётся в габарите
+// модуля (grid.height — максимум по высотам профилей, UMconstructorClass.
+// reset), поэтому сдвиг не меняет ни grid.height, ни масштаб канваса, ни
+// корзину. Один источник для драга мышью и числового поля "Отступ от пола"
+// (WardrobeProfilesView.vue).
+export function getWardrobeProfilePositionYRange(
+    grid: any,
+    profile: { fasteningId?: number; height?: number } | null | undefined,
+): { min: number; max: number } {
+    if (!isWardrobeProfileFloating(grid?.productID, profile?.fasteningId)) return { min: 0, max: 0 };
+    return { min: 0, max: Math.max((grid?.height || 0) - (profile?.height || 0), 0) };
+}
+
+// Можно ли реально тянуть этот профиль по Y: крепление навесное И в габарите
+// модуля есть куда подниматься. Профиль во всю высоту модуля (обычный случай
+// по умолчанию — все профили одной высоты) не двигается, пока его не
+// укоротят: иначе верхний торец вышел бы за габарит. От этого зависят и
+// доступность оси в драге, и курсор профиля — чтобы интерфейс не обещал
+// движения, которого не будет.
+export function canDragWardrobeProfileY(
+    grid: any,
+    profile: { fasteningId?: number; height?: number } | null | undefined,
+): boolean {
+    return getWardrobeProfilePositionYRange(grid, profile).max > 0;
+}
+
+// Отступ профиля от пола, мм — ЕДИНСТВЕННЫЙ источник для 2D (отрисовка и
+// драг), границ секции, 3D-сборки и корзины: сырое profile.positionY может
+// остаться от прежнего крепления или просрочиться (профиль/модуль стали
+// ниже), а на месте оно нормализуется только на пересчёте (WardrobeGridReset).
+export function getWardrobeProfilePositionY(
+    grid: any,
+    profile: { fasteningId?: number; height?: number; positionY?: number } | null | undefined,
+): number {
+    const { min, max } = getWardrobeProfilePositionYRange(grid, profile);
+    return Math.round(Math.min(Math.max(profile?.positionY || 0, min), max));
+}
+
 // ==== Ножки профиля и общая высота системы ====
 
 // Высота регулировочной ножки, мм. Своё значение у каждого крепления —
@@ -288,31 +339,40 @@ export function getWardrobeFasteningLegs(
 }
 
 // Вертикальный габарит сборки, мм, по списку профилей с УЖЕ посчитанными
-// ножками ({height, legTop, legBottom}): above — сколько занято над полом,
-// below — под полом. Профили стоят на полу и растут вверх, поэтому это
-// объединение, а не максимум сумм: верхнюю точку может задать один профиль
-// (высокий "стена-стена"), нижнюю — другой (короткий с ножкой).
+// ножками ({height, positionY, legTop, legBottom}): above — сколько занято
+// над полом, below — под полом. Профили растут вверх от своей точки опоры,
+// поэтому это объединение, а не максимум сумм: верхнюю точку может задать
+// один профиль (высокий "стена-стена"), нижнюю — другой (короткий с ножкой).
+//
+// positionY (отступ навесного "стена-стена" от пола) входит в above, но не
+// в below: у навесного крепления ножек нет, под полом он ничего не занимает.
 //
 // Общая для 2D (сетка) и 3D (WardrobeGridParser.profiles).
 export function getWardrobeProfilesSpan(
-    profiles: { height?: number; legTop?: number; legBottom?: number }[] | null | undefined,
+    profiles: { height?: number; positionY?: number; legTop?: number; legBottom?: number }[] | null | undefined,
 ): { above: number; below: number } {
     let above = 0;
     let below = 0;
 
     (profiles ?? []).forEach((profile) => {
-        above = Math.max(above, (profile?.height || 0) + (profile?.legTop || 0));
+        above = Math.max(above, (profile?.height || 0) + (profile?.positionY || 0) + (profile?.legTop || 0));
         below = Math.max(below, profile?.legBottom || 0);
     });
 
     return { above, below };
 }
 
-// Профили сетки с посчитанными ножками — связка каталога с формулами выше.
+// Профили сетки с посчитанными ножками и отступом — связка каталога с
+// формулами выше.
 function getWardrobeGridProfilesWithLegs(grid: any) {
     return (grid?.wardrobeProfiles ?? []).map((profile: any) => {
         const legs = getWardrobeFasteningLegs(grid?.productID, profile?.fasteningId);
-        return { height: profile?.height ?? grid?.height ?? 0, legTop: legs.top, legBottom: legs.bottom };
+        return {
+            height: profile?.height ?? grid?.height ?? 0,
+            positionY: getWardrobeProfilePositionY(grid, profile),
+            legTop: legs.top,
+            legBottom: legs.bottom,
+        };
     });
 }
 
@@ -430,18 +490,42 @@ export function getWardrobeFillingsGroups(wardrobeProductId: number): {
     return result
 }
 
-// "Монтажная высота" секции — до какой высоты в ней вообще можно ставить
-// полки. Это МЕНЬШАЯ из высот двух ограничивающих профилей
-// (wardrobeProfiles[secIndex] и [secIndex+1]): полка висит на обоих, и выше
-// верха короткого держаться ей не на чем. GridModule.height здесь не
-// годится — это максимум по ВСЕМ профилям модуля (UMconstructorClass.reset).
-export function getWardrobeSectionInstallableHeight(grid: any, secIndex: number): number {
-    const left = grid.wardrobeProfiles?.[secIndex];
-    const right = grid.wardrobeProfiles?.[secIndex + 1];
-    const heights = [left?.height, right?.height].filter((h) => typeof h === 'number');
+// Вертикальные границы секции, мм от пола: ceiling — "монтажная высота", до
+// какой в секции вообще можно ставить наполнение; floor — ниже какой нельзя.
+// Обе считаются по ДВУМ ограничивающим профилям (wardrobeProfiles[secIndex] и
+// [secIndex+1]): элемент висит на обоих, поэтому ceiling — МИНИМУМ их верхних
+// торцов (выше верха короткого держаться не на чем), floor — МАКСИМУМ их
+// отступов от пола (навесной "стена-стена" может быть поднят, и под ним
+// элементу тоже не на чем держаться). GridModule.height здесь не годится —
+// это максимум по ВСЕМ профилям модуля (UMconstructorClass.reset).
+//
+// Этим объектом пользуется вся коллизия наполнения
+// (findFreeWardrobeShelfPositionY/getWardrobeShelfDragBounds/
+// resolveWardrobeShelfDragPositionY) — границы ходят парой, чтобы ни одна
+// формула не потеряла половину.
+export interface WardrobeSectionBounds {
+    floor: number;
+    ceiling: number;
+}
 
-    if (!heights.length) return grid.height;
-    return Math.min(...heights);
+export function getWardrobeSectionBounds(grid: any, secIndex: number): WardrobeSectionBounds {
+    const profiles = [grid.wardrobeProfiles?.[secIndex], grid.wardrobeProfiles?.[secIndex + 1]]
+        .filter((p) => typeof p?.height === 'number');
+
+    if (!profiles.length) return { floor: 0, ceiling: grid.height };
+
+    const offsets = profiles.map((p) => getWardrobeProfilePositionY(grid, p));
+    return {
+        floor: Math.max(...offsets),
+        ceiling: Math.min(...profiles.map((p, i) => p.height + offsets[i])),
+    };
+}
+
+// Только потолок секции — для мест, которым нижняя граница не нужна: :max
+// поля "Положение по Y" (WardrobeFillingsView.vue) и предел высоты тумбочки
+// (cabinet/cabinetLimits.ts).
+export function getWardrobeSectionInstallableHeight(grid: any, secIndex: number): number {
+    return getWardrobeSectionBounds(grid, secIndex).ceiling;
 }
 
 // Товар-полка с type === 'glass' в _WARDROBE_SYSTEM[...].shelf. У стекла
@@ -693,10 +777,9 @@ export function getWardrobeShelfFloorGap(
 // же принцип, что у ShapeAdjuster.getRandomPosition в box-UM, но с зазором
 // по типу пары полок, а не фиксированным шагом). Используется
 // WardrobeShelvesManager.addWardrobeShelf: новые секции создаются БЕЗ полок.
-// ceilingHeight — "монтажная" высота секции
-// (getWardrobeSectionInstallableHeight), НЕ grid.height; у тумбочки от неё
-// ещё отступ getWardrobeItemCeilingGap (так же в drag-границах ниже). null,
-// если места не осталось.
+// bounds — вертикальные границы секции (getWardrobeSectionBounds), НЕ
+// grid.height; у тумбочки от потолка ещё отступ getWardrobeItemCeilingGap
+// (так же в drag-границах ниже). null, если места не осталось.
 //
 // candidateY округляется ВВЕРХ на КАЖДОМ шаге, а не один раз в конце:
 // высоты/зазоры наклонной дробные (тригонометрия), и Math.round в конце мог
@@ -707,7 +790,7 @@ export function findFreeWardrobeShelfPositionY(
     shelves: PositionedFilling[],
     newShelf: WardrobeFillingShape,
     depthMm: number,
-    ceilingHeight: number,
+    bounds: WardrobeSectionBounds,
     wardrobeProductId?: number,
 ): number | null {
     const newHeight = getWardrobeShelfPixiHeight(newShelf, depthMm, wardrobeProductId);
@@ -730,12 +813,14 @@ export function findFreeWardrobeShelfPositionY(
         // интервалов не повторяет порядок объектов, и sweep пропускал бы зоны.
         .sort((a, b) => a.lower - b.lower);
 
-    let candidateY = Math.ceil(getWardrobeShelfFloorGap(newShelf, depthMm, wardrobeProductId));
+    // Пол секции может быть не полом комнаты (поднятый навесной профиль,
+    // см. getWardrobeSectionBounds) — отступ полки считается ОТ НЕГО.
+    let candidateY = Math.ceil(bounds.floor + getWardrobeShelfFloorGap(newShelf, depthMm, wardrobeProductId));
     for (const { lower, upper } of intervals) {
         if (candidateY > lower && candidateY < upper) candidateY = upper;
     }
 
-    if (candidateY + newHeight > ceilingHeight - getWardrobeItemCeilingGap(newShelf)) return null;
+    if (candidateY + newHeight > bounds.ceiling - getWardrobeItemCeilingGap(newShelf)) return null;
     return candidateY;
 }
 
@@ -745,7 +830,7 @@ export function findFreeWardrobeShelfPositionY(
 // по Y" (WardrobeFillingsView.vue), которому нужен единый диапазон min/max.
 // Живой драг мышью работает иначе — см. resolveWardrobeShelfDragPositionY.
 // Зазоры и нижняя граница — те же getWardrobeShelfMinGap/FloorGap, что при
-// добавлении; ceilingHeight — монтажная высота секции.
+// добавлении; bounds — вертикальные границы секции (getWardrobeSectionBounds).
 //
 // minY округляется ВВЕРХ, maxY — ВНИЗ: границы дробные (тригонометрия), а
 // потребитель клампит по ним и ПОТОМ округляет позицию до целых мм —
@@ -756,16 +841,16 @@ export function getWardrobeShelfDragBounds(
     shelves: IdentifiedFilling[],
     draggedShelfId: number,
     depthMm: number,
-    ceilingHeight: number,
+    bounds: WardrobeSectionBounds,
     wardrobeProductId?: number,
 ): { minY: number; maxY: number } {
     const dragged = shelves.find((s) => s.id === draggedShelfId);
-    if (!dragged) return { minY: 0, maxY: ceilingHeight };
+    if (!dragged) return { minY: bounds.floor, maxY: bounds.ceiling };
 
     const draggedHeight = getWardrobeShelfPixiHeight(dragged, depthMm, wardrobeProductId);
 
-    let minY = Math.ceil(getWardrobeShelfFloorGap(dragged, depthMm, wardrobeProductId));
-    let maxY = Math.floor(ceilingHeight - getWardrobeItemCeilingGap(dragged) - draggedHeight);
+    let minY = Math.ceil(bounds.floor + getWardrobeShelfFloorGap(dragged, depthMm, wardrobeProductId));
+    let maxY = Math.floor(bounds.ceiling - getWardrobeItemCeilingGap(dragged) - draggedHeight);
 
     shelves.forEach((other) => {
         if (other.id === draggedShelfId) return;
@@ -816,7 +901,7 @@ export function resolveWardrobeShelfDragPositionY(
     shelves: IdentifiedFilling[],
     draggedShelfId: number,
     depthMm: number,
-    ceilingHeight: number,
+    bounds: WardrobeSectionBounds,
     rawY: number,
     wardrobeProductId?: number,
 ): number {
@@ -826,8 +911,8 @@ export function resolveWardrobeShelfDragPositionY(
     const others = shelves.filter((s) => s.id !== draggedShelfId);
     const newHeight = getWardrobeShelfPixiHeight(dragged, depthMm, wardrobeProductId);
 
-    const floorMin = Math.ceil(getWardrobeShelfFloorGap(dragged, depthMm, wardrobeProductId));
-    const ceilMax = Math.floor(ceilingHeight - getWardrobeItemCeilingGap(dragged) - newHeight);
+    const floorMin = Math.ceil(bounds.floor + getWardrobeShelfFloorGap(dragged, depthMm, wardrobeProductId));
+    const ceilMax = Math.floor(bounds.ceiling - getWardrobeItemCeilingGap(dragged) - newHeight);
     if (ceilMax <= floorMin) return Math.round(dragged.positionY);
 
     const rawIntervals = others

@@ -1,6 +1,7 @@
 // ==== Гардеробная система (WARDROBE) ====
-// Перетаскивание мышью в гардеробной сцене: внутренние профили (двигают
-// границу между двумя секциями) и полки/штанги внутри секции (только по Y).
+// Перетаскивание мышью в гардеробной сцене: профили (внутренние двигают
+// границу между двумя секциями по X, навесные "стена-стена" — свой отступ от
+// пола по Y) и полки/штанги внутри секции (только по Y).
 // Вынесено из DividerDragEngine.ts, где лежало рядом с box-UM драгом
 // разделителей: общего кода не было — box-UM ctx.dragState сделан под
 // cells/rows/extras и слишком на них завязан, чтобы переиспользовать для
@@ -11,7 +12,7 @@
 // Хендлеры *DragStart/Click навешивает на PIXI-объекты WardrobeSceneBuilder
 // через ctx.onWardrobe* — мост проставляется в Render2D.vue.
 //
-// onWardrobeProfileDragStart/Click/onWardrobeShelfDragStart объявлены обычными
+// onWardrobeProfileDragStart/onWardrobeShelfDragStart объявлены обычными
 // `function` и присвоены полям в конструкторе: PIXI зовёт их как
 // profile.on("pointerdown", ...), и внутри this === сам PIXI-объект (оттуда
 // берутся profileId/profileIndex/secIndex/shelfId). ctx получают через
@@ -22,10 +23,13 @@
 import RenderContext from "@/components/UMconstructor/utils/render2d/RenderContext.ts";
 import { WARDROBE_SECTION_WIDTH_MIN, WARDROBE_SECTION_WIDTH_MAX, WARDROBE_CANVAS_PADDING_PX } from "@/Application/F-wardrobeData.ts";
 import {
-    getWardrobeSectionInstallableHeight,
+    getWardrobeSectionBounds,
     getWardrobeShelfDepth,
     getWardrobeShelfPixiHeight,
     getWardrobeLegReservePx,
+    getWardrobeProfilePositionY,
+    getWardrobeProfilePositionYRange,
+    canDragWardrobeProfileY,
     resolveWardrobeShelfDragPositionY,
 } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import {
@@ -36,22 +40,43 @@ import {
     getWardrobeItemSpanPx,
 } from "./WardrobeSceneBuilder.ts";
 
+// Порог выбора оси драга профиля, px канваса: пока мышь не ушла дальше, у
+// профиля с двумя доступными осями не меняется ни ширина секций, ни отступ —
+// клик без намерения тащить ничего не правит. Экранная величина, не мм:
+// порог про жест пользователя, а не про геометрию изделия, и не должен
+// зависеть от масштаба канваса.
+const WARDROBE_PROFILE_DRAG_AXIS_THRESHOLD_PX = 3;
+
 export default class WardrobeDragEngine {
     ctx: RenderContext
     onWardrobeProfileDragStart: (event: any) => void
-    onWardrobeProfileClick: (event: any) => void
     onWardrobeShelfDragStart: (event: any) => void
 
     // Состояние драга профиля, изолировано от box-UM ctx.dragState (тот
     // сделан под cells/rows/extras и слишком сильно на них завязан, чтобы
     // безопасно переиспользовать для плоских секций гардеробной).
+    //
+    // У профиля ДВЕ оси, и доступны они не всегда: по X тянется только
+    // внутренний (двигает границу двух секций), по Y — только навесной
+    // "стена-стена" (WardrobeSystem.isWardrobeProfileFloating; напольные
+    // крепления стоят на полу, отступ у них всегда 0). Когда доступны обе,
+    // ось выбирается ОДИН раз по доминирующему смещению мыши
+    // (WARDROBE_PROFILE_DRAG_AXIS_THRESHOLD_PX) и до конца драга не меняется:
+    // иначе дрожание курсора правило бы и ширину секций, и отступ сразу.
+    // axis остаётся null, пока порог не пройден — профиль при этом стоит.
     private wardrobeDrag: {
         isDragging: boolean
         profileIndex: number | null
+        axis: 'x' | 'y' | null
         startX: number
+        startY: number
         leftStartWidth: number
         rightStartWidth: number
-    } = { isDragging: false, profileIndex: null, startX: 0, leftStartWidth: 0, rightStartWidth: 0 }
+        startPositionY: number
+    } = {
+        isDragging: false, profileIndex: null, axis: null,
+        startX: 0, startY: 0, leftStartWidth: 0, rightStartWidth: 0, startPositionY: 0,
+    }
 
     // Драг полки внутри секции, только по вертикали. Границы НЕ фиксируются
     // на старте: коллизии перерешаются на каждый move по текущим позициям
@@ -137,13 +162,16 @@ export default class WardrobeDragEngine {
         const engine = this
 
 
-        // Драг профиля между двумя секциями (изменяет их ширину навстречу
-        // друг другу). this внутри === profile (PIXI Graphics) — тот же
-        // паттерн, что у box-UM DividerDragEngine.onVerticalDragStart (обычная
-        // function, не стрелочная, доступ к ctx через замыкание engine.ctx).
-        // Крайние профили (0 и sections.length) не тянутся — им навешан
-        // ДРУГОЙ обработчик, onWardrobeProfileClick ниже (только выбор, без
-        // драга — см. WardrobeSceneBuilder.createWardrobeProfile), сюда не попадают.
+        // Нажатие на профиль: выделение всегда, драг — по тем осям, которые
+        // этому профилю доступны (см. поле wardrobeDrag). this внутри ===
+        // profile (PIXI Graphics) — тот же паттерн, что у box-UM
+        // DividerDragEngine.onVerticalDragStart (обычная function, не
+        // стрелочная, доступ к ctx через замыкание engine.ctx).
+        //
+        // Обработчик ОДИН на все профили, включая неподвижный крайний
+        // напольный: у него обе оси запрещены, и дело кончается выделением —
+        // renderGrid() для этого не нужен, SelectionHighlighter.
+        // selectWardrobeProfile переключает .visible на готовых объектах.
         this.onWardrobeProfileDragStart = function (event) {
             const ctx = engine.ctx
             const module = ctx.props.module
@@ -155,6 +183,11 @@ export default class WardrobeDragEngine {
             // WardrobeRightPanelView.vue, переключающие вкладки.
             ctx.selectWardrobeProfile(this.profileId)
 
+            const profile = module.wardrobeProfiles?.[profileIndex]
+            const canResizeX = profileIndex > 0 && profileIndex < module.sections.length
+            const canMoveY = canDragWardrobeProfileY(module, profile)
+            if (!canResizeX && !canMoveY) return
+
             // ctx.wardrobeDragActive здесь НЕ выставляется, в отличие от драга
             // полки: профиль рендерится через scheduleWardrobeRender(), т.е.
             // полным renderGrid() каждый кадр (резайз профиля меняет ширину и
@@ -164,25 +197,18 @@ export default class WardrobeDragEngine {
             ctx.cursorCheck = true
             engine.wardrobeDrag.isDragging = true
             engine.wardrobeDrag.profileIndex = profileIndex
+            // Одна доступная ось фиксируется сразу: порог доминанты нужен
+            // только для выбора МЕЖДУ осями.
+            engine.wardrobeDrag.axis = canResizeX && canMoveY ? null : (canResizeX ? 'x' : 'y')
             engine.wardrobeDrag.startX = event.data.global.x
-            engine.wardrobeDrag.leftStartWidth = module.sections[profileIndex - 1].width
-            engine.wardrobeDrag.rightStartWidth = module.sections[profileIndex].width
+            engine.wardrobeDrag.startY = event.data.global.y
+            engine.wardrobeDrag.leftStartWidth = canResizeX ? module.sections[profileIndex - 1].width : 0
+            engine.wardrobeDrag.rightStartWidth = canResizeX ? module.sections[profileIndex].width : 0
+            engine.wardrobeDrag.startPositionY = getWardrobeProfilePositionY(module, profile)
 
             ctx.app.stage.on("pointermove", engine.onWardrobeProfileDragMove)
             ctx.app.stage.on("pointerup", engine.onWardrobeProfileDragEnd)
             ctx.app.stage.on("pointerupoutside", engine.onWardrobeProfileDragEnd)
-        }
-
-
-        // Клик по КРАЙНЕМУ профилю (draggable=false в
-        // WardrobeSceneBuilder.createWardrobeProfile) — только выбор: ширину секций
-        // они не двигают, но настраиваются в "Настройка профилей"
-        // (высота/крепление/цвет). renderGrid() не нужен —
-        // SelectionHighlighter.selectWardrobeProfile переключает .visible на
-        // уже отрисованных объектах.
-        this.onWardrobeProfileClick = function (event) {
-            const ctx = engine.ctx
-            ctx.selectWardrobeProfile(this.profileId)
         }
 
 
@@ -279,34 +305,62 @@ export default class WardrobeDragEngine {
     }
 
     // ==== Гардеробная система (WARDROBE) — временно, черновик ====
-    // Живое перетаскивание внутреннего профиля: сдвигает границу между
-    // sections[profileIndex-1] и sections[profileIndex], клампится так,
-    // чтобы обе стороны остались в [WARDROBE_SECTION_WIDTH_MIN, MAX] —
-    // считаем допустимый диапазон самой дельты, а не клампим каждую ширину
-    // по отдельности (иначе суммарная ширина module могла бы поехать).
+    // Живое перетаскивание профиля по зафиксированной оси:
+    //  - X (внутренний профиль): сдвигает границу между sections[i-1] и
+    //    sections[i], клампится так, чтобы обе стороны остались в
+    //    [WARDROBE_SECTION_WIDTH_MIN, MAX] — считаем допустимый диапазон самой
+    //    дельты, а не клампим каждую ширину по отдельности (иначе суммарная
+    //    ширина module могла бы поехать);
+    //  - Y (навесной "стена-стена"): меняет отступ профиля от пола в пределах
+    //    getWardrobeProfilePositionYRange, т.е. габарит модуля и масштаб
+    //    канваса не трогает. Коллизию с наполнением соседних секций здесь не
+    //    решаем — полки подтягивает пересчёт на dragEnd (WardrobeGridReset,
+    //    bounds.floor), иначе одно движение мыши переставляло бы полки туда и
+    //    обратно.
     onWardrobeProfileDragMove = (event) => {
         const ctx = this.ctx
         const drag = this.wardrobeDrag
         if (!drag.isDragging || drag.profileIndex === null || !event) return
 
         const module = ctx.props.module
-        const { profileIndex, startX, leftStartWidth, rightStartWidth } = drag
+        const { profileIndex, startX, startY, leftStartWidth, rightStartWidth } = drag
 
-        // Целые мм: из px получается дробь, а ширины секций — размеры изделия.
-        const deltaXmm = Math.round(ctx.getMmWidth(event.data.global.x - startX))
+        const deltaXpx = event.data.global.x - startX
+        const deltaYpx = event.data.global.y - startY
 
-        const minDelta = Math.max(
-            WARDROBE_SECTION_WIDTH_MIN - leftStartWidth,
-            rightStartWidth - WARDROBE_SECTION_WIDTH_MAX,
-        )
-        const maxDelta = Math.min(
-            WARDROBE_SECTION_WIDTH_MAX - leftStartWidth,
-            rightStartWidth - WARDROBE_SECTION_WIDTH_MIN,
-        )
-        const clampedDelta = Math.max(minDelta, Math.min(maxDelta, deltaXmm))
+        // Ось ещё не выбрана — обе доступны, ждём, в какую сторону мышь уйдёт
+        // дальше порога. До этого момента профиль не двигается.
+        if (drag.axis === null) {
+            if (Math.max(Math.abs(deltaXpx), Math.abs(deltaYpx)) < WARDROBE_PROFILE_DRAG_AXIS_THRESHOLD_PX) return
+            drag.axis = Math.abs(deltaXpx) >= Math.abs(deltaYpx) ? 'x' : 'y'
+        }
 
-        module.sections[profileIndex - 1].width = leftStartWidth + clampedDelta
-        module.sections[profileIndex].width = rightStartWidth - clampedDelta
+        if (drag.axis === 'x') {
+            // Целые мм: из px получается дробь, а ширины секций — размеры изделия.
+            const deltaXmm = Math.round(ctx.getMmWidth(deltaXpx))
+
+            const minDelta = Math.max(
+                WARDROBE_SECTION_WIDTH_MIN - leftStartWidth,
+                rightStartWidth - WARDROBE_SECTION_WIDTH_MAX,
+            )
+            const maxDelta = Math.min(
+                WARDROBE_SECTION_WIDTH_MAX - leftStartWidth,
+                rightStartWidth - WARDROBE_SECTION_WIDTH_MIN,
+            )
+            const clampedDelta = Math.max(minDelta, Math.min(maxDelta, deltaXmm))
+
+            module.sections[profileIndex - 1].width = leftStartWidth + clampedDelta
+            module.sections[profileIndex].width = rightStartWidth - clampedDelta
+        } else {
+            const profile = module.wardrobeProfiles?.[profileIndex]
+            if (!profile) return
+
+            // Экран/PIXI: Y растёт вниз, отступ от пола — вверх (как positionY
+            // полки, см. onWardrobeShelfDragMove).
+            const rawY = drag.startPositionY - ctx.getMmHeight(deltaYpx)
+            const { min, max } = getWardrobeProfilePositionYRange(module, profile)
+            profile.positionY = Math.round(Math.max(min, Math.min(max, rawY)))
+        }
 
         this.scheduleWardrobeRender()
     }
@@ -317,6 +371,7 @@ export default class WardrobeDragEngine {
         this.cancelScheduledWardrobeRender()
         this.wardrobeDrag.isDragging = false
         this.wardrobeDrag.profileIndex = null
+        this.wardrobeDrag.axis = null
         ctx.cursorCheck = false
 
         ctx.app.stage.off("pointermove", this.onWardrobeProfileDragMove)
@@ -352,13 +407,13 @@ export default class WardrobeDragEngine {
 
         // Те же величины, что раньше считались один раз в onWardrobeShelfDragStart
         // (см. комментарий у WardrobeSystem.getWardrobeShelfDepth/
-        // getWardrobeSectionInstallableHeight) — теперь нужны на каждый move,
+        // getWardrobeSectionBounds) — теперь нужны на каждый move,
         // т.к. разрешение коллизий больше не кэшируется в начале драга.
         const depthMm = getWardrobeShelfDepth(module)
-        const ceilingHeight = getWardrobeSectionInstallableHeight(module, drag.secIndex)
+        const bounds = getWardrobeSectionBounds(module, drag.secIndex)
 
         shelf.positionY = resolveWardrobeShelfDragPositionY(
-            section.wardrobeFilling, drag.shelfId, depthMm, ceilingHeight, rawY, module.productID,
+            section.wardrobeFilling, drag.shelfId, depthMm, bounds, rawY, module.productID,
         )
 
         // Прямая перерисовка ТОЛЬКО graphic перетаскиваемой полки (+ её

@@ -28,12 +28,20 @@ import type { WardrobeCabinetConfig } from "@/components/UMconstructor/cabinet/t
 // height — собственная высота профиля, мм; высота модуля (GridModule.height)
 // = максимум по всем профилям (UMconstructorClass.reset()), т.к. "Пол-стена"
 // обычно короче "Пол-потолок".
+//
+// positionY — отступ от пола до НИЖНЕГО торца, мм (та же конвенция, что у
+// WardrobeFillingItem.positionY). Ненулевой только у навесного крепления
+// "стена-стена": оно держится на двух стенах и в пол не упирается, поэтому
+// такой профиль перетаскивается по Y. Читать ТОЛЬКО через
+// WardrobeSystem.getWardrobeProfilePositionY — сырое значение может остаться
+// от прежнего крепления или просрочиться после правки высот.
 export interface WardrobeProfile {
     id: number;
     profileProductId: number;
     fasteningId: number;
     colorId?: number;
     height: number;
+    positionY?: number;
 }
 
 // Вид полки — ЛДСП (с выбором материала/цвета) или стекло (без выбора).

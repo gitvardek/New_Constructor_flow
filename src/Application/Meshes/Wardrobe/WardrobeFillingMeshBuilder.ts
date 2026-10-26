@@ -71,7 +71,9 @@ export class WardrobeFillingMeshBuilder {
             mesh.castShadow = true
             mesh.receiveShadow = true
 
-            mesh.position.set(profile.x, floorY + profile.height / 2, profile.z)
+            // profile.positionY — отступ от пола у навесного "стена-стена"
+            // (у напольных креплений 0), см. WardrobeGridParser.
+            mesh.position.set(profile.x, floorY + profile.positionY + profile.height / 2, profile.z)
             mesh.name = `WARDROBE_PROFILE_${index}`
 
             group.add(mesh, this.builder.edge_builder.createEdge(mesh))

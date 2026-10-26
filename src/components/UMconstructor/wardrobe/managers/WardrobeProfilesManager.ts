@@ -1,15 +1,21 @@
 //@ts-nocheck
 
 // ==== Гардеробная система (WARDROBE) ====
-// Профили: высота, тип профиля (товар _WARDROBE_SYSTEM[...].profile),
-// крепление (_WARDROBE_SYSTEM[...].fastenings), цвет. Вынесено из
+// Профили: высота, отступ от пола (навесное "стена-стена"), тип профиля
+// (товар _WARDROBE_SYSTEM[...].profile), крепление
+// (_WARDROBE_SYSTEM[...].fastenings), цвет. Вынесено из
 // ProfilesManager.ts, где лежало рядом с боковым hi-tech профилем box-UM —
 // это разные сущности, общего кода нет. Точка входа —
 // scope.WARDROBE.profiles.
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import { WardrobeProfile } from "@/components/UMconstructor/wardrobe/types.ts";
-import { getWardrobeProfileMaterials, getWardrobeProfileHeightRange } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import {
+    getWardrobeProfileMaterials,
+    getWardrobeProfileHeightRange,
+    getWardrobeProfilePositionY,
+    getWardrobeProfilePositionYRange,
+} from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 export default class WardrobeProfilesManager {
     scope: UMconstructorClass
@@ -68,6 +74,12 @@ export default class WardrobeProfilesManager {
 
         const range = getWardrobeProfileHeightRange(grid.productID, fasteningId);
         profile.height = Math.min(Math.max(profile.height, range.min), range.max);
+
+        // Отступ от пола несёт смысл только у навесного "стена-стена": при
+        // переходе на напольное крепление он обнуляется (иначе профиль висел
+        // бы в воздухе без опоры), при обратном — остаётся, но клампится под
+        // новую высоту. Обе ветки — в getWardrobeProfilePositionY.
+        profile.positionY = getWardrobeProfilePositionY(grid, profile);
     }
 
     // ==== Глобальные правки: блок "Все профили" в WardrobeProfilesView.vue ====
@@ -171,6 +183,27 @@ export default class WardrobeProfilesManager {
 
             const range = getWardrobeProfileHeightRange(grid.productID, profile.fasteningId);
             profile.height = Math.min(Math.max(value, range.min), range.max);
+            this.scope.reset(grid);
+        }, 500);
+    }
+
+    // "Отступ от пола" (WardrobeProfilesView.vue) — мм до нижнего торца
+    // навесного профиля "стена-стена". Тот же диапазон и то же поле, что
+    // правит драг профиля по Y на канвасе
+    // (WardrobeDragEngine.onWardrobeProfileDragMove): единый источник правды
+    // для мыши и числового ввода, как у полки
+    // (WardrobeShelvesManager.updateWardrobeShelfPositionY). Дебаунс — тот же
+    // паттерн, что у высоты выше.
+    //
+    // Наполнение секций под поднявшимся профилем подтянет reset()
+    // (WardrobeGridReset — bounds.floor), отдельной правки полок тут нет.
+    updateWardrobeProfilePositionY(grid: GridModule, profileId: number, value: number) {
+        this.scope.debounce("updateWardrobeProfilePositionY", () => {
+            const profile = this.findWardrobeProfile(grid, profileId);
+            if (!profile) return;
+
+            const range = getWardrobeProfilePositionYRange(grid, profile);
+            profile.positionY = Math.round(Math.min(Math.max(value, range.min), range.max));
             this.scope.reset(grid);
         }, 500);
     }

@@ -21,7 +21,7 @@
 import { computed, ref, toRefs, onMounted, watch } from "vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
-import { getWardrobeShelfMaterials, getWardrobeSectionInstallableHeight, getWardrobeShelfDepth, getWardrobeShelfDragBounds } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeShelfMaterials, getWardrobeSectionBounds, getWardrobeShelfDepth, getWardrobeShelfDragBounds } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import { _URL } from "@/types/constants";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
@@ -98,13 +98,13 @@ const selectedSection = computed(() => {
 // штанги показывает name/превью товара из каталога + положение по Y.
 const configurableShelves = computed(() => selectedSection.value?.wardrobeFilling ?? []);
 
-// "Монтажная" высота секции — минимум из высот двух ограничивающих её
-// профилей (не selectedSection.height/module.height, который равен максимуму
-// по ВСЕМ профилям модуля) — выше короткого профиля полке не на чём висеть,
-// см. WardrobeSystem.getWardrobeSectionInstallableHeight.
-const installableHeight = computed(() => {
-  if (selectedSec.value === null || !module.value) return 0;
-  return getWardrobeSectionInstallableHeight(module.value, selectedSec.value);
+// Вертикальные границы секции — по двум ограничивающим её профилям, а не по
+// selectedSection.height/module.height (те равны максимуму по ВСЕМ профилям
+// модуля): выше короткого профиля полке не на чём висеть, а ниже поднятого
+// навесного — не на чём стоять, см. WardrobeSystem.getWardrobeSectionBounds.
+const sectionBounds = computed(() => {
+  if (selectedSec.value === null || !module.value) return { floor: 0, ceiling: 0 };
+  return getWardrobeSectionBounds(module.value, selectedSec.value);
 });
 
 // Список материалов ЛДСП зависит от товара самой полки (productId) — сегодня
@@ -117,7 +117,7 @@ const materialsList = (shelfProductId: number) =>
 // лимиты при перетаскивании мышью и (после очередного бага, найденного
 // пользователем) стала единым источником правды и в самом
 // WardrobeShelvesManager.updateWardrobeShelfPositionY. Раньше здесь были две ОТДЕЛЬНЫЕ
-// самодельные формулы (floorGap для низа, installableHeight-height для
+// самодельные формулы (floorGap для низа, потолок секции минус height для
 // верха) — ни одна не учитывала коллизии с ДРУГИМИ полками секции, поле
 // позволяло увести полку ниже/выше соседней вплотную (см. скриншоты в чате).
 const positionYBounds = (shelf: any) => {
@@ -126,7 +126,7 @@ const positionYBounds = (shelf: any) => {
   // см. WardrobeSystem.getWardrobeShelfDepth.
   const depthMm = getWardrobeShelfDepth(module.value);
   const shelves = selectedSection.value?.wardrobeFilling ?? [];
-  return getWardrobeShelfDragBounds(shelves, shelf.id, depthMm, installableHeight.value, module.value?.productID);
+  return getWardrobeShelfDragBounds(shelves, shelf.id, depthMm, sectionBounds.value, module.value?.productID);
 };
 
 // Флаг активного драга полки/профиля на канвасе (UM_STORE.wardrobeDragActive,

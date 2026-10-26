@@ -8,7 +8,7 @@ import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import {
     findFreeWardrobeShelfPositionY,
-    getWardrobeSectionInstallableHeight,
+    getWardrobeSectionBounds,
     getWardrobeShelfDepth,
     getWardrobeShelfColorOptions,
 } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
@@ -42,7 +42,7 @@ export default class CabinetManager {
             items,
             cabinetItem,
             getWardrobeShelfDepth(grid),
-            getWardrobeSectionInstallableHeight(grid, secIndex),
+            getWardrobeSectionBounds(grid, secIndex),
             grid.productID,
         );
 

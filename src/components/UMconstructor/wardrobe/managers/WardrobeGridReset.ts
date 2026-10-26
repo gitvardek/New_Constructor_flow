@@ -11,6 +11,8 @@
 //   - grid.height = высота самого высокого профиля (профили настраиваются
 //     независимо, поле "Высота" пишет в них, а не в grid.height);
 //   - grid.depth не выше максимума, разрешённого текущими креплениями;
+//   - отступ профиля от пола нормализован: ненулевой только у навесного
+//     "стена-стена" и не выводит верхний торец за габарит модуля;
 //   - section.height = grid.height у всех секций;
 //   - зазоры полок не нарушены, не помещающиеся под потолок секции удалены;
 //   - сумма ширин секций + профилей = grid.width, секции внутри
@@ -22,7 +24,8 @@ import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import {
     getWardrobeProfileMaxDepth,
-    getWardrobeSectionInstallableHeight,
+    getWardrobeProfilePositionY,
+    getWardrobeSectionBounds,
     getWardrobeShelfDepth,
     getWardrobeShelfPixiHeight,
     getWardrobeShelfMinGap,
@@ -86,6 +89,16 @@ export default class WardrobeGridReset {
                 grid.depth = this.scope.UM_STORE.totalDepth = maxDepth
                 this.scope.callAlert("warning", `Глубина модуля уменьшена до ${maxDepth}мм — не позволяют текущие крепления профилей`)
             }
+
+            // Отступ профиля от пола — только у навесного "стена-стена" и
+            // только в габарите модуля (getWardrobeProfilePositionY). Здесь,
+            // ПОСЛЕ пересчёта grid.height: от неё зависит верхняя граница
+            // отступа. Нормализация на КАЖДОМ reset(), т.к. отступ может
+            // просрочиться не только от драга — профиль укоротили, сменили
+            // крепление на напольное, уменьшили высоту модуля.
+            grid.wardrobeProfiles.forEach((profile) => {
+                profile.positionY = getWardrobeProfilePositionY(grid, profile)
+            })
         }
 
         // Секции не стоят друг над другом (один ряд) — height каждой
@@ -103,40 +116,84 @@ export default class WardrobeGridReset {
         // сообщал "нет места", хотя видимого места было много).
         grid.sections.forEach((s) => { s.height = grid.height })
 
-        // Полка, которая больше не помещается под "монтажную" высоту
-        // своей секции (минимум из двух ограничивающих её профилей,
-        // см. WardrobeSystem.getWardrobeSectionInstallableHeight) — после
-        // того, как пользователь укоротил один из профилей в "Настройка
-        // профилей" — физически висит в воздухе (см. скриншот в чате) и
-        // удаляется. Проверяется на КАЖДОМ reset() (не только сразу после
-        // правки высоты профиля) — тот же принцип, что и у синхронизации
-        // section.height выше: это инвариант, а не разовый побочный эффект.
+        // Наполнение приводится в соответствие с вертикальными границами
+        // своей секции (WardrobeSystem.getWardrobeSectionBounds): сначала
+        // сдвигается вниз под опустившийся потолок, потом вверх от пола и
+        // соседей, и только то, чему места не нашлось вовсе, удаляется —
+        // физически оно висело бы в воздухе (см. скриншот в чате).
+        // Проверяется на КАЖДОМ reset() (не только сразу после правки высоты
+        // профиля) — тот же принцип, что и у синхронизации section.height
+        // выше: это инвариант, а не разовый побочный эффект.
         let removedShelvesCount = 0
         grid.sections.forEach((section, secIndex) => {
             if (!section.wardrobeFilling?.length) return
 
-            const installableHeight = getWardrobeSectionInstallableHeight(grid, secIndex)
+            const bounds = getWardrobeSectionBounds(grid, secIndex)
             // Полки крепятся к центру профиля — их длина считается от
             // ТЕКУЩЕЙ grid.depth (не от потолка getWardrobeProfileMaxDepth,
             // который не реагирует на правку самого поля "Глубина" — баг,
             // найден пользователем), см. WardrobeSystem.getWardrobeShelfDepth.
             const depthMm = getWardrobeShelfDepth(grid)
 
-            // Полка, прилегающая к соседу СНИЗУ (в т.ч. к наклонной —
-            // её высота зависит от depthMm, тригонометрия), должна
-            // сохранять минимальный зазор ОТ ЭТОГО соседа даже после
-            // изменения геометрии (глубина модуля и т.п.) — баг, найден
-            // пользователем: при изменении глубины модуля полка,
+            // Порядок элементов по высоте фиксируется ОДИН раз, до обоих
+            // проходов: внутри них позиции меняются, и пересортировка
+            // посередине перемешала бы соседей.
+            const sortedShelves = [...section.wardrobeFilling].sort((a, b) => a.positionY - b.positionY)
+
+            // ПРОХОД ВНИЗ (сверху вниз). Потолок секции мог ОПУСТИТЬСЯ:
+            // навесной профиль опустили по Y, профиль укоротили в панели,
+            // уменьшили высоту модуля. Элемент, который больше не влезает под
+            // новый потолок (или под опустившегося соседа СВЕРХУ), сдвигается
+            // вниз ровно настолько, чтобы влезть: раньше он просто удалялся,
+            // хотя место под ним освобождалось той же правкой — баг, найден
+            // пользователем на драге профиля вниз. Кто и так влезает, не
+            // трогается: его положение мог выбрать пользователь.
+            //
+            // Нижние границы (пол секции, сосед СНИЗУ) здесь НЕ проверяются
+            // намеренно: сосед снизу в этом проходе ещё не сдвинут, и кламп по
+            // его СТАРОМУ положению оставил бы элемент выше потолка, то есть
+            // под удаление, хотя после сдвига соседа место появляется.
+            // Нижние границы восстанавливает проход вверх ниже — он же и
+            // выявляет элементы, которым места действительно нет: они
+            // возвращаются выше потолка и удаляются фильтром.
+            for (let i = sortedShelves.length - 1; i >= 0; i--) {
+                const shelf = sortedShelves[i]
+                const aboveShelf = sortedShelves[i + 1]
+                const shelfHeight = getWardrobeShelfPixiHeight(shelf, depthMm, grid.productID)
+
+                // aboveShelf в этом проходе уже сдвинут (идём сверху вниз),
+                // поэтому граница считается по его НОВОМУ положению. Порядок
+                // аргументов зазора значим: shelf снизу, aboveShelf сверху.
+                const upperBound = aboveShelf
+                    ? aboveShelf.positionY
+                    - getWardrobeShelfMinGap(shelf, aboveShelf, depthMm, grid.productID)
+                    - shelfHeight
+                    : bounds.ceiling - getWardrobeItemCeilingGap(shelf) - shelfHeight
+
+                if (shelf.positionY > upperBound) {
+                    // Вниз округляем ВНИЗ (проход вверх — вверх): границы
+                    // дробные от тригонометрии наклонной полки, округление
+                    // наружу не даёт выскочить из разрешённого диапазона.
+                    shelf.positionY = Math.floor(upperBound)
+                }
+            }
+
+            // ПРОХОД ВВЕРХ (снизу вверх). Полка, прилегающая к соседу СНИЗУ
+            // (в т.ч. к наклонной — её высота зависит от depthMm,
+            // тригонометрия), должна сохранять минимальный зазор ОТ ЭТОГО
+            // соседа даже после изменения геометрии (глубина модуля и т.п.) —
+            // баг, найден пользователем: при изменении глубины модуля полка,
             // прилегающая к наклонной полке, не сдвигалась к новому
             // разрешённому положению и оставалась на старом positionY
-            // (нарушая либо занижая зазор). Сдвигаем ТОЛЬКО ВВЕРХ —
-            // устраняем нарушение зазора, но никогда не "утягиваем"
-            // полку вниз, если у неё и так больше свободного места, чем
-            // требуется по формуле (это может быть намеренный выбор
+            // (нарушая либо занижая зазор). Этот проход двигает ТОЛЬКО ВВЕРХ:
+            // "утянуть" элемент вниз может лишь проход выше, и только когда он
+            // иначе не влезает, — запас свободного места под элементом сам по
+            // себе не повод его трогать (это может быть намеренный выбор
             // пользователя при перетаскивании, не нарушение). "Пол"
             // считается неявным нижним соседом первой полки — та же
-            // getWardrobeShelfFloorGap, что уже используют add/drag.
-            const sortedShelves = [...section.wardrobeFilling].sort((a, b) => a.positionY - b.positionY)
+            // getWardrobeShelfFloorGap, что уже используют add/drag, а сам
+            // пол берётся из bounds.floor: у секции с поднятым навесным
+            // профилем ("стена-стена") он выше пола комнаты.
             let prevShelf: typeof sortedShelves[number] | null = null
             sortedShelves.forEach((shelf) => {
                 // prevShelf ниже (СНИЗУ), shelf выше (СВЕРХУ) по
@@ -147,7 +204,7 @@ export default class WardrobeGridReset {
                     ? prevShelf.positionY
                     + getWardrobeShelfPixiHeight(prevShelf, depthMm, grid.productID)
                     + getWardrobeShelfMinGap(prevShelf, shelf, depthMm, grid.productID)
-                    : getWardrobeShelfFloorGap(shelf, depthMm, grid.productID)
+                    : bounds.floor + getWardrobeShelfFloorGap(shelf, depthMm, grid.productID)
 
                 if (shelf.positionY < lowerBound) {
                     shelf.positionY = Math.ceil(lowerBound)
@@ -158,7 +215,7 @@ export default class WardrobeGridReset {
 
             const kept = section.wardrobeFilling.filter((shelf) => {
                 const shelfHeight = getWardrobeShelfPixiHeight(shelf, depthMm, grid.productID)
-                return shelf.positionY + shelfHeight <= installableHeight - getWardrobeItemCeilingGap(shelf) + 0.01
+                return shelf.positionY + shelfHeight <= bounds.ceiling - getWardrobeItemCeilingGap(shelf) + 0.01
             })
 
             removedShelvesCount += section.wardrobeFilling.length - kept.length
@@ -166,9 +223,12 @@ export default class WardrobeGridReset {
         })
 
         if (removedShelvesCount > 0) {
+            // Причина теперь не только высота профиля: потолок секции
+            // опускает и отступ навесного профиля от пола, и высота модуля —
+            // формулировка нейтральная к источнику правки.
             this.scope.callAlert("warning", removedShelvesCount === 1
-                ? "Полка удалена — не помещается под новую высоту профиля!"
-                : `Удалено полок: ${removedShelvesCount} — не помещаются под новую высоту профиля!`)
+                ? "Полка удалена — не помещается в границы секции!"
+                : `Удалено полок: ${removedShelvesCount} — не помещаются в границы секции!`)
         }
 
         // grid.width — это ПОЛНАЯ физическая ширина модуля (то же число, что

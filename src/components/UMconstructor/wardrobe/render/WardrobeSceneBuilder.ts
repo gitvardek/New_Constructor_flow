@@ -15,7 +15,7 @@ import { Container, Graphics, Text } from "pixi.js";
 import { Shape, Section } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import RenderContext from "@/components/UMconstructor/utils/render2d/RenderContext.ts";
 import { WARDROBE_PROFILE_WIDTH, WARDROBE_CANVAS_PADDING_PX, WARDROBE_LEG_PLATE_HEIGHT, WARDROBE_LEG_PLATE_WIDTH, WARDROBE_LEG_STEM_WIDTH } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeShelfPixiHeight, getWardrobeFasteningColorFamily, getWardrobeShelfDepth, getWardrobeFillingSideGap, getWardrobeFasteningLegs, getWardrobeTotalHeight } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeShelfPixiHeight, getWardrobeFasteningColorFamily, getWardrobeShelfDepth, getWardrobeFillingSideGap, getWardrobeFasteningLegs, getWardrobeTotalHeight, getWardrobeProfilePositionY, canDragWardrobeProfileY } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { WARDROBE_COLORS, getWardrobeShelfColors } from "./WardrobeColors.ts";
 import { createHorizontalDimension, createVerticalDimension, createNameLabel } from "@/components/UMconstructor/editor-v2/render2d/dimensions.ts";
 import { SELECTION_STROKE_COLOR } from "@/components/UMconstructor/editor-v2/render2d/palette.ts";
@@ -204,16 +204,24 @@ export default class WardrobeSceneBuilder {
             const profileFill = isEdge ? profileFillColors.edge.fill : profileFillColors.draggable.fill
 
             const profileHeightMm = profileData?.height ?? moduleGrid.height
+            // Отступ от пола — только у навесного "стена-стена" (остальные
+            // стоят на полу, см. WardrobeSystem.getWardrobeProfilePositionY).
+            // Он не растягивает габарит модуля: верхний торец остаётся в
+            // heightPx, поэтому масштаб канваса от драга по Y не меняется.
+            const profilePositionYMm = getWardrobeProfilePositionY(moduleGrid, profileData)
+            const profileOffsetPx = ctx.getPixelHeight(profilePositionYMm)
 
             this.createWardrobeProfile({
                 x: profileX + moduleOffsetX,
                 y: moduleOffsetY,
                 totalHeightPx: heightPx,
                 profileHeightMm,
+                profileOffsetPx,
                 colorFamily,
                 profileIndex,
                 profileId: profileData?.id,
                 draggable: !isEdge,
+                movableY: canDragWardrobeProfileY(moduleGrid, profileData),
             })
 
             // profileHeightPx — используется и размерной линией ниже (в
@@ -221,6 +229,12 @@ export default class WardrobeSceneBuilder {
             // ней (нужен ВСЕГДА, не только вне драга) — вынесен из-под if,
             // формула идентична createWardrobeProfile.
             const profileHeightPx = Math.min(Math.max(ctx.getPixelHeight(profileHeightMm), 2), heightPx)
+            // Торцы САМОГО профиля (с учётом отступа) и пол модуля — от них
+            // считается всё остальное: ножки, обводка выделения, подписи,
+            // размерные линии. У напольных креплений profileBottomY === floorY.
+            const floorY = moduleOffsetY + heightPx
+            const profileBottomY = floorY - profileOffsetPx
+            const profileTopY = profileBottomY - profileHeightPx
 
             // Ножки профиля — ВНЕ габарита модуля: нижняя уходит под пол,
             // верхняя (только "пол-потолок") поднимается над верхним торцом
@@ -230,8 +244,6 @@ export default class WardrobeSceneBuilder {
             // краем и не читаются как часть высоты профиля. Состав ножек —
             // по типу крепления, то же правило, что в 3D-сборке.
             const legs = getWardrobeFasteningLegs(moduleGrid.productID, profileData?.fasteningId)
-            const floorY = moduleOffsetY + heightPx
-            const profileTopY = floorY - profileHeightPx
             const legBottomPx = legs.bottom > 0 ? ctx.getPixelHeight(legs.bottom) : 0
             const legTopPx = legs.top > 0 ? ctx.getPixelHeight(legs.top) : 0
 
@@ -239,7 +251,7 @@ export default class WardrobeSceneBuilder {
                 this.createWardrobeProfileLeg({
                     x: profileX + moduleOffsetX,
                     widthPx: profileWidthPx,
-                    yBase: floorY,
+                    yBase: profileBottomY,
                     heightPx: legBottomPx,
                     direction: 1,
                     colorFamily,
@@ -260,7 +272,7 @@ export default class WardrobeSceneBuilder {
             }
 
             spanTopY = Math.min(spanTopY, profileTopY - legTopPx)
-            spanBottomY = Math.max(spanBottomY, floorY + legBottomPx)
+            spanBottomY = Math.max(spanBottomY, profileBottomY + legBottomPx)
 
             // Выделение двустороннее: канвас <-> "Настройка профилей".
             // Обводка ПОВЕРХ профиля, не подмена заливки (как у полки в
@@ -272,7 +284,7 @@ export default class WardrobeSceneBuilder {
             // SelectionHighlighter.selectWardrobeProfile переключал .visible
             // напрямую, без renderGrid.
             const profileHighlight = new Graphics();
-            profileHighlight.rect(profileX + moduleOffsetX, moduleOffsetY + heightPx - profileHeightPx, profileWidthPx, profileHeightPx);
+            profileHighlight.rect(profileX + moduleOffsetX, profileTopY, profileWidthPx, profileHeightPx);
             profileHighlight.stroke({ width: 2, color: WARDROBE_SHELF_HIGHLIGHT_COLOR, alignment: 1 });
             profileHighlight.visible = ctx.UMconstructor?.value?.UM_STORE.selectedWardrobeProfileId === profileData?.id;
             ctx.sectionLables.push(profileHighlight);
@@ -300,8 +312,18 @@ export default class WardrobeSceneBuilder {
                 const isLastProfile = profileIndex === sections.length
                 const dimensionX = moduleOffsetX + (isLastProfile ? profileX - 4 : profileX + profileWidthPx + 4)
                 ctx.sectionLables.push(createVerticalDimension(
-                    moduleOffsetY + heightPx - profileHeightPx, moduleOffsetY + heightPx, dimensionX, profileHeightMm, isLastProfile ? -1 : 1,
+                    profileTopY, profileBottomY, dimensionX, profileHeightMm, isLastProfile ? -1 : 1,
                 ))
+
+                // Отступ от пола — та же сторона и X, что у высоты профиля,
+                // ниже её: линия продолжает размерную цепочку "высота +
+                // отступ = габарит модуля". Только у поднятого навесного
+                // профиля: при нулевом отступе линия была бы нулевой длины.
+                if (profileOffsetPx > 0) {
+                    ctx.sectionLables.push(createVerticalDimension(
+                        profileBottomY, floorY, dimensionX, profilePositionYMm, isLastProfile ? -1 : 1,
+                    ))
+                }
 
                 // "Профиль N" (1-based) — ВЕРТИКАЛЬНЫЙ текст
                 // (createNameLabel(vertical=true)) по центру ширины и
@@ -312,7 +334,7 @@ export default class WardrobeSceneBuilder {
                 ctx.sectionLables.push(createNameLabel(
                     `Профиль ${profileIndex + 1}`,
                     moduleOffsetX + profileX + profileWidthPx / 2,
-                    moduleOffsetY + heightPx - profileHeightPx / 2,
+                    profileTopY + profileHeightPx / 2,
                     0.5, 0.5, true,
                     profileFill,
                 ))
@@ -542,22 +564,26 @@ export default class WardrobeSceneBuilder {
         return graphic;
     }
 
-    // Профиль — тонкая вертикальная планка на границе секции(й). Крайние
-    // (draggable=false) статичны, внутренние — тянутся (см. DividerDragEngine.
-    // onWardrobeProfileDragStart), меняя ширину двух соседних секций.
+    // Профиль — тонкая вертикальная планка на границе секции(й). Внутренние
+    // (draggable) тянутся по X, меняя ширину двух соседних секций; навесные
+    // "стена-стена" (movableY) — ещё и по Y, меняя свой отступ от пола. Чем
+    // окажется драг, решает WardrobeDragEngine.onWardrobeProfileDragStart по
+    // доминирующей оси движения мыши; обработчик один на все профили, в т.ч.
+    // на неподвижные (крайние напольные) — для них он сводится к выделению.
     // Сама планка — только высота профиля, без ножек: те рисуются отдельно
     // (createWardrobeProfileLeg из renderWardrobeGrid) и ВНЕ габарита
     // модуля, чтобы moduleGrid.height по-прежнему читалось как высота
     // профиля, а не вместе с ними (общую высоту подписывает отдельная
     // размерная линия слева).
     //
-    // У каждого профиля СВОЯ высота (profileHeightMm): он крепится к полу и
-    // растёт ВВЕРХ, поэтому короткие просто не достают до totalHeightPx
-    // (эталон — самый высокий профиль), а не растягиваются — как positionY у
-    // полок, пол общая точка отсчёта. Цвет зависит от colorFamily
+    // У каждого профиля СВОЯ высота (profileHeightMm) и своя точка опоры:
+    // напольный крепится к полу и растёт ВВЕРХ, поэтому короткие просто не
+    // достают до totalHeightPx (эталон — самый высокий профиль), а не
+    // растягиваются; навесной поднят над полом на profileOffsetPx. Пол —
+    // общая точка отсчёта, как positionY у полок. Цвет зависит от colorFamily
     // ('floor_ceiling'|'floor_wall'|'wall_wall', вычисляет вызывающий код из
     // fastenings[fasteningId].type) и draggable (WardrobeColors.ts).
-    createWardrobeProfile({ x, y = 0, totalHeightPx, profileHeightMm, colorFamily, profileIndex, profileId, draggable }) {
+    createWardrobeProfile({ x, y = 0, totalHeightPx, profileHeightMm, profileOffsetPx = 0, colorFamily, profileIndex, profileId, draggable, movableY = false }) {
         const ctx = this.ctx
         const widthPx = ctx.getPixelWidth(WARDROBE_PROFILE_WIDTH)
         const heightPx = Math.min(Math.max(ctx.getPixelHeight(profileHeightMm), 2), totalHeightPx)
@@ -576,22 +602,21 @@ export default class WardrobeSceneBuilder {
         // через PIXI-трансформацию, как секции/полки — нужно прибавлять
         // вручную. По умолчанию 0 (box-UM/вызовы без явного отступа —
         // поведение не меняется).
-        profile.position.set(x, y + totalHeightPx - heightPx);
+        profile.position.set(x, y + totalHeightPx - heightPx - profileOffsetPx);
 
-        // Выделение по клику — на ВСЕХ профилях, включая крайние: они
-        // настраиваются в панели, просто не тянутся мышью. profileId записан
-        // прямо на graphic — как secIndex/shelfId у полки.
+        // Один обработчик на все профили: он и выделяет (это нужно даже
+        // неподвижному крайнему напольному — настраивается он в панели), и
+        // ведёт драг по доступным осям. Какие оси доступны, движок считает
+        // сам по profileIndex и креплению, поэтому флаги сюда не передаются.
+        // profileIndex/profileId записаны прямо на graphic — как
+        // secIndex/shelfId у полки.
         profile.eventMode = "static";
         profile.profileIndex = profileIndex;
         profile.profileId = profileId;
-
-        if (draggable) {
-            profile.cursor = "ew-resize";
-            profile.on("pointerdown", ctx.onWardrobeProfileDragStart);
-        } else {
-            profile.cursor = "pointer";
-            profile.on("pointerdown", ctx.onWardrobeProfileClick);
-        }
+        profile.cursor = draggable
+            ? (movableY ? "move" : "ew-resize")
+            : (movableY ? "ns-resize" : "pointer");
+        profile.on("pointerdown", ctx.onWardrobeProfileDragStart);
 
         ctx.deviders.push(profile);
 

@@ -362,7 +362,6 @@ wardrobeDragEngine = new WardrobeDragEngine(ctx);
 ctx.onVerticalDragStart = dividerDragEngine.onVerticalDragStart;
 ctx.onHorizontalDragStart = dividerDragEngine.onHorizontalDragStart;
 ctx.onWardrobeProfileDragStart = wardrobeDragEngine.onWardrobeProfileDragStart;
-ctx.onWardrobeProfileClick = wardrobeDragEngine.onWardrobeProfileClick;
 ctx.onWardrobeShelfDragStart = wardrobeDragEngine.onWardrobeShelfDragStart;
 
 // Компонент может размонтироваться раньше, чем закончится await app.init()

@@ -8,6 +8,9 @@
 // (GridModule.wardrobeProfiles). Параметры:
 // - Высота (MainInput): GridModule.height = максимум по всем профилям
 //   (UMconstructorClass.reset()), а min/max зависят от КРЕПЛЕНИЯ.
+// - Отступ от пола (MainInput): только у навесного крепления "стена-стена",
+//   то же значение правит драг профиля по Y на канвасе — единый источник
+//   правды, WardrobeSystem.getWardrobeProfilePositionYRange.
 // - Тип профиля (AccordionSelect): товар из
 //   _WARDROBE_SYSTEM[productID].profile, у каждого свой список цветов.
 // - Крепление профиля (AccordionSelect): из
@@ -33,6 +36,8 @@ import {
   getWardrobeProfileFastenings,
   getWardrobeProfileMaterials,
   getWardrobeProfileHeightRange,
+  getWardrobeProfilePositionYRange,
+  isWardrobeProfileFloating,
 } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import { _URL } from "@/types/constants";
@@ -94,6 +99,14 @@ const profileMaterialsList = (profile: any) =>
 const profileHeightRange = (profile: any) =>
   getWardrobeProfileHeightRange(module.value?.productID, profile.fasteningId);
 
+// "Отступ от пола" есть только у навесного крепления "стена-стена"
+// (напольные стоят на полу), диапазон — тот же, что у драга по Y на канвасе.
+const isFloatingProfile = (profile: any) =>
+  isWardrobeProfileFloating(module.value?.productID, profile.fasteningId);
+
+const profilePositionYRange = (profile: any) =>
+  getWardrobeProfilePositionYRange(module.value, profile);
+
 const onTypeChange = (profileId: number, profileProductId: number) => {
   UMconstructor.value.WARDROBE.profiles.updateWardrobeProfileType(module.value, profileId, profileProductId);
 };
@@ -108,6 +121,10 @@ const onColorChange = (profileId: number, color: any) => {
 
 const onHeightChange = (profileId: number, value: number) => {
   UMconstructor.value.WARDROBE.profiles.updateWardrobeProfileHeight(module.value, profileId, value);
+};
+
+const onPositionYChange = (profileId: number, value: number) => {
+  UMconstructor.value.WARDROBE.profiles.updateWardrobeProfilePositionY(module.value, profileId, value);
 };
 
 // ==== Блок "Все профили" ====
@@ -216,6 +233,26 @@ const currentProfileColorName = (profile: any) => currentProfileColor(profile)?.
           </div>
         </div>
       </div>
+
+      <!-- Только у навесного "стена-стена": то же значение, что правит драг
+           профиля по Y на канвасе (WardrobeDragEngine). Поле показываем и при
+           нулевом диапазоне — вместе с подсказкой, почему подъём недоступен:
+           так виден сам предел, а не просто отсутствие настройки. -->
+      <div v-if="isFloatingProfile(profile)" class="actions-items--height">
+        <div class="actions-inputs">
+          <p class="actions-title">Отступ от края профиля</p>
+          <div class="actions-input--container">
+            <MainInput :type="'number'" :inputClass="'actions-input'" :modelValue="profile.positionY ?? 0"
+              :min="profilePositionYRange(profile).min" :max="profilePositionYRange(profile).max" :step="1"
+              :isUM="true" @update:modelValue="(value) => onPositionYChange(profile.id, Number(value))" />
+          </div>
+        </div>
+      </div>
+
+      <p v-if="isFloatingProfile(profile) && profilePositionYRange(profile).max === 0"
+        class="UM no-select wardrobe-profiles__hint">
+        Профиль во всю высоту модуля — чтобы поднять его, уменьшите высоту профиля.
+      </p>
 
       <!-- <AccordionSelect label="Тип профиля" :options="profileProductOptions()" :modelValue="profile.profileProductId"
         @update:modelValue="(value) => onTypeChange(profile.id, value)" /> -->

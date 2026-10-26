@@ -18,7 +18,7 @@
 // шириной САМОГО СЕКТОРА и уводила профили на ~WARDROBE_PROFILE_WIDTH/2.
 
 import { WARDROBE_PROFILE_WIDTH } from "@/Application/F-wardrobeData.ts";
-import { getWardrobeFasteningColorFamily, getWardrobeFasteningLegs } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { getWardrobeFasteningColorFamily, getWardrobeFasteningLegs, getWardrobeProfilePositionY } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import type { WardrobeCabinetConfig } from "@/components/UMconstructor/cabinet/types.ts";
 import type { WardrobeFillingType, WardrobeShelfType } from "@/components/UMconstructor/wardrobe/types.ts";
 
@@ -27,6 +27,12 @@ export interface ParsedWardrobeProfile {
     x: number;
     z: number;
     height: number;
+    // Отступ нижнего торца от пола, мм — ненулевой только у навесного
+    // "стена-стена" (WardrobeSystem.getWardrobeProfilePositionY, один
+    // источник с 2D-драгом). Поднимает и сам профиль
+    // (WardrobeFillingMeshBuilder.buildProfiles), и общую высоту сборки
+    // (getWardrobeProfilesSpan в BuildProduct).
+    positionY: number;
     // Тип крепления (getWardrobeFasteningColorFamily) — от него зависят
     // крепёжные пластины к стене, см. LegBuilder.buildWardrobeLegs.
     fasteningType: 'floor_ceiling' | 'floor_wall' | 'wall_wall';
@@ -88,6 +94,7 @@ export class WardrobeGridParser {
                 x: cursor + profileWidth / 2,
                 z: 0, // TODO: смещение к стене/относительно глубины модуля не уточнено (см. WARDROBE_MODEL_DATA.ts)
                 height: profileData?.height ?? grid.height,
+                positionY: getWardrobeProfilePositionY(grid, profileData),
                 fasteningType: getWardrobeFasteningColorFamily(grid.productID, profileData?.fasteningId),
                 legBottom: legs.bottom,
                 legTop: legs.top,

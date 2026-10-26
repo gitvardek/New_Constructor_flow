@@ -6,7 +6,7 @@ import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoo
 import { useRoomContantData } from '@/store/appliction/useRoomContantData'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { useModelState } from "@/store/appliction/useModelState"
-import { getWardrobeAngledShelfLength, getWardrobeShelfDepth, getWardrobeShelfThickness, getWardrobeFillingWidth, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
+import { getWardrobeAngledShelfLength, getWardrobeShelfDepth, getWardrobeShelfThickness, getWardrobeFillingWidth, getWardrobeProfilePositionY, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
 import { getCabinetHeight, getCabinetWidth } from "@/components/UMconstructor/cabinet/CabinetSystem"
 import { WARDROBE_PROFILE_DEPTH } from "@/Application/F-wardrobeData"
 
@@ -839,7 +839,11 @@ function createWardrobeGridData(objProps: any, basketId: any = '') {
   // секциям не принадлежат. SIZE — длина профиля (своя у каждого, высота
   // модуля — максимум по всем), DEPTH — сечение по глубине: каталожное
   // значение товара-профиля (строкой), откат на константу, по которой профиль
-  // строится в 3D (WardrobeFillingMeshBuilder.buildProfiles).
+  // строится в 3D (WardrobeFillingMeshBuilder.buildProfiles). VALUE — отступ
+  // нижнего торца от пола (то же имя поля, что у положения наполнения, см.
+  // createWardrobeFillingItem): ненулевой только у навесного "стена-стена",
+  // берётся нормализованным (getWardrobeProfilePositionY), чтобы в заказ не
+  // ушёл отступ, оставшийся от прежнего крепления.
   const profilesCatalog = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.profile;
 
   const PROFILES = (grid.wardrobeProfiles ?? []).map((profile: any) => {
@@ -848,6 +852,7 @@ function createWardrobeGridData(objProps: any, basketId: any = '') {
       ID: profile.profileProductId,
       PRODUCT_TYPE: 'profile',
       SIZE: profile.height ?? grid.height,
+      VALUE: getWardrobeProfilePositionY(grid, profile),
       DEPTH: Number(profilesCatalog?.[profile.profileProductId]?.depth) || WARDROBE_PROFILE_DEPTH,
     };
 

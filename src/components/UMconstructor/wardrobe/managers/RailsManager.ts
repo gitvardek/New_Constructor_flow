@@ -4,7 +4,7 @@ import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import {
     findFreeWardrobeShelfPositionY,
-    getWardrobeSectionInstallableHeight,
+    getWardrobeSectionBounds,
     getWardrobeShelfDepth,
 } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
@@ -38,13 +38,12 @@ export default class RailsManager {
 
         const railHeight = Number(item?.height) || 0;
         const depthMm = getWardrobeShelfDepth(grid);
-        const ceilingHeight = getWardrobeSectionInstallableHeight(grid, secIndex);
 
         const positionY = findFreeWardrobeShelfPositionY(
             contant,
             { type: 'rail', railHeight },
             depthMm,
-            ceilingHeight,
+            getWardrobeSectionBounds(grid, secIndex),
             grid.productID,
         );
 

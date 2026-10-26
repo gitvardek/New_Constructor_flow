@@ -11,7 +11,7 @@ import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import {
     getWardrobeShelfColorOptions,
     findFreeWardrobeShelfPositionY,
-    getWardrobeSectionInstallableHeight,
+    getWardrobeSectionBounds,
     getWardrobeShelfDepth,
     getWardrobeShelfDragBounds,
 } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
@@ -62,8 +62,8 @@ export default class WardrobeShelvesManager {
             if (!shelf) return;
 
             const depthMm = getWardrobeShelfDepth(grid);
-            const ceilingHeight = getWardrobeSectionInstallableHeight(grid, secIndex);
-            const { minY, maxY } = getWardrobeShelfDragBounds(shelves, shelfId, depthMm, ceilingHeight, grid.productID);
+            const bounds = getWardrobeSectionBounds(grid, secIndex);
+            const { minY, maxY } = getWardrobeShelfDragBounds(shelves, shelfId, depthMm, bounds, grid.productID);
 
             // Округление до целых мм — minY/maxY считаются с тригонометрией
             // (наклонная полка) и почти всегда дробные, positionY должен
@@ -85,10 +85,11 @@ export default class WardrobeShelvesManager {
     // (3-5) наклонная занимает по вертикали больше (проекция повёрнутого
     // прямоугольника) и требует большего зазора от ЛЮБОГО соседа
     // (findFreeWardrobeShelfPositionY/getWardrobeShelfMinGap); (6) установка
-    // ограничена "монтажной" высотой секции — МИНИМУМОМ высот двух её
-    // профилей, а не section.height/grid.height (те равны МАКСИМУМУ по всем
-    // профилям модуля, см. getWardrobeSectionInstallableHeight). Если места
-    // нет — вызов прерывается предупреждением, уже добавленные остаются.
+    // ограничена вертикальными границами секции — верхними торцами и
+    // отступами от пола двух её профилей, а не section.height/grid.height (те
+    // равны МАКСИМУМУ по всем профилям модуля, см. getWardrobeSectionBounds).
+    // Если места нет — вызов прерывается предупреждением, уже добавленные
+    // остаются.
     addWardrobeShelf(
         grid: GridModule,
         secIndex: number,
@@ -114,10 +115,10 @@ export default class WardrobeShelvesManager {
         // не от потолка getWardrobeProfileMaxDepth (тот не реагирует на
         // правку самого поля "Глубина" — баг, найден пользователем).
         const depthMm = getWardrobeShelfDepth(grid);
-        const ceilingHeight = getWardrobeSectionInstallableHeight(grid, secIndex);
+        const bounds = getWardrobeSectionBounds(grid, secIndex);
 
         for (let i = 0; i < count; i++) {
-            const positionY = findFreeWardrobeShelfPositionY(shelves, { type: 'shelf', shelfType, colorId: resolvedColorId, material }, depthMm, ceilingHeight, grid.productID);
+            const positionY = findFreeWardrobeShelfPositionY(shelves, { type: 'shelf', shelfType, colorId: resolvedColorId, material }, depthMm, bounds, grid.productID);
 
             if (positionY === null) {
                 this.scope.callAlert("warning", "В секторе не осталось места для новой полки!");

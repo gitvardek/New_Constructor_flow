@@ -227,7 +227,13 @@ export class LegBuilder {
     //
     // height — СОБСТВЕННАЯ высота ЭТОГО профиля, а не size.height: "Пол-стена"
     // короче "Пол-потолок", и верхняя ножка короткого иначе повисла бы на
-    // уровне соседнего высокого. Нижняя всегда на полу — профили растут вверх.
+    // уровне соседнего высокого.
+    //
+    // positionY — отступ нижнего торца от пола, мм: у напольных креплений 0
+    // (профиль растёт от пола вверх), у навесного "стена-стена" — его
+    // положение по Y (WardrobeGridParser, один источник с 2D). Опоры и
+    // пластины считаются от ТОРЦОВ профиля, а не от пола комнаты, иначе
+    // поднятый профиль разъехался бы со своим крепежом.
     //
     // legBottom/legTop — высоты ножек ЭТОГО профиля, мм (0 — ножки нет):
     // считает WardrobeGridParser по типу крепления, тем же хелпером, что и 2D
@@ -236,7 +242,7 @@ export class LegBuilder {
     // createWardrobeWallBracket), "стена-стена" — без ножек, обе пластины.
     buildWardrobeLegs(
         props: TTotalProps,
-        profilePositions: { x: number, z: number, height?: number, fasteningType?: 'floor_ceiling' | 'floor_wall' | 'wall_wall', legBottom?: number, legTop?: number, colorId?: number }[]
+        profilePositions: { x: number, z: number, height?: number, positionY?: number, fasteningType?: 'floor_ceiling' | 'floor_wall' | 'wall_wall', legBottom?: number, legTop?: number, colorId?: number }[]
     ): THREE.Object3D {
         const size = props.CONFIG.SIZE
         const legsGroup = new THREE.Object3D()
@@ -244,12 +250,13 @@ export class LegBuilder {
         // floorY = -size.height/2: геометрия ЦЕНТРИРОВАНА относительно Y=0,
         const floorY = -size.height / 2
 
-        profilePositions.forEach(({ x, z, height, fasteningType, legBottom, legTop, colorId }, index) => {
-            const topY = floorY + (height ?? size.height)
+        profilePositions.forEach(({ x, z, height, positionY, fasteningType, legBottom, legTop, colorId }, index) => {
+            const bottomY = floorY + (positionY ?? 0)
+            const topY = bottomY + (height ?? size.height)
 
             if (legBottom > 0) {
                 const bottomLeg = this.createWardrobeLeg(-1, legBottom)
-                bottomLeg.position.set(x, floorY, z)
+                bottomLeg.position.set(x, bottomY, z)
                 bottomLeg.name = `WARDROBE_LEG_BOTTOM_${index}`
                 legsGroup.add(bottomLeg)
             }
@@ -272,7 +279,7 @@ export class LegBuilder {
 
             if (fasteningType === 'wall_wall') {
                 const bracket = this.createWardrobeWallBracket(size.depth, colorId)
-                bracket.position.set(x, floorY + WARDROBE_PROFILE_DEPTH, z)
+                bracket.position.set(x, bottomY + WARDROBE_PROFILE_DEPTH, z)
                 bracket.name = `WARDROBE_WALL_BRACKET_BOTTOM_${index}`
                 legsGroup.add(bracket)
             }

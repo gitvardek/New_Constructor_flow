@@ -114,13 +114,10 @@ export default class RenderContext {
     checkSectorsCollision
     onVerticalDragStart
     onHorizontalDragStart
-    // Гардеробная система (временно, черновик) — драг профиля между двумя
-    // секциями, изолирован от dragState/onVerticalDragStart выше.
+    // Гардеробная система (временно, черновик) — нажатие на профиль: выбор
+    // плюс драг по доступным осям (ширина секций по X, отступ навесного
+    // профиля от пола по Y). Изолирован от dragState/onVerticalDragStart выше.
     onWardrobeProfileDragStart
-    // Клик по КРАЙНЕМУ (не тянущемуся мышью) профилю — только выбор, без
-    // драга (см. WardrobeSceneBuilder.createWardrobeProfile/DividerDragEngine.
-    // onWardrobeProfileClick).
-    onWardrobeProfileClick
     // Драг полки внутри секции по вертикали — своё изолированное состояние
     // (wardrobeShelfDrag), см. DividerDragEngine.
     onWardrobeShelfDragStart
