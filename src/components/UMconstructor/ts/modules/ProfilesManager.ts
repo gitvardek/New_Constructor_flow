@@ -2,7 +2,7 @@
 
 import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import * as THREE from "three";
-import {GridModule, GridSection, LOOPSIDE} from "@/components/UMconstructor/types/UMtypes.ts";
+import { GridModule, GridSection, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
 
 type TProfileSide = "left" | "right"
 
@@ -148,6 +148,8 @@ export default class ProfilesManager {
             return
         }
 
+        grid.profilesConfig.sideProfile.size.x = grid.height
+        
         this.applyProfileSide(side, grid)
     }
 }
