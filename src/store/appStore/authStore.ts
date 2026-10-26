@@ -7,6 +7,7 @@ import { LoginData, UserData } from '@/types/authTypes'
 import { useAppData } from '@/store/appliction/useAppData'
 import { setCookie, getCookie, deleteCookie, COOKIE_NAMES } from '@/components/authorization/utils/cookieUtils'
 import { useToast } from '@/features/toaster/useToast'
+import { removeSnapshot } from '@/features/autosave/storage'
 
 const TOKEN_EXPIRATION_HOURS = 24
 const REFRESH_BEFORE_EXPIRY_MS =12 * 60 * 60 * 1000 // обновлять за 1 час до истечения
@@ -251,10 +252,15 @@ export const useAuthStore = defineStore('auth', () => {
     }, 3000)
   }
 
-  const logout = async () => {
+  /** isManual — выход по кнопке; автоматический разлогин (истёкший токен, ошибка бэка) снапшот не трогает */
+  const logout = async (isManual = false) => {
     if (refreshTimerId) {
       clearTimeout(refreshTimerId)
       refreshTimerId = null
+    }
+
+    if (isManual) {
+      removeSnapshot(userData.value?.id)
     }
 
     if (DEV_AUTH_BYPASS) {

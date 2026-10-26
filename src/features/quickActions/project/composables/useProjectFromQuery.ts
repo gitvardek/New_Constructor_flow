@@ -8,12 +8,11 @@ import { useRoomState } from "@/store/appliction/useRoomState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useAppData } from "@/store/appliction/useAppData";
 import { useToast } from "@/features/toaster/useToast";
+import { useAutosave } from "@/features/autosave";
 import { useRouter, useRoute } from "vue-router";
-import { useAuthStore } from "@/store/appStore/authStore";
-import { ProjectTab } from "../types";
 
 /** Ожидание готовности appData (после getdata) перед загрузкой проекта по ссылке */
-function waitForAppDataLoaded(): Promise<void> {
+export function waitForAppDataLoaded(): Promise<void> {
   const appDataStore = useAppData();
   if (appDataStore.isLoaded) {
     return Promise.resolve();
@@ -35,7 +34,6 @@ export function useProjectFromQuery() {
   const router = useRouter();
   const route = useRoute();
   const toaster = useToast();
-  const authStore = useAuthStore();
 
   const loadProject = async (id: string | number): Promise<boolean> => {
     const schemeTransition = useSchemeTransition();
@@ -79,6 +77,9 @@ export function useProjectFromQuery() {
 
       window.C2D.layers.planner.init(true);
       window.C2D.layers.doorsAndWindows.init(true);
+
+      // Открытый проект совпадает с серверным, снапшот автосохранения для него не нужен
+      useAutosave().markSaved();
       return true;
     } catch (error) {
       console.error("Ошибка применения данных проекта:", error);

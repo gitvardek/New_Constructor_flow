@@ -14,6 +14,7 @@ import RoomParamsPopUpView from "@/components/popUp/popup-views/RoomParamsPopUpV
 import WallHeightPopUpView from "@/components/popUp/popup-views/WallHeightPopUpView.vue";
 import WallLengthPopUpView from "@/components/popUp/popup-views/WallLengthPopUpView.vue";
 import DoorWindowOpeningSizePopUpView from "@/components/popUp/popup-views/DoorWindowOpeningSizePopUpView.vue";
+import AutosavePopUpView from "@/features/autosave/components/AutosavePopUpView.vue";
 
 
 export type PopupKey =
@@ -31,7 +32,8 @@ export type PopupKey =
     'technologist-form' |
     'technologist-comments' |
     'file' |
-    'formbasket'
+    'formbasket' |
+    'autosave'
 
 export type Popup = {
   title?: string,
@@ -99,5 +101,9 @@ export const POPUP_CONFIG: PopupsConfig = {
   },
   file:{
     component: FilePopUpView
+  },
+  autosave: {
+    title: 'Несохранённый проект',
+    component: AutosavePopUpView
   }
 } as const;

@@ -200,6 +200,7 @@ import ProjectPagination from "./components/ProjectPagination.vue";
 import TechnologistFormButton from "@/components/Technologist/TechnologistFormButton.vue";
 import { BASE_DOMAIN } from "@/utils/originalDomain";
 import { buildProjectLink } from "./composables/useProjectLink";
+import { useAutosave } from "@/features/autosave";
 
 const router = useRouter();
 const route = useRoute();
@@ -246,6 +247,7 @@ const projectState = useProjectStore();
 const projectAPI = useProjectAPI();
 const roomState = useRoomState();
 const roomOptions = useRoomOptions();
+const autosave = useAutosave();
 
 const isProjectLoading = ref(false);
 const activeTab = ref<'projects' | 'templates'>('projects');
@@ -526,6 +528,8 @@ const loadProject = async (id: string | number) => {
     toaster.error("Ошибка загрузки проекта");
   } finally {
     isProjectLoading.value = false;
+    // Открытый проект совпадает с серверным, снапшот автосохранения для него не нужен
+    autosave.markSaved();
   }
 };
 

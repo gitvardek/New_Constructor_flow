@@ -20,6 +20,7 @@ import Pagination from "@/components/ui/pagination/Pagination.vue";
 import {_URL} from "@/types/constants.ts";
 import {useFilePopUpStorage} from "@/store/appStore/FilePopUpStorage.ts";
 import {useBasketStore} from "@/store/appStore/useBasketStore.ts";
+import {useAutosave} from "@/features/autosave";
 
 // Загрузка проекта
 const router = useRouter();
@@ -34,6 +35,7 @@ const roomState = useRoomState();
 const toaster = useToast();
 const fileStorage = useFilePopUpStorage();
 const basketStorage = useBasketStore();
+const autosave = useAutosave();
 
 const deal = computed(() => {
   return technologistStorage.getDealOfSelectedApplication()
@@ -329,6 +331,8 @@ const uploadProjectTech = async (id: string | number) => {
     loadSuccess = false;
   } finally {
     isProjectLoading.value = false;
+    // Открытый проект совпадает с серверным, снапшот автосохранения для него не нужен
+    autosave.markSaved();
   }
 
   return loadSuccess;

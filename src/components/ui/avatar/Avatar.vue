@@ -127,7 +127,7 @@ const closeDropdown = () => {
 
 const handleLogout = async () => {
   try {
-    await authStore.logout()
+    await authStore.logout(true)
     closeDropdown()
   } catch (error) {
     console.error('Ошибка при выходе:', error)
