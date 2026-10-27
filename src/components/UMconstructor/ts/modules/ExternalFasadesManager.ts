@@ -8,8 +8,8 @@ import {
     GridModule,
     LOOPSIDE
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import {TFasadeProp} from "@/types/types.ts";
-import {UM_PARAMS} from "@/components/UMconstructor/utils/Const.ts";
+import { TFasadeProp } from "@/types/types.ts";
+import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 
@@ -60,7 +60,7 @@ export default class ExternalFasadesManager {
     calcDrawersFasades(secIndex: number, fillingData: FillingObject = false, grid: GridModule = this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()) {
 
         if (fillingData) {
-            if(fillingData.fasade && grid.sections[secIndex].fasadesDrawers) {
+            if (fillingData.fasade && grid.sections[secIndex].fasadesDrawers) {
                 fillingData.fasade.position.y = grid.height - (fillingData.position.y + fillingData.height + fillingData.fasade.manufacturerOffset)
 
                 let drawerInfoId = grid.sections[secIndex].fasadesDrawers.findIndex(item => (
@@ -73,7 +73,7 @@ export default class ExternalFasadesManager {
 
                 grid.sections[secIndex].fasadesDrawers[drawerInfoId] = fillingData.fasade
             }
-            else if (fillingData.isProfile && grid.sections[secIndex].hiTechProfiles){
+            else if (fillingData.isProfile && grid.sections[secIndex].hiTechProfiles) {
                 let profileInfoId = grid.sections[secIndex].hiTechProfiles?.findIndex(item => (
                     item.sec === fillingData.sec &&
                     item.cell === fillingData.cell &&
@@ -97,7 +97,7 @@ export default class ExternalFasadesManager {
 
         let baseFasade = grid.sections[secIndex]?.fasades?.[0]?.find(item => !item.manufacturerOffset)
 
-        if(!baseFasade) {
+        if (!baseFasade) {
             const PROPS = this.FASADES_MANAGER.scope.UM_STORE.getUMData();
 
             let FASADE_PROPS = PROPS.CONFIG.FASADE_PROPS[0];
@@ -131,13 +131,13 @@ export default class ExternalFasadesManager {
             baseFasade.loopsSide = LOOPSIDE['none']
         }
 
-        if(baseFasade.minY === undefined) {
+        if (baseFasade.minY === undefined) {
             let fasadeMinMax = this.FASADES_MANAGER.getFasadePositionMinMax(baseFasade);
             baseFasade = Object.assign(baseFasade, fasadeMinMax);
         }
 
         let baseFasade2 = grid.sections[secIndex].fasades[1]?.find(item => !item.manufacturerOffset)
-        if(baseFasade2 && baseFasade2.minY === undefined) {
+        if (baseFasade2 && baseFasade2.minY === undefined) {
             let fasadeMinMax = this.FASADES_MANAGER.getFasadePositionMinMax(baseFasade2);
             baseFasade2 = Object.assign(baseFasade2, fasadeMinMax);
         }
@@ -239,7 +239,7 @@ export default class ExternalFasadesManager {
                     drawerFasade.width = correctSectionFasadeWidth
                     drawerFasade.position.x = baseFasade.position.x
 
-                    if(filling)
+                    if (filling)
                         filling.fasade = drawerFasade
 
                     drawerIndex += 1
@@ -255,8 +255,8 @@ export default class ExternalFasadesManager {
 
                     fasadeClone.id = index + 1
                     fasadeClone.height = item.height
-                    fasadeClone.material = {...baseFasade.material}
-                    fasadeClone.material.HANDLES = {...fasadeClone.material.HANDLES}
+                    fasadeClone.material = { ...baseFasade.material }
+                    fasadeClone.material.HANDLES = { ...fasadeClone.material.HANDLES }
 
                     fasadeClone.position = new THREE.Vector2(baseFasade.position.x, item.y)
 
@@ -270,8 +270,8 @@ export default class ExternalFasadesManager {
                     if (baseFasade2) {
                         let fasadeClone2 = Object.assign(<FasadeObject>{}, fasadeClone)
                         fasadeClone2.position = new THREE.Vector2(baseFasade2.position.x, item.y)
-                        fasadeClone2.material = {...fasadeClone.material}
-                        fasadeClone2.material.HANDLES = {...fasadeClone2.material.HANDLES}
+                        fasadeClone2.material = { ...fasadeClone.material }
+                        fasadeClone2.material.HANDLES = { ...fasadeClone2.material.HANDLES }
                         fasadeClone2.loopsSide = baseFasade2.loopsSide
 
                         grid.sections[secIndex].fasades[1].push(Object.assign(<FasadeObject>{}, fasadeClone2))
@@ -439,6 +439,7 @@ export default class ExternalFasadesManager {
             moveBody(filling)
         })
         section.hiTechProfiles?.forEach(moveBody)
+        this.syncHiTechProfiles(secIndex, grid)
 
         // Позицию фасада пересчитываем от тела — единственного источника истины
         const placeFasade = (fasade, body) => {
@@ -450,6 +451,41 @@ export default class ExternalFasadesManager {
         drawerFasades.forEach(fasade => {
             const body = section.fillings?.find(filling => filling.id === fasade.item)
             placeFasade(fasade, body)
+        })
+    };
+
+    // Профиль лежит сразу в двух списках секции — в fillings и в hiTechProfiles. На живой
+    // сетке это один объект, но saveUMGrid копирует списки порознь, и после пересчёта это
+    // уже две копии со своими position. Эталон — наполнение: его правят refitFilling и
+    // updateFilling, мимо стопки, а раскладку двери calcDrawersFasadesPositons строит по
+    // hiTechProfiles. Поэтому копию приводим к наполнению целиком: повторённый на ней сдвиг
+    // такие правки не учитывает, и разница копилась бы из пересчёта в пересчёт
+    syncHiTechProfiles(secIndex: number, grid: GridModule) {
+        const section = grid.sections?.[secIndex]
+
+        section?.hiTechProfiles?.forEach(profile => {
+            const twin = this.scope.FILLINGS.getFillingObject({
+                grid,
+                sec: profile.sec ?? secIndex,
+                cell: profile.cell,
+                row: profile.row,
+                extra: profile.extra,
+                item: profile.id - 1,
+            })
+
+            // Близнеца не нашли — профиль живёт только в hiTechProfiles, его уже подвинули
+            if (!twin?.isProfile || twin.id !== profile.id || twin === profile) {
+                return
+            }
+
+            if (profile.position && twin.position) {
+                profile.position.y = twin.position.y
+            }
+
+            if (profile.distances && twin.distances) {
+                profile.distances.top = twin.distances.top
+                profile.distances.bottom = twin.distances.bottom
+            }
         })
     };
 
@@ -607,14 +643,24 @@ export default class ExternalFasadesManager {
 
         // Пол поднимается вместе с цоколем, потолок фасадной зоны от цоколя не зависит.
         // grid.horizont на этот момент ещё старый — новый выставляется после сдвига
-        const floor = (grid.horizont ?? 0) + delta + 2
+        const floorBase = (grid.horizont ?? 0) + delta
         const ceiling = grid.height - 2
 
+        // Фасад начинается на 2 мм выше дна, но нижний Г-образный профиль прикручен к самому
+        // дну корпуса: его место задаёт refitFilling, и этот зазор к нему не относится.
+        // Прижимали бы к полу фасадной зоны и его — сдвиг никогда не становился бы нулевым,
+        // и каждый пересчёт поднимал бы профиль ещё на 2 мм
+        const isBottomProfile = (body) => !!body.isProfile?.isBottomHiTechProfile
+        const floorOf = (body) => isBottomProfile(body)
+            ? floorBase - (body.isProfile.manufacturerOffset || 0)
+            : floorBase + 2
+
         // Сначала уносим за полом ящики: расстояние до цоколя у каждого сохраняется.
-        // Профиль за полом не идёт — он закреплён к боковинам, и его высота в модуле
-        // от цоколя не зависит. Дальше двумя проходами загоняем стопку в фасадную зону:
-        // там профиль и уступит место, если ящикам его не хватит
-        const target = boxes.map((box, index) => box.y + (sorted[index].isProfile ? 0 : delta))
+        // Горизонтальный профиль за полом не идёт — он закреплён к боковинам, и его высота
+        // в модуле от цоколя не зависит; нижний Г-образный, наоборот, стоит на дне и едет
+        // вместе с ним. Дальше двумя проходами загоняем стопку в фасадную зону: там профиль
+        // и уступит место, если ящикам его не хватит
+        const target = boxes.map((box, index) => box.y + (sorted[index].isProfile && !isBottomProfile(sorted[index]) ? 0 : delta))
 
         // Сверху вниз: выше потолка подниматься некуда, и каждый нижний уступает соседу.
         // Этот проход и забирает недостающие миллиметры из промежутков внутри стопки —
@@ -630,7 +676,7 @@ export default class ExternalFasadesManager {
         // Снизу вверх: ниже пола опускаться некуда, и каждый верхний уступает соседу
         for (let i = 0; i < target.length; i++) {
             const limit = i === 0
-                ? floor
+                ? floorOf(sorted[i])
                 : target[i - 1] + boxes[i - 1].height + OTSTUP
 
             target[i] = Math.max(target[i], limit)
@@ -674,6 +720,10 @@ export default class ExternalFasadesManager {
             }
         })
 
+        // Одного сдвига копии мало: наполнение правит ещё и refitFilling, мимо стопки,
+        // и эта разница копилась бы в копии из пересчёта в пересчёт
+        this.syncHiTechProfiles(secIndex, grid)
+
         // Позицию фасада пересчитываем от тела — единственного источника истины
         const placeFasade = (fasade, body) => {
             if (!fasade?.position || !body?.position) {
@@ -695,9 +745,9 @@ export default class ExternalFasadesManager {
         return { overflow, moved: sorted.some(body => shiftOf.get(body) !== 0) }
     };
 
-    calcDrawersFasadesPositons(secIndex: number, _grid: GridModule){
+    calcDrawersFasadesPositons(secIndex: number, _grid: GridModule) {
         const fasadeList = []
-        const {CONFIG} = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
+        const { CONFIG } = this.FASADES_MANAGER.scope.UM_STORE.getUMData()
         const grid = _grid || this.FASADES_MANAGER.scope.UM_STORE.getUMGrid()
 
         //Ящики с фасадами
