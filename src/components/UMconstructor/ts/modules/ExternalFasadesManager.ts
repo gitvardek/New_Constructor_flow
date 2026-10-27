@@ -533,6 +533,7 @@ export default class ExternalFasadesManager {
             moveBody(filling)
         })
         section.hiTechProfiles?.forEach(moveBody)
+        this.syncHiTechProfiles(secIndex, grid)
 
         // Позицию фасада пересчитываем от тела — единственного источника истины
         const placeFasade = (fasade, body) => {
@@ -544,6 +545,41 @@ export default class ExternalFasadesManager {
         drawerFasades.forEach(fasade => {
             const body = section.fillings?.find(filling => filling.id === fasade.item)
             placeFasade(fasade, body)
+        })
+    };
+
+    // Профиль лежит сразу в двух списках секции — в fillings и в hiTechProfiles. На живой
+    // сетке это один объект, но saveUMGrid копирует списки порознь, и после пересчёта это
+    // уже две копии со своими position. Эталон — наполнение: его правят refitFilling и
+    // updateFilling, мимо стопки, а раскладку двери calcDrawersFasadesPositons строит по
+    // hiTechProfiles. Поэтому копию приводим к наполнению целиком: повторённый на ней сдвиг
+    // такие правки не учитывает, и разница копилась бы из пересчёта в пересчёт
+    syncHiTechProfiles(secIndex: number, grid: GridModule) {
+        const section = grid.sections?.[secIndex]
+
+        section?.hiTechProfiles?.forEach(profile => {
+            const twin = this.scope.FILLINGS.getFillingObject({
+                grid,
+                sec: profile.sec ?? secIndex,
+                cell: profile.cell,
+                row: profile.row,
+                extra: profile.extra,
+                item: profile.id - 1,
+            })
+
+            // Близнеца не нашли — профиль живёт только в hiTechProfiles, его уже подвинули
+            if (!twin?.isProfile || twin.id !== profile.id || twin === profile) {
+                return
+            }
+
+            if (profile.position && twin.position) {
+                profile.position.y = twin.position.y
+            }
+
+            if (profile.distances && twin.distances) {
+                profile.distances.top = twin.distances.top
+                profile.distances.bottom = twin.distances.bottom
+            }
         })
     };
 
@@ -686,14 +722,17 @@ export default class ExternalFasadesManager {
 
         // Пол поднимается вместе с цоколем, потолок фасадной зоны от цоколя не зависит.
         // grid.horizont на этот момент ещё старый — новый выставляется после сдвига
-        const floor = (grid.horizont ?? 0) + delta + 2
+        const floorBase = (grid.horizont ?? 0) + delta
         const ceiling = grid.height - 2
 
-        // Сначала уносим за полом ящики: расстояние до цоколя у каждого сохраняется.
-        // Профиль за полом не идёт — он закреплён к боковинам, и его высота в модуле
-        // от цоколя не зависит. Дальше двумя проходами загоняем стопку в фасадную зону:
-        // там профиль и уступит место, если ящикам его не хватит
-        const target = boxes.map((box, index) => box.y + (sorted[index].isProfile ? 0 : delta))
+
+        const isBottomProfile = (body) => !!body.isProfile?.isBottomHiTechProfile
+        const floorOf = (body) => isBottomProfile(body)
+            ? floorBase - (body.isProfile.manufacturerOffset || 0)
+            : floorBase + 2
+
+
+        const target = boxes.map((box, index) => box.y + (sorted[index].isProfile && !isBottomProfile(sorted[index]) ? 0 : delta))
 
         // Сверху вниз: выше потолка подниматься некуда, и каждый нижний уступает соседу.
         // Этот проход и забирает недостающие миллиметры из промежутков внутри стопки —
@@ -709,7 +748,7 @@ export default class ExternalFasadesManager {
         // Снизу вверх: ниже пола опускаться некуда, и каждый верхний уступает соседу
         for (let i = 0; i < target.length; i++) {
             const limit = i === 0
-                ? floor
+                ? floorOf(sorted[i])
                 : target[i - 1] + boxes[i - 1].height + OTSTUP
 
             target[i] = Math.max(target[i], limit)
@@ -752,6 +791,8 @@ export default class ExternalFasadesManager {
                 moveBody(profile, shiftOf.get(twin))
             }
         })
+
+        this.syncHiTechProfiles(secIndex, grid)
 
         // Позицию фасада пересчитываем от тела — единственного источника истины
         const placeFasade = (fasade, body) => {
