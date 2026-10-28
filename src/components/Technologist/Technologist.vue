@@ -2,24 +2,25 @@
 // @ts-nocheck
 
 import ClosePopUpButton from "@/components/ui/svg/ClosePopUpButton.vue";
-import {usePopupStore} from "@/store/appStore/popUpsStore.ts";
-import {computed, nextTick, onMounted, ref, watch} from "vue";
-import {useAppData} from "@/store/appliction/useAppData.ts";
-import {Deal, useTechnologistStorage} from "@/store/appStore/technologist/useTechnologistStorage.ts";
-import {useTechnologistApi} from "@/store/appStore/technologist/useTechnologistApi.ts";
-import {useToast} from "@/features/toaster/useToast.ts";
-import {useProjectAPI} from "@/features/quickActions/project/composables/useProjectAPI.ts";
-import {useProjectStore} from "@/features/quickActions/project/store/useProjectStore.ts";
-import {useSceneState} from "@/store/appliction/useSceneState.ts";
-import {useEventBus} from "@/store/appliction/useEventBus.ts";
-import {useSchemeTransition} from "@/store/canvasMerge/schemeTransition.ts";
-import {useRoute, useRouter} from "vue-router";
-import {useRoomState} from "@/store/appliction/useRoomState.ts";
+import { usePopupStore } from "@/store/appStore/popUpsStore.ts";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useAppData } from "@/store/appliction/useAppData.ts";
+import { Deal, useTechnologistStorage } from "@/store/appStore/technologist/useTechnologistStorage.ts";
+import { useTechnologistApi } from "@/store/appStore/technologist/useTechnologistApi.ts";
+import { useToast } from "@/features/toaster/useToast.ts";
+import { useProjectAPI } from "@/features/quickActions/project/composables/useProjectAPI.ts";
+import { useProjectStore } from "@/features/quickActions/project/store/useProjectStore.ts";
+import { useSceneState } from "@/store/appliction/useSceneState.ts";
+import { useEventBus } from "@/store/appliction/useEventBus.ts";
+import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition.ts";
+import { useRoute, useRouter } from "vue-router";
+import { useRoomState } from "@/store/appliction/useRoomState.ts";
 import MainButton from "@/components/ui/buttons/MainButton.vue";
 import Pagination from "@/components/ui/pagination/Pagination.vue";
-import {_URL} from "@/types/constants.ts";
-import {useFilePopUpStorage} from "@/store/appStore/FilePopUpStorage.ts";
-import {useBasketStore} from "@/store/appStore/useBasketStore.ts";
+import { _URL } from "@/types/constants.ts";
+import { useFilePopUpStorage } from "@/store/appStore/FilePopUpStorage.ts";
+import { useBasketStore } from "@/store/appStore/useBasketStore.ts";
+import { useAutosave } from "@/features/autosave";
 
 // Загрузка проекта
 const router = useRouter();
@@ -34,6 +35,7 @@ const roomState = useRoomState();
 const toaster = useToast();
 const fileStorage = useFilePopUpStorage();
 const basketStorage = useBasketStore();
+const autosave = useAutosave();
 
 const deal = computed(() => {
   return technologistStorage.getDealOfSelectedApplication()
@@ -57,7 +59,7 @@ const handleRootClick = () => {
 
 const closePopup = (clear: boolean = false) => {
 
-  if(clear) {
+  if (clear) {
     technologistStorage.clearStorage()
     fileStorage.clearCash()
   }
@@ -159,10 +161,10 @@ const openModalSTD = function (elem, statusId) {
 const openModalComments = function (elem, statusId) {
   technologistStorage.clearFormReview()
 
-  let {id, projectTechId, techProject} = elem;
+  let { id, projectTechId, techProject } = elem;
   formReview.id = id;
 
-  if(statusId) {
+  if (statusId) {
     formReview.statusId = statusId;
   }
 
@@ -182,7 +184,7 @@ const openModalOrder = async (elem, _id) => {
 
   loading.value = true;
 
-  let {id, projectTechId, techProject} = elem;
+  let { id, projectTechId, techProject } = elem;
   technologistStorage.setDealOfSelectedApplication(<Deal>{
     'dealId': id,
     'dealStatus': 'C10:WON',
@@ -202,14 +204,14 @@ const openModalOrder = async (elem, _id) => {
 
   setTimeout(() => {
     uploadProjectTech(projectID).then((result) => {
-        if(result)
-          basketStorage.syncInvoce({
-            projectID,
-            projectTechId,
-            'dealId': id,
-          })
-        else
-          toaster.error('Ошибка загрузки авто-сохраненного проекта!');
+      if (result)
+        basketStorage.syncInvoce({
+          projectID,
+          projectTechId,
+          'dealId': id,
+        })
+      else
+        toaster.error('Ошибка загрузки авто-сохраненного проекта!');
 
       loading.value = false;
       closePopup()
@@ -329,6 +331,8 @@ const uploadProjectTech = async (id: string | number) => {
     loadSuccess = false;
   } finally {
     isProjectLoading.value = false;
+    // Открытый проект совпадает с серверным, снапшот автосохранения для него не нужен
+    autosave.markSaved();
   }
 
   return loadSuccess;
@@ -447,219 +451,132 @@ const getNavData = () => {
     <div class="technologist-header">
       <div class="technologist-header__title">Список заявок</div>
 
-      <ClosePopUpButton
-          class="technologist-header__close-btn"
-          @click="closePopup(true)"
-      />
+      <ClosePopUpButton class="technologist-header__close-btn" @click="closePopup(true)" />
     </div>
 
     <div class="technologist-container">
 
       <div class="filterList">
-        <label
-            :class="['filterItem', {'active': '0' == techList.filter}]"
-        >
-          <input
-              type="radio"
-              name="filterItem"
-              :value="0"
-              id="filterItem_1"
-              style="display: none;"
-              v-model="techList.filter"
-          >
+        <label :class="['filterItem', { 'active': '0' == techList.filter }]">
+          <input type="radio" name="filterItem" :value="0" id="filterItem_1" style="display: none;"
+            v-model="techList.filter">
           <span>Все</span>
         </label>
-        <label
-            :class="['filterItem', {'active': status.STATUS_ID == techList.filter}]"
-            v-for="status in APP.STATUS_TECH"
-            :style="`color:${status.EXTRA.COLOR}`"
-        >
-          <input
-              type="radio"
-              name="filterItem"
-              :value="status.STATUS_ID"
-              :id="`filterItem_${status.ID}`"
-              style="display: none;"
-              v-model="techList.filter"
-          >
+        <label :class="['filterItem', { 'active': status.STATUS_ID == techList.filter }]"
+          v-for="status in APP.STATUS_TECH" :style="`color:${status.EXTRA.COLOR}`">
+          <input type="radio" name="filterItem" :value="status.STATUS_ID" :id="`filterItem_${status.ID}`"
+            style="display: none;" v-model="techList.filter">
           <span>{{ status.NAME }}</span>
         </label>
       </div>
 
       <div v-if="techList.nav" class="pagination_wrap">
-        <Pagination
-            v-if="getNavData()"
-            :nav-data="getNavData()"
-            @page-changed="handlePageChange"
-        />
+        <Pagination v-if="getNavData()" :nav-data="getNavData()" @page-changed="handlePageChange" />
         <div class="badge">{{ techList.nav?.NavPageNomer }}/{{ techList.nav?.NavPageCount }}</div>
       </div>
 
       <div v-if="techList.loader" class="technologist__loader"></div>
 
-        <div v-if="!techList.loader" class="appList">
+      <div v-if="!techList.loader" class="appList">
         <div v-for="elem in techList.elements" class="appItem">
           <div class="appItem-propText appItem-propText--with-hint">
             <span class="appItem-propText__name">
               {{ elem.name }}
             </span>
-            <button
-                type="button"
-                class="appItem-propText__hint-btn"
-                @click.stop="openedHintId === elem.id ? openedHintId = null : openedHintId = elem.id"
-            >
+            <button type="button" class="appItem-propText__hint-btn"
+              @click.stop="openedHintId === elem.id ? openedHintId = null : openedHintId = elem.id">
               ?
             </button>
 
-             <div
-                 v-if="openedHintId === elem.id"
-                 class="appItem-propText__hint-popup"
-                 @click.stop
-             >
-               <p class="appItem-propText__hint-popup__row">Номер сделки: {{elem.id || "-"}}</p>
-               <p class="appItem-propText__hint-popup__row">Дизайнер: {{elem.fio || "-"}}</p>
-               <p class="appItem-propText__hint-popup__row">Телефон: {{elem.phone || "-"}}</p>
-               <p class="appItem-propText__hint-popup__row">E-mail: {{elem.mail || "-"}}</p>
-               <p class="appItem-propText__hint-popup__row">Проект дизайнера: {{elem.projectId || "-"}}</p>
-               <p class="appItem-propText__hint-popup__row">Проект технолога: {{elem.projectTechId || "-"}}</p>
-               <div
-                   class="appItem-propText__hint-popup__array_rows"
-                   v-if="elem.technique?.length"
-               >
-                 <label class="appItem-propText__hint-popup__row">Список техники:</label>
-                 <div v-for="tech in elem.technique">
-                   <p class="appItem-propText__hint-popup__row">* {{tech}}</p>
-                 </div>
-               </div>
-               <div
-                   class="appItem-propText__hint-popup__array_rows"
-                   v-if="elem.sketch?.length"
-               >
-                 <p>* Техническое задание:</p>
-                 <div v-for="file in elem.sketch">
-                   <a
-                       v-if="file.urlPreview"
-                       class="preview"
-                       @click="() => fileStorage.openFileFromComment(file)"
-                   >
-                     <img
-                         :src="`${_URL + file.customLink}`"
-                         :alt="file.name"
-                         class="preview__image"
-                     />
-                   </a>
+            <div v-if="openedHintId === elem.id" class="appItem-propText__hint-popup" @click.stop>
+              <p class="appItem-propText__hint-popup__row">Номер сделки: {{ elem.id || "-" }}</p>
+              <p class="appItem-propText__hint-popup__row">Дизайнер: {{ elem.fio || "-" }}</p>
+              <p class="appItem-propText__hint-popup__row">Телефон: {{ elem.phone || "-" }}</p>
+              <p class="appItem-propText__hint-popup__row">E-mail: {{ elem.mail || "-" }}</p>
+              <p class="appItem-propText__hint-popup__row">Проект дизайнера: {{ elem.projectId || "-" }}</p>
+              <p class="appItem-propText__hint-popup__row">Проект технолога: {{ elem.projectTechId || "-" }}</p>
+              <div class="appItem-propText__hint-popup__array_rows" v-if="elem.technique?.length">
+                <label class="appItem-propText__hint-popup__row">Список техники:</label>
+                <div v-for="tech in elem.technique">
+                  <p class="appItem-propText__hint-popup__row">* {{ tech }}</p>
+                </div>
+              </div>
+              <div class="appItem-propText__hint-popup__array_rows" v-if="elem.sketch?.length">
+                <p>* Техническое задание:</p>
+                <div v-for="file in elem.sketch">
+                  <a v-if="file.urlPreview" class="preview" @click="() => fileStorage.openFileFromComment(file)">
+                    <img :src="`${_URL + file.customLink}`" :alt="file.name" class="preview__image" />
+                  </a>
 
-                   <a
-                       :href="`${file.customDownload}`"
-                       class="file-info"
-                   >
-                     <div class="file-name">{{ file.name }}</div>
-                     <div class="file-size">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</div>
-                   </a>
-                 </div>
-               </div>
-               <div
-                   class="appItem-propText__hint-popup__array_rows"
-                   v-if="elem.photoRoom?.length"
-               >
-                 <p>Фото помещения:</p>
-                 <div v-for="file in elem.photoRoom">
-                   <a
-                       v-if="file.urlPreview"
-                       class="preview"
-                       @click="() => fileStorage.openFileFromComment(file)"
-                   >
-                     <img
-                         :src="`${_URL + file.customLink}`"
-                         :alt="file.name"
-                         class="preview__image"
-                     />
-                   </a>
+                  <a :href="`${file.customDownload}`" class="file-info">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-size">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</div>
+                  </a>
+                </div>
+              </div>
+              <div class="appItem-propText__hint-popup__array_rows" v-if="elem.photoRoom?.length">
+                <p>Фото помещения:</p>
+                <div v-for="file in elem.photoRoom">
+                  <a v-if="file.urlPreview" class="preview" @click="() => fileStorage.openFileFromComment(file)">
+                    <img :src="`${_URL + file.customLink}`" :alt="file.name" class="preview__image" />
+                  </a>
 
-                   <a
-                       :href="`${file.customDownload}`"
-                       class="file-info"
-                   >
-                     <div class="file-name">{{ file.name }}</div>
-                     <div class="file-size">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</div>
-                   </a>
-                 </div>
-               </div>
-               <div
-                   class="appItem-propText__hint-popup__array_rows"
-                   v-if="elem.metering?.length"
-               >
-                 <p>Замеры помещения:</p>
-                 <div v-for="file in elem.metering">
-                   <a
-                       v-if="file.urlPreview"
-                       class="preview"
-                       @click="() => fileStorage.openFileFromComment(file)"
-                   >
-                     <img
-                         :src="`${_URL + file.customLink}`"
-                         :alt="file.name"
-                         class="preview__image"
-                     />
-                   </a>
+                  <a :href="`${file.customDownload}`" class="file-info">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-size">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</div>
+                  </a>
+                </div>
+              </div>
+              <div class="appItem-propText__hint-popup__array_rows" v-if="elem.metering?.length">
+                <p>Замеры помещения:</p>
+                <div v-for="file in elem.metering">
+                  <a v-if="file.urlPreview" class="preview" @click="() => fileStorage.openFileFromComment(file)">
+                    <img :src="`${_URL + file.customLink}`" :alt="file.name" class="preview__image" />
+                  </a>
 
-                   <a
-                       :href="`${file.customDownload}`"
-                       class="file-info"
-                   >
-                     <div class="file-name">{{ file.name }}</div>
-                     <div class="file-size">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</div>
-                   </a>
-                 </div>
-               </div>
-             </div>
+                  <a :href="`${file.customDownload}`" class="file-info">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-size">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</div>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="appItem-propText">Проект №{{ elem.projectId }}</div>
           <div class="appItem-propText">
             Статус:
             <h :style="`color:${APP.STATUS_TECH[elem.statusId].EXTRA.COLOR}`">{{
-                APP.STATUS_TECH[elem.statusId].NAME
-              }}
+              APP.STATUS_TECH[elem.statusId].NAME
+            }}
             </h>
           </div>
 
-          <MainButton
-              v-if="APP.userGroup[56] && ['C10:PREPARATION', 'C10:NEW'].includes(elem.statusId)"
-              @click="openModalSTD(elem, 'C10:4');"
-              :class-name="'appItem-status-btn'"
-              :style="`border-color:${APP.STATUS_TECH['C10:4'].EXTRA.COLOR}`"
-          >
+          <MainButton v-if="APP.userGroup[56] && ['C10:PREPARATION', 'C10:NEW'].includes(elem.statusId)"
+            @click="openModalSTD(elem, 'C10:4');" :class-name="'appItem-status-btn'"
+            :style="`border-color:${APP.STATUS_TECH['C10:4'].EXTRA.COLOR}`">
             Отправить проект на доработку дизайнеру
           </MainButton>
 
           <MainButton
-              v-if="((APP.userGroup[6] || APP.userGroup[29]) && ['C10:4', 'C10:PREPAYMENT_INVOIC'].includes(elem.statusId))"
-              @click="openModalSTD(elem, 'C10:PREPARATION');"
-              :class-name="'appItem-status-btn'"
-              :style="`border-color:${APP.STATUS_TECH['C10:PREPARATION'].EXTRA.COLOR}`"
-          >
+            v-if="((APP.userGroup[6] || APP.userGroup[29]) && ['C10:4', 'C10:PREPAYMENT_INVOIC'].includes(elem.statusId))"
+            @click="openModalSTD(elem, 'C10:PREPARATION');" :class-name="'appItem-status-btn'"
+            :style="`border-color:${APP.STATUS_TECH['C10:PREPARATION'].EXTRA.COLOR}`">
             Вернуть в работу
           </MainButton>
 
-          <MainButton
-              v-if="(APP.userGroup[56] && ['C10:4'].includes(elem.statusId))"
-              @click="setStatus(elem.id, 'C10:PREPARATION');"
-              :class-name="'appItem-status-btn'"
-              :style="`border-color:${APP.STATUS_TECH['C10:PREPARATION'].EXTRA.COLOR}`"
-          >
+          <MainButton v-if="(APP.userGroup[56] && ['C10:4'].includes(elem.statusId))"
+            @click="setStatus(elem.id, 'C10:PREPARATION');" :class-name="'appItem-status-btn'"
+            :style="`border-color:${APP.STATUS_TECH['C10:PREPARATION'].EXTRA.COLOR}`">
             Вернуть в работу
           </MainButton>
 
-          <MainButton
-              v-if="APP.userGroup[56] && (elem.statusId == 'C10:PREPARATION' || elem.statusId == 'C10:1')"
-              @click="openModalSTD(elem, 'C10:PREPAYMENT_INVOIC')"
-              :class-name="'appItem-status-btn'"
-              :style="`border-color:${APP.STATUS_TECH['C10:PREPAYMENT_INVOIC'].EXTRA.COLOR}`"
-          >
+          <MainButton v-if="APP.userGroup[56] && (elem.statusId == 'C10:PREPARATION' || elem.statusId == 'C10:1')"
+            @click="openModalSTD(elem, 'C10:PREPAYMENT_INVOIC')" :class-name="'appItem-status-btn'"
+            :style="`border-color:${APP.STATUS_TECH['C10:PREPAYMENT_INVOIC'].EXTRA.COLOR}`">
             Отправить проект дизайнеру
           </MainButton>
 
-<!--          <MainButton
+          <!--          <MainButton
               v-if="(APP.userGroup[6] || APP.userGroup[29]) && elem.statusId == 'C10:PREPAYMENT_INVOIC'"
               @click="setStatus(elem.id, 'C10:2');"
               :class-name="'appItem-status-btn'"
@@ -678,67 +595,42 @@ const getNavData = () => {
           </MainButton>-->
 
           <!--Какой проект надо грузить? Технолога или дизайнера?-->
-          <div
-              v-if="(APP.userGroup[6] || APP.userGroup[29]) && elem.statusId == 'C10:PREPAYMENT_INVOIC'"
-              :style="`width: 100%`"
-          >
-            <MainButton
-                v-if="elem.projectTechId == projectState.currentProjectId"
-                @click="openModalOrder(elem);"
-                :class-name="'appItem-btn'"
-                :style="`border-color:${APP.STATUS_TECH['C10:WON'].EXTRA.COLOR}`"
-            >
+          <div v-if="(APP.userGroup[6] || APP.userGroup[29]) && elem.statusId == 'C10:PREPAYMENT_INVOIC'"
+            :style="`width: 100%`">
+            <MainButton v-if="elem.projectTechId == projectState.currentProjectId" @click="openModalOrder(elem);"
+              :class-name="'appItem-btn'" :style="`border-color:${APP.STATUS_TECH['C10:WON'].EXTRA.COLOR}`">
               Оформить заказ
             </MainButton>
-            <MainButton
-                v-else
-                :class-name="'appItem-btn disabled'"
-                disabled
-                title="Нельзя оформить проект! Проект не совпадает с проектом технолога!"
-            >
+            <MainButton v-else :class-name="'appItem-btn disabled'" disabled
+              title="Нельзя оформить проект! Проект не совпадает с проектом технолога!">
               Оформить заказ
             </MainButton>
           </div>
 
 
-          <MainButton
-              v-if="elem.statusId == 'C10:NEW' && APP.userGroup[56]"
-              @click="setStatus(elem.id, 'C10:PREPARATION');"
-              :class-name="'appItem-status-btn'"
-              :style="`border-color:${APP.STATUS_TECH['C10:PREPARATION'].EXTRA.COLOR}`"
-          >
+          <MainButton v-if="elem.statusId == 'C10:NEW' && APP.userGroup[56]"
+            @click="setStatus(elem.id, 'C10:PREPARATION');" :class-name="'appItem-status-btn'"
+            :style="`border-color:${APP.STATUS_TECH['C10:PREPARATION'].EXTRA.COLOR}`">
             Взять в работу
           </MainButton>
 
-          <MainButton
-              v-if="APP.userGroup[56] && elem.statusId == 'C10:PREPARATION'"
-              @click="setStatus(elem.id, 'C10:LOSE');"
-              :class-name="'appItem-status-btn'"
-              :style="`border-color:${APP.STATUS_TECH['C10:LOSE'].EXTRA.COLOR}`"
-          >
+          <MainButton v-if="APP.userGroup[56] && elem.statusId == 'C10:PREPARATION'"
+            @click="setStatus(elem.id, 'C10:LOSE');" :class-name="'appItem-status-btn'"
+            :style="`border-color:${APP.STATUS_TECH['C10:LOSE'].EXTRA.COLOR}`">
             Отказать
           </MainButton>
 
-          <MainButton
-              v-if="APP.userGroup[56] && elem.projectId"
-              @click="uploadProjectTech(elem.projectId);"
-              :class-name="'appItem-btn'"
-          >
+          <MainButton v-if="APP.userGroup[56] && elem.projectId" @click="uploadProjectTech(elem.projectId);"
+            :class-name="'appItem-btn'">
             Загрузить проект дизайнера
           </MainButton>
 
-          <MainButton
-              v-if="elem.projectTechId"
-              @click="uploadProjectTech(elem.projectTechId);"
-              :class-name="'appItem-btn'"
-          >
+          <MainButton v-if="elem.projectTechId" @click="uploadProjectTech(elem.projectTechId);"
+            :class-name="'appItem-btn'">
             Загрузить проект технолога
           </MainButton>
 
-          <MainButton
-              @click="openModalComments(elem)"
-              :class-name="'appItem-btn'"
-          >
+          <MainButton @click="openModalComments(elem)" :class-name="'appItem-btn'">
             Комментарии
           </MainButton>
         </div>
@@ -906,11 +798,11 @@ const getNavData = () => {
             overflow-y: scroll;
             overflow-x: hidden;
 
-            &__row{
+            &__row {
               color: black;
             }
 
-            &__array_rows{
+            &__array_rows {
               border-radius: 10px;
               border: $dark-stroke 1px solid;
               color: black;
@@ -969,7 +861,8 @@ const getNavData = () => {
     animation: rotate 1s linear infinite
   }
 
-  &__loader::before, &__loader::after {
+  &__loader::before,
+  &__loader::after {
     content: "";
     box-sizing: border-box;
     position: absolute;
@@ -1042,6 +935,7 @@ const getNavData = () => {
   0% {
     transform: rotate(0deg)
   }
+
   100% {
     transform: rotate(360deg)
   }
@@ -1051,18 +945,21 @@ const getNavData = () => {
   0% {
     clip-path: polygon(50% 50%, 0 0, 0 0, 0 0, 0 0, 0 0)
   }
+
   25% {
     clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 0, 100% 0, 100% 0)
   }
+
   50% {
     clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 100% 100%, 100% 100%)
   }
+
   75% {
     clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 100%)
   }
+
   100% {
     clip-path: polygon(50% 50%, 0 0, 100% 0, 100% 100%, 0 100%, 0 0)
   }
 }
-
 </style>
