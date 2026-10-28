@@ -9,6 +9,7 @@ import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoo
 import { useExpressions } from "@/utils/useExpressions"
 
 import { TFasadeProp, IProductFull, FasadeTextAlignAction } from "@/types/types"
+import { createDefaultDrawers } from "@/components/right-menu/customiser-pages/DrawerRightPage/domain/drawers"
 
 export class Filters extends GlobalsData {
 
@@ -223,6 +224,21 @@ export class Filters extends GlobalsData {
             FASADE_PROPS.push(fasadeProps)
         })
 
+    }
+
+    /**
+     * Ящики по умолчанию для стандартных модулей. Заполняем при создании модуля, чтобы
+     * ящики попадали в заказ и красились в сцене, даже если панель ящиков не открывали.
+     * У загруженного проекта CONFIG берётся из сохранения, поэтому выбор не перетирается
+     */
+    filterDrawers(params: THREETypes.TObject, product: THREETypes.TObject) {
+        const drawers = createDefaultDrawers(this._DRAWERS, product.ID)
+
+        if (!drawers.length) {
+            return
+        }
+
+        params.DRAWERS = drawers
     }
 
     filterFilling(items: number[], product: IProductFull) {

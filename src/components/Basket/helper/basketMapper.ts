@@ -864,6 +864,15 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
     props.MODULECOLOR = objProps.CONFIG.MODULE_COLOR;
   }
 
+  // Ящики стандартных модулей: по записи на каждую позицию из DRAWERS.POSITION
+  if (Array.isArray(objProps.CONFIG.DRAWERS) && objProps.CONFIG.DRAWERS.length) {
+    props.DRAWERS = objProps.CONFIG.DRAWERS.map(item => ({
+      POSITION: item.POSITION,
+      ID: item.ID,
+      COLOR: item.COLOR,
+    }));
+  }
+
   if (objProps.RASPIL && objProps.RASPIL.length !== 0) {
 
     props.RASPIL = {
@@ -1055,6 +1064,8 @@ export const propsLabel = {
   LEFTSIDECOLOR: { type: "FASADE", val: "color_obj_list", NAME: "Левая стенка", SORT: 100 },
   RIGHTSIDECOLOR: { type: "FASADE", val: "color_obj_list", NAME: "Правая стенка", SORT: 100 },
   TOPFASADECOLOR: { type: "FASADE", val: "color_obj_list", NAME: "Накладка на крышку", SORT: 100 },
+
+  DRAWERS: { type: "DRAWERS", val: "obj_list", NAME: "Ящики", SORT: 150 },
 
   DOORS: { type: "FASADE", val: "obj_list", NAME: "Двери", SORT: 100 },
   FACADE: { type: "FASADE", val: "int", NAME: "Цвет фасада", SORT: 100 },

@@ -33,6 +33,7 @@ export class GlobalsData {
     readonly _PLINTH: THREETypes.TObject
     readonly _PALETTE: THREETypes.TObject
     readonly _PRODUCTS_TYPES: THREETypes.TObject
+    readonly _DRAWERS: THREETypes.TDrawersData
 
     constructor(appData: THREETypes.TObject) {
 
@@ -62,6 +63,7 @@ export class GlobalsData {
         this._PLINTH = appData.PLINTH
         this._PALETTE = appData.PALETTE
         this._PRODUCTS_TYPES = appData.PRODUCTS_TYPES
+        this._DRAWERS = appData.DRAWERS ?? { PRODUCT: {}, POSITION: {}, HASH: {} }
     }
 
 }

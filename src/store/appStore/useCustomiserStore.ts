@@ -8,10 +8,11 @@ interface Customisers {
   color: boolean,
   moving: boolean,
   figure: boolean,
+  drawer: boolean,
   hammer: boolean
 }
 
-type CustomiserType = 'ruler' | 'color' | 'moving' | 'figure' | 'hammer';
+type CustomiserType = 'ruler' | 'color' | 'moving' | 'figure' | 'drawer' | 'hammer';
 
 export const useCustomiserStore = defineStore('customiser', () => {
   const isCustomiserOpen = ref(false);

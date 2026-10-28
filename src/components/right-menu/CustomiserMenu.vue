@@ -17,20 +17,24 @@ import ColorPage from "@/components/right-menu/customiser-pages/ColorRightPage.v
 import ModelsItemSelector from "@/components/right-menu/customiser-pages/ColorRightPage/ModelsItemSelector.vue";
 import MovingPage from "@/components/right-menu/customiser-pages/MovingRightPage.vue";
 import FigurePage from "@/components/right-menu/customiser-pages/FigureRightPage/FigureRightPage.vue";
+import DrawerPage from "@/components/right-menu/customiser-pages/DrawerRightPage/DrawerRightPage.vue";
 
 import RulerButton from "@/components/ui/buttons/right-menu/RulerRightButton.vue";
 import ColorButton from "@/components/ui/buttons/right-menu/ColorRightButton.vue";
 import MovingButton from "@/components/ui/buttons/right-menu/MovingRightButton.vue";
 import FigureButton from "@/components/ui/buttons/right-menu/FigureRightButton.vue";
+import DrawerButton from "@/components/ui/buttons/right-menu/DrawerRightButton.vue";
 import HammerButton from "@/components/ui/buttons/right-menu/HammerRightButton.vue";
+import { hasDrawers } from "@/components/right-menu/customiser-pages/DrawerRightPage/domain/drawers";
 import { compute } from "three/webgpu";
 
-type TCustomiserMap = ["ruler", "color", "moving", "figure", "hammer"];
+type TCustomiserMap = ["ruler", "color", "moving", "figure", "drawer", "hammer"];
 type TButtonVisibles = {
   ruler: boolean;
   color: boolean;
   moving: boolean;
   figure: boolean;
+  drawer: boolean;
 };
 
 const customiserStore = useCustomiserStore();
@@ -47,6 +51,7 @@ const buttonVisibles = ref<TButtonVisibles>({
   color: false,
   moving: false,
   figure: false,
+  drawer: false,
 });
 
 const showCustomiser = ref(false)
@@ -120,6 +125,8 @@ const checkData = (object) => {
   buttonVisibles.value.color = checkColor;
   buttonVisibles.value.figure = (checkColor && haveHandles) || havePlinth;
   buttonVisibles.value.moving = checkOptions;
+  // Ящики есть только у модулей, перечисленных в DRAWERS.POSITION
+  buttonVisibles.value.drawer = hasDrawers(modelState._DRAWERS, PRODUCT);
 };
 
 const onSceneMouseDown = () => {
@@ -187,6 +194,7 @@ onUnmounted(() => {
               <ColorButton v-if="buttonVisibles.color" />
               <MovingButton v-if="buttonVisibles.moving" />
               <FigureButton v-if="buttonVisibles.figure" />
+              <DrawerButton v-if="buttonVisibles.drawer" />
               <!-- <HammerButton /> -->
             </div>
 
@@ -197,6 +205,7 @@ onUnmounted(() => {
         <ModelsItemSelector v-if="customiserStore.customisers == 'color'" />
         <Options v-if="customiserStore.customisers == 'moving'" />
         <FigurePage v-if="customiserStore.customisers == 'figure'" />
+        <DrawerPage v-if="customiserStore.customisers == 'drawer'" />
       </div>
     </div>
   </transition>

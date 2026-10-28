@@ -985,6 +985,19 @@ const renderDescription = computed(() => {
             });
           });
         }
+
+        // Ящики: названия лежат в DRAWERS.PRODUCT, а не в CATALOG, цвет — в FASADE
+        if (key === "DRAWERS" && value.length) {
+          const drawerProducts = appData.value["DRAWERS"]?.PRODUCT ?? {};
+
+          result.push({
+            key: "Ящики",
+            value: value.map((el) => ({
+              key: drawerProducts[el.ID]?.NAME ?? `Неизвестный ящик (ID: ${el.ID})`,
+              value: appData.value["FASADE"][el.COLOR]?.NAME ?? "",
+            })),
+          });
+        }
         if (
           value.length &&
           getPropDefinition(key)?.NAME &&
@@ -996,6 +1009,7 @@ const renderDescription = computed(() => {
             "TYPE",
             "SHOWCASE",
             "OPTION",
+            "DRAWERS",
           ].find((item) => key.includes(item))
         ) {
 

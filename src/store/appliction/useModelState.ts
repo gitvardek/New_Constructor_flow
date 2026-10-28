@@ -1,6 +1,6 @@
 //@ts-nocheck
 import * as THREE from "three"
-import { FasadeTextAlignAction, TMillingRestrictItem } from "@/types/types";
+import { FasadeTextAlignAction, TMillingRestrictItem, TDrawersData } from "@/types/types";
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useAppData } from './useAppData';
@@ -102,6 +102,7 @@ export const useModelState = defineStore('ModelState', () => {
     const _HEM = computed(() => _APP.value.HEM || [])
     const _WALL = computed(() => _APP.value.WALL || [])
     const _FASADE_EXCEPTIONS = computed(() => _APP.value.FASADE_EXCEPTIONS || [])
+    const _DRAWERS = computed<TDrawersData>(() => _APP.value.DRAWERS || {})
 
     const nestandartIDs = [1814256, 3954672]
 
@@ -841,6 +842,7 @@ export const useModelState = defineStore('ModelState', () => {
         _WALL,
         _FASADE_EXCEPTIONS,
         _COLOR,
+        _DRAWERS,
 
 
         getModels,

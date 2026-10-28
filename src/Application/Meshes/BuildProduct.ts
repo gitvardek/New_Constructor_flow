@@ -14,6 +14,7 @@ import { useModelState } from '@/store/appliction/useModelState';
 import { useMenuStore } from '@/store/appStore/useMenuStore.ts';
 import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoomOptons";
 import { UM_PARAMS, WITHOUT_START_FASADE } from "@/components/UMconstructor/utils/Const";
+import { syncDrawers } from "@/components/right-menu/customiser-pages/DrawerRightPage/domain/drawers";
 
 import { Resources } from '../Utils/Resources'
 import { Ruler } from '../Utils/Ruler'
@@ -479,6 +480,8 @@ export class BuildProduct extends BuildersHelper {
                 this.filters.filterFasadePosition(PARAMS, product_data);
             }
 
+            this.filters.filterDrawers(PARAMS, product_data);
+
             if (MODULECOLOR?.[0] != null) {
                 const moduleColors = this.filters.filterModuleColor(MODULECOLOR);
                 PARAMS.MODULE_COLOR = moduleColors.includes(this.project.default_module_color)
@@ -792,7 +795,17 @@ export class BuildProduct extends BuildersHelper {
             : null;
 
         const hasDrawers = fasadeProps.length > 0 && fasadeProps.some(item => item.DRAWER.drawer);
+
+        // Проекты, сохранённые до появления ящиков, приходят без выбора — достраиваем
+        // дефолтами, чтобы ящики красились и попадали в заказ
+        if (hasDrawers) {
+            CONFIG.DRAWERS = syncDrawers(this._DRAWERS, PROPS.PRODUCT, CONFIG.DRAWERS);
+        }
+
         const drower = hasDrawers ? this.drower_builder.createDrowers({ props: PROPS }) : null;
+
+        // Группу держим в PROPS: по ней ящики перекрашиваются без пересборки модели
+        PROPS.DRAWERS = drower ?? {};
 
 
         /** Добавляем столешницу если есть */

@@ -33,6 +33,8 @@ let title = computed(() => {
     showcase: "Витрина",
     profile: "Профиль",
     toptable: "Столешница",
+    drawer: "Ящик",
+    drawerColor: "Цвет ящика",
   };
 
   return typeMap[props.type];
@@ -105,7 +107,7 @@ const deleteChoise = (event) => {
   ;
   gap: 0.3rem;
   border-radius: 15px;
-  box-shadow: 4px 4px 4px 4px rgba(34, 60, 80, 0.11);
+  box-shadow: 2px 2px 2px 2px rgba(34, 60, 80, 0.11);
   overflow: hidden;
   cursor: pointer;
 
@@ -115,12 +117,12 @@ const deleteChoise = (event) => {
 
   @media (hover: hover) {
     &:hover {
-      box-shadow: 4px 4px 4px 4px $dark-stroke;
+      box-shadow: 3px 3px 3px 3px $dark-stroke;
     }
   }
 
   &.active {
-    box-shadow: 4px 4px 4px 4px #da444c;
+    box-shadow: 3px 3px 3px 3px #da444c;
   }
 
   &__top {
