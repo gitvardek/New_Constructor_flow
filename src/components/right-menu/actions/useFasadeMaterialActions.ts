@@ -28,6 +28,9 @@ export const useFasadeMaterialActions = () => {
     const buildCurrentFasadeData = ({ fasadeId, productId, fasadeNdx, fasadeSize }: TFasadeDataParams) => {
         modelState.createCurrentPaletteData(fasadeId);
         modelState.createCurrentMillingData({ fasadeId, productId, fasadeNdx, fasadeSize });
+        // Витрины — после фрезеровок и только так: список сужается по type_showcase фрезеровки,
+        // а при выборе полотна она ещё не выбрана, поэтому фильтр берёт первую из списка —
+        // ту же, что редактор запишет в конфиг как фрезеровку по умолчанию
         modelState.createCurrentShowcaseData({ fasadeId, productId, fasadeNdx });
         modelState.createCurrentPatinaData({ fasadeId, productId });
         modelState.createCurrentGlassData({ fasadeId, productId });

@@ -27,6 +27,7 @@ import ShowcaseRedactor from "@/components/right-menu/customiser-pages/ColorRigh
 import {
   FASADE_OPTION_KEYS,
   getDefaultPatinaForMilling,
+  resolveShowcaseRepair,
 } from "@/components/right-menu/customiser-pages/ColorRightPage/domain/fasadeOptions";
 import { useFasadeOptionsState } from "@/components/right-menu/customiser-pages/ColorRightPage/composables/useFasadeOptionsState";
 import { useUMFasadeCommands } from "@/components/right-menu/customiser-pages/ColorRightPage/composables/useUMFasadeCommands";
@@ -215,9 +216,15 @@ const onSelectMaterial = (data) => {
       productId: productId.value,
     });
 
+    // Витрины — после buildMillingList: список сужается по type_showcase фрезеровки, а при
+    // выборе полотна она ещё не выбрана, поэтому фильтр берёт первую из списка — ту же,
+    // что уходит в ячейку ниже. Позиция фасада — из выбранных значений ячейки: по номеру
+    // сегмента УМ (elementIndex) попадаешь в чужой фасад, и витрины пропадали совсем
     modelState.createCurrentShowcaseData({
       fasadeId: data.ID,
       productId: productId.value,
+      fasadeNdx: props.elementIndex,
+      fasadePosition: selectedValues.value?.POSITION ?? null,
     });
 
     milling.list = modelState.getCurrentMillingData;
@@ -637,11 +644,15 @@ const prepareData = () => {
     // Раньше список строился дважды, и второй вызов без размера затирал отфильтрованный
     buildMillingList(COLOR);
 
+    // Список витрин сужается по type_showcase выбранной фрезеровки. На витринной позиции
+    // фрезеровка в УМ не выбирается и в ячейке её нет — тогда фильтр берёт первую доступную,
+    // ту же, что подставит сцена при сборке
     modelState.createCurrentShowcaseData({
       fasadeId: COLOR,
       productId: pid,
       fasadeNdx: props.elementIndex,
       fasadePosition: selectedValues.value?.POSITION ?? null,
+      millingId: MILLING ?? null,
     });
 
     modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
@@ -776,8 +787,23 @@ const prepareData = () => {
   }
 
   if (SHOWCASE) {
-    assignIfFound(showcaseData, SHOWCASE, showcase);
-    commands.setShowcase(SHOWCASE);
+    // Сохранённая витрина могла стать несовместимой с фрезеровкой: её нет в отфильтрованном
+    // списке — подставляем первую доступную, как сцена делает с фрезеровкой при сборке
+    const showcaseRepair = resolveShowcaseRepair({
+      showcaseId: SHOWCASE,
+      showcaseList: showcaseData,
+    });
+
+    if (showcaseRepair) {
+      console.warn(
+        `${props.elementLabel || props.elementIndex}: витрина ${SHOWCASE} несовместима с фрезеровкой ${MILLING}, заменена на ${showcaseRepair.ID}`,
+      );
+    }
+
+    const showcaseId = showcaseRepair ? showcaseRepair.ID : SHOWCASE;
+
+    assignIfFound(showcaseData, showcaseId, showcase);
+    commands.setShowcase(showcaseId);
   }
 
   if (GLASS) {

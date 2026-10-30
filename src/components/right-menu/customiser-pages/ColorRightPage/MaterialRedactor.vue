@@ -41,6 +41,7 @@ import {
   toColorView,
   getDefaultPatinaForMilling,
   resolveMillingRepair,
+  resolveShowcaseRepair,
   resolveOptionsOnMaterialSelect,
   resolveOptionsFromConfig,
 } from "./domain/fasadeOptions";
@@ -220,12 +221,66 @@ const onSelectMilling = (data) => {
   }
 };
 
-/** Патина и положения ручки под выбранную фрезеровку */
+/**
+ * Опция «Витрина» доступна: позиция фасада витринная, полотно не алюминиевое,
+ * не «Без фасада» и не RESET_COLOR — те же условия, что при выборе полотна
+ */
+const isShowcaseOptionAvailable = () => {
+  const { FASADE_POSITIONS, FASADE_PROPS } = productData.value.PROPS.CONFIG;
+  const { ALUM, COLOR, RESET_COLOR } = FASADE_PROPS[props.tabIndex];
+
+  return (
+    FASADE_POSITIONS[props.tabIndex]?.SHOWCASE === 1 &&
+    ALUM == null &&
+    COLOR != NO_FASADE_ID &&
+    COLOR !== RESET_COLOR
+  );
+};
+
+/**
+ * Список витрин под выбранную фрезеровку: он сужается по её type_showcase, поэтому
+ * пересобирается при каждой смене фрезеровки. Витрина из конфига, которой в новом списке
+ * нет, заменяется на первую доступную
+ */
+const updateShowcaseForMilling = (millingId: number) => {
+  if (!isShowcaseOptionAvailable()) return;
+
+  const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
+  const { COLOR, SHOWCASE } = FASADE_PROPS[props.tabIndex];
+
+  const showcaseList = modelState.createCurrentShowcaseData({
+    fasadeId: COLOR,
+    productId: productId.value,
+    fasadeNdx: props.tabIndex,
+    millingId,
+  });
+
+  showcase.list = showcaseList;
+  showcase.exists = showcaseList.length > 0;
+
+  if (!showcase.exists) {
+    // Совместимых витрин нет: опция скрывается, сохранённое значение остаётся в конфиге
+    showcase.current = {};
+    return;
+  }
+
+  const repair = resolveShowcaseRepair({ showcaseId: SHOWCASE, showcaseList });
+
+  if (repair) {
+    commands.changeShowcase(repair.ID);
+    showcase.current = toImageView(repair);
+  }
+};
+
+/** Патина, витрины и положения ручки под выбранную фрезеровку */
 const updateMillingDependents = (data) => {
   milling.current = data;
 
   // Проверка на существование свойств productData.value.PROPS.CONFIG
   if (!productData.value?.PROPS?.CONFIG) return;
+
+  /** @Витрина — список зависит от фрезеровки */
+  updateShowcaseForMilling(data.ID);
 
   // Патина по умолчанию для выбранной фрезеровки — то же правило, что в Events.deliteMilling:
   // при PATINAOFF == 0 (data.patina приходит из MillingRedactor) первая патина списка,
@@ -311,6 +366,9 @@ const deleteSelectedOptions = (type: String) => {
     patina.current = defaultPatina ? toImageView(defaultPatina) : {};
 
     commands.setMilling(firstMilling.ID);
+
+    /** @Витрина — список зависит от фрезеровки */
+    updateShowcaseForMilling(firstMilling.ID);
 
     if (isShowcase) {
       // На витрине фрезеровка и патина живут только в конфиге: патину по умолчанию
@@ -430,11 +488,7 @@ const prepareData = () => {
   });
   modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
   modelState.createCurrentGlassData({ fasadeId: COLOR, productId: pid });
-  modelState.createCurrentShowcaseData({
-    fasadeId: COLOR,
-    productId: pid,
-    fasadeNdx: props.tabIndex,
-  });
+  // Витрины строятся ниже — после починки фрезеровки: список сужается по её type_showcase
   // Типы фасада (положения интегрированной ручки) — под текущее полотно: иначе restoreHandles
   // берёт из стора список, оставшийся от другого фасада, или пустой после загрузки проекта
   modelState.createCurrentFasadeTypesData({ fasadeId: COLOR, productId: pid });
@@ -458,6 +512,29 @@ const prepareData = () => {
   const millingId = repair ? repair.milling.ID : MILLING;
   const patinaId = repair ? repair.patinaId : PATINA;
 
+  // Витрины — под итоговую фрезеровку. Сохранённая витрина могла стать несовместимой
+  // (смена фрезеровки в старой версии каталога или починка фрезеровки выше) — тогда
+  // подставляется первая доступная, как это делает сцена с фрезеровкой при сборке
+  const showcaseList = modelState.createCurrentShowcaseData({
+    fasadeId: COLOR,
+    productId: pid,
+    fasadeNdx: props.tabIndex,
+    millingId,
+  });
+
+  const showcaseRepair = isShowcase
+    ? resolveShowcaseRepair({ showcaseId: SHOWCASE, showcaseList })
+    : null;
+
+  if (showcaseRepair) {
+    console.warn(
+      `Фасад №${props.tabIndex + 1}: витрина ${SHOWCASE} несовместима с фрезеровкой ${millingId}, заменена на ${showcaseRepair.ID}`,
+    );
+    commands.changeShowcase(showcaseRepair.ID);
+  }
+
+  const showcaseId = showcaseRepair ? showcaseRepair.ID : SHOWCASE;
+
   /** @Тип_фасада и @Тип_ручки_фрезеровки */
   restoreHandles({ TYPE, MILLING_TYPE, MILLING: millingId });
 
@@ -469,7 +546,7 @@ const prepareData = () => {
       PALETTE,
       PATINA: patinaId,
       GLASS,
-      SHOWCASE,
+      SHOWCASE: showcaseId,
       ALUM,
       COLOR,
     },

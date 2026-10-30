@@ -691,8 +691,25 @@ export const useModelState = defineStore('ModelState', () => {
 
     }
 
+    /**
+     * Список витрин фрезеровки (type_showcase) в виде ID. Поле приходит с бэка как null,
+     * строка или массив, а пустое значение ([], [null], null) значит «ограничений нет» —
+     * для него возвращается null, и список витрин продукта не сужается
+     */
+    const normalizeMillingShowcases = (value: null | string | number | (number | null)[]): number[] | null => {
+
+        if (value == null) {
+            return null
+        }
+
+        const source = Array.isArray(value) ? value : String(value).split(',')
+        const list = source.map(Number).filter((id) => Number.isFinite(id) && id !== 0)
+
+        return list.length > 0 ? list : null
+    }
+
     /** Витрины */
-    const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx, fasadePosition = null }) => {
+    const createCurrentShowcaseData = ({ fasadeId, productId, fasadeNdx, fasadePosition = null, millingId = null }) => {
 
         const product = _PRODUCTS.value[productId]
         const prodShowcases = product.type_showcase
@@ -702,26 +719,26 @@ export const useModelState = defineStore('ModelState', () => {
         const positionId = fasadePosition ?? product.FASADE_POSITION[fasadeNdx]
         const fasadePosData = _FASADE_POSITION.value[positionId]
         const haveShowCase = fasadePosData?.glass == 1
-        let prepare = [];
 
-        if (!haveShowCase) {
+        if (!haveShowCase || !prodShowcases?.length || prodShowcases[0] == null) {
             currentShowcaseData.value = []
-            return
+            return currentShowcaseData.value
         }
 
-        const defaultShowcase = prodShowcases[0] ?? 1013628
+        // Фрезеровка, под которую сужается список: выбранная в конфиге (её передаёт редактор)
+        // либо первая доступная — её же подставляют и редактор при выборе полотна, и сцена
+        // при сборке, когда в конфиге фрезеровки нет
+        const milling = _MILLING.value[millingId ?? currentMillingData.value[0]?.ID]
+        const millingShowcases = normalizeMillingShowcases(milling?.type_showcase)
 
-        if (prodShowcases.length > 0 && prodShowcases[0] !== null) {
-            prepare = prodShowcases.map(el => {
-                return _SHOWCASE.value[el]
-            }).filter(Boolean)
+        const prepare = prodShowcases
+            .filter((el) => millingShowcases === null || millingShowcases.includes(Number(el)))
+            .map((el) => _SHOWCASE.value[el])
+            .filter(Boolean)
 
-            currentShowcaseData.value = prepare
-            return
-        } else {
-            prepare = [1013628]
-        }
+        currentShowcaseData.value = prepare
 
+        return currentShowcaseData.value
     }
 
     const getCurrentShowcaseData = computed(() => {
