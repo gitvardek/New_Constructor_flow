@@ -30,6 +30,11 @@ export function waitForAppDataLoaded(): Promise<void> {
   });
 }
 
+export const getProjectIdFromQuery = (query: Record<string, any>) =>
+  Object.fromEntries(
+    Object.entries(query).map(([k, v]) => [k.toLowerCase(), v])
+  ).projectid;
+
 export function useProjectFromQuery() {
   const router = useRouter();
   const route = useRoute();
@@ -92,7 +97,7 @@ export function useProjectFromQuery() {
    * Дожидается успешной загрузки getdata (appData), затем загружает проект по projectId из ссылки.
    */
   const accordCheck = async () => {
-    const rawId = route.query?.projectId;
+    const rawId = getProjectIdFromQuery(route.query);
 
     // Если параметр отсутствует — ничего не делаем
     if (!rawId) return;
