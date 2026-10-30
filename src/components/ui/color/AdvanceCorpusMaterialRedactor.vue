@@ -27,6 +27,7 @@ import ShowcaseRedactor from "@/components/right-menu/customiser-pages/ColorRigh
 import {
   FASADE_OPTION_KEYS,
   getDefaultPatinaForMilling,
+  resolveShowcaseRepair
 } from "@/components/right-menu/customiser-pages/ColorRightPage/domain/fasadeOptions";
 import { useFasadeOptionsState } from "@/components/right-menu/customiser-pages/ColorRightPage/composables/useFasadeOptionsState";
 import { useUMFasadeCommands } from "@/components/right-menu/customiser-pages/ColorRightPage/composables/useUMFasadeCommands";
@@ -213,6 +214,8 @@ const onSelectMaterial = (data) => {
     modelState.createCurrentShowcaseData({
       fasadeId: data.ID,
       productId: productId.value,
+      fasadeNdx: props.elementIndex,
+      fasadePosition: selectedValues.value?.POSITION ?? null,
     });
 
     milling.list = modelState.getCurrentMillingData;
@@ -636,6 +639,7 @@ const prepareData = () => {
       productId: pid,
       fasadeNdx: props.elementIndex,
       fasadePosition: selectedValues.value?.POSITION ?? null,
+      millingId: MILLING ?? null,
     });
 
     modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
@@ -770,8 +774,23 @@ const prepareData = () => {
   }
 
   if (SHOWCASE) {
-    assignIfFound(showcaseData, SHOWCASE, showcase);
-    commands.setShowcase(SHOWCASE);
+    // Сохранённая витрина могла стать несовместимой с фрезеровкой: её нет в отфильтрованном
+    // списке — подставляем первую доступную, как сцена делает с фрезеровкой при сборке
+    const showcaseRepair = resolveShowcaseRepair({
+      showcaseId: SHOWCASE,
+      showcaseList: showcaseData,
+    });
+
+    if (showcaseRepair) {
+      console.warn(
+        `${props.elementLabel || props.elementIndex}: витрина ${SHOWCASE} несовместима с фрезеровкой ${MILLING}, заменена на ${showcaseRepair.ID}`,
+      );
+    }
+
+    const showcaseId = showcaseRepair ? showcaseRepair.ID : SHOWCASE;
+
+    assignIfFound(showcaseData, showcaseId, showcase);
+    commands.setShowcase(showcaseId);
   }
 
   if (GLASS) {

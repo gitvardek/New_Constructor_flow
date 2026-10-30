@@ -118,6 +118,27 @@ export const resolveMillingRepair = ({
     return { milling, patinaId: getDefaultPatinaForMilling(milling.PATINAOFF, patinaList)?.ID ?? null };
 };
 
+// ─── Витрина под фрезеровку ───────────────────────────────────────────────────
+
+type TShowcaseRepairContext = {
+    /** Витрина из конфига */
+    showcaseId: number | string | null;
+    /** Витрины, доступные для выбранной фрезеровки (createCurrentShowcaseData) */
+    showcaseList: { ID: number; NAME: string; PREVIEW_PICTURE: string }[];
+};
+
+
+export const resolveShowcaseRepair = ({
+    showcaseId,
+    showcaseList,
+}: TShowcaseRepairContext): TShowcaseRepairContext["showcaseList"][number] | null => {
+    if (showcaseId == null || showcaseList.length === 0 || findById(showcaseList, showcaseId)) {
+        return null;
+    }
+
+    return showcaseList[0];
+};
+
 // ─── Выбор полотна ────────────────────────────────────────────────────────────
 
 type TMaterialSelectContext = {
