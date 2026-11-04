@@ -9,11 +9,11 @@ import { useEventBus } from "@/store/appliction/useEventBus";
 import { useAppData } from "@/store/appliction/useAppData";
 import { useToast } from "@/features/toaster/useToast";
 import { useRouter, useRoute } from "vue-router";
-import { useAuthStore } from "@/store/appStore/authStore";
-import { ProjectTab } from "../types";
+import { useAutosave } from "@/features/autosave";
+
 
 /** Ожидание готовности appData (после getdata) перед загрузкой проекта по ссылке */
-function waitForAppDataLoaded(): Promise<void> {
+export function waitForAppDataLoaded(): Promise<void> {
   const appDataStore = useAppData();
   if (appDataStore.isLoaded) {
     return Promise.resolve();
@@ -35,7 +35,6 @@ export function useProjectFromQuery() {
   const router = useRouter();
   const route = useRoute();
   const toaster = useToast();
-  const authStore = useAuthStore();
 
   const loadProject = async (id: string | number): Promise<boolean> => {
     const schemeTransition = useSchemeTransition();
@@ -57,10 +56,10 @@ export function useProjectFromQuery() {
       schemeTransition.clearStore();
       // Очищаем текущую комнату перед загрузкой нового проекта
       roomState.clearCurrentRoomId();
-      
+
       await sceneState.loadProjectFromData(projectData);
       schemeTransition.setAppData(projectData.rooms);
-      
+
       roomState.routConvertData('/3d')
 
       projectState.setProjectId(id.toString());
@@ -79,6 +78,8 @@ export function useProjectFromQuery() {
 
       window.C2D.layers.planner.init(true);
       window.C2D.layers.doorsAndWindows.init(true);
+
+      useAutosave().markSaved();
       return true;
     } catch (error) {
       console.error("Ошибка применения данных проекта:", error);

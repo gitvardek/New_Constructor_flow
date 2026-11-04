@@ -187,6 +187,11 @@ export const createCabinetEditSession = ({ wardrobeEngine, wardrobeGrid: grid, s
             (editorEngine.RENDER_REF as any)?.updateTotalSize?.(height, "height");
         }
 
+        // Габарит сменился не из поля — наполнение подгоняем тем же путём
+        if (depthChanged || heightChanged) {
+            editorEngine.RESIZE.markResized();
+        }
+
         editorEngine.checkSideColorsConversations();
         editorEngine.reset(grid);
 

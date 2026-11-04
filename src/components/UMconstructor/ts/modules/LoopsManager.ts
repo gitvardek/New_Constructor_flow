@@ -1,6 +1,6 @@
 //@ts-nocheck
 
-import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
 import * as THREE from "three";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";

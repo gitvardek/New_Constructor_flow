@@ -36,6 +36,7 @@ import * as THREE from "three";
 import { TFasadeProp } from "@/types/types.ts";
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import OptionsManager from "@/components/UMconstructor/ts/modules/OptionsManager.ts";
+import ResizeRefitManager from "@/components/UMconstructor/ts/modules/ResizeRefitManager.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import Render2D from "@/components/UMconstructor/views/Render2D.vue";
 import { Application } from "@/Application/Core/Application.ts";
@@ -62,6 +63,7 @@ export default class UMconstructorClass {
     SIDECOLORS: SidecolorsManager
     SHAPE_ADJUSTER: ShapeAdjuster
     OPTIONS: OptionsManager
+    RESIZE: ResizeRefitManager
     RENDER_REF: Ref<typeof Render2D | undefined> = ref<typeof Render2D>()
 
     DEBOUNCES: {}
@@ -91,6 +93,7 @@ export default class UMconstructorClass {
         this.SIDECOLORS = new SidecolorsManager(this)
         this.SHAPE_ADJUSTER = new ShapeAdjuster({ scope: this })
         this.OPTIONS = new OptionsManager(this)
+        this.RESIZE = new ResizeRefitManager(this)
         this.DEBOUNCES = {}
     }
 
@@ -395,6 +398,8 @@ export default class UMconstructorClass {
     // со старым #HORIZONT#, дальше reset() вызывающего дотягивает высоты. Отдельно
     // от updateHorizont — нужен и без debounce (тумбочка: переход на 0 при создании).
     applyHorizont(grid: GridModule, value: number | string) {
+        // Цоколь двигает секции, фасады и стек внешних ящиков — наполнение подгоняем
+        this.RESIZE.markResized()
         const PROPS = this.UM_STORE.getUMData();
         const delta = parseInt(value) - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]
 
@@ -443,6 +448,7 @@ export default class UMconstructorClass {
                 //this.RENDER_REF.updateTotalHeight(value);
                 this.RENDER_REF.updateTotalSize(value, "height");
 
+                this.RESIZE.markResized()
                 this.checkSideColorsConversations()
                 this.reset();
             }
@@ -460,6 +466,8 @@ export default class UMconstructorClass {
 
             //this.RENDER_REF.updateTotalWidth(value);
             this.RENDER_REF.updateTotalSize(value, "width");
+
+            this.RESIZE.markResized()
             this.reset(grid);
             this.RENDER_REF.selectCell("module", 0, null);
 
@@ -474,6 +482,8 @@ export default class UMconstructorClass {
             const PROPS = this.UM_STORE.getUMData();
 
             PROPS.CONFIG.SIZE.depth = parseInt(value);
+
+            this.RESIZE.markResized()
             this.checkSideColorsConversations()
             this.reset();
         }, 1000)
@@ -570,6 +580,9 @@ export default class UMconstructorClass {
         if (!grid?.sections?.length && grid.moduleKind !== 'wardrobe') {
             return false
         }
+
+        // Флаг одноразовый — снимаем до ветвлений, иначе он утечёт в следующий reset()
+        const needRefit = this.RESIZE.consumeResized()
 
         this.UM_STORE.setLoad(true)
         // Гардеробная сетка пересчитывается отдельным путём: у неё нет
@@ -864,6 +877,12 @@ export default class UMconstructorClass {
                 width: this.UM_STORE.totalWidth,
                 height: this.UM_STORE.totalHeight,
                 depth: this.UM_STORE.totalDepth,
+            }
+
+            // Наполнение подгоняем до пересчёта фасадов: стек внешних ящиков
+            // собирается уже по фактическим позициям тел (см. ResizeRefitManager)
+            if (needRefit) {
+                this.RESIZE.refit(module)
             }
 
             module = this.FASADES.updateFasades(module)

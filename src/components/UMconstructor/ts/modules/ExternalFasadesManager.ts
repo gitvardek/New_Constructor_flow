@@ -3,6 +3,7 @@
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
 import * as THREE from "three";
 import {
+    DrawerFasadeObject,
     FasadeObject,
     FillingObject,
     GridModule,
@@ -500,6 +501,124 @@ export default class ExternalFasadesManager {
 
         return fasadeList
     }
+
+    // Верх двери секции — потолок для стека фасадов (та же величина, по которой
+    // раскладывает calcDrawersFasadesPositons).
+    doorTop(grid: GridModule): number {
+        const product = this.scope.APP.CATALOG.PRODUCTS[grid.productID]
+        const fasadePosition = this.FASADES_MANAGER.getFasadePosition(product?.FASADE_POSITION?.[0], grid)
+
+        return grid.horizont + 2 + (fasadePosition?.FASADE_HEIGHT || grid.height - grid.horizont - 4)
+    };
+
+    // Стек фасадов ящиков секции снизу вверх.
+    private drawerStack(secIndex: number, grid: GridModule): DrawerFasadeObject[] {
+        return (grid.sections?.[secIndex]?.fasadesDrawers ?? [])
+            .filter(item => item?.position)
+            .sort((a, b) => a.position.y - b.position.y)
+    };
+
+    // Высота, до которой фасад может вырасти ВВЕРХ, не двигая тело: до нижней
+    // границы следующего ящика с зазором FASADES_MIN_GAP, у верхнего — до верха
+    // двери. Профили хай-тек здесь не учитываются — их разводит раскладка стека.
+    maxDrawerFasadeHeight(fasade: DrawerFasadeObject, secIndex: number, grid: GridModule): number {
+        const above = this.drawerStack(secIndex, grid).find(item => item.position.y > fasade.position.y)
+
+        if (above) {
+            return above.position.y - fasade.position.y - UM_PARAMS.FASADES_MIN_GAP
+        }
+
+        return this.doorTop(grid) - fasade.position.y
+    };
+
+    // Рост фасада: сначала вверх в свободное место над ним, остаток — вниз вместе
+    // с телом ящика, нижние ящики при этом уезжают каскадом до низа двери.
+    // Уменьшение тело не двигает: низ фасада привязан к телу, фасад просто ниже.
+    // Возвращает фактически применённую высоту (может быть меньше запрошенной).
+    applyDrawerFasadeHeight(fasade: DrawerFasadeObject, newHeight: number, secIndex: number, grid: GridModule): number {
+        const growth = newHeight - fasade.height
+
+        if (growth <= 0) {
+            fasade.height = newHeight
+            return newHeight
+        }
+
+        const gap = UM_PARAMS.FASADES_MIN_GAP
+        const stack = this.drawerStack(secIndex, grid)
+        const index = stack.findIndex(item => this.isSameDrawerFasade(item, fasade))
+
+        // Свободное место сверху выбираем первым — тело остаётся на месте
+        const up = Math.max(this.maxDrawerFasadeHeight(fasade, secIndex, grid) - fasade.height, 0)
+        const grownUp = Math.min(growth, up)
+
+        // Вниз — до низа двери, но каждому нижнему ящику нужен свой фасад и зазор
+        let reserved = grid.horizont + 2
+        for (let i = index - 1; i >= 0; i--) {
+            reserved += stack[i].height + gap
+        }
+
+        const grownDown = Math.min(growth - grownUp, Math.max(fasade.position.y - reserved, 0))
+
+        fasade.height += grownUp + grownDown
+
+        if (grownDown > 0) {
+            this.shiftDrawerDown(fasade, grownDown, grid)
+
+            // Нижние соседи освобождают место ровно настолько, насколько на них налезли
+            let limit = fasade.position.y - gap
+            for (let i = index - 1; i >= 0; i--) {
+                const overlap = (stack[i].position.y + stack[i].height) - limit
+
+                if (overlap <= 0) {
+                    break
+                }
+
+                this.shiftDrawerDown(stack[i], overlap, grid)
+                limit = stack[i].position.y - gap
+            }
+        }
+
+        return fasade.height
+    };
+
+    // После saveUMGrid фасад может прийти другой копией — сверяем по координатам
+    private isSameDrawerFasade(item: DrawerFasadeObject, fasade: DrawerFasadeObject): boolean {
+        return item === fasade || (
+            item.sec === fasade.sec &&
+            item.cell === fasade.cell &&
+            item.row === fasade.row &&
+            item.extra === fasade.extra &&
+            item.item === fasade.item
+        )
+    };
+
+    // Опускает ящик на delta: position.y тела отсчитывается от потолка, позиция
+    // фасада — от дна, поэтому знаки противоположны
+    private shiftDrawerDown(fasade: DrawerFasadeObject, delta: number, grid: GridModule) {
+        const section = grid.sections?.[fasade.sec]
+        const cell = section?.cells?.[fasade.cell]
+        const row = cell?.cellsRows?.[fasade.row]
+        const extra = row?.extras?.[fasade.extra]
+        const container = extra || row || cell || section
+
+        const filling = container?.fillings?.[fasade.item - 1]
+
+        fasade.position.y -= delta
+
+        if (!filling?.position) {
+            return
+        }
+
+        filling.position.y += delta
+
+        if (filling.distances) {
+            filling.distances.top += delta
+            filling.distances.bottom -= delta
+        }
+
+        // Вложенные ящики едут вместе с внешним; delta там считается вверх
+        this.scope.FILLINGS.drawers.moveLinkedInnerDrawers(container, filling, -delta)
+    };
 
     liftStackAboveBottom(secIndex: number, grid: GridModule) {
         const BOTTOM_FASADE_OFFSET = 2

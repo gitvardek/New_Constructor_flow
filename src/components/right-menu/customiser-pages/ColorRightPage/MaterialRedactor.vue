@@ -44,6 +44,7 @@ import {
   resolveMillingRepair,
   resolveOptionsOnMaterialSelect,
   resolveOptionsFromConfig,
+  resolveShowcaseRepair,
 } from "./domain/fasadeOptions";
 
 const { checkFasadeConversations, filterFasadeConversations } =
@@ -220,12 +221,58 @@ const onSelectMilling = (data) => {
   }
 };
 
+const isShowcaseOptionAvailable = () => {
+  const { FASADE_POSITIONS, FASADE_PROPS } = productData.value.PROPS.CONFIG;
+  const { ALUM, COLOR, RESET_COLOR } = FASADE_PROPS[props.tabIndex];
+
+  return (
+    FASADE_POSITIONS[props.tabIndex]?.SHOWCASE === 1 &&
+    ALUM == null &&
+    COLOR != NO_FASADE_ID &&
+    COLOR !== RESET_COLOR
+  );
+};
+
+const updateShowcaseForMilling = (millingId: number) => {
+  if (!isShowcaseOptionAvailable()) return;
+
+  const { FASADE_PROPS } = productData.value.PROPS.CONFIG;
+  const { COLOR, SHOWCASE } = FASADE_PROPS[props.tabIndex];
+
+  const showcaseList = modelState.createCurrentShowcaseData({
+    fasadeId: COLOR,
+    productId: productId.value,
+    fasadeNdx: props.tabIndex,
+    millingId,
+  });
+
+  showcase.list = showcaseList;
+  showcase.exists = showcaseList.length > 0;
+
+  if (!showcase.exists) {
+    // Совместимых витрин нет: опция скрывается, сохранённое значение остаётся в конфиге
+    showcase.current = {};
+    return;
+  }
+
+  const repair = resolveShowcaseRepair({ showcaseId: SHOWCASE, showcaseList });
+
+  if (repair) {
+    commands.changeShowcase(repair.ID);
+    showcase.current = toImageView(repair);
+  }
+};
+
 /** Патина и положения ручки под выбранную фрезеровку */
 const updateMillingDependents = (data) => {
   milling.current = data;
 
   // Проверка на существование свойств productData.value.PROPS.CONFIG
   if (!productData.value?.PROPS?.CONFIG) return;
+
+  /** @Витрина — список зависит от фрезеровки */
+  updateShowcaseForMilling(data.ID);
+
   const defaultPatina = getDefaultPatinaForMilling(data.patina, patina.list);
 
   patina.exists = defaultPatina !== null;
@@ -304,6 +351,9 @@ const deleteSelectedOptions = (type: String) => {
     patina.current = defaultPatina ? toImageView(defaultPatina) : {};
 
     commands.setMilling(firstMilling.ID);
+
+    /** @Витрина — список зависит от фрезеровки */
+    updateShowcaseForMilling(firstMilling.ID);
 
     if (isShowcase) {
       // На витрине фрезеровка и патина живут только в конфиге: патину по умолчанию

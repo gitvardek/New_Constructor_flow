@@ -181,8 +181,16 @@ export default class FasadesManager {
                                 const isSplitFasade = !!lastSegment.splitGroup;
 
                                 if (newHeight <= 0 || (isSplitFasade && newHeight < (lastSegment.minY ?? 0))) {
-                                    this.removeFasadeSegment(secIndex, doorIndex, door.length - 1, grid, false)
-                                    needReset = true;
+                                    // Единственный сегмент двери удалить нельзя: оставляем его с ошибкой —
+                                    // так модуль сообщит, что ящики больше не помещаются в дверь.
+                                    // needReset ставим ТОЛЬКО по факту удаления, иначе reset зациклится
+                                    if (this.removeFasadeSegment(secIndex, doorIndex, door.length - 1, grid, false)) {
+                                        needReset = true;
+                                    }
+                                    else {
+                                        lastSegment.height = Math.max(newHeight, lastSegment.minY ?? 0);
+                                        lastSegment.error = true;
+                                    }
                                 }
                                 else {
                                     lastSegment.height += deltaHeight;
@@ -774,17 +782,18 @@ export default class FasadesManager {
                 prev = undefined;
         }
 
-        const combinedHeight = next
-            ? currentSegment.height +
-            next.height +
-            (grid.isSlidingDoors ? 0 : 4)
-            : currentSegment.height +
-            prev.height +
-            (grid.isSlidingDoors ? 0 : 4);
-
-        next ? (next.height = combinedHeight) : (prev.height = combinedHeight);
-
+        // Высоту удаляемого сегмента забирает вплотную стоящий сосед. Соседа нет
+        // (единственный сегмент двери, либо между сегментами стоят фасады ящиков) —
+        // передать высоту некому, и сегмент НЕ удаляем, иначе он просто пропадёт.
+        // Что делать дальше, решает вызывающий: updateFasades клампит высоту
+        // последнего сегмента и помечает его ошибкой.
         let tmpSegment = next || prev;
+        if (!tmpSegment || currentSection.length <= 1) {
+            return false;
+        }
+
+        tmpSegment.height = currentSegment.height + tmpSegment.height + (grid.isSlidingDoors ? 0 : 4);
+
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
             tmpSegment.material.COLOR,
             <TFasadeTrueSizes>{ FASADE_WIDTH: tmpSegment.width, FASADE_HEIGHT: tmpSegment.height }
@@ -794,17 +803,14 @@ export default class FasadesManager {
             tmpSegment.error = true;
         else delete tmpSegment.error;
 
-        next
-            ? (next.position.y = currentSegment.position.y)
-            : (prev.position.y = prev.position.y);
+        if (next)
+            next.position.y = currentSegment.position.y;
 
         for (let i = 0; i < fasades[doorIndex].length; i++) {
             if (i > segmentIndex) fasades[doorIndex][i].id -= 1;
         }
 
-        if (currentSection.length > 1) {
-            currentSection.splice(segmentIndex, 1);
-        }
+        currentSection.splice(segmentIndex, 1);
 
         const groupId = currentSegment.splitGroup
         if (groupId) {
@@ -817,6 +823,8 @@ export default class FasadesManager {
 
         if (reset)
             this.scope.reset(grid)
+
+        return true;
     };
 
     updateFasadeHeight(

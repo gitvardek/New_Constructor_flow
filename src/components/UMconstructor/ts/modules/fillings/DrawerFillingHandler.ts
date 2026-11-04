@@ -25,16 +25,27 @@ export default class DrawerFillingHandler {
     private readonly OUTER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.OUTER
     private readonly INNER_DRAWER_IDS: number[] = UM_DRAWERS_IDS.INNER
     private readonly UNIVERSAL_DRAWER_IDS: number[] = UM_DRAWERS_IDS.UNIVERSAL
-    private readonly UNIVERSAL_DRAWER_MIN_THICKNESS = 18
+
+    static readonly UNIVERSAL_DRAWER_THICKNESSES = [16, 18]
+    static readonly UNIVERSAL_DRAWER_DEFAULT_THICKNESS = 18
 
     constructor(scope: UMconstructorClass, core: FillingsCore) {
         this.scope = scope
         this.core = core
     }
 
+    getUniversalDrawerThickness(product: any): number {
+        const thickness = Number(product?.drawerBoxThickness ?? product?.DRAWER_BOX_THICKNESS)
+
+        return DrawerFillingHandler.UNIVERSAL_DRAWER_THICKNESSES.includes(thickness)
+            ? thickness
+            : DrawerFillingHandler.UNIVERSAL_DRAWER_DEFAULT_THICKNESS
+    };
+
     // Толщину берём так же, как reset: у стенки без собственного цвета она корпусная.
     // Не подходит любая из трёх панелей — корпус, левая или правая стенка
-    isUniversalDrawerAllowed(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+
+    private getUniversalDrawerPanelThicknesses(grid: GridModule): number[] {
         const { CONFIG } = this.scope.UM_STORE.getUMData() ?? {}
         const FASADE = this.scope.APP.FASADE ?? {}
 
@@ -42,7 +53,19 @@ export default class DrawerFillingHandler {
         const sideThickness = (side: string) => FASADE[CONFIG?.[side]?.COLOR]?.DEPTH || moduleThickness
 
         return [moduleThickness, sideThickness("LEFTSIDECOLOR"), sideThickness("RIGHTSIDECOLOR")]
-            .every(depth => depth >= this.UNIVERSAL_DRAWER_MIN_THICKNESS)
+    };
+
+    isUniversalDrawerAllowed(grid: GridModule = this.scope.UM_STORE.getUMGrid(), filling?: any) {
+        const thicknesses = this.getUniversalDrawerPanelThicknesses(grid)
+
+        if (filling) {
+            const required = this.getUniversalDrawerThickness(filling)
+
+            return thicknesses.every(depth => depth === required)
+        }
+
+        return DrawerFillingHandler.UNIVERSAL_DRAWER_THICKNESSES
+            .some(allowed => thicknesses.every(depth => depth === allowed))
     };
 
     // Универсальный ящик приходит из каталога без собственных габаритов: высота корпуса задаётся ключами DROWER_FASADE_HEIGHT, глубина — списком SIZE_EDIT_DEPTH 
@@ -59,9 +82,9 @@ export default class DrawerFillingHandler {
 
     // Снимает уже установленные универсальные ящики, когда толщина панелей перестала подходить 
     cleanupUniversalDrawers(grid: GridModule) {
-        if (this.isUniversalDrawerAllowed(grid)) return
-
         let removed = false
+        // Толщины, под которые рассчитаны снятые ящики — нужны только для сообщения
+        const requiredThicknesses = new Set<number>()
 
         const deleteUniversal = (
             segment: any,
@@ -74,7 +97,21 @@ export default class DrawerFillingHandler {
 
             // Удаляем в обратном порядке чтобы не сбивать индексы
             for (let i = segment.fillings.length - 1; i >= 0; i--) {
-                if (!UM_DRAWERS_IDS.UNIVERSAL.includes(segment.fillings[i]?.productGroupID)) continue
+                const filling = segment.fillings[i]
+
+                if (!UM_DRAWERS_IDS.UNIVERSAL.includes(filling?.productGroupID)) {
+                    continue
+                }
+                // Тип ящика (16 или 18) лежит в товаре каталога, в наполнении его нет.
+                // Товара нет — проверить нечем, такое наполнение разбирает резолвер
+                // удалённых материалов, а не уборка
+                const product = this.scope.APP?.CATALOG?.PRODUCTS?.[filling.product]
+
+                if (!product || this.isUniversalDrawerAllowed(grid, product)) {
+                    continue
+                }
+
+                requiredThicknesses.add(this.getUniversalDrawerThickness(product))
 
                 this.scope.FILLINGS.deleteFilling(secIndex, i, cellIndex, rowIndex, extraIndex, grid, false)
                 removed = true
@@ -94,8 +131,10 @@ export default class DrawerFillingHandler {
             })
         })
 
-        if (removed)
-            this.scope.callAlert("error", `Универсальный ящик удалён: толщина панели меньше ${this.UNIVERSAL_DRAWER_MIN_THICKNESS} мм`)
+        if (removed) {
+            const required = [...requiredThicknesses].sort((a, b) => a - b).join(" или ")
+            this.scope.callAlert("error", `Универсальный ящик удалён: он рассчитан на панель ${required} мм, а толщина корпуса или боковой стенки другая`)
+        }
     };
 
     // Проверка минимальной глубины для универсального ящика. true — можно продолжать размещение.
@@ -382,8 +421,8 @@ export default class DrawerFillingHandler {
         }
 
         if (UM_DRAWERS_IDS.UNIVERSAL.includes(productGroupID) && product.DROWER_FASADE_HEIGHT) {
-                const { height: universalHeight } = this.getUniversalDrawerSizes(product, grid)
-                const fasadeRange = product.DROWER_FASADE_HEIGHT[String(universalHeight)];
+            const { height: universalHeight } = this.getUniversalDrawerSizes(product, grid)
+            const fasadeRange = product.DROWER_FASADE_HEIGHT[String(universalHeight)];
             if (fasadeRange) {
                 fillingObject.fasade.minY = fasadeRange.min;
                 fillingObject.fasade.maxY = fasadeRange.max;
@@ -432,10 +471,18 @@ export default class DrawerFillingHandler {
             const maxY = currentfilling.fasade.maxY ?? Infinity
 
             if (newValue >= minY && newValue <= maxY) {
-                currentfilling.fasade.height = newValue;
+                // Упёрся в соседа сверху — растёт вниз вместе с телом, нижние ящики
+                // уезжают каскадом. Применённая высота может быть меньше запрошенной
+                const applied = this.scope.FASADES.EXTERNAL_FASADES.applyDrawerFasadeHeight(
+                    currentfilling.fasade, newValue, secIndex, grid,
+                )
+
+                if (applied !== newValue) {
+                    this.scope.callAlert('warning', `Высота фасада ${applied} мм: больше в секцию не помещается`)
+                }
 
                 // Пересчитываем пространство фасада и согласуем внутренние ящики
-                const newAvailableHeight = this.scope.FILLINGS.getInnerDrawerSpace(currentfilling, newValue)
+                const newAvailableHeight = this.scope.FILLINGS.getInnerDrawerSpace(currentfilling, applied)
                 this.reconcileInnerDrawers(secIndex, currentfilling, newAvailableHeight, grid)
             } else {
                 currentfilling.fasade.height = prevValue;

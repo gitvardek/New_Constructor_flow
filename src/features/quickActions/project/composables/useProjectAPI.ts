@@ -8,6 +8,7 @@ import { useBasketStore } from '@/store/appStore/useBasketStore'
 import { useTechnologistStorage } from "@/store/appStore/technologist/useTechnologistStorage.ts";
 import { useRoomOptions } from '@/components/left-menu/option/roomOptions/useRoomOptons'
 import { useAppData } from '@/store/appliction/useAppData'
+import { useAutosaveStorage } from '@/features/autosave/composables/useAutosaveStorage'
 
 import { COOKIE_NAMES, getCookie } from '@/components/authorization/utils/cookieUtils'
 
@@ -48,6 +49,7 @@ export function useProjectAPI() {
   const technologistStorage = useTechnologistStorage();
   const { saveSceneParams } = useRoomOptions()
   const appDataStore = useAppData()
+  const autosaveStorage = useAutosaveStorage()
 
   // Дебаунс для запросов
   let loadTimeout: NodeJS.Timeout | null = null
@@ -381,6 +383,7 @@ export function useProjectAPI() {
       const normalized = normalizeApiResponse<{ data?: any }>(response)
 
       if (normalized.success) {
+        autosaveStorage.remove();
         return { success: true, data: normalized.data?.data || normalized.data }
       } else {
         throw new Error(normalized.error || 'Unknown error')

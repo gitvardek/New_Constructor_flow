@@ -125,6 +125,10 @@ export default class FillingsManager {
         return this.core.getAbsolutePositionY(...args)
     }
 
+    setAbsolutePositionY(...args: Parameters<FillingsCore["setAbsolutePositionY"]>) {
+        return this.core.setAbsolutePositionY(...args)
+    }
+
     getLocalPositionY(...args: Parameters<FillingsCore["getLocalPositionY"]>) {
         return this.core.getLocalPositionY(...args)
     }
@@ -147,6 +151,10 @@ export default class FillingsManager {
 
     cleanupOrphanFillings(...args: Parameters<FillingsCore["cleanupOrphanFillings"]>) {
         return this.core.cleanupOrphanFillings(...args)
+    }
+
+    getUniversalDrawerThickness(...args: Parameters<FillingsCore["getUniversalDrawerThickness"]>) {
+        return this.core
     }
 
 

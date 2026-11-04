@@ -6,6 +6,7 @@ import { useProjectStore } from '@/features/quickActions/project/store/useProjec
 import { useBasketStore } from '@/store/appStore/useBasketStore';
 import { useRoomContantData } from '@/store/appliction/useRoomContantData';
 import { loadBlankRoom, buildProjectFromWallWidths } from '@/Constructor2D/facade/blankRoom';
+import { useAutosave, useAutosaveStorage } from '@/features/autosave';
 
 export type NewProjectWallWidths = {
   right: number;
@@ -26,8 +27,11 @@ export const useNewProjectAction = () => {
   const roomState = useRoomState();
   const schemeTransition = useSchemeTransition();
   const projectState = useProjectStore();
+  const autosaveStorage = useAutosaveStorage();
+  const autosave = useAutosave();
 
   const runNewProject = async (widths?: NewProjectWallWidths | null) => {
+    autosaveStorage.remove();
     if (router.currentRoute.value.path !== '/2d') {
       await router.push('/2d');
     }
@@ -54,13 +58,14 @@ export const useNewProjectAction = () => {
 
     const projectData = widths
       ? buildProjectFromWallWidths(
-          widths.right,
-          widths.left,
-          widths.bottom,
-          widths.top
-        )
+        widths.right,
+        widths.left,
+        widths.bottom,
+        widths.top
+      )
       : undefined;
     await loadBlankRoom(projectData);
+    autosave.markSaved();
   };
 
   return { runNewProject, DEFAULT_WALL_WIDTH };

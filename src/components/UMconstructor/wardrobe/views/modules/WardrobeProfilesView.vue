@@ -236,8 +236,8 @@ const currentProfileColorName = (profile: any) => currentProfileColor(profile)?.
           <p class="actions-title">Отступ от края профиля</p>
           <div class="actions-input--container">
             <MainInput :type="'number'" :inputClass="'actions-input'" :modelValue="profile.positionY ?? 0"
-              :min="profilePositionYRange(profile).min" :max="profilePositionYRange(profile).max" :step="1" :isUM="true"
-              @update:modelValue="(value) => onPositionYChange(profile.id, Number(value))" />
+              :min="profilePositionYRange(profile).min" :max="profilePositionYRange(profile).max" :step="1"
+              :isUM="true" @update:modelValue="(value) => onPositionYChange(profile.id, Number(value))" />
           </div>
         </div>
       </div>

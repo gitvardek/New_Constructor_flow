@@ -156,7 +156,7 @@ const selectShelfType = (value: string, onToggle: () => void) => {
 };
 
 const shelfLabel = computed(() => {
-  return "Добавить полку";
+  return "Горизонт. разделитель";
 
 });
 
@@ -238,7 +238,7 @@ const addDivider = (count: number | string) => {
     <div v-if="canAddShelf" class="um-shelf-type">
       <Accordion>
         <template #title>
-          <p class="um-shelf-type--title">Тип полки: {{ shelfTypeName }}</p>
+          <p class="um-shelf-type--title">Тип горизонт. разделителя: {{ shelfTypeName }}</p>
         </template>
 
         <template #params="{ onToggle }">
@@ -269,7 +269,6 @@ const addDivider = (count: number | string) => {
 </template>
 
 <style scoped lang="scss">
-
 .um-shelf-type {
   width: 100%;
   display: flex;
@@ -287,10 +286,14 @@ const addDivider = (count: number | string) => {
   }
 
   :deep(.accordion) {
-    max-width: 200px;
+    max-width: 250px;
     padding: 0.4rem 1rem;
     border: 1px solid $light-grey;
     gap: 0;
+  }
+
+  :deep(.accordion ::before) {
+    margin-right: 0.2rem;
   }
 
   &--item {

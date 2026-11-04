@@ -33,14 +33,14 @@ export const useFillingInsertRules = ({ getEngine, getModule }: UseFillingInsert
 
 
     // Универсальный ящик — только при стенках не тоньше 18 мм.
-    const isUniversalDrawerBlocked = computed(() => !getEngine()?.FILLINGS.drawers.isUniversalDrawerAllowed(getModule()));
+    const isUniversalDrawerBlocked = (filling: any) => !getEngine()?.FILLINGS.drawers.isUniversalDrawerAllowed(getModule(), filling);
 
     const isFillingBlocked = (groupID: string | number, filling?: any) => {
         if (FILLINGS_RESTRICTION_EXCEPTIONS.includes(+filling?.ID)) return false;
 
         return (isFillingWidthRestricted.value && !isWidthUnrestrictedGroup(groupID)) ||
             isFillingHeightRestricted.value ||
-            (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked.value);
+            (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked(filling));
     };
 
     return {

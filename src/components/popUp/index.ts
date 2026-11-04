@@ -14,24 +14,26 @@ import RoomParamsPopUpView from "@/components/popUp/popup-views/RoomParamsPopUpV
 import WallHeightPopUpView from "@/components/popUp/popup-views/WallHeightPopUpView.vue";
 import WallLengthPopUpView from "@/components/popUp/popup-views/WallLengthPopUpView.vue";
 import DoorWindowOpeningSizePopUpView from "@/components/popUp/popup-views/DoorWindowOpeningSizePopUpView.vue";
+import AutosavePopUpView from "@/features/autosave/components/AutosavePopUpView.vue";
 
 
 export type PopupKey =
-    'basket' |
-    'study' |
-    'error' |
-    'project' |
-    'projectParams' |
-    'roomParams' |
-    'wallHeight' |
-    'wallLength' |
-    'doorWindowSize' |
-    'catalog' |
-    'technologist' |
-    'technologist-form' |
-    'technologist-comments' |
-    'file' |
-    'formbasket'
+  'basket' |
+  'study' |
+  'error' |
+  'project' |
+  'projectParams' |
+  'roomParams' |
+  'wallHeight' |
+  'wallLength' |
+  'doorWindowSize' |
+  'catalog' |
+  'technologist' |
+  'technologist-form' |
+  'technologist-comments' |
+  'file' |
+  'formbasket' |
+  'autosave'
 
 export type Popup = {
   title?: string,
@@ -97,7 +99,11 @@ export const POPUP_CONFIG: PopupsConfig = {
     title: 'Комментарии технолог',
     component: TechnologistComments
   },
-  file:{
+  file: {
     component: FilePopUpView
+  },
+  autosave: {
+    title: 'Несохранённый проект',
+    component: AutosavePopUpView
   }
 } as const;

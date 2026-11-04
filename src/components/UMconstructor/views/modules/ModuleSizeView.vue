@@ -50,12 +50,6 @@ const modelState = useModelState();
 
 const isLowModule = computed(() => Number(totalHeight.value) < UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT);
 
-const fillingExist = computed(() => {
-  if (UMconstructor?.value && module.value)
-    return UMconstructor.value.FILLINGS.existFilling(module.value)
-  else
-    return false
-})
 
 // Гардеробная система — максимум "Глубины" НЕ общий каталожный диапазон
 // (productData.CONFIG.SIZE_EDIT, как у box-UM), а ДИНАМИЧЕСКОЕ значение,
@@ -252,10 +246,8 @@ onMounted(() => {
 
       <div class="UM constructor2d-container--left--module-configs--module-size-item actions-inputs">
         <p class="UM no-select actions-title">Высота
-          <img v-if="mode !== 'module'" class="cut-icon" src="/icons/lock.svg" alt=""
-            title="Редактирование размеров доступно только в режиме 'Модуль'" />
-          <img v-else-if="fillingExist" class="cut-icon" src="/icons/lock.svg" alt=""
-            title="Редактирование размеров недоступно при наличии наполнения" />
+          <!-- <img v-if="mode !== 'module'" class="cut-icon" src="/icons/lock.svg" alt=""
+            title="Редактирование размеров доступно только в режиме 'Модуль'" /> -->
         </p>
         <p class="UM no-select item__label text-grey">
           Мин: {{ UMconstructor.getMinMaxModuleSize(productData, 'height', 'min') ?? "н/о" }}
@@ -264,8 +256,8 @@ onMounted(() => {
           Макс: {{ UMconstructor.getMinMaxModuleSize(productData, 'height', 'max') ?? "н/о" }}
         </p>
         <div class="UM actions-input--container">
-          <MainInput :disabled="mode !== 'module' || fillingExist"
-            @update:modelValue="(value: number) => updateTotalSize('totalHeight', value, $event)"
+          <!-- <MainInput :disabled="mode !== 'module'" -->
+          <MainInput @update:modelValue="(value: number) => updateTotalSize('totalHeight', value, $event)"
             :inputClass="'actions-input'" :modelValue="totalHeight"
             :min="UMconstructor.getMinMaxModuleSize(productData, 'height', 'min')"
             :max="UMconstructor.getMinMaxModuleSize(productData, 'height', 'max')" :type="'number'" :isUM="true" />
@@ -274,10 +266,8 @@ onMounted(() => {
 
       <div class="UM constructor2d-container--left--module-configs--module-size-item actions-inputs">
         <p class="UM no-select actions-title">Ширина
-          <img v-if="mode !== 'module'" class="cut-icon" src="/icons/lock.svg" alt=""
-            title="Редактирование размеров доступно только в режиме 'Модуль'" />
-          <img v-else-if="fillingExist" class="cut-icon" src="/icons/lock.svg" alt=""
-            title="Редактирование размеров недоступно при наличии наполнения" />
+          <!-- <img v-if="mode !== 'module'" class="cut-icon" src="/icons/lock.svg" alt=""
+            title="Редактирование размеров доступно только в режиме 'Модуль'" /> -->
         </p>
         <p class="UM no-select item__label text-grey">
           Мин: {{ UMconstructor.getMinMaxModuleSize(productData, 'width', 'min') ?? "н/о" }}
@@ -286,8 +276,8 @@ onMounted(() => {
           Макс: {{ UMconstructor.getMinMaxModuleSize(productData, 'width', 'max') ?? "н/о" }}
         </p>
         <div class="UM actions-input--container">
-          <MainInput :disabled="mode !== 'module' || fillingExist"
-            @update:modelValue="(value: number) => updateTotalSize('totalWidth', value)"
+          <!-- <MainInput :disabled="mode !== 'module'" -->
+          <MainInput @update:modelValue="(value: number) => updateTotalSize('totalWidth', value)"
             :inputClass="'UM actions-input'" :modelValue="totalWidth"
             :min="UMconstructor.getMinMaxModuleSize(productData, 'width', 'min')"
             :max="UMconstructor.getMinMaxModuleSize(productData, 'width', 'max')" :type="'number'" :isUM="true" />
@@ -296,10 +286,8 @@ onMounted(() => {
 
       <div class="UM constructor2d-container--left--module-configs--module-size-item actions-inputs">
         <p class="UM no-select actions-title">Глубина
-          <img v-if="mode !== 'module'" class="cut-icon" src="/icons/lock.svg" alt=""
-            title="Редактирование размеров доступно только в режиме 'Модуль'" />
-          <img v-else-if="fillingExist" class="cut-icon" src="/icons/lock.svg" alt=""
-            title="Редактирование размеров недоступно при наличии наполнения" />
+          <!-- <img v-if="mode !== 'module'" class="cut-icon" src="/icons/lock.svg" alt=""
+            title="Редактирование размеров доступно только в режиме 'Модуль'" /> -->
         </p>
         <p class="UM no-select item__label text-grey">
           Мин: {{ UMconstructor.getMinMaxModuleSize(productData, 'depth', 'min') ?? "н/о" }}
@@ -308,8 +296,8 @@ onMounted(() => {
           Макс: {{ maxDepth ?? "н/о" }}
         </p>
         <div class="UM actions-input--container">
-          <MainInput :disabled="mode !== 'module' || fillingExist"
-            @update:modelValue="(value: number) => updateTotalSize('totalDepth', value)"
+          <!-- <MainInput :disabled="mode !== 'module'" -->
+          <MainInput @update:modelValue="(value: number) => updateTotalSize('totalDepth', value)"
             :inputClass="'UM actions-input'" :modelValue="totalDepth"
             :min="UMconstructor.getMinMaxModuleSize(productData, 'depth', 'min')" :max="maxDepth" :type="'number'"
             :isUM="true" />
@@ -319,7 +307,9 @@ onMounted(() => {
       <div v-if="showHorizont && !module.isRestrictedModule && module.moduleKind !== 'wardrobe' && !isLowModule"
         class="UM constructor2d-container--left--module-configs--module-size-item actions-inputs">
         <p class="UM no-select actions-title">Цоколь
-          <img v-if="mode !== 'module' || noBottom || onWallModule" class="cut-icon" src="/icons/lock.svg" alt=""
+          <!-- <img v-if="mode !== 'module' || noBottom || onWallModule" class="cut-icon" src="/icons/lock.svg" alt=""
+            title="Редактирование заблокировано режимом работы или опцией!" /> -->
+          <img v-if="noBottom || onWallModule" class="cut-icon" src="/icons/lock.svg" alt=""
             title="Редактирование заблокировано режимом работы или опцией!" />
           <Toggle v-else v-model="onHorizont" @change="horizontToggle" />
         </p>
@@ -332,11 +322,11 @@ onMounted(() => {
         </p>
 
         <div class="actions-input--container">
+          <!-- :disabled="mode !== 'module' || productData.CONFIG.EXPRESSIONS['#HORIZONT#'] === 0 || noBottom || onWallModule" -->
           <MainInput @update:modelValue="(value: number) => updateTotalSize('horizont', value)"
             :inputClass="'actions-input'" :modelValue="productData.CONFIG.EXPRESSIONS['#HORIZONT#']" min="78" max="300"
             :type="'number'" placeholder="0"
-            :disabled="mode !== 'module' || productData.CONFIG.EXPRESSIONS['#HORIZONT#'] === 0 || noBottom || onWallModule"
-            :isUM="true" />
+            :disabled="productData.CONFIG.EXPRESSIONS['#HORIZONT#'] === 0 || noBottom || onWallModule" :isUM="true" />
         </div>
       </div>
 

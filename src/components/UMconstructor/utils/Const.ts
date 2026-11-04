@@ -42,6 +42,10 @@ export const UM_DRAWERS_IDS = {
     UNIVERSAL: [15309443]
 }
 
+// Аксессуары для шкафов (штанги и пр.) — делят область с ящиками, при смене
+// габаритов сдвигаются в свободное место (см. ResizeRefitManager)
+export const UM_ACCESSORY_GROUPS = [6174300];
+
 // Наполнение, которое можно добавлять без ограничений по ширине и высоте области
 export const FILLINGS_RESTRICTION_EXCEPTIONS = [6513263];
 export const FILLINGS_WIDTH_UNRESTRICTED_GROUPS = [6174300];

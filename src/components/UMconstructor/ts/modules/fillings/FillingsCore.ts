@@ -407,6 +407,24 @@ export default class FillingsCore {
         return this.calcDistanceBottom(filling, cell, grid)
     }
 
+
+    // Обратная getAbsolutePositionY: ставит наполнение на заданный отступ от дна
+    // области. position.y считается от потолка модуля, distances.bottom — от дна
+    // области, поэтому при смене высоты опорой служит именно bottom.
+    setAbsolutePositionY(
+        filling: FillingObject,
+        cell: GridSection | GridCell | GridCellsRow | GridRowExtra,
+        bottom: number,
+        grid: GridModule = this.scope.UM_STORE.getUMGrid(),
+    ) {
+        const noBottomShift = grid.noBottom ? grid.moduleThickness : 0
+
+        filling.position.y = grid.height - cell.position.y - filling.height - bottom + noBottomShift
+        this.setDistanceBottom(filling, cell, bottom)
+
+        return filling.position.y
+    }
+
     getLocalPositionY(
         value: number,
         filling: FillingObject,

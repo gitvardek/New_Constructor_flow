@@ -25,6 +25,8 @@ import { GeometryBuilder } from '../Meshes/GeometryBuilder';
 import { Room } from './Room';
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
+import { cloneUMData } from "@/components/UMconstructor/editor-v2/session/cloneUMData.ts";
+import { WARDROBE_GRID_CONFIG_KEY } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { resetReplacementsLog } from '../Meshes/Utils/MaterialResolver';
 // import CreateShape from '../2DScene/CreateShape';
 
@@ -371,14 +373,18 @@ export class RoomManager extends Room {
             }
         }
 
-        if (saveData.CONFIG?.MODULEGRID) {
-            let MODULEGRID = Object.assign({}, saveData.CONFIG.MODULEGRID)
-            try {
-                MODULEGRID = JSON.stringify(MODULEGRID)
-            }
-            catch (e) {
-                saveData.CONFIG.MODULEGRID = saveUMGrid(saveData.CONFIG.MODULEGRID)
-            }
+        // Сетки УМ уходят в сохранение без 2D-рантайма: PIXI-контейнеры
+        // (grid.sector, sections[].sector) замыкают цикл renderGroup -> root и
+        // валят JSON.stringify всей комнаты. Ключей два — у гардеробной системы
+        // сетка лежит под CONFIG.WARDROBEGRID, а не MODULEGRID (WardrobeSystem.ts).
+        // CONFIG общий с PROPS (saveData собран спредом), поэтому чистые сетки
+        // кладём в копию CONFIG: иначе чистка подменяла бы живую сетку товара.
+        const umGrids = ['MODULEGRID', WARDROBE_GRID_CONFIG_KEY]
+            .filter(key => Object.keys(saveData.CONFIG?.[key] ?? {}).length)
+            .map(key => [key, saveUMGrid(cloneUMData(saveData.CONFIG[key]))]);
+
+        if (umGrids.length) {
+            saveData.CONFIG = { ...saveData.CONFIG, ...Object.fromEntries(umGrids) };
         }
 
         return saveData;
