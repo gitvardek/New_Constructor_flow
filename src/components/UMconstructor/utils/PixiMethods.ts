@@ -798,7 +798,8 @@ class Shape extends Helpers {
                 )
             );
         }
-        else
+        else {
+            const topBound = this.sectorBounds.y + Math.min(0, this.paddingTop);
             return (
                 (
                     (
@@ -813,14 +814,15 @@ class Shape extends Helpers {
                 (
                     (
                         pxPos.y + this.height <= this.sectorBounds.y + this.sectorBounds.height &&
-                        pxPos.y + this.height >= this.sectorBounds.y
+                        pxPos.y + this.height >= topBound
                     ) &&
                     (
                         pxPos.y <= this.sectorBounds.y + this.sectorBounds.height &&
-                        pxPos.y >= this.sectorBounds.y
+                        pxPos.y >= topBound
                     )
                 )
             );
+        }
     }
 
     // Вспомогательный метод для отрисовки стрелки (заполненный треугольник)
@@ -1459,7 +1461,7 @@ class ShapeAdjuster extends Helpers {
         else {
             const x = bounds.x
 
-            let findTopMinY = bounds.y
+            let findTopMinY = bounds.y + Math.min(0, shape.paddingTop ?? 0)
             let findBottomMaxY = bounds.y + bounds.height
 
             const mmToPixel = this.getPixelHeight(1)
@@ -1620,6 +1622,9 @@ const saveUMGrid = (module) => {
                         object[index] = [key, new THREE.Vector2(value.x, value.y)];
                 }
                 if (key === "size") {
+                    object[index] = [key, { ...value }];
+                }
+                if (key === "distances" && value && typeof value === "object") {
                     object[index] = [key, { ...value }];
                 }
             })

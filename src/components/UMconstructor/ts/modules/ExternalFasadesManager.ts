@@ -516,13 +516,15 @@ export default class ExternalFasadesManager {
         // После saveUMGrid fillings[].fasade, hiTechProfiles и fasadesDrawers могут быть
         // как одним объектом, так и разными копиями — двигаем каждый объект ровно один раз
         const moved = new Set()
+        const movedDistances = new Set()
         const moveBody = (body) => {
             if (!body?.position || moved.has(body)) return
             moved.add(body)
 
             // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
             body.position.y -= shift
-            if (body.distances) {
+            if (body.distances && !movedDistances.has(body.distances)) {
+                movedDistances.add(body.distances)
                 body.distances.top -= shift
                 body.distances.bottom += shift
             }
@@ -734,12 +736,16 @@ export default class ExternalFasadesManager {
 
         const target = boxes.map((box, index) => box.y + (sorted[index].isProfile && !isBottomProfile(sorted[index]) ? 0 : delta))
 
+        const topLimitOf = (body, box) => body.isProfile
+            ? grid.height - body.height - (body.isProfile.manufacturerOffset || 0)
+            : ceiling - box.height
+
         // Сверху вниз: выше потолка подниматься некуда, и каждый нижний уступает соседу.
         // Этот проход и забирает недостающие миллиметры из промежутков внутри стопки —
         // раньше их никто не отдавал, и забитый под завязку модуль не двигался вовсе
         for (let i = target.length - 1; i >= 0; i--) {
             const limit = i === target.length - 1
-                ? ceiling - boxes[i].height
+                ? topLimitOf(sorted[i], boxes[i])
                 : target[i + 1] - OTSTUP - boxes[i].height
 
             target[i] = Math.min(target[i], limit)
@@ -762,6 +768,7 @@ export default class ExternalFasadesManager {
         })
 
         const moved = new Set()
+        const movedDistances = new Set()
         const moveBody = (body, shift) => {
             if (!body?.position || moved.has(body)) {
                 return
@@ -770,7 +777,8 @@ export default class ExternalFasadesManager {
 
             // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
             body.position.y -= shift
-            if (body.distances) {
+            if (body.distances && !movedDistances.has(body.distances)) {
+                movedDistances.add(body.distances)
                 // Потолок секции на месте, а пол ушёл на delta: до потолка стало ближе
                 // ровно на сдвиг, до пола — на разницу сдвига и цоколя. Деталь могла
                 // и остаться на месте (профиль, или ящик, которому сдвиг срезал потолок) —
