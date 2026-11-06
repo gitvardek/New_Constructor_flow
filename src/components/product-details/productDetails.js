@@ -348,6 +348,24 @@ function CatalogApp() {
 
 
 
+		// buttonset-паттерн: value="" у radio — берём из текста <label>
+		var sizeEditMap = { SIZEEDITHEIGHT: 'height', SIZEEDITWIDTH: 'width', SIZEEDITDEPTH: 'depth' };
+		Object.keys(sizeEditMap).forEach(function (name) {
+			if (formDataObj[name] !== undefined && formDataObj[name] !== '') return;
+
+			var input = document.querySelector('input[name="' + name + '"]:checked')
+						|| document.querySelector('input[name="' + name + '"]');
+			var value = (input && input.value) || '';
+
+			if (!value && input && input.id) {
+				var label = document.querySelector('label[for="' + input.id + '"]');
+				if (label) value = label.textContent.trim();
+			}
+
+			if (!value) value = formDataObj[sizeEditMap[name]] || '';
+			if (value) formDataObj[name] = value;
+		});
+
 		console.log(formDataObj);
 
 
