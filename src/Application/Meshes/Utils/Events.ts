@@ -100,6 +100,8 @@ export class MeshEvents extends BuildersHelper {
     private onCreateUniformGroup: () => void
     private onDeliteUniformGroup: (id: number) => void
 
+    private onChangeDrawer: (data: { position: number, id: number | string, color: number | string | null }) => void
+
     private onAddHandle: ({ data, fasadeNdx }: TDataWithNdx) => void
     private onDeleteHandle: ({ data, fasadeNdx }: TDataWithNdx) => void
     private onChangeHandlePos: ({ data, fasadeNdx }: TDataWithNdx) => void
@@ -146,6 +148,8 @@ export class MeshEvents extends BuildersHelper {
 
         this.buildProduct = root._geometryBuilder!.buildProduct;
         this.buildUMProduct = root._universalGeometryBuilder!.buildProduct;
+
+        this.onChangeDrawer = this.changeDrawer.bind(root);
 
         this.onChangeModuleTexture = this.changeModuleTexture.bind(root);
         this.onChangeTotalModuleTexture = this.changeTotalModuleTexture.bind(root);
@@ -331,6 +335,19 @@ export class MeshEvents extends BuildersHelper {
                 }
             })
         }
+    }
+
+    //------------------
+    /** @Ящики  */
+    //------------------
+
+    changeDrawer({ position, color }: { position: number, id: number | string, color: number | string | null }) {
+        if (!this._currentMesh) return;
+
+        const { PROPS } = this._currentMesh.userData;
+
+        this.buildProduct.drower_builder.updateDrowerColor(PROPS, position, color);
+        this.events.emit('U:ChangeModule');
     }
 
     //------------------

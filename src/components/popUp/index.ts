@@ -15,6 +15,7 @@ import WallHeightPopUpView from "@/components/popUp/popup-views/WallHeightPopUpV
 import WallLengthPopUpView from "@/components/popUp/popup-views/WallLengthPopUpView.vue";
 import DoorWindowOpeningSizePopUpView from "@/components/popUp/popup-views/DoorWindowOpeningSizePopUpView.vue";
 import AutosavePopUpView from "@/features/autosave/components/AutosavePopUpView.vue";
+import UmPresetsPopUpView from "@/components/umPresets/UmPresetsPopUpView.vue";
 
 
 export type PopupKey =
@@ -28,6 +29,7 @@ export type PopupKey =
   'wallLength' |
   'doorWindowSize' |
   'catalog' |
+  'presets' |
   'technologist' |
   'technologist-form' |
   'technologist-comments' |
@@ -82,6 +84,10 @@ export const POPUP_CONFIG: PopupsConfig = {
   catalog: {
     title: 'Каталог',
     component: CatalogPopUpView
+  },
+  presets: {
+    title: 'Пресеты',
+    component: UmPresetsPopUpView
   },
   formbasket: {
     title: 'Корзина',

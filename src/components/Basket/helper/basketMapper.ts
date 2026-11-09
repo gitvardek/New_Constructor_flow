@@ -9,6 +9,7 @@ import { useModelState } from "@/store/appliction/useModelState"
 import { getWardrobeAngledShelfLength, getWardrobeShelfDepth, getWardrobeShelfThickness, getWardrobeFillingWidth, getWardrobeProfilePositionY, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem"
 import { getCabinetHeight, getCabinetWidth } from "@/components/UMconstructor/cabinet/CabinetSystem"
 import { WARDROBE_PROFILE_DEPTH } from "@/Application/F-wardrobeData"
+import { isDrawersEnabled } from "@/components/right-menu/customiser-pages/DrawerRightPage/domain/drawers"
 
 const appDataStore = useAppData();
 const modelState = useModelState();
@@ -1018,6 +1019,16 @@ export function createBasketItem(objProps: TTotalProps, index: number, key: any 
 
   if (objProps.CONFIG.MODULE_COLOR != null) {
     props.MODULECOLOR = objProps.CONFIG.MODULE_COLOR;
+  }
+
+  // Ящики стандартных модулей: по записи на каждую позицию из DRAWERS.POSITION.
+  // Фича выключена — DRAWERS не уходит в заказ даже из проекта, сохранённого с включённой
+  if (isDrawersEnabled() && Array.isArray(objProps.CONFIG.DRAWERS) && objProps.CONFIG.DRAWERS.length) {
+    props.DRAWERS = objProps.CONFIG.DRAWERS.map(item => ({
+      POSITION: item.POSITION,
+      ID: item.ID,
+      COLOR: item.COLOR,
+    }));
   }
 
   if (objProps.RASPIL && objProps.RASPIL.length !== 0) {

@@ -524,6 +524,7 @@ export type TConfig = {
   /** Глубина накладки на крышку, мм, если она не равна расчётной от корпуса (тумбочка гардеробной) */
   TOPFASADE_DEPTH?: number,
   LOOPS?: {},
+  DRAWERS?: TDrawerConfigItem[],
   isHiTech?: boolean,
   isSlideDoor?: boolean,
   isRestrictedModule?: boolean,
@@ -892,6 +893,35 @@ type TDrawer = {
   drawer: string | null,
   buildIn: NumStr | null
 
+}
+
+/** @Ящики_стандартных_модулей */
+
+/** Товар-ящик: MODULECOLOR — хеш-ссылка на список доступных цветов в DRAWERS.HASH */
+export type TDrawerProduct = {
+  NAME: string,
+  MODULECOLOR: string,
+}
+
+/** Набор ящиков одной позиции тумбы (ключ позиции — FASADE_NUMBER фасада) */
+export type TDrawerPositionData = {
+  DRAWERS: string[],
+  DEFAULT_DRAWER: string,
+  DEFAULT_COLOR: string,
+}
+
+/** Входящие с бэка данные по ящикам: DRAWERS в appData */
+export type TDrawersData = {
+  PRODUCT: Record<string, TDrawerProduct>,
+  POSITION: Record<string, Record<string, TDrawerPositionData>>,
+  HASH: Record<string, string[]>,
+}
+
+/** Выбор ящика для одной позиции модуля: POSITION — FASADE_NUMBER фасада */
+export type TDrawerConfigItem = {
+  POSITION: number,
+  ID: NumStr,
+  COLOR: NumStr | null,
 }
 
 /** @Столешница */

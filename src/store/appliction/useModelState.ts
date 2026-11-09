@@ -1,6 +1,6 @@
 //@ts-nocheck
 import * as THREE from "three"
-import { FasadeTextAlignAction, TMillingRestrictItem } from "@/types/types";
+import { FasadeTextAlignAction, TMillingRestrictItem, TDrawersData } from "@/types/types";
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useAppData } from './useAppData';
@@ -104,6 +104,7 @@ export const useModelState = defineStore('ModelState', () => {
     const _FASADE_EXCEPTIONS = computed(() => _APP.value.FASADE_EXCEPTIONS || [])
     const _WARDROBE_SYSTEM = computed(() => _APP.value.WARDROBE_SYSTEM || [])
     const _SECTIONS = computed(() => _APP.value.CATALOG?.SECTIONS || [])
+    const _DRAWERS = computed<TDrawersData>(() => _APP.value.DRAWERS || {})
 
 
     // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
@@ -850,6 +851,7 @@ export const useModelState = defineStore('ModelState', () => {
         _COLOR,
         _WARDROBE_SYSTEM,
         _SECTIONS,
+        _DRAWERS,
 
         getModels,
 

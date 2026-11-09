@@ -348,6 +348,24 @@ function CatalogApp() {
 
 
 
+		// buttonset-паттерн: value="" у radio — берём из текста <label>
+		var sizeEditMap = { SIZEEDITHEIGHT: 'height', SIZEEDITWIDTH: 'width', SIZEEDITDEPTH: 'depth' };
+		Object.keys(sizeEditMap).forEach(function (name) {
+			if (formDataObj[name] !== undefined && formDataObj[name] !== '') return;
+
+			var input = document.querySelector('input[name="' + name + '"]:checked')
+				|| document.querySelector('input[name="' + name + '"]');
+			var value = (input && input.value) || '';
+
+			if (!value && input && input.id) {
+				var label = document.querySelector('label[for="' + input.id + '"]');
+				if (label) value = label.textContent.trim();
+			}
+
+			if (!value) value = formDataObj[sizeEditMap[name]] || '';
+			if (value) formDataObj[name] = value;
+		});
+
 		console.log(formDataObj);
 
 
@@ -1470,12 +1488,23 @@ function CatalogApp() {
 
 			if (elementBtn.length != 0) {
 				elementBtn.buttonset();
+				// Если value у radio пустой — берём значение из текста лейбла
+				elementBtn.find('label').each(function () {
+					var radio = $('#' + $(this).attr('for'));
+					if (radio.length && !radio.val()) {
+						radio.val($(this).text().trim());
+					}
+				});
 			} else {
 				var slideElement = $("#size_edit_" + type + "_slider");
 				var min = slideElement.data('min');
 				var max = slideElement.data('max');
 				var step = slideElement.data('step') ? slideElement.data('step') : 1;
 				var value = input.val();
+				if (!value || isNaN(parseInt(value, 10))) {
+					value = min;
+					input.val(min);
+				}
 
 				var spinner = input.spinner({
 					step: step,
@@ -1762,6 +1791,42 @@ function CatalogApp() {
 			for (const [key, value] of formData) {
 				urlEncodedData.append(key, value);
 			}
+
+			// Поля размеров могут быть disabled (если есть #sizeeditopt) или иметь value=""
+			// (buttonset-паттерн, где значение живёт в тексте <label>).
+			// Обрабатываем оба случая: поле отсутствует в FormData ИЛИ присутствует пустым.
+			var sizeEditMap = { SIZEEDITHEIGHT: 'height', SIZEEDITWIDTH: 'width', SIZEEDITDEPTH: 'depth' };
+			Object.keys(sizeEditMap).forEach(function (name) {
+				var existing = urlEncodedData.get(name);
+				if (existing !== null && existing !== '') return; // уже есть непустое значение
+
+				var input = document.querySelector('input[name="' + name + '"]:checked')
+					|| document.querySelector('input[name="' + name + '"]');
+				var value = (input && input.value) || '';
+
+				// buttonset: value="" — берём из текста <label>
+				if (!value && input && input.id) {
+					var label = document.querySelector('label[for="' + input.id + '"]');
+					if (label) value = label.textContent.trim();
+				}
+
+				// последний fallback — обычный input (height/width/depth)
+				if (!value) value = urlEncodedData.get(sizeEditMap[name]) || '';
+
+				if (value) {
+					if (existing === null) {
+						urlEncodedData.append(name, value);
+					} else {
+						urlEncodedData.delete(name);
+						urlEncodedData.append(name, value);
+					}
+				}
+			});
+			if (!urlEncodedData.has('SIZEEDITJOINDEPTH')) {
+				var jdInput = document.querySelector('input[name="SIZEEDITJOINDEPTH"]');
+				if (jdInput && jdInput.value) urlEncodedData.append('SIZEEDITJOINDEPTH', jdInput.value);
+			}
+
 			const userId = useAuthStore().userData?.id ?? '22541';
 			const cityID = useConfigStore().cityID || '17281';
 			urlEncodedData.append('userid', userId);

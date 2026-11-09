@@ -520,10 +520,53 @@ export class RoomManager extends Room {
 
         const beforeIds = new Set(Object.keys(this.contant))
         await this.loadSingle(saved, this.root._customBoxHelper)
+
+        this.attachLoadedToCursor(beforeIds)
+    }
+
+    /**
+     * Вставка пресета (components/umPresets): на входе снимок экземпляра, а не
+     * объект сцены, дальше тот же путь, что у дублирования. Своих координат
+     * пресет не хранит — берём те, что остались в его CONFIG, а до места объект
+     * доводит курсор. position/rotation передаём всегда, иначе SetObject пойдёт
+     * искать опору рейкастом, которому здесь нечего передать (нет стены drop'а).
+     */
+    async insertPresetProd(snapshot: any): Promise<boolean> {
+        if (!snapshot?.id || !snapshot?.data) return false
+
+        // Товара нет в текущем каталоге — loadSingle молча ничего не создаст.
+        if (!this._PRODUCTS[snapshot.id]) {
+            console.warn('Пресет: товара нет в каталоге', snapshot.id)
+            return false
+        }
+
+        // Копия на каждую вставку: сборка модели правит переданный конфиг, иначе
+        // второй вызов того же пресета получил бы уже изменённые данные.
+        const model = JSON.parse(JSON.stringify({
+            id: snapshot.id,
+            type: snapshot.type,
+            size: snapshot.size,
+            data: snapshot.data,
+            position: snapshot.data?.CONFIG?.POSITION ?? { x: 0, y: 0, z: 0 },
+            rotation: snapshot.data?.CONFIG?.ROTATION ?? { _x: 0, _y: 0, _z: 0, _order: 'XYZ' },
+        }))
+
+        const beforeIds = new Set(Object.keys(this.contant))
+        await this.loadSingle(model, this.root._customBoxHelper)
+
+        return this.attachLoadedToCursor(beforeIds)
+    }
+
+    /**
+     * Хвост вставки: выделить созданный объект и вести его за курсором до клика
+     * (слушатель снимает disableDuplicateProd). Общий для дублирования и
+     * вставки пресета; A:Duplicated пересчитывает корзину и историю.
+     */
+    private attachLoadedToCursor(beforeIds: Set<string>): boolean {
         const newId = Object.keys(this.contant).find(id => !beforeIds.has(id))
         const newObject = newId ? this.contant[newId] : null
 
-        if (!newObject) return;
+        if (!newObject) return false;
         newObject.userData.PROPS.DISABLE_MOVE = false;
         newObject.userData.current = true
 
@@ -535,6 +578,8 @@ export class RoomManager extends Room {
 
         this.eventBus.emit('A:Duplicated')
         this.duplicateSwitch = true
+
+        return true
     }
 
     private addMouseEvent = (event: MouseEvent) => {
@@ -570,6 +615,10 @@ export class RoomManager extends Room {
             this.duplicateProd()
         }
 
+        this.boundInsertPreset = (snapshot) => {
+            this.insertPresetProd(snapshot)
+        }
+
 
         this.eventBus.on('A:ChangeWallTexture', this.boundWallMaterial)
 
@@ -578,6 +627,8 @@ export class RoomManager extends Room {
         this.eventBus.on('A:Height-clamp', this.boundHeightClampValue)
 
         this.eventBus.on('A:Duplicate', this.boundDuplicateProd)
+
+        this.eventBus.on('A:InsertPreset', this.boundInsertPreset)
 
     }
 
@@ -598,6 +649,12 @@ export class RoomManager extends Room {
         if (this.boundHeightClampValue) {
             this.eventBus.off('A:Height-clamp', this.boundHeightClampValue);
             this.heightClamp = useSceneState().getStartHeightClamp;
+        }
+        // Снимаем обработчик вставки пресета: при пересоздании Application
+        // старый RoomManager иначе вставлял бы объект в уже мёртвую сцену.
+        if (this.boundInsertPreset) {
+            this.eventBus.off('A:InsertPreset', this.boundInsertPreset);
+            this.boundInsertPreset = null;
         }
 
         this.geometryBuilder = null

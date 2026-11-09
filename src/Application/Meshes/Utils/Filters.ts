@@ -9,7 +9,7 @@ import { useRoomOptions } from "@/components/left-menu/option/roomOptions/useRoo
 import { useExpressions } from "@/utils/useExpressions"
 
 import { TFasadeProp, IProductFull, FasadeTextAlignAction } from "@/types/types"
-
+import { createDefaultDrawers } from "@/components/right-menu/customiser-pages/DrawerRightPage/domain/drawers"
 export class Filters extends GlobalsData {
 
     root: THREETypes.TApplication
@@ -225,6 +225,21 @@ export class Filters extends GlobalsData {
 
     }
 
+    /**
+ * Ящики по умолчанию для стандартных модулей. Заполняем при создании модуля, чтобы
+ * ящики попадали в заказ и красились в сцене, даже если панель ящиков не открывали.
+ * У загруженного проекта CONFIG берётся из сохранения, поэтому выбор не перетирается
+ */
+    filterDrawers(params: THREETypes.TObject, product: THREETypes.TObject) {
+        const drawers = createDefaultDrawers(this._DRAWERS, product.ID)
+
+        if (!drawers.length) {
+            return
+        }
+
+        params.DRAWERS = drawers
+    }
+
     filterFilling(items: number[], product: IProductFull) {
         let tmp = [];
 
@@ -281,20 +296,6 @@ export class Filters extends GlobalsData {
 
         return result;
 
-
-        // const result = items
-        //     // Преобразуем объект в массив и разворачиваем его, получая плоский массив значений
-        //     .flatMap(size => {
-        //         // Получаем массив фасадов для данного размера, если он существует
-        //         return fasadeNumberSize[size]?.[number as number] || [];
-        //     })
-        //     // Фильтруем элементы, оставляя только те, у которых существует ID фасада
-        //     .filter(fasadeSizeId => fasadeSize[fasadeSizeId])
-        //     // Сортируем фасады по их значению сортировки (SORT)
-        //     .sort((a, b) => fasadeSize[a].SORT - fasadeSize[b].SORT);
-        //     console.log(result, 'result-2')
-
-        // return result;
     }
 
     filterModuleColor(items: THREETypes.TObject) {

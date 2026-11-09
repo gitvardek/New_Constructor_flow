@@ -12,7 +12,7 @@ import MainPopUp from "@/components/popUp/MainPopUp.vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { usePopupStore } from "@/store/appStore/popUpsStore";
-import { useProjectFromQuery, waitForAppDataLoaded } from '@/features/quickActions/project/composables/useProjectFromQuery'
+import { useProjectFromQuery, waitForAppDataLoaded, getProjectIdFromQuery } from '@/features/quickActions/project/composables/useProjectFromQuery'
 import { useAutosave, useAutosaveStorage } from '@/features/autosave'
 
 const route = useRoute();
@@ -27,7 +27,7 @@ const { accordCheck } = useProjectFromQuery();
 
 /** Снапшот предлагаем, только если проект не открывают по ссылке: она важнее */
 const checkAutosave = async () => {
-  if (route.query?.projectId) {
+  if (getProjectIdFromQuery(route.query)) {
     return;
   }
 

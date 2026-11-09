@@ -186,11 +186,13 @@ onUnmounted(() => {
           <h1 class="options__title">Проект</h1>
           <div class="options-header__items">
             <div class="options-header__item">
-              <h3>Наименование:</h3> <p class="goods-item__title">"{{ sceneState.getCurrentProjectParams.project_name
-                }}"</p>
+              <h3>Наименование:</h3>
+              <p class="goods-item__title">"{{ sceneState.getCurrentProjectParams.project_name
+              }}"</p>
             </div>
             <div class="options-header__item">
-              <h3>ID:</h3> <p class="goods-item__title">{{ projectStore.getProjectId() }}</p>
+              <h3>ID:</h3>
+              <p class="goods-item__title">{{ projectStore.getProjectId() }}</p>
             </div>
           </div>
         </div>
@@ -217,6 +219,12 @@ onUnmounted(() => {
         <div class="goods-items" @click="openPopup('catalog')">
           <CatalogSVG class="goods-items__image" />
           <p class="goods-items__title">Общий каталог</p>
+          <div class="radial-sphere"></div>
+        </div>
+
+        <div class="goods-items" @click="openPopup('presets')">
+          <CatalogSVG class="goods-items__image" />
+          <p class="goods-items__title">Пресеты</p>
           <div class="radial-sphere"></div>
         </div>
 
@@ -292,7 +300,8 @@ onUnmounted(() => {
     &__items {
       padding: 0 1.5rem;
     }
-    &__item{
+
+    &__item {
       display: flex;
       flex-wrap: wrap;
       align-items: center;

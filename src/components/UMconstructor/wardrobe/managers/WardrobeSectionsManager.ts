@@ -85,8 +85,23 @@ export default class WardrobeSectionsManager {
             // неожиданно понизить высоту всего модуля (см. reset()).
             // profileProductId/fasteningId — первые доступные из каталога,
             // тот же принцип, что у createDefaultWardrobeProfiles.
+            //
+            // Цвет — НЕ первый из каталога, а общий материал профилей ГС
+            // (getWardrobeNewProfileColorId): этот путь отрабатывает и на
+            // добавление секции из панели, и на правку общей ширины
+            // (WardrobeGridReset зовёт addWardrobeSector при авто-разбиении),
+            // и в обоих случаях новая граница должна быть того же цвета, что
+            // уже настроенный модуль.
             const newProfileProductId = getWardrobeProfileProducts(grid.productID)[0]?.id
+
+            // id — max+1, а НЕ length+1: после удаления секции length+1
+            // повторял id уже существующего профиля (ids [1,3,2] -> удалили
+            // первый -> [3,2] -> новый снова 3), и выделение с правками
+            // (findWardrobeProfile, UM_STORE.selectedWardrobeProfileId)
+            // попадали не в тот профиль. Считается на каждой итерации — после
+            // splice предыдущего новичка.
             const newProfileId = Math.max(0, ...(grid.wardrobeProfiles ?? []).map((p) => p.id || 0)) + 1
+
             grid.wardrobeProfiles?.splice(secIndex + 1 + i, 0, {
                 id: newProfileId,
                 profileProductId: newProfileProductId,

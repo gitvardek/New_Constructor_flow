@@ -23,6 +23,7 @@ import { JsonBuilder } from './JsonProductBuilder'
 import { ModelsBuilder } from './ModelsBuilder/ModelsBuilder.ts'
 import { MillingBuilder } from './MillingBuilder';
 import { ShowcaseBuilder } from './Showcase/ShowcaseBuilder.ts';
+import { isDrawersEnabled, syncDrawers } from "@/components/right-menu/customiser-pages/DrawerRightPage/domain/drawers";
 
 import { FasadeBuilder } from './FasadeBuilder';
 import { TableTopBuilder } from './TableTopBuilder/TableTopBuilder.ts';
@@ -474,6 +475,8 @@ export class BuildProduct extends BuildersHelper {
                 this.filters.filterFasadePosition(PARAMS, product_data);
             }
 
+            this.filters.filterDrawers(PARAMS, product_data);
+
             if (MODULECOLOR?.[0] != null) {
                 const moduleColors = this.filters.filterModuleColor(MODULECOLOR);
                 PARAMS.MODULE_COLOR = moduleColors.includes(this.project.default_module_color)
@@ -634,6 +637,11 @@ export class BuildProduct extends BuildersHelper {
             : null;
 
         const hasDrawers = fasadeProps.length > 0 && fasadeProps.some(item => item.DRAWER.drawer);
+        // Проекты, сохранённые до появления ящиков, приходят без выбора — достраиваем
+        // дефолтами, чтобы ящики красились и попадали в заказ
+        if (hasDrawers && isDrawersEnabled()) {
+            CONFIG.DRAWERS = syncDrawers(this._DRAWERS, PROPS.PRODUCT, CONFIG.DRAWERS);
+        }
         const drower = hasDrawers ? this.drower_builder.createDrowers({ props: PROPS }) : null;
 
 

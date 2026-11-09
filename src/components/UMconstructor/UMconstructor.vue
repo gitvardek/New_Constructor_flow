@@ -13,6 +13,9 @@ import type { Application } from "@/Application/Core/Application";
 import { getUMGridFromConfig, isWardrobeSystemProduct } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 import { createEditorNavigation, provideEditorNavigation } from "@/components/UMconstructor/editor-v2/navigation/editorNavigation.ts";
 import { cloneUMData } from "@/components/UMconstructor/editor-v2/session/cloneUMData.ts";
+import SaveUmPresetDialog from "@/components/umPresets/SaveUmPresetDialog.vue";
+import { buildUmPresetData } from "@/components/umPresets/umPresetSnapshot";
+import { captureUmPresetImage, captureUmPresetImageAsync } from "@/components/umPresets/umPresetImage";
 
 type Props = {
   product: Record<any | any> | null;
@@ -28,6 +31,7 @@ const universalModule2DConstructor = ref();
 const universalModuleData = ref({});
 const isUMModalOpen = ref(false);
 const gridUMSaved = ref(false);
+const savePresetDialog = ref();
 
 // Гардеробная система (вариант "B", см. чат/SESSION_CONTEXT.md) — отдельное
 // дерево Vue-компонентов (WardrobeMainView + внутри него), а не ветки внутри
@@ -53,17 +57,20 @@ const selectUMData = (data) => {
   UMstore.setUMData(data.PROPS.PROPS);
 };
 
+// Возвращает true, когда сетка действительно записана в товар: по этому
+// признаку сохранение пресета решает, продолжать ли (saveGrid отдаёт false и
+// тостит, если в сетке есть ошибки).
 const saveUMData = ({ data, canvasHeight }) => {
   if (!props.product)
-    return;
+    return false;
 
   if (!props.product.userData)
-    return;
+    return false;
 
   let saveData = universalModule2DConstructor.value.saveGrid()
 
   if (!saveData)
-    return;
+    return false;
 
   // Глубокая копия: сохранённая сетка не должна делить объекты с редактируемой,
   // иначе правки после "Сохранить" без повторного сохранения попадали бы в конфиг.
@@ -84,6 +91,45 @@ const saveUMData = ({ data, canvasHeight }) => {
     console.log(tmp_result, 'MODULEGRID')
     eventBus.emit("A:UM-update", UMstore.getUMCashGrid());
   });
+
+  return true;
+};
+
+/**
+ * Пресет из редактора. Снимок должен показывать правки, а 3D перестраивается
+ * только по A:UM-update — поэтому кнопка сначала делает то же, что
+ * "Сохранить" (пишет сетку в товар и шлёт событие), и лишь затем снимает
+ * кадр. Побочный эффект осознанный: модуль в проекте обновляется, закрытие
+ * окна его уже не откатит.
+ */
+const saveUMPreset = async () => {
+  // Снимок ДО применения правок — запасной: если после пересборки кадр снять
+  // не выйдет (модуль вне кадра), карточка останется хотя бы с этой картинкой.
+  const fallbackImage = captureUmPresetImage(props.verdekConstructor, props.product);
+
+  // false — сетка с ошибками (saveGrid уже показал их тостами): такой модуль в
+  // пресеты не пускаем.
+  if (!saveUMData({})) return;
+
+  // A:UM-update уходит из nextTick внутри saveUMData; своя очередь встаёт
+  // следом, так что к этому моменту 3D уже пересобран (updateUMModel
+  // синхронный).
+  await nextTick();
+
+  const data = buildUmPresetData(props.verdekConstructor, props.product);
+
+  if (!data) {
+    toaster.error('Не удалось собрать пресет');
+    return;
+  }
+
+  // Диалог открывается сразу, снимок подставится, когда догрузятся текстуры
+  // пересобранной модели (иначе в карточку попадает голая геометрия).
+  savePresetDialog.value?.open(
+    data,
+    captureUmPresetImageAsync(props.verdekConstructor, props.product)
+      .then((image) => image ?? fallbackImage),
+  );
 };
 
 const saveConfigCash = (PROPS, skipGrid = false) => {
@@ -197,6 +243,10 @@ defineExpose({
               @click="saveUMData">
               Сохранить
             </button>
+            <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMPreset">
+              В пресеты
+            </button>
           </template>
 
           <template #close>
@@ -220,6 +270,10 @@ defineExpose({
               @click="saveUMData">
               Сохранить
             </button>
+            <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMPreset">
+              В пресеты
+            </button>
           </template>
 
           <template #close>
@@ -242,6 +296,8 @@ defineExpose({
         <div v-if="UMstore.getLoad" class="um-modal-loader-overlay">
           <UMLoader />
         </div>
+
+        <SaveUmPresetDialog ref="savePresetDialog" />
       </div>
     </template>
     <template #modalOpen="{ onModalOpen }">

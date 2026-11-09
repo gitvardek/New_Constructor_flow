@@ -13,7 +13,7 @@
         {{ item?.product.NAME }}
         <span v-if="isFeedbackProject">{{
           getArticleByProductId(item?.product.ID)
-        }}</span>
+          }}</span>
         <span v-if="item?.error"> (НЕДОСТУПНО!)</span>
       </h3>
 
@@ -302,7 +302,7 @@
                 <span>{{ i + 1 }} {{ value.key }}:</span>
                 <span>{{
                   value.value ? ` - поз. ${value.value} мм` : ""
-                }}</span>
+                  }}</span>
               </div>
               <div v-else>
                 <span>{{ value.key }}: </span>
@@ -370,6 +370,7 @@ import axios from "axios";
 import InfoPopUp from "../popUp/InfoPopUp.vue";
 import { _URL } from "@/types/constants";
 import { getCabinetParentBasketId, propsLabel } from "./helper/basketMapper";
+import { isDrawersEnabled } from "@/components/right-menu/customiser-pages/DrawerRightPage/domain/drawers";
 import { buildWardrobeDescription } from "./helper/wardrobeBasketDescription";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useConfigStore } from "@/store/appStore/useConfigStore";
@@ -991,6 +992,19 @@ const renderDescription = computed(() => {
         if (value.POSITION_Y != null) {
           result.push({ key: "Высота установки", value: `${value.POSITION_Y} мм` });
         }
+      }
+
+      // Ящики: названия лежат в DRAWERS.PRODUCT, а не в CATALOG, цвет — в FASADE
+      if (isDrawersEnabled() && key === "DRAWERS" && value.length) {
+        const drawerProducts = appData.value["DRAWERS"]?.PRODUCT ?? {};
+
+        result.push({
+          key: "Ящики",
+          value: value.map((el) => ({
+            key: drawerProducts[el.ID]?.NAME ?? `Неизвестный ящик (ID: ${el.ID})`,
+            value: appData.value["FASADE"][el.COLOR]?.NAME ?? "",
+          })),
+        });
       }
 
       if (getPropDefinition(key)?.NAME && Array.isArray(value)) {

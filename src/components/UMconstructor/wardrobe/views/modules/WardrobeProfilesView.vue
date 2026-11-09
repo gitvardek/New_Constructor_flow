@@ -131,7 +131,9 @@ const onPositionYChange = (profileId: number, value: number) => {
 // ==== Блок "Все профили" ====
 // Одно значение, если оно одинаково у ВСЕХ профилей; null — "разные" (не
 // значение первого профиля: иначе селектор врал бы о состоянии остальных).
-// AccordionSelect на null показывает "—".
+// AccordionSelect на null показывает "—". Логика живёт в WardrobeSystem:
+// тот же хелпер читает getWardrobeNewProfileColorId, подбирая цвет новому
+// профилю при добавлении секции и правке общей ширины.
 const commonProfileProductId = computed(() => getWardrobeProfilesCommonValue(module.value, "profileProductId"));
 const commonFasteningId = computed(() => getWardrobeProfilesCommonValue(module.value, "fasteningId"));
 const commonColorId = computed(() => getWardrobeProfilesCommonValue(module.value, "colorId"));
