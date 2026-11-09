@@ -1676,8 +1676,14 @@ export class MeshEvents extends BuildersHelper {
             this.changeTotalHandles(data)
         }
 
+        this.onChangeDrawer = (data) => {
+            this.changeDrawer(data)
+        }
+
         this.events.on('A:ChangeModuleTexture', this.onChangeModuleTexture);
         this.events.on('A:ChangeModuleTotalTexture', this.onChangeTotalModuleTexture);
+
+        this.events.on('A:ChangeDrawer', this.onChangeDrawer);
 
         this.events.on('A:ChangeFasade', this.onChangeFasade);
 

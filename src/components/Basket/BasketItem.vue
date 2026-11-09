@@ -13,7 +13,7 @@
         {{ item?.product.NAME }}
         <span v-if="isFeedbackProject">{{
           getArticleByProductId(item?.product.ID)
-          }}</span>
+        }}</span>
         <span v-if="item?.error"> (НЕДОСТУПНО!)</span>
       </h3>
 
@@ -302,7 +302,7 @@
                 <span>{{ i + 1 }} {{ value.key }}:</span>
                 <span>{{
                   value.value ? ` - поз. ${value.value} мм` : ""
-                  }}</span>
+                }}</span>
               </div>
               <div v-else>
                 <span>{{ value.key }}: </span>
@@ -529,6 +529,24 @@ const formatPropValue = (key: string, propVal: any, item: any, index: any) => {
     } else {
       return getProductInfo(propVal).NAME;
     }
+  }
+
+  // Ящик: {POSITION, ID, COLOR}. Общая ветка ниже печатает только поля, у которых есть
+  // запись в propsLabel (там лишь COLOR), поэтому название терялось. Названия ящиков
+  // лежат в appData.DRAWERS.PRODUCT, цвет — в FASADE
+  if (key === "DRAWERS" && typeof propVal === "object" && propVal !== null) {
+    const name =
+      appData.value?.["DRAWERS"]?.PRODUCT?.[propVal.ID]?.NAME ??
+      `Неизвестный ящик (ID: ${propVal.ID})`;
+    const color =
+      propVal.COLOR != null
+        ? (appData.value?.["FASADE"]?.[propVal.COLOR]?.NAME ?? "")
+        : "";
+    // POSITION — номер фасада ящика, он же его место в тумбе
+    const position = Number(propVal.POSITION);
+    const number = Number.isFinite(position) ? position : Number(index) + 1;
+
+    return `<ul><li>Ящик ${number}: ${name}</li>${color ? `<li>Цвет ${number}: ${color}</li>` : ""}</ul>`;
   }
 
   if (item?.product.TYPE === "scene") {
@@ -994,16 +1012,26 @@ const renderDescription = computed(() => {
         }
       }
 
-      // Ящики: названия лежат в DRAWERS.PRODUCT, а не в CATALOG, цвет — в FASADE
+      // Ящики: названия лежат в DRAWERS.PRODUCT, а не в CATALOG, цвет — в FASADE.
+      // Строка на ящик: пары {key, value} шаблон печатает как "- поз. … мм"
       if (isDrawersEnabled() && key === "DRAWERS" && value.length) {
         const drawerProducts = appData.value["DRAWERS"]?.PRODUCT ?? {};
 
-        result.push({
-          key: "Ящики",
-          value: value.map((el) => ({
-            key: drawerProducts[el.ID]?.NAME ?? `Неизвестный ящик (ID: ${el.ID})`,
-            value: appData.value["FASADE"][el.COLOR]?.NAME ?? "",
-          })),
+        value.forEach((el, drawerIndex) => {
+          const name =
+            drawerProducts[el.ID]?.NAME ?? `Неизвестный ящик (ID: ${el.ID})`;
+          const color =
+            el.COLOR != null
+              ? (appData.value["FASADE"]?.[el.COLOR]?.NAME ?? "")
+              : "";
+          // POSITION — номер фасада ящика, он же его место в тумбе
+          const position = Number(el.POSITION);
+          const number = Number.isFinite(position) ? position : drawerIndex + 1;
+
+          result.push({
+            key: "Ящики",
+            value: `Ящик ${number}: ${name}${color ? ` — цвет: ${color}` : ""}`,
+          });
         });
       }
 
@@ -1017,6 +1045,7 @@ const renderDescription = computed(() => {
             });
           });
         }
+
         if (
           value.length &&
           getPropDefinition(key)?.NAME &&
@@ -1028,6 +1057,7 @@ const renderDescription = computed(() => {
             "TYPE",
             "SHOWCASE",
             "OPTION",
+            "DRAWERS",
           ].find((item) => key.includes(item))
         ) {
 

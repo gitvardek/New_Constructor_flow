@@ -643,7 +643,7 @@ export class BuildProduct extends BuildersHelper {
             CONFIG.DRAWERS = syncDrawers(this._DRAWERS, PROPS.PRODUCT, CONFIG.DRAWERS);
         }
         const drower = hasDrawers ? this.drower_builder.createDrowers({ props: PROPS }) : null;
-
+        PROPS.DRAWERS = drower ?? {};
 
         /** Добавляем столешницу если есть */
         const tableTop = CONFIG.HAVETABLETOP ? this.tabletop_builder.createTableTop({ props: PROPS }) : null;
