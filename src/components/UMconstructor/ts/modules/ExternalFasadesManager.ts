@@ -422,13 +422,20 @@ export default class ExternalFasadesManager {
         // После saveUMGrid fillings[].fasade, hiTechProfiles и fasadesDrawers могут быть
         // как одним объектом, так и разными копиями — двигаем каждый объект ровно один раз
         const moved = new Set()
+        // Копии тела свои, а distances у них может быть общим объектом (на живой сетке
+        // профиль в fillings и в hiTechProfiles — это вообще одна запись). Позицию
+        // правим каждому телу, отступы — один раз на объект, иначе они уедут на двойной
+        // сдвиг, и refitFilling перенесёт тело туда же
+        const movedDistances = new Set()
         const moveBody = (body) => {
             if (!body?.position || moved.has(body)) return
             moved.add(body)
 
             // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
             body.position.y -= shift
-            if (body.distances) {
+            if (body.distances && !movedDistances.has(body.distances)) {
+                movedDistances.add(body.distances)
+
                 body.distances.top -= shift
                 body.distances.bottom += shift
             }
@@ -662,12 +669,24 @@ export default class ExternalFasadesManager {
         // и уступит место, если ящикам его не хватит
         const target = boxes.map((box, index) => box.y + (sorted[index].isProfile && !isBottomProfile(sorted[index]) ? 0 : delta))
 
+        // Потолок у ящика и у профиля разный. Ящик обязан уместиться в фасадную зону
+        // целиком — он и ограничен ею. Профиль прикручен к боковинам и упирается верхом
+        // в крышку корпуса: ровно так его держит и перетаскивание в 2D (Shape.paddingTop
+        // = -moduleThickness, то есть position.y >= 0). Его фасадная коробка при этом
+        // по построению заходит выше фасадной зоны на manufacturerOffset, и общий потолок
+        // опускал профиль, стоящий вплотную к крышке, на эти миллиметры при каждом
+        // пересчёте. Потолок остаётся привязан к grid.height, поэтому при уменьшении
+        // габарита профиль по-прежнему уходит вниз вместе с крышкой
+        const topLimitOf = (body, box) => body.isProfile
+            ? grid.height - body.height - (body.isProfile.manufacturerOffset || 0)
+            : ceiling - box.height
+
         // Сверху вниз: выше потолка подниматься некуда, и каждый нижний уступает соседу.
         // Этот проход и забирает недостающие миллиметры из промежутков внутри стопки —
         // раньше их никто не отдавал, и забитый под завязку модуль не двигался вовсе
         for (let i = target.length - 1; i >= 0; i--) {
             const limit = i === target.length - 1
-                ? ceiling - boxes[i].height
+                ? topLimitOf(sorted[i], boxes[i])
                 : target[i + 1] - OTSTUP - boxes[i].height
 
             target[i] = Math.min(target[i], limit)
@@ -690,6 +709,11 @@ export default class ExternalFasadesManager {
         })
 
         const moved = new Set()
+        // Профиль двигается двумя записями — наполнением и копией из hiTechProfiles,
+        // и distances у них может оказаться общим объектом. Позиция у каждой записи
+        // своя, а отступы правим один раз на объект: иначе они уходят на двойной сдвиг,
+        // и refitFilling, для которого distances.bottom — эталон, уводит туда же тело
+        const movedDistances = new Set()
         const moveBody = (body, shift) => {
             if (!body?.position || moved.has(body)) {
                 return
@@ -698,7 +722,9 @@ export default class ExternalFasadesManager {
 
             // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
             body.position.y -= shift
-            if (body.distances) {
+            if (body.distances && !movedDistances.has(body.distances)) {
+                movedDistances.add(body.distances)
+
                 // Потолок секции на месте, а пол ушёл на delta: до потолка стало ближе
                 // ровно на сдвиг, до пола — на разницу сдвига и цоколя. Деталь могла
                 // и остаться на месте (профиль, или ящик, которому сдвиг срезал потолок) —

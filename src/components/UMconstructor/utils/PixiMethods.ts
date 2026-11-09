@@ -808,7 +808,14 @@ class Shape extends Helpers {
                 )
             );
         }
-        else
+        else {
+            // Верхнюю границу берём ту же, что и перетаскивание (pointermove):
+            // профилю разрешён заход на крышку корпуса, у него paddingTop отрицательный
+            // (-moduleThickness), у остального наполнения он нулевой. Проверка меряла
+            // по голым границам секции, и позиция из инпута не пускала профиль выше
+            // верха секции, хотя мышью он доходит до верхней точки модуля
+            const topBound = this.sectorBounds.y + Math.min(0, this.paddingTop)
+
             return (
                 (
                     (
@@ -823,14 +830,15 @@ class Shape extends Helpers {
                 (
                     (
                         pxPos.y + this.height <= this.sectorBounds.y + this.sectorBounds.height &&
-                        pxPos.y + this.height >= this.sectorBounds.y
+                        pxPos.y + this.height >= topBound
                     ) &&
                     (
                         pxPos.y <= this.sectorBounds.y + this.sectorBounds.height &&
-                        pxPos.y >= this.sectorBounds.y
+                        pxPos.y >= topBound
                     )
                 )
             );
+        }
     }
 
     // Вспомогательный метод для отрисовки стрелки (заполненный треугольник)
@@ -1475,7 +1483,10 @@ class ShapeAdjuster extends Helpers {
         else {
             const x = bounds.x
 
-            let findTopMinY = bounds.y
+            // Та же поправка, что в isPositionInsideSector: профиль заходит на крышку
+            // корпуса, и подбор ближайшей свободной позиции не должен упираться в верх
+            // секции. Math.min оставляет диапазон прежним для всего остального наполнения
+            let findTopMinY = bounds.y + Math.min(0, shape.paddingTop ?? 0)
             let findBottomMaxY = bounds.y + bounds.height
 
             const mmToPixel = this.getPixelHeight(1)
@@ -1636,6 +1647,14 @@ const saveUMGrid = (module) => {
                         object[index] = [key, new THREE.Vector2(value.x, value.y)];
                 }
                 if (key === "size") {
+                    object[index] = [key, { ...value }];
+                }
+                // Отступы тоже клонируем. Хай-тек профиль лежит сразу в fillings и
+                // в hiTechProfiles одним объектом: пересборка делала из него два тела,
+                // но distances оставался общим, и сдвиг стопки применялся к отступам
+                // дважды. refitFilling на следующем пересчёте считает distances.bottom
+                // эталоном — и уводил профиль на удвоенное смещение
+                if (key === "distances" && value && typeof value === "object") {
                     object[index] = [key, { ...value }];
                 }
             })
