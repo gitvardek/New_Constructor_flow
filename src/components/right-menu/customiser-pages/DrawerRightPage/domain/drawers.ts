@@ -10,7 +10,7 @@ type NumStr = number | string
  */
 
 // Тип задан явно: иначе TS сужает флаг до литерала false и считает код фичи мёртвым
-const DRAWERS_ENABLED: boolean = false
+const DRAWERS_ENABLED: boolean = true
 
 export const isDrawersEnabled = (): boolean => DRAWERS_ENABLED
 
