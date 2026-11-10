@@ -654,4 +654,8 @@ onUnmounted(() => {
 .accordion {
   padding: 1rem 1.5rem;
 }
+
+.search{
+  background-color: $light-stroke;
+}
 </style>

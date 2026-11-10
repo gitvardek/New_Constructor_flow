@@ -5,7 +5,8 @@ import CounterInput from "@/components/ui/inputs/CounterInput.vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import { computed, ref, watch } from "vue";
+import { shelfType, syncShelfTypeWithModule } from "@/components/UMconstructor/ts/modules/fillings/ShelfTypeState.ts";
+import { computed, watch } from "vue";
 
 const props = defineProps({
   module: {
@@ -119,7 +120,9 @@ const canAddDivider = computed(() => {
   return canAddShelf.value;
 });
 
-const shelfType = ref<string>("ldsp");
+// shelfType — общий на все экземпляры панели (см. shelfTypeState.ts), поэтому
+// сбрасываем его не на маунте, а при смене модуля
+watch(() => props.module?.productID, (productID) => syncShelfTypeWithModule(productID), { immediate: true });
 
 const targetWidth = computed(() => {
   return (extra.value ?? row.value ?? cell.value ?? section.value)?.width ?? 0;
