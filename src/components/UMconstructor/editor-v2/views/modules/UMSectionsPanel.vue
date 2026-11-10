@@ -175,7 +175,7 @@ watch(() => formatCellPath(selected.value), async () => {
       </div>
 
       <p v-if="!structure.length" class="UM no-select um-sections__hint">
-        {{ sectionTitle(selected.sec) }} не разделена: добавьте полку или вертикальный разделитель.
+        {{ sectionTitle(selected.sec) }} не разделена: добавьте горизонтальный или вертикальный разделитель.
       </p>
 
       <div v-for="item in structure" :key="item.key"

@@ -109,7 +109,7 @@ const addFilling = (group: FillingGroup, item: any) => {
         <DrawerFilters v-if="openGroupId === group.groupID && isDrawerGroup(group.groupID)" :items="group.items"
           @update:filtered="drawerFilteredItems = $event" />
 
-        <SearchInput v-if="openGroupId === group.groupID && isDrawerGroup(group.groupID)" :items="baseItems(group)"
+        <SearchInput v-if="openGroupId === group.groupID && !isDrawerGroup(group.groupID)" :items="baseItems(group)"
           @update:filtered="filteredItems = $event" />
 
         <p v-if="openGroupId === group.groupID && !visibleItems(group).length" class="UM no-select um-fillings-insert__hint">

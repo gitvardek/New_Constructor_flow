@@ -89,7 +89,7 @@ const onAddFilling = (filling: any, groupID: number) => {
           <DrawerFilters v-if="openedFillingGroupKey === key && isDrawerGroup(fillingGroup.groupID)"
             :items="fillingGroup.items" @update:filtered="drawerFilteredItems = $event" />
 
-          <SearchInput v-if="openedFillingGroupKey === key && isDrawerGroup(fillingGroup.groupID)" :items="baseItems(fillingGroup, key)"
+          <SearchInput v-if="openedFillingGroupKey === key && !isDrawerGroup(fillingGroup.groupID)" :items="baseItems(fillingGroup, key)"
             @update:filtered="filteredMaterialList = $event" />
 
           <div class="UM item-group-wrapper">
