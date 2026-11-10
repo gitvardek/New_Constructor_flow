@@ -6,6 +6,7 @@
 // область), предупреждения, группы каталога аккордеонами с поиском и
 // карточками. Вставка — FILLINGS.addFilling в выбранную область, ограничения —
 // useFillingInsertRules (те же, что у FillingsInsertPanel обычного УМ).
+// В группах ящиков (UM_DRAWERS_IDS) сверху — селекты фильтрации (DrawerFilters).
 
 import "@/components/UMconstructor/styles/UM.scss";
 import { computed, ref } from "vue";
@@ -18,6 +19,8 @@ import ProductCard from "@/components/ui/cards/ProductCard.vue";
 import { formatSelectionTitle } from "../../grid/cellPath.ts";
 import { useEditorPolicy } from "../../policy/editorPolicy.ts";
 import { useFillingInsertRules } from "../../fillings/useFillingInsertRules.ts";
+import DrawerFilters from "../../fillings/DrawerFilters.vue";
+import { isDrawerGroup } from "../../fillings/drawerFilters.ts";
 import type { FillingGroup } from "../../fillings/fillingGroups.ts";
 
 const props = defineProps<{
@@ -44,12 +47,28 @@ const openGroupId = ref<number | null>(null);
 const filteredItems = ref<any[]>([]);
 const isSearch = computed(() => filteredItems.value.length > 0);
 
+// То же соображение, что и с filteredItems: одновременно открыта одна группа,
+// поэтому на результат селектов фильтрации хватает одного ref.
+const drawerFilteredItems = ref<any[] | null>(null);
+
 // false с :open может прийти каскадом от ранее открытой группы — закрываем,
 // только если закрылась текущая (как toggleCategory в WardrobeInsertView).
 const toggleGroup = (groupId: number, isOpen: boolean) => {
   if (isOpen) openGroupId.value = groupId;
   else if (openGroupId.value === groupId) openGroupId.value = null;
   filteredItems.value = [];
+  drawerFilteredItems.value = null;
+};
+
+// Список группы после селектов фильтрации (вне группы ящиков — как пришёл).
+const baseItems = (group: FillingGroup) =>
+  (openGroupId.value === group.groupID && drawerFilteredItems.value) || group.items;
+
+// Поиск и фильтры действуют вместе: SearchInput эмитит результат один раз на
+// ввод и о смене селектов не знает, поэтому пересекаем его с отфильтрованным.
+const visibleItems = (group: FillingGroup) => {
+  const base = baseItems(group);
+  return isSearch.value ? base.filter((item: any) => filteredItems.value.includes(item)) : base;
 };
 
 // Ширину проверяет сам isFillingBlocked: группам из FILLINGS_WIDTH_UNRESTRICTED_GROUPS
@@ -87,11 +106,18 @@ const addFilling = (group: FillingGroup, item: any) => {
           <span class="UM no-select">{{ group.groupName }}</span>
         </template>
 
-        <SearchInput v-if="openGroupId === group.groupID" :items="group.items"
+        <DrawerFilters v-if="openGroupId === group.groupID && isDrawerGroup(group.groupID)" :items="group.items"
+          @update:filtered="drawerFilteredItems = $event" />
+
+        <SearchInput v-if="openGroupId === group.groupID && isDrawerGroup(group.groupID)" :items="baseItems(group)"
           @update:filtered="filteredItems = $event" />
 
+        <p v-if="openGroupId === group.groupID && !visibleItems(group).length" class="UM no-select um-fillings-insert__hint">
+          Ничего не найдено — измените фильтры или поиск.
+        </p>
+
         <ul class="um-fillings-insert__list">
-          <li v-for="(item, itemIndex) in (isSearch ? filteredItems : group.items)" :key="itemIndex + (item.NAME || '')"
+          <li v-for="(item, itemIndex) in visibleItems(group)" :key="itemIndex + (item.NAME || '')"
             class="um-fillings-insert__list-item">
             <ProductCard :name="item.NAME" :image="item.PREVIEW_PICTURE ? _URL + item.PREVIEW_PICTURE : null"
               :disabled="isDisabled(group, item)" @click="addFilling(group, item)" />

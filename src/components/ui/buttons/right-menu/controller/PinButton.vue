@@ -3,6 +3,7 @@
     class="right-menu__button bottom-t"
     :class="getActiveMove"
     @click="toggleMove"
+    title="Закрепить объект"
   >
     <svg
       width="20"

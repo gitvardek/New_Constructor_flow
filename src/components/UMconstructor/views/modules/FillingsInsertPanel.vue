@@ -6,6 +6,8 @@ import { computed, ref } from "vue";
 import { _URL } from "@/types/constants.ts";
 import { UM_PARAMS } from "../../utils/Const";
 import { useFillingInsertRules } from "@/components/UMconstructor/editor-v2/fillings/useFillingInsertRules.ts";
+import DrawerFilters from "@/components/UMconstructor/editor-v2/fillings/DrawerFilters.vue";
+import { isDrawerGroup } from "@/components/UMconstructor/editor-v2/fillings/drawerFilters.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
@@ -28,6 +30,21 @@ const openedFillingGroupKey = ref<string | number | null>(null);
 const filteredMaterialList = ref<Array<any>>([]);
 const isSearch = computed(() => filteredMaterialList.value.length > 0);
 
+// По тому же соображению хватает одного ref на результат селектов фильтрации
+// ящиков (DrawerFilters, группы из UM_DRAWERS_IDS).
+const drawerFilteredItems = ref<Array<any> | null>(null);
+
+// Список группы после селектов фильтрации (вне группы ящиков — как пришёл).
+const baseItems = (fillingGroup: any, key: string | number) =>
+  (openedFillingGroupKey.value === key && drawerFilteredItems.value) || fillingGroup.items;
+
+// Поиск и фильтры действуют вместе: SearchInput эмитит результат один раз на
+// ввод и о смене селектов не знает, поэтому пересекаем его с отфильтрованным.
+const visibleItems = (fillingGroup: any, key: string | number) => {
+  const base = baseItems(fillingGroup, key);
+  return isSearch.value ? base.filter((item: any) => filteredMaterialList.value.includes(item)) : base;
+};
+
 // Ограничения вставки — общая логика с редактором v2.
 const { isFillingWidthRestricted, isFillingHeightRestricted, isFillingBlocked } = useFillingInsertRules({
   getEngine: () => props.UMconstructor,
@@ -41,6 +58,7 @@ const toggleFillingGroup = (key: string | number, isOpen: boolean) => {
     openedFillingGroupKey.value = null;
   }
   filteredMaterialList.value = [];
+  drawerFilteredItems.value = null;
 };
 
 const onAddFilling = (filling: any, groupID: number) => {
@@ -68,13 +86,19 @@ const onAddFilling = (filling: any, groupID: number) => {
             </h3>
           </template>
 
-          <SearchInput v-if="openedFillingGroupKey === key" :items="fillingGroup.items"
+          <DrawerFilters v-if="openedFillingGroupKey === key && isDrawerGroup(fillingGroup.groupID)"
+            :items="fillingGroup.items" @update:filtered="drawerFilteredItems = $event" />
+
+          <SearchInput v-if="openedFillingGroupKey === key && isDrawerGroup(fillingGroup.groupID)" :items="baseItems(fillingGroup, key)"
             @update:filtered="filteredMaterialList = $event" />
 
           <div class="UM item-group-wrapper">
+            <p v-if="openedFillingGroupKey === key && !visibleItems(fillingGroup, key).length" class="UM no-select">
+              Ничего не найдено — измените фильтры или поиск.
+            </p>
+
             <ul class="list">
-              <li :class="['item-group-color']"
-                v-for="(filling, itemKey) in (isSearch ? filteredMaterialList : fillingGroup.items)"
+              <li :class="['item-group-color']" v-for="(filling, itemKey) in visibleItems(fillingGroup, key)"
                 :key="itemKey + filling.NAME">
                 <ProductCard :name="filling.NAME" :image="_URL + filling.PREVIEW_PICTURE"
                   :disabled="isFillingBlocked(fillingGroup.groupID, filling)"

@@ -1,5 +1,5 @@
 <template>
-  <button class="right-menu__button bottom-r" :class="{ active: 0 }">
+  <button class="right-menu__button bottom-r" :class="{ active: 0 }" title="Скрыть фасады">
     <svg width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g clip-path="url(#clip0_100_19455)">
         <path fill-rule="evenodd" clip-rule="evenodd"
