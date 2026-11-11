@@ -112,7 +112,7 @@ export const umPresetsApi = {
       const body: Record<string, unknown> = { name, data }
       if (image) body.previewPicture = image
 
-      const response = await presetsAxios.post('/add', body)
+      const response = await presetsAxios.post('/add/', body)
       return Number(unwrap(response.data)?.id)
     } catch (error) {
       throw toError(error, 'Не удалось сохранить пресет')
@@ -122,7 +122,7 @@ export const umPresetsApi = {
   /** Удаление. Чужие пресеты и пресеты Вардэк бек отклоняет (403). */
   async deleteById(id: number): Promise<void> {
     try {
-      const response = await presetsAxios.post('/deleteById', { id })
+      const response = await presetsAxios.post('/deleteById/', { id })
       unwrap(response.data)
     } catch (error) {
       throw toError(error, 'Не удалось удалить пресет')
@@ -131,7 +131,7 @@ export const umPresetsApi = {
 
   async getById(id: number): Promise<UmPreset> {
     try {
-      const response = await presetsAxios.post('/getById', { id })
+      const response = await presetsAxios.post('/getById/', { id })
       return normalizePreset(unwrap(response.data))
     } catch (error) {
       throw toError(error, 'Не удалось загрузить пресет')
@@ -147,7 +147,7 @@ export const umPresetsApi = {
     const { page = 1, pageSize = 20, sortBy = 'created_at', sortOrder = 'desc' } = query
 
     try {
-      const response = await presetsAxios.post('/getByUser', { page, pageSize, sortBy, sortOrder })
+      const response = await presetsAxios.post('/getByUser/', { page, pageSize, sortBy, sortOrder })
       const payload = (unwrap(response.data) ?? {}) as any
       const items = Array.isArray(payload.items) ? payload.items.map(normalizePreset) : []
 
