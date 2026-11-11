@@ -255,7 +255,7 @@ const addDivider = (count: number | string) => {
           <Tooltip v-if="!canAddGlassShelf" :content="glassShelfHint" position="bottom">
             <template #trigger>
               <button type="button" class="um-shelf-type--item" disabled>
-                Стеклянная
+                Стекло
               </button>
             </template>
           </Tooltip>
@@ -263,7 +263,7 @@ const addDivider = (count: number | string) => {
           <button v-else type="button" class="um-shelf-type--item"
             :class="{ 'um-shelf-type--item__active': shelfType === 'glass' }"
             @click="selectShelfType('glass', onToggle)">
-            Стеклянная
+            Стекло
           </button>
         </template>
       </Accordion>

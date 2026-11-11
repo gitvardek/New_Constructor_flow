@@ -100,7 +100,7 @@ const START_PROJECT_PARAMS = {
 
         ambientLight: {
             color: '#ffffff',
-            intensity: 1.5,
+            intensity: 2,
         },
 
         pointLight: {
@@ -110,7 +110,7 @@ const START_PROJECT_PARAMS = {
             castShadow: false,
             mapSize: 512,
             // intensity: 1.6,
-            intensity: 5,
+            intensity: 2,
             distance: 5000,
             decay: 0
         }

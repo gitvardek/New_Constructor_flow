@@ -30,8 +30,8 @@ const curControllerType = ref<string>("translate");
 const curAngleParam = ref<number>(1);
 
 const controllerValue = ref([
-  { name: "Позиционирование", type: "translate", icon: "/icons/move.svg", description:". Для выхода из режима, повторно кликните по кнопке" },
-  { name: "Вращение", type: "rotate", icon: "/icons/rotate.svg", description:". Для выхода из режима, повторно кликните по кнопке" },
+  { name: "Позиционирование", type: "translate", icon: "move.svg", description:". Для выхода из режима, повторно кликните по кнопке" },
+  { name: "Вращение", type: "rotate", icon: "rotate.svg", description:". Для выхода из режима, повторно кликните по кнопке" },
 ]);
 
 const emit = defineEmits<{
@@ -160,7 +160,7 @@ onMounted(() => {
           ? 'mode-button mode-button--active'
           : 'mode-button'
       " :title="data.name + data.description" @click="onControllerClick(data)">
-        <img class="mode-button__icon" :src="data.icon" :alt="data.name + data.description" />
+        <img class="mode-button__icon" :src="`/dev_modeller/icons/${data.icon}`" :alt="data.name + data.description" />
       </MainButton>
 
       <transition name="controller-toggle">

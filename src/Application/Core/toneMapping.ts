@@ -15,7 +15,7 @@ export const TONE_MAPPING_LIST: TToneMappingItem[] = [
     { value: THREE.NeutralToneMapping, label: "Neutral" },
 ]
 
-export const DEFAULT_TONE_MAPPING = THREE.ReinhardToneMapping
+export const DEFAULT_TONE_MAPPING = THREE.NeutralToneMapping
 
 // Проекты, сохранённые до появления параметра, а также значения вне списка приводим
 // к режиму по умолчанию
