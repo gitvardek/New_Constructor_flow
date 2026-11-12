@@ -18,6 +18,7 @@ import { TableTopCreator } from "../../ConstructorTabletop/CutBuilder/CutBuilder
 import { MeshEvents } from "../Meshes/Utils/Events"
 import { SetObject } from "../Utils/SetObject";
 import { Ruler } from "../Utils/Ruler";
+import { ProductInfoHover } from "../Utils/ProductInfoHover";
 import { SystemInfo } from "../Utils/SystemInfo";
 import { KeybordListeners } from "../Utils/KeybordListeners";
 import { UserHistory } from "../Utils/UserHistory";
@@ -75,6 +76,7 @@ export class Application {
     private systemInfo: SystemInfo | null = null
     private keybordListeners: KeybordListeners | null = null
     private customBoxHelper: CustomBoxHelper | null = null
+    private productInfoHover: ProductInfoHover | null = null
 
     constructor(canvas: HTMLElement) {
         // (window as any).aplication = this // Для разработки
@@ -112,6 +114,7 @@ export class Application {
         this.room = new RoomManager(this)
 
         this.trafficManager = new TrafficManager(this, this.room)
+        this.productInfoHover = new ProductInfoHover(this)
         this.transformControlsManager = new TransformControlsManager(this)
         this.meshEvents = new MeshEvents(this);
 
@@ -194,6 +197,10 @@ export class Application {
         return this.customBoxHelper
     }
 
+    get _productInfoHover() {
+        return this.productInfoHover
+    }
+
     get _roomManager() {
         return this.room
     }
@@ -271,6 +278,14 @@ export class Application {
 
             }
 
+            if (this.productInfoHover) {
+                try {
+                    this.productInfoHover.dispose()
+                } catch (error) {
+                    console.warn('Ошибка при уничтожении productInfoHover:', error);
+                }
+            }
+
             if (this.sizes) {
                 try {
                     this.sizes.off('resize');
@@ -341,6 +356,7 @@ export class Application {
 
             // Очищаем ссылки
             this.keybordListeners = null;
+            this.productInfoHover = null;
             this.meshEvents = null;
             this.enviromentData = null;
             this.setObject = null;
@@ -411,6 +427,11 @@ export class Application {
 
         this.eventBus.on('A:ToggleRulerVisibility', (value: boolean) => {
             this.ruler?.toggleRulerVisibility(value)
+        })
+
+        /** Режим «Информация о товаре» */
+        this.eventBus.on('A:ToggleProductInfoMode', (value: boolean) => {
+            this.productInfoHover?.setMode(value)
         })
     }
 

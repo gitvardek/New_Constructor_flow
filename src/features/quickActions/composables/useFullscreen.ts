@@ -1,3 +1,33 @@
+import { readonly, ref } from 'vue';
+
+/** Состояние полноэкранного режима: общее на модуль и обновляется само —
+ *  выйти можно не только кнопкой, но и Esc/F11 */
+const isFullscreen = ref<boolean>(false);
+
+const FULLSCREEN_EVENTS = [
+  'fullscreenchange',
+  'webkitfullscreenchange',
+  'mozfullscreenchange',
+  'MSFullscreenChange',
+];
+
+const syncFullscreenState = () => {
+  const anyDoc = document as any;
+  isFullscreen.value = Boolean(
+    document.fullscreenElement ||
+    anyDoc.webkitFullscreenElement ||
+    anyDoc.mozFullScreenElement ||
+    anyDoc.msFullscreenElement
+  );
+};
+
+if (typeof document !== 'undefined') {
+  FULLSCREEN_EVENTS.forEach(event =>
+    document.addEventListener(event, syncFullscreenState, false)
+  );
+  syncFullscreenState();
+}
+
 export const useFullscreen = () => {
   const enterFullscreen = async (_element?: HTMLElement) => {
     const element = document.documentElement;
@@ -22,7 +52,13 @@ export const useFullscreen = () => {
     } else {
       await exitFullscreen();
     }
+    syncFullscreenState();
   };
 
-  return { enterFullscreen, exitFullscreen, toggleFullscreen };
+  return {
+    enterFullscreen,
+    exitFullscreen,
+    toggleFullscreen,
+    isFullscreen: readonly(isFullscreen),
+  };
 };

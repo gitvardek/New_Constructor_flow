@@ -55,6 +55,7 @@ import { useToast } from "@/features/toaster/useToast";
 import GenericLoader from "@/components/ui/loader/GenericLoader.vue";
 import TransformController from "@/components/ui/transformController/TransformController.vue";
 import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
+import ProductInfoTooltip from "@/features/quickActions/productInfo/ProductInfoTooltip.vue";
 
 import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
 import { useMenuStore } from "@/store/appStore/useMenuStore";
@@ -946,7 +947,10 @@ watch(
       !uniformState.getUniformModeData.uniformMode
     " @TransformMode="controlsActivate" />
   </transition>
+  <!-- Сохранение пресетов -->
   <SaveUmPresetDialog ref="savePresetDialog" />
+  <!-- Режим «Информация о товаре»: подсказка за курсором -->
+  <ProductInfoTooltip />
 </template>
 
 <style lang="scss" scoped>

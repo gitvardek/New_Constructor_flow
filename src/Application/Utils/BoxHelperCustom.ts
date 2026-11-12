@@ -13,6 +13,9 @@ export class CustomBoxHelper {
     private root: THREETypes.TApplication
     private uniformGroupsSelected: THREE.Object3D[] = [];
     private uniformSelectBoxHelperStore: THREE.Box3Helper[] = []
+    /** Подсветка наведения (режим «Информация о товаре») */
+    private hoverObject: THREE.Object3D | null = null;
+    private hoverBoxHelper: THREE.BoxHelper | null = null;
     // private obbh: OBBHelper
 
     constructor(root: THREETypes.TApplication) {
@@ -71,6 +74,47 @@ export class CustomBoxHelper {
             (this.boxHelper.material as THREE.Material).dispose();
             this.boxHelper = null;
         }
+    }
+
+    /** Подсветка товара под курсором: своя рамка и свой цвет, чтобы не
+     *  путаться с зелёным выделением и не трогать его жизненный цикл */
+
+    addHoverBox(object: THREE.Object3D, color: string | number = '#FFA500') {
+
+        if (!object) return
+
+        if (this.hoverObject === object) {
+            this.hoverBoxHelper?.update()
+            return
+        }
+
+        this.removeHoverBox()
+
+        const boxHelper = new THREE.BoxHelper(object, color)
+
+        boxHelper.material.depthTest = false;
+        boxHelper.material.depthWrite = false;
+        boxHelper.material.transparent = true
+        boxHelper.material.opacity = 1
+        boxHelper.renderOrder = 1
+
+        this.scene.add(boxHelper)
+        boxHelper.update()
+
+        this.hoverObject = object
+        this.hoverBoxHelper = boxHelper
+    }
+
+    removeHoverBox() {
+
+        this.hoverObject = null
+
+        if (!this.hoverBoxHelper) return
+
+        this.scene.remove(this.hoverBoxHelper);
+        this.hoverBoxHelper.geometry.dispose();
+        (this.hoverBoxHelper.material as THREE.Material).dispose();
+        this.hoverBoxHelper = null
     }
 
     /** Для Переходящего рисунка uniformTextureBuilder */

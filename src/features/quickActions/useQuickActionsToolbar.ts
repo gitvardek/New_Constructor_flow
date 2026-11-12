@@ -1,4 +1,4 @@
-import {  ref } from 'vue';
+import { ref } from 'vue';
 import { usePopupStore } from '@/store/appStore/popUpsStore';
 import { useEventBus } from '@/store/appliction/useEventBus';
 import { useMenuStore } from "@/store/appStore/useMenuStore";
@@ -15,6 +15,7 @@ import { useProjectStore } from './project/store/useProjectStore';
 import { useRoomState } from '@/store/appliction/useRoomState';
 import { useSchemeTransition } from '@/store/canvasMerge/schemeTransition';
 import { useConstructor2DHistory } from '@/store/constructor2d/useConstructor2DHistory';
+import { useProductInfoStore } from '@/store/appStore/useProductInfoStore';
 
 export type ActionKey =
   | 'fullscreen'
@@ -28,7 +29,8 @@ export type ActionKey =
   | 'ruller'
   | 'screenshot3d'
   | 'newProject'
-  | 'technologist';
+  | 'technologist'
+  | 'productInfo'
 
 export interface QuickActionItem {
   key: ActionKey;
@@ -36,6 +38,8 @@ export interface QuickActionItem {
   iconClass: string;
   iconSrc?: string;
   path?: string
+  /** Кнопка-тумблер: подсветка активного режима (читается в шаблоне) */
+  active?: () => boolean;
   action: () => void | Promise<void>;
 }
 
@@ -52,8 +56,9 @@ export const useQuickActionsToolbar = () => {
 
   const projectState = useProjectStore();
   const projectAPI = useProjectAPI()
+  const productInfoState = useProductInfoStore();
 
-  const { toggleFullscreen } = useFullscreen();
+  const { toggleFullscreen, isFullscreen } = useFullscreen();
   const { printPage } = usePrint();
   const { makeScreen } = use2DScreenshot();
 
@@ -136,7 +141,7 @@ export const useQuickActionsToolbar = () => {
           constructor2DHistory.clearHistory(JSON.parse(JSON.stringify(roomsData)));
         }
         toaster.success("Сохранено");
-        
+
         // Вызываем callback при успешном сохранении
         if (onSuccess) {
           onSuccess();
@@ -163,6 +168,13 @@ export const useQuickActionsToolbar = () => {
     eventBus.emit("A:DrawingMode", value);
   };
 
+  // Режим «Информация о товаре»: подсветка товара под курсором и подсказка
+  // с его позицией в корзине. Обработка наведения — ProductInfoHover (3D).
+  const toggleProductInfoMode = () => {
+    const value = productInfoState.toggleEnabled();
+    eventBus.emit("A:ToggleProductInfoMode", value);
+  };
+
   // Функция отображения линейки
   const toggleRulerVisibility = async () => {
     await menuStore.toggleRulerVisibility();
@@ -177,15 +189,25 @@ export const useQuickActionsToolbar = () => {
       tooltip: 'На весь экран',
       iconClass: 'icon-centered',
       path: 'default',
+      active: () => isFullscreen.value,
       action: () => {
         toggleFullscreen()
       }
+    },
+    {
+      key: 'productInfo',
+      tooltip: 'Информация о товаре',
+      iconClass: 'icon-info-circle',
+      path: '/3d',
+      active: () => productInfoState.enabled,
+      action: () => toggleProductInfoMode(),
     },
     {
       key: 'drowmod',
       tooltip: 'Режим чертежа',
       iconClass: 'icon-show',
       path: '/3d',
+      active: () => menuStore.getDrowModeValue,
       action: () => toggleDrowMode(),
     },
 
@@ -194,6 +216,7 @@ export const useQuickActionsToolbar = () => {
       tooltip: 'Отображение линейки',
       iconClass: 'icon-ruler',
       path: '/3d',
+      active: () => menuStore.getRulerVisibility,
       action: () => toggleRulerVisibility(),
     },
 
@@ -228,8 +251,8 @@ export const useQuickActionsToolbar = () => {
         const handleComplete = () => {
           eventBus.off("A:3DScreenshotCreated", handleComplete);
           printPage();
-          
-        projectState.isSaving = false;
+
+          projectState.isSaving = false;
         }
 
         eventBus.on("A:3DScreenshotCreated", handleComplete);
@@ -244,7 +267,7 @@ export const useQuickActionsToolbar = () => {
     },
     {
       key: 'screenshot3d',
-      tooltip: '3D Скриншот',
+      tooltip: 'Скриншот',
       iconClass: 'icon-zoom',
       path: '/3d',
       action: () => eventBus.emit("A:Take3DScreenshot"),
@@ -290,9 +313,10 @@ export const useQuickActionsToolbar = () => {
       path: 'default',
       action: () => popupStore.openPopup('technologist'),
     },
+
   ];
 
-  return { 
+  return {
     actions,
     openSaveDialog,
     openUpdateDialog,

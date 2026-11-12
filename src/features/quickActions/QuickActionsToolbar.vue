@@ -1,14 +1,9 @@
 <template>
   <div class="quick-actions">
-    <Tooltip
-      v-for="(action, index) in actions"
-      :key="index"
-      :content="action.tooltip"
-      position="bottom"
-      v-show="action.path == 'default' || route.path == action.path"
-    >
+    <Tooltip v-for="(action, index) in actions" :key="index" :content="action.tooltip" position="bottom"
+      v-show="action.path == 'default' || route.path == action.path">
       <template #trigger>
-        <button class="grey-radial__button" @click="action.action">
+        <button class="grey-radial__button" :class="{ active: action.active?.() }" @click="action.action">
           <!-- <span v-if="action.iconSrc === 'folder'" class="icon">
             <img :src="folderIcon" alt="" class="icon-svg" />
           </span>
@@ -26,22 +21,14 @@
     <!-- Модальное окно для ввода имени проекта -->
     <Modal ref="saveDialogRef">
       <template #modalBody="{ onModalClose }">
-        <InputDialog
-          label="Назовите проект"
-          placeholder="Введите название"
-          :initialValue="currentProjectName"
-          confirmText="Сохранить"
-          @confirm="handleSaveConfirm"
-          @cancel="onModalClose"
-        >
+        <InputDialog label="Назовите проект" placeholder="Введите название" :initialValue="currentProjectName"
+          confirmText="Сохранить" @confirm="handleSaveConfirm" @cancel="onModalClose">
           <template #confirmButton="{ onConfirm }">
-            <MainButton
-              @click="
-                () => {
-                  onConfirm();
-                }
-              "
-            >
+            <MainButton @click="
+              () => {
+                onConfirm();
+              }
+            ">
               Сохранить
             </MainButton>
           </template>
@@ -52,11 +39,7 @@
                 <label class="checkbox_label">Сохранить КП</label>
               </div>
               <div>
-                <input
-                  type="checkbox"
-                  v-model="centeringCheckbox"
-                  @change="changeCamera()"
-                />
+                <input type="checkbox" v-model="centeringCheckbox" @change="changeCamera()" />
                 <label class="checkbox_label">Отцентровать</label>
               </div>
             </div>
@@ -100,12 +83,8 @@
 
     <Modal ref="kpDialogRef">
       <template #modalBody="{ onModalClose }">
-        <Notification
-          :label="'Коммерческое предложение'"
-          :description="kpData?.text"
-          :link="kpData?.link"
-          @cancel="onModalClose"
-        >
+        <Notification :label="'Коммерческое предложение'" :description="kpData?.text" :link="kpData?.link"
+          @cancel="onModalClose">
           <template #cancelButton>
             <MainButton @click="onModalClose">Закрыть</MainButton>
           </template>
@@ -280,9 +259,11 @@ onMounted(() => {
   transition-property: background-color, color, border-color;
   transition-timing-function: ease;
   transition-duration: 0.25s;
+
   &:focus {
     outline: none;
   }
+
   svg {
     path {
       fill: $strong-grey;
@@ -299,7 +280,9 @@ onMounted(() => {
   }
 
   &.active {
-    background-color: $red;
+    background-color: $alter-gray;
+    // Иконки шрифтовые: цвет берётся из color
+    color: $white;
 
     svg {
       path {
@@ -314,9 +297,10 @@ onMounted(() => {
     }
 
     &:active {
-      background-color: $clicked-red;
+      background-color: $alter-gray;
     }
   }
+
   @media (hover: hover) {
     &:hover {
       background-color: black;
