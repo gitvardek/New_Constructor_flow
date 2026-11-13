@@ -87,6 +87,16 @@ const saveGrid = (_grid: GridModule) => {
   return Object.assign({}, grid);
 };
 
+// Флаги модуля из сетки в стор.
+const applyGridFlags = (grid) => {
+  UMstore.noLoops = !!grid.noLoops;
+  UMstore.noBottom = !!grid.noBottom;
+  UMstore.noBackwall = !!grid.noBackwall;
+  UMstore.onHorizont = grid.horizont > 0;
+  UMstore.onSideProfile = !!grid.profilesConfig?.sideProfile;
+  UMstore.onWallModule = !!grid.onWallModule;
+};
+
 onBeforeMount(() => {
   UMconstructor.value = engine;
   UMstore.setCanvasConfig(<canvasConfig>{
@@ -107,8 +117,10 @@ onBeforeMount(() => {
 
   if (!module.value) {
     toaster.error('Ошибка создания модуля!')
-    closeModal()
+    closeModal();
+    return;
   }
+  applyGridFlags(module.value);
 })
 
 const autoSelectDeepest = () => {
@@ -138,15 +150,6 @@ const autoSelectDeepest = () => {
 onMounted(async () => {
   if (module.value) {
     UMstore.setUMGrid(module.value);
-
-    UMstore.noLoops = module.value.noLoops | false;
-    UMstore.noBottom = module.value.noBottom | false;
-    UMstore.noBackwall = module.value.noBackwall | false;
-    UMstore.onHorizont = module.value.horizont > 0;
-    UMstore.noLoops = module.value.noLoops | false;
-    UMstore.onSideProfile = !!module.value.profilesConfig?.sideProfile;
-    UMstore.onWallModule = module.value.onWallModule | false;
-
     UMconstructor.value?.setRenderRef(visualizationRef)
     UMconstructor.value?.reset(UMstore.getUMGrid())
 

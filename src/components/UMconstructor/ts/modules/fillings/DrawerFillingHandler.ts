@@ -74,10 +74,41 @@ export default class DrawerFillingHandler {
             .map(Number)
             .filter(value => Number.isFinite(value))[0]
 
-        const maxAllowedDepth = grid.depth - 7
-        const depth = (_product?.SIZE_EDIT_DEPTH ?? []).filter((value: number) => value <= maxAllowedDepth)[0]
+        // Новому ящику — первая подходящая глубина каталога
+        const depth = this.getUniversalDepthOptions(_product, grid)[0]
 
         return { height, depth }
+    };
+
+    // Глубины из каталога товара (SIZE_EDIT_DEPTH), очищенные от мусора.
+    private getCatalogDepths(product: any): number[] {
+        return (product?.SIZE_EDIT_DEPTH ?? [])
+            .map(Number)
+            .filter((value: number) => Number.isFinite(value) && value > 0)
+    };
+
+    // Глубины универсального ящика, которые влезают в корпус.
+    getUniversalDepthOptions(product: any, grid: GridModule = this.scope.UM_STORE.getUMGrid()): number[] {
+        const maxAllowedDepth = (grid?.depth ?? 0) - UM_PARAMS.UNIVERSAL_DRAWER_DEPTH_RESERVE
+
+        return this.getCatalogDepths(product).filter(value => value <= maxAllowedDepth)
+    };
+
+    // Глубина для УЖЕ стоящего ящика: выбранную пользователем держим, пока она
+    // допустима; не влезла — ближайшая снизу (прежняя мельче всех допустимых быть
+    // не может, но на старых данных берём минимальную). undefined — не влезает ни одна.
+    resolveUniversalDrawerDepth(product: any, grid: GridModule, current?: number): number | undefined {
+        const options = this.getUniversalDepthOptions(product, grid)
+
+        if (!options.length) return undefined
+
+        const previous = Number(current)
+
+        if (options.includes(previous)) return previous
+
+        const smaller = options.filter(value => value < previous)
+
+        return smaller.length ? Math.max(...smaller) : Math.min(...options)
     };
 
     // Снимает уже установленные универсальные ящики, когда толщина панелей перестала подходить 
@@ -143,12 +174,14 @@ export default class DrawerFillingHandler {
         if (!isUniversalDrawer(productGroupID, this.UNIVERSAL_DRAWER_IDS)) return true
 
         if (!this.isUniversalDrawerAllowed(grid)) {
-            this.scope.callAlert("error", `Невозможно установить универсальный ящик: толщина корпуса или боковой стенки меньше ${this.UNIVERSAL_DRAWER_MIN_THICKNESS} мм`)
+            const allowed = DrawerFillingHandler.UNIVERSAL_DRAWER_THICKNESSES.join(" или ")
+            this.scope.callAlert("error", `Невозможно установить универсальный ящик: толщина корпуса и боковых стенок должна быть ${allowed} мм`)
             return false;
         }
 
-        const minDepth = _product.SIZE_EDIT_DEPTH?.length
-            ? Math.min(..._product.SIZE_EDIT_DEPTH) + 7
+        const catalogDepths = this.getCatalogDepths(_product)
+        const minDepth = catalogDepths.length
+            ? Math.min(...catalogDepths) + UM_PARAMS.UNIVERSAL_DRAWER_DEPTH_RESERVE
             : 0;
         if (grid.depth < minDepth) {
             this.scope.callAlert("error", `Невозможно установить универсальный ящик, минимальная глубина для установки: ${minDepth} мм`)

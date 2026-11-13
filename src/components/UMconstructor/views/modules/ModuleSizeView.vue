@@ -212,27 +212,24 @@ watch(() => UMconstructor?.value?.UM_STORE.totalDepth, () => {
   }
 })
 
-onBeforeMount(() => {
-  if (UMconstructor?.value?.UM_STORE) {
-    totalHeight.value = UMconstructor.value.UM_STORE.totalHeight
-    totalWidth.value = UMconstructor.value.UM_STORE.totalWidth
-    totalDepth.value = UMconstructor.value.UM_STORE.totalDepth
-    onHorizont.value = UMconstructor.value.UM_STORE.onHorizont
-    onSideProfile.value = UMconstructor.value.UM_STORE.onSideProfile
-    noBottom.value = UMconstructor.value.UM_STORE.noBottom
-  }
-})
+const syncFromStore = () => {
+  const store = UMconstructor?.value?.UM_STORE
+  if (!store) return
 
-onMounted(() => {
-  if (UMconstructor?.value?.UM_STORE) {
-    totalHeight.value = UMconstructor.value.UM_STORE.totalHeight
-    totalWidth.value = UMconstructor.value.UM_STORE.totalWidth
-    totalDepth.value = UMconstructor.value.UM_STORE.totalDepth
-    onHorizont.value = UMconstructor.value.UM_STORE.onHorizont
-    onSideProfile.value = UMconstructor.value.UM_STORE.onSideProfile
-    noBottom.value = UMconstructor.value.UM_STORE.noBottom
-  }
-})
+  totalHeight.value = store.totalHeight
+  totalWidth.value = store.totalWidth
+  totalDepth.value = store.totalDepth
+  onHorizont.value = store.onHorizont
+  onSideProfile.value = store.onSideProfile
+  noBottom.value = store.noBottom
+  onWallModule.value = store.onWallModule
+  noLoops.value = store.noLoops
+  noBackwall.value = store.noBackwall
+}
+
+onBeforeMount(syncFromStore)
+
+onMounted(syncFromStore)
 
 </script>
 

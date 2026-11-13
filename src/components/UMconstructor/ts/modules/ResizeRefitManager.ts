@@ -183,13 +183,22 @@ export default class ResizeRefitManager {
                 const product = this.scope.APP.CATALOG.PRODUCTS[filling.product]
 
                 if (UM_DRAWERS_IDS.UNIVERSAL.includes(filling.productGroupID)) {
-                    // Универсальный ящик берёт глубину из списка SIZE_EDIT_DEPTH
-                    const { depth } = this.scope.FILLINGS.drawers.getUniversalDrawerSizes(product, grid)
+                    // Глубину ящика выбирает пользователь — держим её, пока она влезает
+                    // в корпус (см. DrawerFillingHandler.resolveUniversalDrawerDepth).
+                    const previous = Number(filling.depth)
+                    const depth = this.scope.FILLINGS.drawers.resolveUniversalDrawerDepth(product, grid, previous)
 
                     if (depth === undefined) {
                         messages.add(`«${filling.name}» снят: глубина модуля ${grid.depth} мм мала для ящика`)
                         this.drop(ref, index, grid)
-                    } else {
+                        continue
+                    }
+
+                    if (depth !== previous) {
+                        if (Number.isFinite(previous)) {
+                            messages.add(`«${filling.name}»: глубина ящика ${previous} -> ${depth} мм, в корпус ${grid.depth} мм прежняя не помещается`)
+                        }
+
                         this.setFillingDepth(filling, depth)
                     }
 
