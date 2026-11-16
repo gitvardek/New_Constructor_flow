@@ -866,6 +866,9 @@ function CatalogApp() {
 
 		self.catalogControlConditions();
 
+		// Строго после CONDITIONS: родитель мог отключиться по размеру — зависимые гаснут следом
+		self.catalogControlRequiredOptions();
+
 		$.each(propsShow, function (k, v) {
 
 			let rel = $('.prop-' + k, form_parent);
@@ -1352,6 +1355,11 @@ function CatalogApp() {
 		{
 			var elem = $(this);
 
+			// Снятие отменено — состояние не изменилось, пересчёт цены не нужен
+			if (self.keepLastDependentOption(elem)) {
+				return;
+			}
+
 			self.doChangeProps(elem);
 
 			ElementGetPriceFunc($(elem).parentsUntil(".product__wrapper").parent());
@@ -1448,6 +1456,157 @@ function CatalogApp() {
 				}
 			}
 		});
+	}
+
+	// Подгруппа «Варианты присадки» (data-group-radio). Состав зависит от размера фасада,
+	// поэтому родители задаются подгруппой, а не перечнем ID
+	this.DRAWER_FITTING_GROUP = 1626;
+
+	// Варианты присадки без ящика — толщину корпуса не показывают. ID известен только
+	// у «Фасад без присадки для ящика», ТУГ отличим лишь по названию
+	this.DRAWER_FITTING_EXCLUDE = {
+		ids: [15360961],
+		name: /без\s+присадки|(^|[^а-яё])туг([^а-яё]|$)/i,
+	};
+
+	// Опции, видимые только при отмеченной «родительской» — аналог REQUIRED_OPTIONS конструктора.
+	// Значение: запасное правило поиска родителей на случай пустого data-opt-fasade с бэка
+	this.DEPENDENT_OPTIONS = {
+		14025545: { group: this.DRAWER_FITTING_GROUP, exclude: this.DRAWER_FITTING_EXCLUDE },
+		14025812: { group: this.DRAWER_FITTING_GROUP, exclude: this.DRAWER_FITTING_EXCLUDE },
+	};
+
+	// Опция пары, включаемая при её появлении — аналог CLOSE_OTHER_OPTIONS='1' конструктора
+	this.DEPENDENT_OPTIONS_DEFAULT = 14025545;
+
+	// Пара видима, пока отмечен хотя бы один родитель: при появлении включается опция
+	// по умолчанию, при скрытии — снимается и блокируется, чтобы не уйти в цену и корзину
+	this.catalogControlRequiredOptions = function () {
+		var visibleByGroup = {};
+
+		$.each(self.DEPENDENT_OPTIONS, function (id, rule) {
+			var input = $("input[name='OPTION[]'][value='" + id + "']");
+
+			if (!input.length) {
+				return;
+			}
+
+			if (!self.hasCheckedParentOption(input, rule)) {
+				input.prop({ 'checked': false, 'disabled': true }).parents('li').hide();
+				input.parent('label').removeClass('selected');
+				return;
+			}
+
+			input.prop('disabled', false).parents('li').show();
+
+			var group = String(input.data('group-radio') || id);
+			visibleByGroup[group] = visibleByGroup[group] || [];
+			visibleByGroup[group].push(input);
+		});
+
+		$.each(visibleByGroup, function (group, inputs) {
+			var checked = inputs.filter(function (input) {
+				return input.prop('checked');
+			});
+
+			if (checked.length) {
+				return;
+			}
+
+			var byDefault = inputs.filter(function (input) {
+				return String(input.val()) === String(self.DEPENDENT_OPTIONS_DEFAULT);
+			});
+
+			var target = byDefault.length ? byDefault[0] : inputs[0];
+			target.prop('checked', true).parent('label').addClass('selected');
+		});
+
+		self.syncOptionGroupTitles();
+	}
+
+	// Родители берутся из data-opt-fasade, при пустом атрибуте — по правилу DEPENDENT_OPTIONS.
+	// Отключённый по CONDITIONS родитель выбранным не считается
+	this.hasCheckedParentOption = function (input, rule) {
+		var parents = String(input.data('opt-fasade') || '').split(',').filter(function (id) {
+			return String(id).trim().length > 0;
+		});
+
+		if (parents.length) {
+			return parents.some(function (id) {
+				return $("input[name='OPTION[]'][value='" + String(id).trim() + "']:checked:enabled").length > 0;
+			});
+		}
+
+		if (!rule || !rule.group) {
+			return false;
+		}
+
+		var checked = $("input[name='OPTION[]'][data-group-radio='" + rule.group + "']:checked:enabled");
+
+		return checked.filter(function () {
+			return !self.isExcludedParentOption($(this), rule.exclude);
+		}).length > 0;
+	}
+
+	// Опция подгруппы, не дающая ящика: по известному ID либо по названию из label
+	this.isExcludedParentOption = function (input, exclude) {
+		if (!exclude) {
+			return false;
+		}
+
+		var ids = (exclude.ids || []).map(String);
+
+		if (ids.indexOf(String(input.val())) !== -1) {
+			return true;
+		}
+
+		return !!exclude.name && exclude.name.test(input.parent('label').text());
+	}
+
+	// Заголовок подгруппы опций — div перед своими li; прячем, когда все её опции скрыты
+	this.syncOptionGroupTitles = function () {
+		$('.prop-option .values > div').each(function () {
+			var title = $(this);
+			var hasVisible = false;
+
+			title.nextAll().each(function () {
+				var node = $(this);
+
+				// Следующий заголовок — опции текущей подгруппы кончились
+				if (node.is('div')) {
+					return false;
+				}
+
+				if (node.is('li') && node.css('display') !== 'none') {
+					hasVisible = true;
+					return false;
+				}
+			});
+
+			if (hasVisible) {
+				title.show();
+			} else {
+				title.hide();
+			}
+		});
+	}
+
+	// Внутри видимой пары одна опция всегда отмечена: снятие последней отменяем
+	this.keepLastDependentOption = function (elem) {
+		if (!self.DEPENDENT_OPTIONS[String(elem.val())] || elem.prop('checked')) {
+			return false;
+		}
+
+		var group = String(elem.data('group-radio') || '');
+		var stillChecked = group.length
+			&& $("input[name='OPTION[]'][data-group-radio='" + group + "']:checked:enabled").length > 0;
+
+		if (stillChecked) {
+			return false;
+		}
+
+		elem.prop('checked', true);
+		return true;
 	}
 
 	// Плейсхолдер вида #NAME#, не попавший в подстановку, eval трактует как приватное поле
@@ -2506,6 +2665,8 @@ function CatalogApp() {
 		//self.controlSizeFasade(true);
 		self.catalogInitImage();
 		self.catalogInitSelect();
+		// Стартовое состояние: у товара без .prop-facades doChangeProps не отработает
+		self.catalogControlRequiredOptions();
 	}
 
 	this.catalogInitSelect = function () {
