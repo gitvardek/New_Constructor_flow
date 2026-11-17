@@ -1,0 +1,17 @@
+RewriteEngine On
+
+RewriteBase /dev_modeller/
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.html [L]
+
+<IfModule mod_headers.c>
+  # index.html кешировать нельзя: иначе браузер продолжает тянуть старые
+  # хешированные бандлы и стили, и обновления до пользователя не доезжают.
+  <FilesMatch "^index\.html$">
+    Header always set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

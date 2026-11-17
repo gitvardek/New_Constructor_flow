@@ -3,6 +3,7 @@ import { useBasketStore } from "@/store/appStore/useBasketStore";
 import { useRoomState } from "@/store/appliction/useRoomState";
 import { _URL } from "@/types/constants";
 import { useAppData } from "@/store/appliction/useAppData";
+import { buildWardrobeDescriptionRows } from "@/components/Basket/helper/wardrobeBasketDescription";
 
 export const usePrint = () => {
   const printPage = async () => {
@@ -265,6 +266,19 @@ export const usePrint = () => {
               rows.push(`  ${idx + 1} ${pName}: — ${pos}`);
             });
           }
+        }
+
+        // Наполнение гардеробной системы — PROPS.WARDROBEGRID (у box-УМ состав
+        // приходит нумерованными SECTIONSFILLING*, см. выше)
+        if (props.WARDROBEGRID) {
+          rows.push(...buildWardrobeDescriptionRows(props.WARDROBEGRID, product?.ID ?? product?.PRODUCT));
+        }
+
+        // Место тумбочки в гардеробной (basketMapper.createCabinetItems): у неё
+        // своя позиция, объекта на сцене нет — как и в корзине
+        if (props.WARDROBE) {
+          if (props.WARDROBE.SECTION != null) rows.push(`Секция: ${props.WARDROBE.SECTION}`);
+          if (props.WARDROBE.POSITION_Y != null) rows.push(`Высота установки: ${props.WARDROBE.POSITION_Y} мм`);
         }
 
         return rows;

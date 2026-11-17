@@ -1,16 +1,16 @@
 <script setup lang="ts">
 //@ts-nocheck
-import {defineExpose, onBeforeMount, onBeforeUnmount, onMounted, ref, watch, nextTick} from "vue";
+import { defineExpose, onBeforeMount, onBeforeUnmount, onMounted, ref, watch, nextTick } from "vue";
 import "@/components/UMconstructor/styles/UM.scss"
 
 import RightPanelView from "@/components/UMconstructor/views/RightPanelView.vue";
 import LeftPanelView from "@/components/UMconstructor/views/LeftPanelView.vue";
 import Render2D from "@/components/UMconstructor/views/Render2D.vue";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
-import {useUMStorage} from "@/store/appStore/UniversalModule/useUMStorage.ts";
-import {TTotalProps} from "@/types/types.ts";
-import {canvasConfig, constructorMode} from "@/components/UMconstructor/types/UMtypes.ts";
-import {useToast} from "@/features/toaster/useToast.ts";
+import { provideUMEngine } from "@/components/UMconstructor/ts/umEngineContext.ts";
+import { TTotalProps } from "@/types/types.ts";
+import { canvasConfig, constructorMode } from "@/components/UMconstructor/types/UMtypes.ts";
+import { useToast } from "@/features/toaster/useToast.ts";
 
 type Props = {
   canvasHeight: number;
@@ -18,9 +18,10 @@ type Props = {
   defaultDepth: number;
   productData: TTotalProps | boolean;
   verdekConstructor: Application;
+  // Движок вложенной сессии (createUMEngine); без него — основной экземпляр приложения.
+  engine?: UMconstructorClass;
 };
 
-const UMstore = useUMStorage()
 const toaster = useToast();
 
 const mode = ref<constructorMode>('module');
@@ -28,11 +29,10 @@ const module = ref(false);
 const step = ref(1);
 const constructor2dContainer = ref(null);
 
-const productData = ref<TTotalProps|boolean>(false)
-const refFooter = ref(null);
+const productData = ref<TTotalProps | boolean>(false)
 
 const visualizationRef = ref(null);
-const UMconstructor = ref<UMconstructorClass|null>(null);
+const UMconstructor = ref<UMconstructorClass | null>(null);
 
 const props = withDefaults(defineProps<Props>(), {
   canvasHeight: 720,
@@ -40,6 +40,10 @@ const props = withDefaults(defineProps<Props>(), {
   defaultDepth: 560,
   productData: false,
 });
+
+const engine = props.engine ?? props.verdekConstructor._universalModuleConstructor;
+const UMstore = engine.UM_STORE;
+provideUMEngine(engine);
 
 const emit = defineEmits(["close-modal"]);
 
@@ -57,11 +61,11 @@ const changeConstructorMode = (_mode: constructorMode) => {
 const handleCellSelect = (secIndex, cellIndex, type, rowIndex = null, item = null, extraIndex = null) => {
   switch (type) {
     case "fasades":
-      UMstore.setSelected("fasades", {sec: secIndex, cell: cellIndex, row: rowIndex});
+      UMstore.setSelected("fasades", { sec: secIndex, cell: cellIndex, row: rowIndex });
       break;
     default:
-      UMstore.setSelected("module", {sec: secIndex, cell: cellIndex, row: rowIndex, extra: extraIndex});
-      UMstore.setSelected("fillings", {sec: secIndex, cell: cellIndex, row: rowIndex, extra: extraIndex, item: item});
+      UMstore.setSelected("module", { sec: secIndex, cell: cellIndex, row: rowIndex, extra: extraIndex });
+      UMstore.setSelected("fillings", { sec: secIndex, cell: cellIndex, row: rowIndex, extra: extraIndex, item: item });
       break;
   }
 
@@ -70,21 +74,31 @@ const handleCellSelect = (secIndex, cellIndex, type, rowIndex = null, item = nul
 
 const saveGrid = (_grid: GridModule) => {
   let grid = _grid || UMconstructor.value?.UM_STORE.getUMGrid();
-  if(grid.errors && Object.keys(grid.errors).length > 0) {
+  if (grid.errors && Object.keys(grid.errors).length > 0) {
     Object.values(grid.errors).forEach(item => {
-      toaster.error(item.message, refFooter.value)
+      toaster.error(item.message)
     })
 
     return false
   }
 
-  toaster.success('Модуль сохранен', refFooter.value)
+  toaster.success('Модуль сохранен')
 
   return Object.assign({}, grid);
 };
 
+// Флаги модуля из сетки в стор.
+const applyGridFlags = (grid) => {
+  UMstore.noLoops = !!grid.noLoops;
+  UMstore.noBottom = !!grid.noBottom;
+  UMstore.noBackwall = !!grid.noBackwall;
+  UMstore.onHorizont = grid.horizont > 0;
+  UMstore.onSideProfile = !!grid.profilesConfig?.sideProfile;
+  UMstore.onWallModule = !!grid.onWallModule;
+};
+
 onBeforeMount(() => {
-  UMconstructor.value = props.verdekConstructor._universalModuleConstructor;
+  UMconstructor.value = engine;
   UMstore.setCanvasConfig(<canvasConfig>{
     canvasHeight: props.canvasHeight,
     canvasWidth: props.canvasWidth,
@@ -101,10 +115,12 @@ onBeforeMount(() => {
     depth: UMconstructor.value.UM_STORE.totalDepth,
   });
 
-  if(!module.value) {
-    toaster.error('Ошибка создания модуля!', refFooter)
-    closeModal()
+  if (!module.value) {
+    toaster.error('Ошибка создания модуля!')
+    closeModal();
+    return;
   }
+  applyGridFlags(module.value);
 })
 
 const autoSelectDeepest = () => {
@@ -134,24 +150,14 @@ const autoSelectDeepest = () => {
 onMounted(async () => {
   if (module.value) {
     UMstore.setUMGrid(module.value);
-
-    UMstore.noLoops = module.value.noLoops | false;
-    UMstore.noBottom = module.value.noBottom | false;
-    UMstore.noBackwall = module.value.noBackwall | false;
-    UMstore.onHorizont = module.value.horizont > 0;
-    UMstore.noLoops = module.value.noLoops | false;
-    UMstore.onSideProfile = !!module.value.profilesConfig?.sideProfile;
-    UMstore.onWallModule = module.value.onWallModule | false;
-
     UMconstructor.value?.setRenderRef(visualizationRef)
-    UMconstructor.value?.setAlertRef(refFooter)
     UMconstructor.value?.reset(UMstore.getUMGrid())
 
     await nextTick();
     autoSelectDeepest();
   }
   else {
-    toaster.error('Ошибка создания модуля!', refFooter)
+    toaster.error('Ошибка создания модуля!')
     closeModal()
   }
 });
@@ -172,66 +178,45 @@ defineExpose({
 </script>
 
 <template>
-  <div
-      v-if="productData"
-      class="UM constructor2d-wrapper"
-  >
+  <div v-if="productData" class="UM constructor2d-wrapper">
 
-    <div
-        class="UM constructor2d-container constructor2d-container--left"
-    >
-      <LeftPanelView
-          :mode="mode"
-          :module="module"
-          :UMconstructor="UMconstructor"
-      />
+    <div class="UM constructor2d-container constructor2d-container--left">
+      <LeftPanelView :mode="mode" :module="module" :UMconstructor="UMconstructor" />
     </div>
 
-    <div
-        id="midAreaUM2Dconstructor"
-        class="UM constructor2d-container constructor2d-container--mid"
-        ref="constructor2dContainer"
-    >
+    <div id="midAreaUM2Dconstructor" class="UM constructor2d-container constructor2d-container--mid"
+      ref="constructor2dContainer">
       <div class="UM no-select constructor2d-header">
-        <div class="UM constructor2d-header--title"><h1>{{productData.PROPS.NAME}}</h1></div>
+        <div class="UM constructor2d-header--title">
+          <h1>{{ productData.PROPS.NAME }}</h1>
+        </div>
       </div>
 
-      <div
-          class="UM constructor2d-container constructor2d-header--mode-selector"
-      >
+      <div class="UM constructor2d-container constructor2d-header--mode-selector">
         <article class="UM actions-items actions-items--right">
           <div class="UM actions-items--right-items">
-            <button
-                :class="[
-                      'UM no-select actions-btn actions-btn--default', {
-                      active:
-                        mode === 'module'
-                      }
-                    ]"
-                @click="changeConstructorMode('module')"
-            >
+            <button :class="[
+              'UM no-select actions-btn actions-btn--default', {
+                active:
+                  mode === 'module'
+              }
+            ]" @click="changeConstructorMode('module')">
               Модуль
             </button>
-            <button
-                :class="[
-                      'UM no-select actions-btn actions-btn--default', {
-                      active:
-                        mode === 'fillings'
-                      }
-                    ]"
-                @click="changeConstructorMode('fillings')"
-            >
+            <button :class="[
+              'UM no-select actions-btn actions-btn--default', {
+                active:
+                  mode === 'fillings'
+              }
+            ]" @click="changeConstructorMode('fillings')">
               Наполнение
             </button>
-            <button
-                :class="[
-                      'UM no-select actions-btn actions-btn--default', {
-                      active:
-                        mode === 'fasades'
-                      }
-                    ]"
-                @click="changeConstructorMode('fasades')"
-            >
+            <button :class="[
+              'UM no-select actions-btn actions-btn--default', {
+                active:
+                  mode === 'fasades'
+              }
+            ]" @click="changeConstructorMode('fasades')">
               Фасады
             </button>
           </div>
@@ -239,19 +224,12 @@ defineExpose({
       </div>
 
       <div class="UM constructor2d-content">
-        <Render2D
-            ref="visualizationRef"
-            :mode="mode"
-            :step="step"
-            :module="UMconstructor?.UM_STORE.getUMGrid()"
-            :UMconstructor="UMconstructor"
-            :container="constructor2dContainer"
-            :max-area-height="UMconstructor?.UM_STORE.totalHeight"
-            :max-area-width="UMconstructor?.UM_STORE.totalWidth"
-        />
+        <Render2D ref="visualizationRef" :mode="mode" :step="step" :module="UMconstructor?.UM_STORE.getUMGrid()"
+          :UMconstructor="UMconstructor" :container="constructor2dContainer"
+          :max-area-height="UMconstructor?.UM_STORE.totalHeight" :max-area-width="UMconstructor?.UM_STORE.totalWidth" />
       </div>
 
-      <section class="UM actions-footer" ref="refFooter">
+      <section class="UM actions-footer">
         <div class="UM actions-footer--save">
           <slot name="save"></slot>
           <slot name="close"></slot>
@@ -260,14 +238,8 @@ defineExpose({
 
     </div>
 
-    <div
-        class="UM constructor2d-container constructor2d-container--right"
-    >
-      <RightPanelView
-          :mode="mode"
-          :module="module"
-          :UMconstructor="UMconstructor"
-      />
+    <div class="UM constructor2d-container constructor2d-container--right">
+      <RightPanelView :mode="mode" :module="module" :UMconstructor="UMconstructor" />
     </div>
   </div>
 </template>
@@ -282,6 +254,6 @@ defineExpose({
   height: 95vh;
 
   font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS",
-  sans-serif;
+    sans-serif;
 }
 </style>

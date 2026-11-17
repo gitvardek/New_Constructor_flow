@@ -58,7 +58,7 @@ export const CatalogService = {
     }
   },
 
-  async getProductDetails( data: ProductRequestData): Promise<ProductDetailsResponse> {
+  async getProductDetails(data: ProductRequestData): Promise<ProductDetailsResponse> {
     try {
       const url = `https://${BASE_DOMAIN}/local/templates/constructor/API/catalog.element.get.php`
       const response = await axios.post(url, data, {
@@ -139,5 +139,5 @@ export const CatalogService = {
       throw error
     }
   },
-  
+
 }

@@ -1,14 +1,21 @@
 <script setup lang="ts">
 // @ts-nocheck
 import Modal from "@/components/ui/modals/Modal.vue";
-import { defineExpose, nextTick, onBeforeUnmount, ref } from "vue";
+import { computed, defineExpose, nextTick, onBeforeUnmount, ref } from "vue";
 import { useEventBus } from "@/store/appliction/useEventBus.ts";
 import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import MainView from "@/components/UMconstructor/views/MainView.vue"
+import WardrobeMainView from "@/components/UMconstructor/wardrobe/views/WardrobeMainView.vue"
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import { useToast } from "@/features/toaster/useToast.ts";
 import UMLoader from "@/components/UMconstructor/UMLoader.vue";
 import type { Application } from "@/Application/Core/Application";
+import { getUMGridFromConfig, isWardrobeSystemProduct } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { createEditorNavigation, provideEditorNavigation } from "@/components/UMconstructor/editor-v2/navigation/editorNavigation.ts";
+import { cloneUMData } from "@/components/UMconstructor/editor-v2/session/cloneUMData.ts";
+import SaveUmPresetDialog from "@/components/umPresets/SaveUmPresetDialog.vue";
+import { buildUmPresetData } from "@/components/umPresets/umPresetSnapshot";
+import { captureUmPresetImage, captureUmPresetImageAsync } from "@/components/umPresets/umPresetImage";
 
 type Props = {
   product: Record<any | any> | null;
@@ -24,41 +31,110 @@ const universalModule2DConstructor = ref();
 const universalModuleData = ref({});
 const isUMModalOpen = ref(false);
 const gridUMSaved = ref(false);
+const savePresetDialog = ref();
+
+// Гардеробная система (вариант "B", см. чат/SESSION_CONTEXT.md) — отдельное
+// дерево Vue-компонентов (WardrobeMainView + внутри него), а не ветки внутри
+// box-UM MainView.vue. Определяем по товару, а не по CONFIG.WARDROBEGRID —
+// тот появляется только ПОСЛЕ createProductObject, а этот computed должен
+// быть верным сразу, до первого рендера.
+const isWardrobeProduct = computed(() => isWardrobeSystemProduct(props.product?.userData?.globalData));
+
+// Уровни внутри окна (Гардеробная › Тумбочка N). Корень — сам редактор товара,
+// вложенные уровни открывают его панели (openCabinetEditor).
+const navigation = createEditorNavigation({ id: "root", title: "" });
+provideEditorNavigation(navigation);
+
+// Esc на вложенном уровне — шаг назад, на корне — закрытие окна.
+const onEscape = () => {
+  if (navigation.depth.value <= 1) return false;
+  navigation.back();
+  return true;
+};
 
 const selectUMData = (data) => {
   universalModuleData.value = data;
   UMstore.setUMData(data.PROPS.PROPS);
 };
 
+// Возвращает true, когда сетка действительно записана в товар: по этому
+// признаку сохранение пресета решает, продолжать ли (saveGrid отдаёт false и
+// тостит, если в сетке есть ошибки).
 const saveUMData = ({ data, canvasHeight }) => {
   if (!props.product)
-    return;
+    return false;
 
   if (!props.product.userData)
-    return;
+    return false;
 
   let saveData = universalModule2DConstructor.value.saveGrid()
+
   if (!saveData)
-    return;
+    return false;
 
-  let tmp_result = saveUMGrid(saveData)
+  // Глубокая копия: сохранённая сетка не должна делить объекты с редактируемой,
+  // иначе правки после "Сохранить" без повторного сохранения попадали бы в конфиг.
+  let tmp_result = saveUMGrid(cloneUMData(saveData))
 
-  props.product.userData.PROPS.CONFIG.MODULEGRID = tmp_result;
-  UMstore.setUMCashGrid(tmp_result)
   const { PROPS } = props.product.userData
+  // Гардеробная система (временно, черновик) — пишем в тот же ключ, из
+  // которого сетка была прочитана (CONFIG.WARDROBEGRID, не CONFIG.MODULEGRID
+  // — см. WardrobeSystem.ts).
+  const { key: umGridKey } = getUMGridFromConfig(PROPS.CONFIG)
+  PROPS.CONFIG[umGridKey] = tmp_result;
+  UMstore.setUMCashGrid(tmp_result)
   saveConfigCash(PROPS, true)
 
   gridUMSaved.value = true;
   toaster.success('Модуль сохранен')
   nextTick(() => {
+    console.log(tmp_result, 'MODULEGRID')
     eventBus.emit("A:UM-update", UMstore.getUMCashGrid());
   });
+
+  return true;
+};
+
+/**
+ * Пресет из редактора. Снимок должен показывать правки, а 3D перестраивается
+ * только по A:UM-update — поэтому кнопка сначала делает то же, что
+ * "Сохранить" (пишет сетку в товар и шлёт событие), и лишь затем снимает
+ * кадр. Побочный эффект осознанный: модуль в проекте обновляется, закрытие
+ * окна его уже не откатит.
+ */
+const saveUMPreset = async () => {
+  // Снимок ДО применения правок — запасной: если после пересборки кадр снять
+  // не выйдет (модуль вне кадра), карточка останется хотя бы с этой картинкой.
+  const fallbackImage = captureUmPresetImage(props.verdekConstructor, props.product);
+
+  // false — сетка с ошибками (saveGrid уже показал их тостами): такой модуль в
+  // пресеты не пускаем.
+  if (!saveUMData({})) return;
+
+  // A:UM-update уходит из nextTick внутри saveUMData; своя очередь встаёт
+  // следом, так что к этому моменту 3D уже пересобран (updateUMModel
+  // синхронный).
+  await nextTick();
+
+  const data = buildUmPresetData(props.verdekConstructor, props.product);
+
+  if (!data) {
+    toaster.error('Не удалось собрать пресет');
+    return;
+  }
+
+  // Диалог открывается сразу, снимок подставится, когда догрузятся текстуры
+  // пересобранной модели (иначе в карточку попадает голая геометрия).
+  savePresetDialog.value?.open(
+    data,
+    captureUmPresetImageAsync(props.verdekConstructor, props.product)
+      .then((image) => image ?? fallbackImage),
+  );
 };
 
 const saveConfigCash = (PROPS, skipGrid = false) => {
   const { CONFIG } = PROPS
   const {
-    MODULEGRID,
     BACKWALL,
     RIGHTSIDECOLOR,
     LEFTSIDECOLOR,
@@ -71,8 +147,15 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
     EXPRESSIONS
   } = CONFIG
 
-  if (!skipGrid && MODULEGRID) {
-    UMstore.setUMCashGrid(saveUMGrid(MODULEGRID))
+  // Гардеробная система (временно, черновик) — активная сетка может лежать
+  // под CONFIG.WARDROBEGRID, не только CONFIG.MODULEGRID — см. WardrobeSystem.ts.
+  const { grid: activeUMGrid } = getUMGridFromConfig(CONFIG)
+  if (!skipGrid && activeUMGrid) {
+    // Снимок для отката — глубокая копия: saveUMGrid копирует только sections/
+    // cells/fasades/..., а wardrobeFilling, wardrobeProfiles и вложенные объекты
+    // оставались общими с редактируемой сеткой, и закрытие без сохранения
+    // "откатывало" к уже изменённым данным (тумбочка, её конфиг, профили).
+    UMstore.setUMCashGrid(saveUMGrid(cloneUMData(activeUMGrid)))
   }
 
   let universalModuleConfigCash = {
@@ -109,15 +192,22 @@ const saveConfigCash = (PROPS, skipGrid = false) => {
 const openUMRedactor = () => {
   const { PROPS } = props.product.userData
   saveConfigCash(PROPS)
+  navigation.reset()
+  navigation.setRootTitle(PROPS.NAME)
   isUMModalOpen.value = true;
 };
 
 const closeUMRedactor = () => {
   if (!gridUMSaved.value) {
-    props.product.userData.PROPS.CONFIG.MODULEGRID = UMstore.getUMCashGrid();
+    // Гардеробная система (временно, черновик) — писать обратно нужно в тот
+    // же ключ, из которого сетка была прочитана (см. WardrobeSystem.ts).
+    const { key: umGridKey } = getUMGridFromConfig(props.product.userData.PROPS.CONFIG)
+    props.product.userData.PROPS.CONFIG[umGridKey] = UMstore.getUMCashGrid();
     props.product.userData.PROPS.CONFIG = Object.assign(props.product.userData.PROPS.CONFIG, UMstore.getUMCashConfig());
   }
 
+  // Вложенные уровни закрываются без проверок: вместе с окном откатывается всё.
+  navigation.reset()
   universalModuleData.value = false;
   isUMModalOpen.value = false;
   gridUMSaved.value = false;
@@ -126,6 +216,7 @@ const closeUMRedactor = () => {
 };
 
 onBeforeUnmount(() => {
+  navigation.reset()
   universalModuleData.value = false;
   isUMModalOpen.value = false;
   gridUMSaved.value = false;
@@ -139,17 +230,22 @@ defineExpose({
 </script>
 
 <template>
-  <Modal v-if="universalModuleData && props.product" :container="`modal--tableTop`" @open-modal="openUMRedactor"
-    @close-modal="closeUMRedactor">
+  <Modal v-if="universalModuleData && props.product" :container="`modal--tableTop`" handle-escape
+    :before-escape="onEscape" @open-modal="openUMRedactor" @close-modal="closeUMRedactor">
     <template #modalBody="{ onModalClose }" class="modal--tableTop">
       <div class="um-modal-body-wrapper">
-        <MainView v-if="isUMModalOpen" ref="universalModule2DConstructor" :productData="universalModuleData.PROPS"
-          :canvasHeight="universalModuleData.canvasHeight" :canvasWidth="universalModuleData.canvasWidth"
-          :verdekConstructor="verdekConstructor" @close-modal="closeUMRedactor">
+        <MainView v-if="isUMModalOpen && !isWardrobeProduct" ref="universalModule2DConstructor"
+          :productData="universalModuleData.PROPS" :canvasHeight="universalModuleData.canvasHeight"
+          :canvasWidth="universalModuleData.canvasWidth" :verdekConstructor="verdekConstructor"
+          @close-modal="closeUMRedactor">
           <template #save>
             <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
               @click="saveUMData">
               Сохранить
+            </button>
+            <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMPreset">
+              В пресеты
             </button>
           </template>
 
@@ -164,9 +260,44 @@ defineExpose({
           </template>
         </MainView>
 
+        <WardrobeMainView v-if="isUMModalOpen && isWardrobeProduct" v-show="navigation.depth.value === 1"
+          ref="universalModule2DConstructor" :active="navigation.depth.value === 1"
+          :productData="universalModuleData.PROPS" :canvasHeight="universalModuleData.canvasHeight"
+          :canvasWidth="universalModuleData.canvasWidth" :verdekConstructor="verdekConstructor"
+          @close-modal="closeUMRedactor">
+          <template #save>
+            <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMData">
+              Сохранить
+            </button>
+            <button class="no-select actions-btn actions-btn--footer" :disabled="UMstore.pendingOperations > 0"
+              @click="saveUMPreset">
+              В пресеты
+            </button>
+          </template>
+
+          <template #close>
+            <button @click="
+              () => {
+                onModalClose();
+              }
+            " class="no-select actions-btn actions-btn--footer">
+              Закрыть
+            </button>
+          </template>
+        </WardrobeMainView>
+
+        <template v-if="isUMModalOpen">
+          <component :is="level.component" v-for="level in navigation.nested.value"
+            v-show="level.id === navigation.current.value.id" :key="level.id" v-bind="level.props"
+            :level-id="level.id" />
+        </template>
+
         <div v-if="UMstore.getLoad" class="um-modal-loader-overlay">
           <UMLoader />
         </div>
+
+        <SaveUmPresetDialog ref="savePresetDialog" />
       </div>
     </template>
     <template #modalOpen="{ onModalOpen }">
@@ -197,12 +328,12 @@ defineExpose({
 
 .um-modal-loader-overlay {
   position: absolute;
-  inset: 0;
+  // inset: 0;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.4);
+  // background: rgba(255, 255, 255, 0.4);
   pointer-events: all;
 }
 

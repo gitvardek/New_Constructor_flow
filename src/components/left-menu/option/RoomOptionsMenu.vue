@@ -134,6 +134,7 @@ const globalOptions = ref<TOptionsMap | null>(null);
 const currentRedactor = ref<boolean>(false);
 
 onBeforeMount(() => {
+  console.log(roomState.getRooms);
   prepareOptions();
 });
 

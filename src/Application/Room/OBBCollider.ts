@@ -10,6 +10,23 @@ import { TAdjustPosition } from "@/types/types"
  */
 
 
+/**
+ * Смещение центра габарита относительно origin объекта, развёрнутое в мир.
+ * Какой именно центр нужен, задаёт key:
+ *   obbCenter   — парный к userData.obb.halfSize (вся сборка);
+ *   clampCenter — парный к trueSizes / BODY-размерам.
+ * Поля нет (модели-GLB и прочее не из BuildProduct) — нулевой вектор, то есть
+ * прежнее поведение «центр габарита = origin».
+ */
+export function getCenterOffset(
+    object: THREE.Object3D,
+    rotation: THREE.Euler,
+    key: 'obbCenter' | 'clampCenter',
+): THREE.Vector3 {
+    const local = object.userData?.[key] as THREE.Vector3 | undefined
+    return local ? local.clone().applyEuler(rotation) : new THREE.Vector3()
+}
+
 export class OBBCollider {
     private defaultMagnetTrashhold = 50
     private readonly defaultSteps = 30
@@ -80,6 +97,7 @@ export class OBBCollider {
 
         const obb = object.userData.obb;
 
+
         /** Объект установлен гизмо: поворот задал пользователь — не трогаем его, только выталкиваем OBB из стен */
 
         if (object.userData.PROPS.CONFIG.FREE_TRANSFORM) {
@@ -133,8 +151,6 @@ export class OBBCollider {
             Math.min(position.y, roomBound.max.y - (verticalHalfSize - 0.001))
         );
 
-        // adjustPosition.y = Math.max((HEIGHT - 0.001), Math.min(position.y, roomBound.max.y - (HEIGHT - 0.001)))
-
         // Обновляем конфигурацию объекта
         object.userData.PROPS.CONFIG = { ...object.userData.PROPS.CONFIG, ROTATION: rotation, POSITION: adjustPosition };
         object.userData.currentWall = wall
@@ -157,6 +173,9 @@ export class OBBCollider {
     private getClampedPosition({ position, rotation, wall, object, obb, floor }: { position: THREE.Vector3, rotation: THREE.Euler, wall: THREE.Object3D, object: THREE.Object3D, obb: OBB, floor?: boolean }) {
 
         let correctPosition = position.clone()
+        // Поворот, с которым объект ВСТАНЕТ: у стены его задаёт сама стена.
+        // Нужен ДО расчётов — им разворачивается смещение центра габарита.
+        // Раньше присваивание стояло в конце функции, результат тот же.
         const correctRotation = wall.userData.name != "floor" ? wall.rotation.clone() : rotation.clone()
         const wallCoordinates = wall.userData.coordinates
 
@@ -190,10 +209,17 @@ export class OBBCollider {
         }
 
         const wallNormal = wall.userData.plane.normal.clone().normalize();
-        const centerOffset = getCenterOffset(object, correctRotation, 'clampCenter')
 
+        // Расстояние до плоскости стены — от ЦЕНТРА габарита, а не от origin
+        // объекта: они совпадают только у симметричной геометрии (см.
+        // getCenterOffset).
+        const centerOffset = getCenterOffset(object, correctRotation, 'clampCenter')
         const centerPosition = position.clone().add(centerOffset)
 
+        // А вдоль стены — только КАСАТЕЛЬНАЯ часть смещения. distanceToExtrene
+        // ниже это 3D-расстояние до КОНЦА стены, и нормальная составляющая
+        // (у гардеробной системы это вся её глубина) раздувала бы его: клампинг
+        // срабатывал позже, и модуль заходил за угол в боковую стену.
         const lateralPosition = position.clone().add(centerOffset.clone().projectOnPlane(wallNormal))
 
         const distanceToPlane = wall.userData.plane.distanceToPoint(centerPosition);
@@ -201,11 +227,18 @@ export class OBBCollider {
         const side = this.getFacingSideFromOBB(object, wall, obb);
 
         let trueExtremePoint = this.findClosestPoint(lateralPosition, wallCoordinates[0], wallCoordinates[1]).clone()
+        // let trueCenterPoint = this.findClosestPoint(obb.center, wallCoordinates[0], wallCoordinates[1]).clone()
 
         const vectorToCenter = new THREE.Vector3().subVectors(wall.userData.center, trueExtremePoint).normalize();
+        // const vectorFromCenter = new THREE.Vector3().subVectors(obb.center, trueExtremePoint).normalize();
 
         trueExtremePoint.y = lateralPosition.y
+        // trueCenterPoint.y = position.y
+
         const distanceToExtrene = trueExtremePoint.distanceTo(lateralPosition)
+        // const distanceFromExtrene = trueCenterPoint.distanceTo(obb.center)
+
+        // const extrem = Math.pow(distanceFromExtrene, 2) < Math.pow(obb.halfSize.x, 2) + Math.pow(obb.halfSize.z, 2)
 
         if (distanceToExtrene === 0) {
             return {
@@ -227,12 +260,41 @@ export class OBBCollider {
             correctPosition.add(correction);
         }
 
+
         return {
             correctPosition,
             correctRotation
         }
     }
 
+    /** @Простое решение */
+    // private getClampedFloorPosition(movingObb: OBB,
+    //     walls: THREE.Object3D[],
+    //     newPosition: THREE.Vector3,
+    //     oldPosition: THREE.Vector3,
+    //     adjustPosition: THREE.Vector3,
+
+    // ) {
+    //     const offset = new THREE.Vector3().subVectors(newPosition, oldPosition);
+
+    //     // Клонируем и сдвигаем OBB
+    //     const movedObb = movingObb.clone();
+    //     movedObb.center.add(offset);
+
+    //     for (const wall of walls) {
+    //         if (wall.userData.name === 'floor') continue;
+
+    //         const wallObb = wall.userData.obb as OBB;
+    //         if (movedObb.intersectsOBB(wallObb)) {
+
+    //             // Столкновение — возвращаем старую позицию
+    //             adjustPosition.copy(oldPosition.clone());
+    //             return
+    //         }
+    //     }
+
+    //     adjustPosition.copy(newPosition.clone())
+    // }
 
     private getClampedFloorPosition(
         movingObb: OBB,
@@ -242,6 +304,8 @@ export class OBBCollider {
         centerOffset: THREE.Vector3 = new THREE.Vector3(),
     ) {
         const correctedObb = movingObb.clone();
+        // Центр OBB, а не origin объекта: halfSize здесь от всей сборки, и
+        // центр должен быть её же (см. getCenterOffset).
         correctedObb.center.copy(attemptedPosition).add(centerOffset);
 
         const EPSILON = 1e-4;
@@ -488,14 +552,4 @@ export class OBBCollider {
         };
     }
 
-}
-
-/** Дополнительные методы */
-export function getCenterOffset(
-    object: THREE.Object3D,
-    rotation: THREE.Euler,
-    key: 'obbCenter' | 'clampCenter',
-): THREE.Vector3 {
-    const local = object.userData?.[key] as THREE.Vector3 | undefined
-    return local ? local.clone().applyEuler(rotation) : new THREE.Vector3()
 }

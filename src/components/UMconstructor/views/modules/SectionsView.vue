@@ -313,6 +313,7 @@ onMounted(() => {
   //   background-color: $clicked-red;
   // }
 }
+
 .actions-panel--sticky {
   position: sticky;
   top: 0;

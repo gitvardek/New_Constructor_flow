@@ -29,6 +29,7 @@ import { useBascetEvents } from "@/components/Basket/helper/basketEvents";
 import { useTransformController } from "@/components/ui/transformController/useTransformController";
 
 import { useModelState } from "@/store/appliction/useModelState";
+import { getUMGridFromConfig } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 import { Application } from "@/Application/Core/Application";
 
@@ -44,11 +45,17 @@ import CollisionButton from "@/components/ui/buttons/right-menu/controller/Colli
 import CutButton from "@/components/ui/buttons/right-menu/controller/CutButton.vue";
 import PinButton from "@/components/ui/buttons/right-menu/controller/PinButton.vue";
 import RotateButton from "@/components/ui/buttons/right-menu/controller/RotateButton.vue";
+import PresetControllerButton from "@/components/ui/buttons/right-menu/controller/PresetControllerButton.vue";
 import UMconstructor from "@/components/UMconstructor/UMconstructor.vue";
+import SaveUmPresetDialog from "@/components/umPresets/SaveUmPresetDialog.vue";
+import { buildUmPresetData } from "@/components/umPresets/umPresetSnapshot";
+import { captureUmPresetImageAsync } from "@/components/umPresets/umPresetImage";
+import { useToast } from "@/features/toaster/useToast";
 
 import GenericLoader from "@/components/ui/loader/GenericLoader.vue";
 import TransformController from "@/components/ui/transformController/TransformController.vue";
 import DirectionControl from "@/components/ui/direction/DirectionControl.vue";
+import ProductInfoTooltip from "@/features/quickActions/productInfo/ProductInfoTooltip.vue";
 
 import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
 import { useMenuStore } from "@/store/appStore/useMenuStore";
@@ -108,6 +115,10 @@ const productFasades = ref<any[]>([]);
 //Универсальный модуль
 const universalModule2DConstructor = ref<typeof UMconstructor | null>(null);
 const universalModuleData = ref<TMyObject | null>(null);
+
+//Пресеты
+const savePresetDialog = ref<InstanceType<typeof SaveUmPresetDialog> | null>(null);
+const toaster = useToast();
 
 //Распил
 const tableTopManager = ref();
@@ -304,16 +315,21 @@ const selected = async (item: any) => {
     };
   }
 
-  if (CONFIG.MODULEGRID) {
+  // Гардеробная система (временно, черновик): её сетка хранится под
+  // CONFIG.WARDROBEGRID, не CONFIG.MODULEGRID (см. WardrobeSystem.ts) —
+  // getUMGridFromConfig берёт активную сетку под любым из двух ключей.
+  const { grid: activeUMGrid } = getUMGridFromConfig(CONFIG);
+
+  if (activeUMGrid) {
     universalModuleData.value = {
-      MODULEGRID: CONFIG.MODULEGRID || false,
+      MODULEGRID: activeUMGrid || false,
       PROPS: userData,
-      canvasHeight: CONFIG.MODULEGRID.canvasHeight,
-      canvasWidth: CONFIG.MODULEGRID.canvasWidth,
+      canvasHeight: activeUMGrid.canvasHeight,
+      canvasWidth: activeUMGrid.canvasWidth,
     };
   }
 
-  if (CONFIG.MODULEGRID && universalModule2DConstructor.value) {
+  if (activeUMGrid && universalModule2DConstructor.value) {
     universalModule2DConstructor.value.selectUMData(universalModuleData.value);
   }
 
@@ -334,6 +350,24 @@ const clearSelected = () => {
 
 const duplicateProduct = async () => {
   eventBus.emit("A:Duplicate");
+};
+
+// Пресет из выделенного объекта: снимок берётся из того, что уже записано в
+// товар (несохранённые правки 2D-редактора сохраняет кнопка в самом редакторе).
+const saveProductPreset = () => {
+  const data = buildUmPresetData(VerdekConstructor.value, product.value);
+
+  if (!data) {
+    toaster.error("Не удалось собрать пресет для этого товара");
+    return;
+  }
+
+  // Снимок ждёт догрузки текстур (модуль могли только что вставить или
+  // перекрасить), поэтому уходит в диалог промисом.
+  savePresetDialog.value?.open(
+    data,
+    captureUmPresetImageAsync(VerdekConstructor.value, product.value),
+  );
 };
 
 const waitForSceneLoad = (maxMs = 8000): Promise<void> =>
@@ -843,6 +877,9 @@ watch(
         <!--   v-if="Object.keys(CutData).length == 0 && !universalModuleData" /> -->
         <ContentControllerButton @click="duplicateProduct" v-if="Object.keys(CutData).length == 0" />
         <DeleteControllerButton v-if="Object.keys(CutData).length == 0" @click="removeModel(null)" />
+        <!-- Пресеты — только у товаров с сеткой УМ/гардеробной (universalModuleData). -->
+        <PresetControllerButton v-if="Object.keys(CutData).length == 0 && universalModuleData"
+          @click="saveProductPreset" />
       </div>
       <div class="controller-right">
         <img class="right-line" src="@/assets/svg/right-menu/right-line.svg" />
@@ -910,6 +947,10 @@ watch(
       !uniformState.getUniformModeData.uniformMode
     " @TransformMode="controlsActivate" />
   </transition>
+  <!-- Сохранение пресетов -->
+  <SaveUmPresetDialog ref="savePresetDialog" />
+  <!-- Режим «Информация о товаре»: подсказка за курсором -->
+  <ProductInfoTooltip />
 </template>
 
 <style lang="scss" scoped>

@@ -76,12 +76,13 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
 
-
       const response = await AuthService.getUserData(token);
 
       const salonOwner = await AuthService.getSalonOwner(token);
       const rawList = (salonOwner as any)?.DATA?.data ?? (Array.isArray((salonOwner as any)?.DATA) ? (salonOwner as any).DATA : []);
       salonOwnerList.value = Array.isArray(rawList) ? rawList : [];
+
+      // console.log('BACKEND USERR DATA', response?.DATA?.data ?? response);
 
       // Логируем ответ только в development режиме
       // if (process.env.NODE_ENV === 'development') {
@@ -251,7 +252,6 @@ export const useAuthStore = defineStore('auth', () => {
     }, 3000)
   }
 
-  /** isManual — выход по кнопке; автоматический разлогин (истёкший токен, ошибка бэка) снапшот не трогает */
   const logout = async (isManual = false) => {
     if (refreshTimerId) {
       clearTimeout(refreshTimerId)

@@ -1,0 +1,1038 @@
+// @ts-nocheck
+
+// Общие хелперы гардеробной системы для UM-конструктора и загрузки продукта.
+//
+// Сетка лежит под ОТДЕЛЬНЫМ ключом CONFIG.WARDROBEGRID, а не MODULEGRID:
+// последний одновременно триггерит открытие 2D-панели (The3D.vue) И выбор
+// BuildUniversalModule для 3D-сборки (RoomManager.ts, isUM), т.е.
+// переиспользование ключа молча отменило бы отдельный 3D-пайплайн
+// гардеробной системы.
+
+import { useModelState } from "@/store/appliction/useModelState.ts";
+import { WARDROBE_ANGLED_SHELF_ANGLE_DEG, WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT, WARDROBE_SHELF_MIN_GAP_FLAT, WARDROBE_SHELF_MIN_GAP_ANGLED, WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED, WARDROBE_RAIL_MIN_GAP, WARDROBE_SHELF_SIDE_GAP, WARDROBE_RAIL_SIDE_GAP, WARDROBE_LEG_HEIGHT } from "@/Application/F-wardrobeData.ts";
+import { CABINET_MIN_GAP, CABINET_SIDE_INSET } from "@/components/UMconstructor/cabinet/cabinetData.ts";
+import { getCabinetHeight, getWardrobeItemCeilingGap } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
+import { getWardrobeCabinetTopThickness } from "@/components/UMconstructor/cabinet/cabinetTopPanel.ts";
+import type { WardrobeFillingShape } from "@/components/UMconstructor/wardrobe/types.ts";
+
+type PositionedFilling = WardrobeFillingShape & { positionY: number };
+type IdentifiedFilling = PositionedFilling & { id: number };
+
+export const WARDROBE_GRID_CONFIG_KEY = 'WARDROBEGRID' as const;
+
+// Зазор элемента от профиля с каждой стороны, мм: полка 1, штанга 3, тумбочка —
+// свой (CABINET_SIDE_INSET). Значения временные, придут с бэка.
+export function getWardrobeFillingSideGap(type?: string): number {
+    if (type === 'rail') return WARDROBE_RAIL_SIDE_GAP;
+    if (type === 'cabinet') return CABINET_SIDE_INSET;
+    return WARDROBE_SHELF_SIDE_GAP;
+}
+
+// Длина элемента в секции = ширина секции минус зазоры с обеих сторон. Один
+// источник для 3D (ShelfBuilder), 2D (WardrobeSceneBuilder) и корзины
+// (basketMapper) — иначе в заказ уходит не та длина, что построена.
+export function getWardrobeFillingWidth(sectionWidth: number, type?: string): number {
+    return Math.max(Math.floor(sectionWidth - 2 * getWardrobeFillingSideGap(type)), 0);
+}
+
+// Товар — "гардеробная система", если есть запись в каталоге
+// _WARDROBE_SYSTEM. Проверка по каталогу, а не по сравнению с ID модели —
+// тот же принцип, что у isTsargaCapableProduct в Tsarga.ts.
+export function isWardrobeSystemProduct(productId: number | null | undefined): boolean {
+    if (!productId) return false;
+    return !!useModelState()._WARDROBE_SYSTEM[productId];
+}
+
+// Активная сетка продукта независимо от ключа хранения, плюс сам ключ —
+// чтобы не дублировать "CONFIG.MODULEGRID || CONFIG.WARDROBEGRID" по всем
+// вызывающим (The3D.vue, MainView.vue, UMconstructor.vue, Events.ts).
+export function getUMGridFromConfig(CONFIG: any): {
+    key: typeof WARDROBE_GRID_CONFIG_KEY | 'MODULEGRID';
+    grid: any;
+} {
+    if (CONFIG?.MODULEGRID) return { key: 'MODULEGRID', grid: CONFIG.MODULEGRID };
+    if (CONFIG?.[WARDROBE_GRID_CONFIG_KEY]) return { key: WARDROBE_GRID_CONFIG_KEY, grid: CONFIG[WARDROBE_GRID_CONFIG_KEY] };
+    return { key: 'MODULEGRID', grid: undefined };
+}
+
+// Сетки, сохранённые до 2026-10-03: section.wardrobeShelves -> wardrobeFilling,
+// у элемента kind -> type, прежний type полки (flat/angled) -> shelfType.
+// Правит сетку на месте; повторный вызов ничего не меняет.
+export function migrateWardrobeGrid<T>(grid: T): T {
+    grid?.sections?.forEach((section) => {
+        if (!section?.wardrobeShelves) return;
+
+        section.wardrobeFilling ??= section.wardrobeShelves.map(({ kind, type, ...item }) => {
+            const fillingType = kind ?? 'shelf';
+            return fillingType === 'shelf'
+                ? { ...item, type: fillingType, shelfType: type ?? 'flat' }
+                : { ...item, type: fillingType };
+        });
+        delete section.wardrobeShelves;
+    });
+    return grid;
+}
+
+// Материалы ЛДСП для конкретной полки-товара: _WARDROBE_SYSTEM[...].shelf[
+// shelfProductId].fasade (ID-строки), развёрнутые через _FASADE в
+// {id, name, depth}. depth = _FASADE[id].DEPTH — реальная толщина полки для
+// этого материала (используется в 3D вместо дефолтных 18мм).
+export function getWardrobeShelfColorOptions(
+    wardrobeProductId: number,
+    shelfProductId: number,
+): { id: number; name: string; depth: number }[] {
+    const modelState = useModelState();
+    const fasadeIds: (string | number)[] =
+        modelState._WARDROBE_SYSTEM[wardrobeProductId]?.shelf?.[shelfProductId]?.fasade ?? [];
+
+    return fasadeIds
+        .map((rawId) => {
+            const id = Number(rawId);
+            const fasade = modelState._FASADE[id];
+            if (!fasade) return null;
+            return { id, name: fasade.NAME ?? `Материал ${id}`, depth: fasade.DEPTH ?? 18 };
+        })
+        .filter(Boolean);
+}
+
+// Тот же список, что getWardrobeShelfColorOptions, но сырыми объектами
+// _FASADE (.ID/.NAME/.PREVIEW_PICTURE) — формат, который ожидает
+// MaterialSelector.vue (как в CorpusMaterialRedactor.vue).
+export function getWardrobeShelfMaterials(
+    wardrobeProductId: number,
+    shelfProductId: number,
+): any[] {
+    const modelState = useModelState();
+    const fasadeIds: (string | number)[] =
+        modelState._WARDROBE_SYSTEM[wardrobeProductId]?.shelf?.[shelfProductId]?.fasade ?? [];
+
+    return fasadeIds
+        .map((rawId) => modelState._FASADE[Number(rawId)])
+        .filter(Boolean);
+}
+
+// Товары-профили для списка "Тип профиля" (WardrobeProfilesView.vue).
+// _WARDROBE_SYSTEM[...].profile — СЛОВАРЬ по id товара
+// ({"13100847": {id, name, width, colors}}), а не плоский объект с .colors.
+// Сегодня товар один, но их может стать больше — отсюда список.
+export function getWardrobeProfileProducts(wardrobeProductId: number): any[] {
+    const modelState = useModelState();
+    const profiles = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.profile ?? {};
+    return Object.values(profiles);
+}
+
+// Варианты крепления профиля — _WARDROBE_SYSTEM[...].fastenings (словарь по
+// id: {id, name, type, height:{min,max}, depth:{min,max}}). В UI это
+// "Крепление профиля"; раньше называлось "Тип профиля" с захардкоженным
+// списком Потолок/Стена, теперь читается из каталога.
+export function getWardrobeProfileFastenings(wardrobeProductId: number): any[] {
+    const modelState = useModelState();
+    const fastenings = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.fastenings ?? {};
+    return Object.values(fastenings);
+}
+
+// Допустимый диапазон высоты профиля для КОНКРЕТНОГО крепления (fastenings[
+// fasteningId].height.min/max — в каталоге строки, приводим к числу). Если
+// крепление не найдено — откат на объединение диапазонов всех примеров из
+// чата (500-3090).
+export function getWardrobeProfileHeightRange(
+    wardrobeProductId: number,
+    fasteningId: number | null | undefined,
+): { min: number; max: number } {
+    const modelState = useModelState();
+    const fastening = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.fastenings?.[fasteningId];
+    if (!fastening?.height) return { min: 500, max: 3090 };
+    return { min: Number(fastening.height.min), max: Number(fastening.height.max) };
+}
+
+// type крепления, нормализованный (trim + нижний регистр). Каталог отдаёт
+// машинные идентификаторы floor_wall/floor_ceiling/wall_wall, но реально
+// встречались с лишним пробелом и в разном регистре (" Floor_ceiling"), так
+// что сравнивать напрямую нельзя; сам type тоже может отсутствовать.
+function normalizedFasteningType(fastening: any): string {
+    return (fastening?.type ?? '').trim().toLowerCase();
+}
+
+// Наибольший depth.max среди креплений, РЕАЛЬНО назначенных профилям этого
+// грида сейчас (grid.wardrobeProfiles[].fasteningId). Общая часть
+// getWardrobeMaxDepth/getWardrobeProfileMaxDepth — чтобы правило приоритета
+// не дублировалось.
+//
+// Приоритет у типов, упирающихся в стену (floor_wall/wall_wall): если хоть
+// один профиль использует такое крепление — берём наибольший depth.max
+// среди них; иначе откат на floor_ceiling по тому же правилу. undefined,
+// если ни одного из трёх типов у профилей грида нет.
+function getWardrobeInstalledFasteningDepthMax(grid: any): number | undefined {
+    const modelState = useModelState();
+    const wardrobeProductId = grid?.productID;
+    const fastenings = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.fastenings ?? {};
+
+    const usedFastenings: any[] = (grid?.wardrobeProfiles ?? [])
+        .map((p: any) => fastenings[p.fasteningId])
+        .filter(Boolean);
+
+    const maxDepthOf = (list: any[]): number | undefined => {
+        const values = list.map((f) => f?.depth?.max).filter((v) => v != null).map(Number);
+        return values.length ? Math.max(...values) : undefined;
+    };
+
+    const wallUsed = usedFastenings.filter((f) => normalizedFasteningType(f) === 'floor_wall' || normalizedFasteningType(f) === 'wall_wall');
+    return wallUsed.length
+        ? maxDepthOf(wallUsed)
+        : maxDepthOf(usedFastenings.filter((f) => normalizedFasteningType(f) === 'floor_ceiling'));
+}
+
+// Промежуточный шаг getWardrobeProfileMaxDepth, НЕ самостоятельное
+// UI-понятие: вылет установленных креплений + сечение профиля
+// (profile[...].depth). Источник ДИНАМИЧЕСКИЙ
+// (getWardrobeInstalledFasteningDepthMax), а не CONFIG.SIZE_EDIT и не любые
+// записи fastenings из каталога — иначе значение не менялось бы при смене
+// крепления профилей (запись "Пол-стена" в каталоге товара есть всегда).
+// Каталожные значения приходят строками, приводим к числу. undefined — на
+// тех же условиях, что у getWardrobeInstalledFasteningDepthMax.
+export function getWardrobeMaxDepth(grid: any): number | undefined {
+    const fasteningMax = getWardrobeInstalledFasteningDepthMax(grid);
+    if (fasteningMax == null) return undefined;
+
+    const modelState = useModelState();
+    const wardrobeProductId = grid?.productID;
+    const profileProductId = grid?.wardrobeProfiles?.[0]?.profileProductId;
+    const profileDepth = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.profile?.[profileProductId]?.depth;
+    return fasteningMax + (Number(profileDepth) || 0);
+}
+
+// Максимальная ГЛУБИНА ПРОФИЛЯ — единственное UI-понятие "макс. глубина":
+// и поле "Глубина" (ModuleSizeView.vue), и предел длины полок считаются
+// через неё одинаково (изначально их разводили, потом унифицировали).
+// = getWardrobeMaxDepth + ЕЩЁ РАЗ вылет креплений, т.е. вылет + профиль +
+// вылет (пример: 300 + 250 = 550). undefined — как у getWardrobeMaxDepth.
+export function getWardrobeProfileMaxDepth(grid: any): number | undefined {
+    const moduleMaxDepth = getWardrobeMaxDepth(grid);
+    const fasteningMax = getWardrobeInstalledFasteningDepthMax(grid);
+    if (moduleMaxDepth == null || fasteningMax == null) return undefined;
+
+    return moduleMaxDepth + fasteningMax;
+}
+
+// РЕАЛЬНАЯ (текущая) длина полки, мм = РОВНО grid.depth: она сама по себе
+// полная (вылет + профиль 50 + вылет), как и :max этого поля в UI
+// (getWardrobeProfileMaxDepth — та же тройка).
+//
+// Две прошлых ошибки: getWardrobeProfileMaxDepth (ПОТОЛОК) не реагировал на
+// правку поля "Глубина", а grid.depth + вылет считал вылет ДВАЖДЫ — 2D рисовал
+// проекцию наклонной полки от 800 вместо 500 и расходился с 3D.
+//
+// Функция оставлена как именованное понятие "длина полки" (~8 вызывающих) —
+// единая точка правки, если состав глубины снова уточнится.
+export function getWardrobeShelfDepth(grid: any): number {
+    return grid?.depth || 0;
+}
+
+// "Семья" цвета профиля в 2D (WardrobeColors.ts рисует Потолок/Стена/
+// Стена-стена разными цветами). Берётся из fastenings[...].type, а НЕ из
+// name: они в каталоге расходятся (встречалось name:"стена стена" при
+// type:"floor_ceiling"). Откат на 'floor_wall' для нераспознанного или
+// отсутствующего крепления.
+export function getWardrobeFasteningColorFamily(
+    wardrobeProductId: number,
+    fasteningId: number | null | undefined,
+): 'floor_ceiling' | 'floor_wall' | 'wall_wall' {
+    const modelState = useModelState();
+    const fastening = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.fastenings?.[fasteningId];
+    const type = normalizedFasteningType(fastening);
+    if (type === 'floor_ceiling') return 'floor_ceiling';
+    if (type === 'wall_wall') return 'wall_wall';
+    return 'floor_wall';
+}
+
+// ==== Вертикальное положение профиля ("стена-стена") ====
+
+// Профиль с креплением "стена-стена" держится на двух стенах и в пол не
+// упирается (поэтому у него нет и ножек, getWardrobeLegsByFasteningType) —
+// такой профиль можно поднимать по Y. Остальные крепления стоят на полу,
+// отступ у них всегда 0.
+export function isWardrobeProfileFloating(
+    wardrobeProductId: number,
+    fasteningId: number | null | undefined,
+): boolean {
+    return getWardrobeFasteningColorFamily(wardrobeProductId, fasteningId) === 'wall_wall';
+}
+
+// Диапазон отступа профиля от пола, мм: верхний торец остаётся в габарите
+// модуля (grid.height — максимум по высотам профилей, UMconstructorClass.
+// reset), поэтому сдвиг не меняет ни grid.height, ни масштаб канваса, ни
+// корзину. Один источник для драга мышью и числового поля "Отступ от пола"
+// (WardrobeProfilesView.vue).
+export function getWardrobeProfilePositionYRange(
+    grid: any,
+    profile: { fasteningId?: number; height?: number } | null | undefined,
+): { min: number; max: number } {
+    if (!isWardrobeProfileFloating(grid?.productID, profile?.fasteningId)) return { min: 0, max: 0 };
+    return { min: 0, max: Math.max((grid?.height || 0) - (profile?.height || 0), 0) };
+}
+
+// Можно ли реально тянуть этот профиль по Y: крепление навесное И в габарите
+// модуля есть куда подниматься. Профиль во всю высоту модуля (обычный случай
+// по умолчанию — все профили одной высоты) не двигается, пока его не
+// укоротят: иначе верхний торец вышел бы за габарит. От этого зависят и
+// доступность оси в драге, и курсор профиля — чтобы интерфейс не обещал
+// движения, которого не будет.
+export function canDragWardrobeProfileY(
+    grid: any,
+    profile: { fasteningId?: number; height?: number } | null | undefined,
+): boolean {
+    return getWardrobeProfilePositionYRange(grid, profile).max > 0;
+}
+
+// Отступ профиля от пола, мм — ЕДИНСТВЕННЫЙ источник для 2D (отрисовка и
+// драг), границ секции, 3D-сборки и корзины: сырое profile.positionY может
+// остаться от прежнего крепления или просрочиться (профиль/модуль стали
+// ниже), а на месте оно нормализуется только на пересчёте (WardrobeGridReset).
+export function getWardrobeProfilePositionY(
+    grid: any,
+    profile: { fasteningId?: number; height?: number; positionY?: number } | null | undefined,
+): number {
+    const { min, max } = getWardrobeProfilePositionYRange(grid, profile);
+    return Math.round(Math.min(Math.max(profile?.positionY || 0, min), max));
+}
+
+// ==== Ножки профиля и общая высота системы ====
+
+// Высота регулировочной ножки, мм. Своё значение у каждого крепления —
+// придёт с бэка в составе fastenings (точное имя поля уточнится, пока
+// проверяем правдоподобные), до тех пор дефолт WARDROBE_LEG_HEIGHT.
+// Единственный источник: 2D (WardrobeSceneBuilder), 3D (LegBuilder через
+// WardrobeGridParser) и общая высота считаются от него.
+export function getWardrobeLegHeight(
+    wardrobeProductId: number,
+    fasteningId: number | null | undefined,
+): number {
+    const modelState = useModelState();
+    const fastening = modelState._WARDROBE_SYSTEM[wardrobeProductId]?.fastenings?.[fasteningId];
+    const height = Number(fastening?.leg_height ?? fastening?.legHeight ?? fastening?.leg);
+    return Number.isFinite(height) && height > 0 ? height : WARDROBE_LEG_HEIGHT;
+}
+
+// Ножки по ТИПУ крепления, мм (0 — ножки нет). Правило повторяет 3D-сборку
+// (LegBuilder.buildWardrobeLegs): "пол-потолок" опирается ножками и в пол, и
+// в потолок; "пол-стена" — только в пол (сверху пластина к стене, она выше
+// профиля не выступает); "стена-стена" — без ножек вовсе.
+export function getWardrobeLegsByFasteningType(
+    type: 'floor_ceiling' | 'floor_wall' | 'wall_wall',
+    legHeight: number = WARDROBE_LEG_HEIGHT,
+): { bottom: number; top: number } {
+    if (type === 'wall_wall') return { bottom: 0, top: 0 };
+    return { bottom: legHeight, top: type === 'floor_ceiling' ? legHeight : 0 };
+}
+
+// То же для КОНКРЕТНОГО крепления каталога. Тип — через
+// getWardrobeFasteningColorFamily, т.е. нераспознанное крепление считается
+// "пол-стена" (одна ножка снизу), как и в цветах 2D.
+export function getWardrobeFasteningLegs(
+    wardrobeProductId: number,
+    fasteningId: number | null | undefined,
+): { bottom: number; top: number } {
+    return getWardrobeLegsByFasteningType(
+        getWardrobeFasteningColorFamily(wardrobeProductId, fasteningId),
+        getWardrobeLegHeight(wardrobeProductId, fasteningId),
+    );
+}
+
+// Вертикальный габарит сборки, мм, по списку профилей с УЖЕ посчитанными
+// ножками ({height, positionY, legTop, legBottom}): above — сколько занято
+// над полом, below — под полом. Профили растут вверх от своей точки опоры,
+// поэтому это объединение, а не максимум сумм: верхнюю точку может задать
+// один профиль (высокий "стена-стена"), нижнюю — другой (короткий с ножкой).
+//
+// positionY (отступ навесного "стена-стена" от пола) входит в above, но не
+// в below: у навесного крепления ножек нет, под полом он ничего не занимает.
+//
+// Общая для 2D (сетка) и 3D (WardrobeGridParser.profiles).
+export function getWardrobeProfilesSpan(
+    profiles: { height?: number; positionY?: number; legTop?: number; legBottom?: number }[] | null | undefined,
+): { above: number; below: number } {
+    let above = 0;
+    let below = 0;
+
+    (profiles ?? []).forEach((profile) => {
+        above = Math.max(above, (profile?.height || 0) + (profile?.positionY || 0) + (profile?.legTop || 0));
+        below = Math.max(below, profile?.legBottom || 0);
+    });
+
+    return { above, below };
+}
+
+// Профили сетки с посчитанными ножками и отступом — связка каталога с
+// формулами выше.
+function getWardrobeGridProfilesWithLegs(grid: any) {
+    return (grid?.wardrobeProfiles ?? []).map((profile: any) => {
+        const legs = getWardrobeFasteningLegs(grid?.productID, profile?.fasteningId);
+        return {
+            height: profile?.height ?? grid?.height ?? 0,
+            positionY: getWardrobeProfilePositionY(grid, profile),
+            legTop: legs.top,
+            legBottom: legs.bottom,
+        };
+    });
+}
+
+// Ножки СВЕРХ габарита модуля (grid.height — максимум по высотам профилей,
+// UMconstructorClass.reset), мм: снизу вся нижняя ножка, сверху только то,
+// что вылезло выше самого высокого профиля. РЕАЛЬНАЯ геометрия текущих
+// креплений — отсюда общая высота (getWardrobeTotalHeight); место на
+// канвасе резервируется с запасом, см. getWardrobeLegCanvasReserveMm.
+export function getWardrobeLegReserveMm(grid: any): { top: number; bottom: number } {
+    const span = getWardrobeProfilesSpan(getWardrobeGridProfilesWithLegs(grid));
+    return { top: Math.max(span.above - (grid?.height || 0), 0), bottom: span.below };
+}
+
+// Запас КАНВАСА под ножки, мм — в отличие от getWardrobeLegReserveMm не
+// зависит от текущих креплений: берётся самая высокая ножка среди креплений
+// товара и резервируется и сверху, и снизу, даже если сейчас таких профилей
+// нет. Канвас пересчитывается только при смене высоты/ширины
+// (RENDER_REF.updateTotalSize), а смена крепления идёт через reset ->
+// renderGrid: от "живого" запаса модуль уезжал вниз на появившуюся верхнюю
+// ножку, а нижняя вылезала за край канваса. Постоянный запас держит модуль
+// на месте при любом переключении крепления.
+export function getWardrobeLegCanvasReserveMm(grid: any): { top: number; bottom: number } {
+    const wardrobeProductId = grid?.productID;
+    const legHeights = getWardrobeProfileFastenings(wardrobeProductId)
+        .map((fastening: any) => getWardrobeLegHeight(wardrobeProductId, fastening?.id));
+    const legHeight = legHeights.length ? Math.max(...legHeights) : WARDROBE_LEG_HEIGHT;
+
+    return { top: legHeight, bottom: legHeight };
+}
+
+// Тот же запас в пикселях канваса — ОДНА формула для габарита канваса
+// (Render2D.updateTotalSize), сдвига модуля вниз (SceneBuilder.renderGrid) и
+// абсолютных координат драга (WardrobeDragEngine): разойдутся — ножки
+// обрежутся краем. getPixelHeight — конвертер текущего масштаба
+// (ViewportUnits), округление вверх, чтобы не терять последний пиксель плиты.
+export function getWardrobeLegReservePx(
+    grid: any,
+    getPixelHeight: (mm: number) => number,
+): { top: number; bottom: number } {
+    const reserve = getWardrobeLegCanvasReserveMm(grid);
+    return {
+        top: reserve.top > 0 ? Math.ceil(getPixelHeight(reserve.top)) : 0,
+        bottom: reserve.bottom > 0 ? Math.ceil(getPixelHeight(reserve.bottom)) : 0,
+    };
+}
+
+// ОБЩАЯ высота гардеробной системы, мм — профили вместе с ножками. Только
+// ОТОБРАЖЕНИЕ (размерная линия слева в 2D и подпись размера в 3D, см.
+// BuildProduct/Ruler): grid.height, поле "Высота", CONFIG.SIZE и корзина
+// по-прежнему живут высотой самого высокого профиля. Без ножек
+// ("стена-стена") равна ей же.
+export function getWardrobeTotalHeight(grid: any): number {
+    const reserve = getWardrobeLegReserveMm(grid);
+    return (grid?.height || 0) + reserve.top + reserve.bottom;
+}
+
+// Список доступных цветов КОНКРЕТНОГО товара-профиля — colors лежит НЕ
+// плоско на .profile, а на записи товара-профиля внутри него
+// (_WARDROBE_SYSTEM[wardrobeProductId].profile[profileProductId].colors,
+// массив ID-строк, тот же паттерн, что shelf[...].fasade), развёрнутых
+// через _COLOR (не _FASADE — тот же каталог, что уже используют обычные
+// УМ-профили, PROFILECOLOR, см. SidecolorsView.vue/FillingMeshBuilder.ts).
+// Формат — сырые объекты каталога, для MaterialSelector.vue.
+export function getWardrobeProfileMaterials(wardrobeProductId: number, profileProductId: number): any[] {
+    const modelState = useModelState();
+    const colorIds: (string | number)[] =
+        modelState._WARDROBE_SYSTEM[wardrobeProductId]?.profile?.[profileProductId]?.colors ?? [];
+
+    return colorIds
+        .map((rawId) => modelState._COLOR[Number(rawId)])
+        .filter(Boolean);
+}
+
+// Общее значение поля по ВСЕМ профилям модуля: само значение, если у всех
+// профилей оно одинаково, иначе null ("разные"), undefined — профилей нет.
+// Единый источник и для блока "Все профили" (WardrobeProfilesView.vue), и
+// для дефолтов нового профиля (getWardrobeNewProfileColorId ниже) — иначе
+// "общий материал ГС" считался бы в двух местах по-разному.
+export function getWardrobeProfilesCommonValue(grid: any, key: string): any {
+    const profiles = grid?.wardrobeProfiles ?? [];
+    if (!profiles.length) return undefined;
+
+    const first = profiles[0][key];
+    return profiles.every((p: any) => p[key] === first) ? first : null;
+}
+
+// Цвет НОВОГО профиля — новая секция (WardrobeSectionsManager.addWardrobeSector)
+// и авто-разбиение секций при правке общей ширины (WardrobeGridReset, тот же
+// addWardrobeSector): берётся общий материал профилей ГС, а не первый цвет
+// каталога, иначе новая граница выпадала из уже настроенного модуля.
+//
+// При РАЗНЫХ цветах у профилей — цвет первого профиля (решение пользователя).
+// Тип профиля новому профилю не наследуется (каталожный, как и крепление),
+// поэтому унаследованный цвет проверяется по списку ЕГО товара-профиля: не
+// подошёл — первый доступный, тот же откат, что в
+// WardrobeProfilesManager.applyProfileType.
+export function getWardrobeNewProfileColorId(grid: any, profileProductId: number): number | undefined {
+    if (!profileProductId) return undefined;
+
+    const available = getWardrobeProfileMaterials(grid?.productID, profileProductId);
+    const fallbackColorId = available[0]?.ID;
+
+    const common = getWardrobeProfilesCommonValue(grid, 'colorId');
+    const inherited = common ?? grid?.wardrobeProfiles?.[0]?.colorId;
+    if (!inherited) return fallbackColorId;
+
+    return available.some((c: any) => c.ID === inherited) ? inherited : fallbackColorId;
+}
+
+// Группы наполнения вкладки "Наполнение" -> "Вставка" (кроме "Полки" — та
+// отдельный, всегда видимый элемент). Тот же путь, что у box-UM
+// RightPanelView.vue::getFillings (_PRODUCTS[...].FILLING_SECTION ->
+// _SECTIONS[groupID].PRODUCTS -> _PRODUCTS[itemId]), только через
+// useModelState — как остальные хелперы этого файла. Формат результата тот
+// же, [{groupName, groupID, items}], но element.groupID у объектов каталога
+// НЕ мутируется: читать это сейчас некому (WardrobeInsertView.vue только
+// отображает список).
+//
+// ВРЕМЕННЫЙ откат: FILLING_SECTION у товара пуст, поэтому пока используется
+// захардкоженная группа "Аксессуары для шкафов". Убрать, как только
+// FILLING_SECTION начнёт возвращать группы.
+const WARDROBE_FALLBACK_FILLING_GROUP_IDS = [6174300];
+
+export function getWardrobeFillingsGroups(wardrobeProductId: number): {
+    groupName: string;
+    groupID: number;
+    items: any[];
+}[] {
+    const modelState = useModelState();
+    const fillingSection = modelState._PRODUCTS[wardrobeProductId]?.FILLING_SECTION;
+    const realGroupIds = fillingSection && typeof fillingSection === 'object' ? Object.keys(fillingSection) : [];
+    const groupIds = realGroupIds.length ? realGroupIds : WARDROBE_FALLBACK_FILLING_GROUP_IDS;
+
+    const result = groupIds
+        .map((groupID) => {
+            const fillingsGroup = modelState._SECTIONS[groupID];
+            if (!fillingsGroup?.PRODUCTS) return null;
+
+            return {
+                groupName: fillingsGroup.NAME,
+                groupID: fillingsGroup.ID,
+                items: fillingsGroup.PRODUCTS
+                    .map((itemId: any) => modelState._PRODUCTS[itemId])
+                    .filter(Boolean),
+            };
+        })
+        .filter(Boolean);
+
+    console.log(result, "result")
+
+    return result
+}
+
+// Вертикальные границы секции, мм от пола: ceiling — "монтажная высота", до
+// какой в секции вообще можно ставить наполнение; floor — ниже какой нельзя.
+// Обе считаются по ДВУМ ограничивающим профилям (wardrobeProfiles[secIndex] и
+// [secIndex+1]): элемент висит на обоих, поэтому ceiling — МИНИМУМ их верхних
+// торцов (выше верха короткого держаться не на чем), floor — МАКСИМУМ их
+// отступов от пола (навесной "стена-стена" может быть поднят, и под ним
+// элементу тоже не на чем держаться). GridModule.height здесь не годится —
+// это максимум по ВСЕМ профилям модуля (UMconstructorClass.reset).
+//
+// Этим объектом пользуется вся коллизия наполнения
+// (findFreeWardrobeShelfPositionY/getWardrobeShelfDragBounds/
+// resolveWardrobeShelfDragPositionY) — границы ходят парой, чтобы ни одна
+// формула не потеряла половину.
+export interface WardrobeSectionBounds {
+    floor: number;
+    ceiling: number;
+}
+
+export function getWardrobeSectionBounds(grid: any, secIndex: number): WardrobeSectionBounds {
+    const profiles = [grid.wardrobeProfiles?.[secIndex], grid.wardrobeProfiles?.[secIndex + 1]]
+        .filter((p) => typeof p?.height === 'number');
+
+    if (!profiles.length) return { floor: 0, ceiling: grid.height };
+
+    const offsets = profiles.map((p) => getWardrobeProfilePositionY(grid, p));
+    return {
+        floor: Math.max(...offsets),
+        ceiling: Math.min(...profiles.map((p, i) => p.height + offsets[i])),
+    };
+}
+
+// Только потолок секции — для мест, которым нижняя граница не нужна: :max
+// поля "Положение по Y" (WardrobeFillingsView.vue) и предел высоты тумбочки
+// (cabinet/cabinetLimits.ts).
+export function getWardrobeSectionInstallableHeight(grid: any, secIndex: number): number {
+    return getWardrobeSectionBounds(grid, secIndex).ceiling;
+}
+
+// Товар-полка с type === 'glass' в _WARDROBE_SYSTEM[...].shelf. У стекла
+// ОТДЕЛЬНЫЙ товар от ЛДСП, из него берётся реальная толщина
+// (_PRODUCTS[id].height). На добавление полок не влияет — там по-прежнему
+// один WARDROBE_SHELF_PRODUCT_ID (createWardrobeGrid.ts), речь только о
+// толщине.
+function getWardrobeGlassShelfProductId(wardrobeProductId: number): number | undefined {
+    const modelState = useModelState();
+    const shelves: any[] = Object.values(modelState._WARDROBE_SYSTEM[wardrobeProductId]?.shelf ?? {});
+    return shelves.find((s: any) => s?.type === 'glass')?.id;
+}
+
+// Толщина полки, мм:
+// - ЛДСП (и когда material/wardrobeProductId не переданы) —
+//   _FASADE[colorId].DEPTH, откат 18мм;
+// - СТЕКЛО — _PRODUCTS[<товар-полка type:"glass">].height. У стеклянной
+//   полки colorId не выставляется вовсе (материал для неё не выбирается),
+//   поэтому откат на _FASADE для неё неприменим.
+export function getWardrobeShelfThickness(
+    colorId: number | null | undefined,
+    material?: 'ldsp' | 'glass',
+    wardrobeProductId?: number,
+): number {
+    if (material === 'glass' && wardrobeProductId != null) {
+        const glassProductId = getWardrobeGlassShelfProductId(wardrobeProductId);
+        const glassHeight = glassProductId != null ? useModelState()._PRODUCTS[glassProductId]?.height : undefined;
+        if (glassHeight != null) return Number(glassHeight);
+    }
+
+    if (!colorId) return 18;
+    const fasade = useModelState()._FASADE[colorId];
+    return fasade?.DEPTH ?? 18;
+}
+
+// Длина ДОСКИ наклонной полки, мм, из глубины МОДУЛЯ: под наклоном доска
+// должна перекрывать ту же глубину, что прямая полка, причём её габарит
+// ВМЕСТЕ с толщиной укладывается ровно в неё:
+//     depth = L·cos(угол) + толщина·sin(угол)  =>  L = (depth − толщина·sin)/cos
+// Поэтому наклонная ДЛИННЕЕ прямой (550 -> ~563 при толщине 16).
+function angledShelfBoardLength(thicknessMm: number, depthMm: number): number {
+    const angleRad = (WARDROBE_ANGLED_SHELF_ANGLE_DEG * Math.PI) / 180;
+
+    return (depthMm - thicknessMm * Math.sin(angleRad)) / Math.cos(angleRad);
+}
+
+// То же по данным полки — для 3D (ShelfBuilder строит доску этой длины) и
+// корзины (её и отдаём как глубину наклонной полки).
+export function getWardrobeAngledShelfLength(
+    shelf: { colorId?: number; material?: 'ldsp' | 'glass' },
+    depthMm: number,
+    wardrobeProductId?: number,
+): number {
+    return angledShelfBoardLength(getWardrobeShelfThickness(shelf.colorId, shelf.material, wardrobeProductId), depthMm);
+}
+
+// Геометрия наклонной полки — ОДИН источник для 2D
+// (getWardrobeShelfPixiHeight) и 3D (ShelfBuilder.buildWardrobeAngledShelf).
+//
+// Полка не лежит на кронштейне сверху (как прямая), а поворачивается вокруг
+// оси на WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT над его низом; в 2D кронштейн
+// отдельно не рисуется, поэтому входит в эту высоту.
+//
+// depthMm — глубина МОДУЛЯ; сама доска длиннее (см.
+// getWardrobeAngledShelfLength), от её длины и считается проекция.
+//
+//  1. shelfProjection — проекция полки БЕЗ толщины: длина доски × sin(угол).
+//  2. frontEdgeProjection — проекция переднего ребра: thickness × cos(угол).
+//  3. dropToLowestCorner = (1 + 2)/2 — спуск от оси до нижнего угла доски;
+//     на столько же доска поднимается над осью.
+//
+// Низ габарита задаёт то, что опускается ниже — кронштейн или доска; верх
+// всегда доска. Обе ветки сворачиваются в
+// `dropToLowestCorner + max(PIVOT_HEIGHT, dropToLowestCorner)` и на границе
+// сходятся непрерывно. Проверено в Blender на глубинах 176 и 500: на 176
+// доска не достаёт до низа кронштейна, на 500 уходит ниже.
+function getWardrobeAngledShelfProjection(thicknessMm: number, depthMm: number) {
+    const angleRad = (WARDROBE_ANGLED_SHELF_ANGLE_DEG * Math.PI) / 180;
+
+    // 1) проекция полки без учёта толщины материала
+    const shelfProjection = angledShelfBoardLength(thicknessMm, depthMm) * Math.sin(angleRad);
+    // 2) проекция переднего ребра полки
+    const frontEdgeProjection = thicknessMm * Math.cos(angleRad);
+
+    // 3) спуск от ОСИ ПОВОРОТА (центра доски) до её НИЖНЕГО УГЛА — половина
+    // полной проекции повёрнутого прямоугольника
+    const dropToLowestCorner = (shelfProjection + frontEdgeProjection) / 2;
+
+    // Низ габарита — что опускается от оси ниже: кронштейн или доска. Верх
+    // всегда доска: кронштейн поднимается над осью лишь на 68.8-50.5=18.3мм.
+    const bracketDefinesBottom = dropToLowestCorner < WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT;
+    const pivotOffsetFromBottom = bracketDefinesBottom
+        ? WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT
+        : dropToLowestCorner;
+
+    return {
+        bracketDefinesBottom,
+        shelfProjection,
+        frontEdgeProjection,
+        // Спуск от оси до СЕРЕДИНЫ переднего ребра. В габарите не участвует
+        // (там отсчёт от нижнего угла), нужен только правилу коллизии
+        // "прямая полка над наклонной" — getWardrobeAngledShelfFlatGapAbove.
+        dropToFrontEdgeCenter: dropToLowestCorner - frontEdgeProjection / 2,
+        // Полная занимаемая вертикаль (высота PIXI-элемента в 2D): подъём
+        // доски над осью + спуск того, что ниже.
+        totalHeight: dropToLowestCorner + pivotOffsetFromBottom,
+        // От НИЗА габарита (positionY) до ОСИ ПОВОРОТА, она же центр доски:
+        // в ветке "кронштейн" низ габарита — это низ кронштейна, в ветке
+        // "доска" — её нижний угол.
+        pivotOffsetFromBottom,
+    };
+}
+
+// Высота оси поворота наклонной полки над НИЗОМ её габарита (positionY) —
+// для 3D: центр доски ставится на эту высоту, а низ кронштейна — на
+// WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT ниже неё. См.
+// getWardrobeAngledShelfProjection выше.
+export function getWardrobeAngledShelfPivotOffset(
+    shelf: { colorId?: number; material?: 'ldsp' | 'glass' },
+    depthMm: number,
+    wardrobeProductId?: number,
+): number {
+    const thicknessMm = getWardrobeShelfThickness(shelf.colorId, shelf.material, wardrobeProductId);
+    return getWardrobeAngledShelfProjection(thicknessMm, depthMm).pivotOffsetFromBottom;
+}
+
+// Отступ ПРЯМОЙ полки, стоящей НАД наклонной, от верхнего края её проекции.
+// Работает только при условии
+//     (проекция + ребро)/2 - ребро/2  <  WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT
+// (спуск от оси до СЕРЕДИНЫ переднего ребра меньше высоты оси); иначе null
+// и вызывающий getWardrobeShelfMinGap остаётся на общей логике.
+//
+// Формула оставлена в исходной записи (алгебраически это просто
+// BRACKET_HEIGHT_ANGLED - проекция) — так видно, из чего складывается.
+//
+// Отступ может выйти ОТРИЦАТЕЛЬНЫМ, если проекция больше высоты кронштейна.
+// Это не ошибка: габарит наклонной полки прямоугольный, а доска в нём
+// диагональ, так что прямая полка сверху может заходить в пустой угол над
+// задним краем.
+export function getWardrobeAngledShelfFlatGapAbove(
+    shelf: { colorId?: number; material?: 'ldsp' | 'glass' },
+    depthMm: number,
+    wardrobeProductId?: number,
+): number | null {
+    const thicknessMm = getWardrobeShelfThickness(shelf.colorId, shelf.material, wardrobeProductId);
+    const { shelfProjection, dropToFrontEdgeCenter } = getWardrobeAngledShelfProjection(thicknessMm, depthMm);
+
+    if (dropToFrontEdgeCenter >= WARDROBE_ANGLED_SHELF_PIVOT_HEIGHT) return null;
+
+    return WARDROBE_SHELF_MIN_GAP_FLAT
+        - (shelfProjection - (WARDROBE_SHELF_BRACKET_HEIGHT_ANGLED - WARDROBE_SHELF_MIN_GAP_FLAT));
+}
+
+// Высота "PIXI-элемента" полки, мм. Прямая занимает ровно толщину
+// материала; наклонная — свою проекцию вместе с кронштейном (см.
+// getWardrobeAngledShelfProjection); штанга — свой railHeight напрямую
+// (item.height каталога), минуя getWardrobeShelfThickness: у неё нет ни
+// material, ни colorId; тумбочка — высоту корпуса (cabinet.height) ПЛЮС
+// крышку, если она включена: крышка стоит на корпусе и занимает место в
+// секции так же, как он (cabinet/cabinetTopPanel.ts).
+// wardrobeProductId нужен только для толщины стекла.
+//
+// Отсюда высоту берут и 2D (WardrobeSceneBuilder.createWardrobeShelf), и вся
+// коллизия — зазоры пар, поиск свободного места, границы драга и проверка
+// "помещается ли" при пересчёте, поэтому крышка учитывается везде сразу.
+export function getWardrobeShelfPixiHeight(
+    shelf: WardrobeFillingShape,
+    depthMm: number,
+    wardrobeProductId?: number,
+): number {
+    if (shelf.type === 'rail') return Number(shelf.railHeight) || 0;
+    if (shelf.type === 'cabinet') return getCabinetHeight(shelf) + getWardrobeCabinetTopThickness(shelf);
+
+    const thicknessMm = getWardrobeShelfThickness(shelf.colorId, shelf.material, wardrobeProductId);
+    if (shelf.shelfType !== 'angled') return thicknessMm;
+
+    return getWardrobeAngledShelfProjection(thicknessMm, depthMm).totalHeight;
+}
+
+// Собственный отступ "не-полки" (штанга, тумбочка), мм; null — это полка.
+function getWardrobeItemOwnGap(item: { type?: string }): number | null {
+    if (item.type === 'rail') return WARDROBE_RAIL_MIN_GAP;
+    if (item.type === 'cabinet') return CABINET_MIN_GAP;
+    return null;
+}
+
+// Минимальный зазор (мм) между парой объектов секции. ПОРЯДОК АРГУМЕНТОВ
+// ЗНАЧИМ: below — снизу, above — сверху (пара НЕ взаимозаменяемая).
+// Штанга и тумбочка — "не-полки" со своим отступом (getWardrobeItemOwnGap):
+// - обе не-полки — больший из двух отступов, направление не важно;
+// - не-полка СНИЗУ, полка сверху — отступ полки (getWardrobeShelfFloorGap)
+//   ПЛЮС отступ не-полки: она не отменяет требования полки к месту под ней;
+// - не-полка СВЕРХУ, полка снизу — ТОЛЬКО её отступ: требование нижней
+//   полки относится к пространству над ней и сюда не тянется;
+// - две ОБЫЧНЫЕ полки, направление не важно: между двумя ПРЯМЫМИ —
+//   WARDROBE_SHELF_MIN_GAP_FLAT; если хоть одна НАКЛОННАЯ — её высота
+//   PIXI-элемента сравнивается с порогом WARDROBE_SHELF_MIN_GAP_ANGLED +
+//   толщина этой полки: height >= порога -> 2мм, иначе (порог - height) + 2
+//   (чем ниже полка, тем больше зазор); если наклонные обе — больший из двух.
+//
+// Отдельно от всего этого — ПРЯМАЯ над НАКЛОННОЙ, см. ветку в теле.
+export function getWardrobeShelfMinGap(
+    below: WardrobeFillingShape,
+    above: WardrobeFillingShape,
+    depthMm: number,
+    wardrobeProductId?: number,
+): number {
+    const belowOwnGap = getWardrobeItemOwnGap(below);
+    const aboveOwnGap = getWardrobeItemOwnGap(above);
+
+    if (belowOwnGap !== null && aboveOwnGap !== null) return Math.max(belowOwnGap, aboveOwnGap);
+    if (belowOwnGap !== null) return getWardrobeShelfFloorGap(above, depthMm, wardrobeProductId) + belowOwnGap;
+    if (aboveOwnGap !== null) return aboveOwnGap;
+
+    // ПРЯМАЯ полка НАД наклонной — не по общей формуле ниже, а от высоты
+    // кронштейна наклонной. Условие внутри; null -> общая логика.
+    if (below.shelfType === 'angled' && above.shelfType !== 'angled') {
+        const flatAboveGap = getWardrobeAngledShelfFlatGapAbove(below, depthMm, wardrobeProductId);
+        if (flatAboveGap !== null) return flatAboveGap;
+    }
+
+    const angledGap = (shelf: typeof below) => {
+        const height = getWardrobeShelfPixiHeight(shelf, depthMm, wardrobeProductId);
+        const thickness = getWardrobeShelfThickness(shelf.colorId, shelf.material, wardrobeProductId);
+        return height >= WARDROBE_SHELF_MIN_GAP_ANGLED + thickness ? 2 : (WARDROBE_SHELF_MIN_GAP_ANGLED - height) + 2;
+    };
+
+    let gap = null;
+    if (below.shelfType === 'angled') gap = angledGap(below);
+    if (above.shelfType === 'angled') gap = gap === null ? angledGap(above) : Math.max(gap, angledGap(above));
+
+    return gap ?? WARDROBE_SHELF_MIN_GAP_FLAT;
+}
+
+// Зазор (мм) от ПОЛА до нижней полки: пол требует ТОТ ЖЕ зазор, что и
+// соседняя полка (а не 0, как было раньше — полка садилась вплотную).
+// У пола нет своего "типа", но на зазор влияет только наклонность самих
+// полок, поэтому передаём полку дважды: наклонная посчитается по своей
+// угловой геометрии, прямая даст фиксированный WARDROBE_SHELF_MIN_GAP_FLAT.
+export function getWardrobeShelfFloorGap(
+    shelf: WardrobeFillingShape,
+    depthMm: number,
+    wardrobeProductId?: number,
+): number {
+    return getWardrobeShelfMinGap(shelf, shelf, depthMm, wardrobeProductId);
+}
+
+// Ищет свободную позицию по Y для новой полки, sweep'ом от пола вверх (тот
+// же принцип, что у ShapeAdjuster.getRandomPosition в box-UM, но с зазором
+// по типу пары полок, а не фиксированным шагом). Используется
+// WardrobeShelvesManager.addWardrobeShelf: новые секции создаются БЕЗ полок.
+// bounds — вертикальные границы секции (getWardrobeSectionBounds), НЕ
+// grid.height; у тумбочки от потолка ещё отступ getWardrobeItemCeilingGap
+// (так же в drag-границах ниже). null, если места не осталось.
+//
+// candidateY округляется ВВЕРХ на КАЖДОМ шаге, а не один раз в конце:
+// высоты/зазоры наклонной дробные (тригонометрия), и Math.round в конце мог
+// увести итог за границу диапазона — тогда UMconstructorClass.reset() тут
+// же удалял полку как "не помещается". Ceil — безопасное направление, в
+// чужую запретную зону не заезжает.
+export function findFreeWardrobeShelfPositionY(
+    shelves: PositionedFilling[],
+    newShelf: WardrobeFillingShape,
+    depthMm: number,
+    bounds: WardrobeSectionBounds,
+    wardrobeProductId?: number,
+): number | null {
+    const newHeight = getWardrobeShelfPixiHeight(newShelf, depthMm, wardrobeProductId);
+
+    // Запретный интервал positionY вокруг каждого объекта. Зазор направленный,
+    // поэтому края считаются РАЗНЫМИ вызовами (та же пара, что в
+    // resolveWardrobeShelfDragPositionY): снизу — пара (новый, existing),
+    // сверху — (existing, новый). С одним зазором на оба края нижний край
+    // занижался, и штанга садилась под полку в заведомо тесное место.
+    const intervals = shelves
+        .map((existing) => ({
+            lower: existing.positionY
+                - getWardrobeShelfMinGap(newShelf, existing, depthMm, wardrobeProductId)
+                - newHeight,
+            upper: Math.ceil(existing.positionY
+                + getWardrobeShelfPixiHeight(existing, depthMm, wardrobeProductId)
+                + getWardrobeShelfMinGap(existing, newShelf, depthMm, wardrobeProductId)),
+        }))
+        // По НИЖНЕМУ краю, а не по positionY: с направленными зазорами порядок
+        // интервалов не повторяет порядок объектов, и sweep пропускал бы зоны.
+        .sort((a, b) => a.lower - b.lower);
+
+    // Пол секции может быть не полом комнаты (поднятый навесной профиль,
+    // см. getWardrobeSectionBounds) — отступ полки считается ОТ НЕГО.
+    let candidateY = Math.ceil(bounds.floor + getWardrobeShelfFloorGap(newShelf, depthMm, wardrobeProductId));
+    for (const { lower, upper } of intervals) {
+        if (candidateY > lower && candidateY < upper) candidateY = upper;
+    }
+
+    if (candidateY + newHeight > bounds.ceiling - getWardrobeItemCeilingGap(newShelf)) return null;
+    return candidateY;
+}
+
+// СТАТИЧНЫЕ границы positionY: считаются ОДИН РАЗ относительно исходного
+// порядка полок (кто был ниже — ограничивает снизу, кто выше — сверху), так
+// что "перепрыгнуть" соседа нельзя. Используются числовым полем "Положение
+// по Y" (WardrobeFillingsView.vue), которому нужен единый диапазон min/max.
+// Живой драг мышью работает иначе — см. resolveWardrobeShelfDragPositionY.
+// Зазоры и нижняя граница — те же getWardrobeShelfMinGap/FloorGap, что при
+// добавлении; bounds — вертикальные границы секции (getWardrobeSectionBounds).
+//
+// minY округляется ВВЕРХ, maxY — ВНИЗ: границы дробные (тригонометрия), а
+// потребитель клампит по ним и ПОТОМ округляет позицию до целых мм —
+// округление у дробной границы уводило итог за диапазон, и reset() удалял
+// полку как "не помещается". С целыми границами round зажатого значения
+// перескочить их уже не может.
+export function getWardrobeShelfDragBounds(
+    shelves: IdentifiedFilling[],
+    draggedShelfId: number,
+    depthMm: number,
+    bounds: WardrobeSectionBounds,
+    wardrobeProductId?: number,
+): { minY: number; maxY: number } {
+    const dragged = shelves.find((s) => s.id === draggedShelfId);
+    if (!dragged) return { minY: bounds.floor, maxY: bounds.ceiling };
+
+    const draggedHeight = getWardrobeShelfPixiHeight(dragged, depthMm, wardrobeProductId);
+
+    let minY = Math.ceil(bounds.floor + getWardrobeShelfFloorGap(dragged, depthMm, wardrobeProductId));
+    let maxY = Math.floor(bounds.ceiling - getWardrobeItemCeilingGap(dragged) - draggedHeight);
+
+    shelves.forEach((other) => {
+        if (other.id === draggedShelfId) return;
+
+        const otherHeight = getWardrobeShelfPixiHeight(other, depthMm, wardrobeProductId);
+
+        if (other.positionY < dragged.positionY) {
+            // other СНИЗУ, dragged СВЕРХУ — порядок аргументов значим
+            const gap = getWardrobeShelfMinGap(other, dragged, depthMm, wardrobeProductId);
+            minY = Math.max(minY, Math.ceil(other.positionY + otherHeight + gap));
+        } else {
+            // other СВЕРХУ, dragged СНИЗУ (below=dragged, above=other).
+            const gap = getWardrobeShelfMinGap(dragged, other, depthMm, wardrobeProductId);
+            maxY = Math.min(maxY, Math.floor(other.positionY - gap - draggedHeight));
+        }
+    });
+
+    return { minY, maxY: Math.max(minY, maxY) };
+}
+
+// Живой драг мышью (WardrobeDragEngine.onWardrobeShelfDragMove): на каждое
+// движение разрешает столкновения ДИНАМИЧЕСКИ, по текущим позициям соседей,
+// поэтому элемент может перескакивать через них. Статичный аналог для
+// числового поля — getWardrobeShelfDragBounds выше.
+//
+// Свободные зоны: для каждого соседа строится запретный интервал Y (тот же
+// forbiddenBottom/forbiddenTop, что в findFreeWardrobeShelfPositionY),
+// интервалы сливаются и дополняются до floorMin/ceilMax; слишком узкие зоны
+// отбрасываются.
+//
+// Обход зон НАПРАВЛЕННЫЙ, от текущего положения элемента: он едет с мышью
+// внутри своей зоны и переходит в следующую, только когда rawY долетает до
+// её начала, иначе фиксируется на границе. Выбор глобально ближайшей к МЫШИ
+// зоны давал порог посередине между зонами и телепортацию от дрожания
+// курсора.
+//
+// Вырожденные случаи:
+//  - позиция не попадает ни в одну зону (выставлена через "Положение по Y",
+//    а сосед с тех пор сдвинулся): rawY для направления не используем (та же
+//    телепортация) — разово поджимаем к ближайшей границе;
+//  - свободных зон нет вовсе (соседи коллективно перекрыли диапазон, хотя
+//    каждый проходит проверку reset()): не двигаем элемент. Клампинг к
+//    [floorMin,ceilMax] попал бы в запретную зону, и reset() потом
+//    "чинил" её рывком.
+//
+// Границы округляются НАРУЖУ — как в getWardrobeShelfDragBounds.
+export function resolveWardrobeShelfDragPositionY(
+    shelves: IdentifiedFilling[],
+    draggedShelfId: number,
+    depthMm: number,
+    bounds: WardrobeSectionBounds,
+    rawY: number,
+    wardrobeProductId?: number,
+): number {
+    const dragged = shelves.find((s) => s.id === draggedShelfId);
+    if (!dragged) return rawY;
+
+    const others = shelves.filter((s) => s.id !== draggedShelfId);
+    const newHeight = getWardrobeShelfPixiHeight(dragged, depthMm, wardrobeProductId);
+
+    const floorMin = Math.ceil(bounds.floor + getWardrobeShelfFloorGap(dragged, depthMm, wardrobeProductId));
+    const ceilMax = Math.floor(bounds.ceiling - getWardrobeItemCeilingGap(dragged) - newHeight);
+    if (ceilMax <= floorMin) return Math.round(dragged.positionY);
+
+    const rawIntervals = others
+        .map((other) => {
+            const otherHeight = getWardrobeShelfPixiHeight(other, depthMm, wardrobeProductId);
+            // Зазор направленный: lower — для "dragged снизу, other сверху",
+            // upper — наоборот. Если в паре штанга, это ДВА разных значения.
+            const gapBelow = getWardrobeShelfMinGap(dragged, other, depthMm, wardrobeProductId);
+            const gapAbove = getWardrobeShelfMinGap(other, dragged, depthMm, wardrobeProductId);
+            return {
+                lower: Math.floor(other.positionY - gapBelow - newHeight),
+                upper: Math.ceil(other.positionY + otherHeight + gapAbove),
+            };
+        })
+        .sort((a, b) => a.lower - b.lower);
+
+    const segments: { lower: number; upper: number }[] = [];
+    for (const iv of rawIntervals) {
+        const last = segments[segments.length - 1];
+        // Строгое "<": если интервалы ровно КАСАЮТСЯ (iv.lower ===
+        // last.upper), это не пересечение — граничная точка между ними
+        // валидна (та же логика открытого интервала, что и в
+        // findFreeWardrobeShelfPositionY). Иначе два стоящих впритык объекта
+        // склеивались в один запретный отрезок, стирая единственную валидную
+        // позицию между ними, и currentY-fallback ниже уводил элемент в
+        // далёкую свободную зону.
+        if (last && iv.lower < last.upper) {
+            last.upper = Math.max(last.upper, iv.upper);
+        } else {
+            segments.push({ ...iv });
+        }
+    }
+
+    // Свободные зоны внутри [floorMin, ceilMax] — дополнение слитых запретных
+    // отрезков до границ пола/потолка. Слишком узкая зона в список не попадёт.
+    const freeZones: { start: number; end: number }[] = [];
+    let cursor = floorMin;
+    for (const seg of segments) {
+        if (cursor > ceilMax) break;
+        // ">=", не строгое ">": совпадение seg.lower с cursor — валидная зона
+        // нулевой ширины. Со строгим ">" стартовая позиция элемента могла не
+        // найтись ни в одной зоне, и fallback ниже уводил его на первом же
+        // кадре в другую, отдалённую точку.
+        if (seg.lower >= cursor) freeZones.push({ start: cursor, end: Math.min(seg.lower, ceilMax) });
+        cursor = Math.max(cursor, seg.upper);
+    }
+    if (cursor <= ceilMax) freeZones.push({ start: cursor, end: ceilMax });
+
+    // Вырожденный случай — свободных промежутков нет вовсе, см. doc-комментарий
+    // выше. Не двигаем элемент.
+    if (!freeZones.length) return Math.round(dragged.positionY);
+
+    // Зона, содержащая текущую позицию — точка отсчёта направленного обхода
+    const currentY = dragged.positionY;
+    const curIdx = freeZones.findIndex((z) => currentY >= z.start - 0.01 && currentY <= z.end + 0.01);
+
+    if (curIdx === -1) {
+        // Текущая позиция невалидна — разовая коррекция к ближайшей границе,
+        // без rawY (иначе получим телепортацию, см. doc выше)
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        freeZones.forEach((z, i) => {
+            const d = currentY < z.start ? z.start - currentY : currentY > z.end ? currentY - z.end : 0;
+            if (d < bestDist) {
+                bestDist = d;
+                bestIdx = i;
+            }
+        });
+        const zone = freeZones[bestIdx];
+        return Math.round(Math.max(zone.start, Math.min(zone.end, currentY)));
+    }
+
+    // Направленный обход: идём к следующей зоне в сторону rawY, но только
+    // если rawY реально долетела до её края; иначе стоим на границе текущей.
+    let idx = curIdx;
+    if (rawY > freeZones[idx].end) {
+        while (idx < freeZones.length - 1 && rawY >= freeZones[idx + 1].start) idx++;
+    } else if (rawY < freeZones[idx].start) {
+        while (idx > 0 && rawY <= freeZones[idx - 1].end) idx--;
+    }
+
+    // Округление безопасно: start/end зоны уже целые (границы округлены
+    // наружу выше), а значение зажато между ними — round перескочить их не
+    // может. Иначе дробный positionY на границе приводил к удалению полки.
+    const zone = freeZones[idx];
+    return Math.round(Math.max(zone.start, Math.min(zone.end, rawY)));
+}

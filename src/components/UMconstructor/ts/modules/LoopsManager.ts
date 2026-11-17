@@ -3,7 +3,7 @@
 import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { ErrorItem, ErrorsMessage, ErrorsType, LoopsmokAPI, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
 import * as THREE from "three";
-import { GridModule, GridSection, LoopZone } from "@/components/UMconstructor/types/UMtypes.ts";
+import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 
 
@@ -90,7 +90,7 @@ export default class LoopsManager {
         }
     }
 
-    public isFillingExcludedFromCollision(filling: any, targetType: string = 'loop', grid?: GridModule): boolean {
+    private isFillingExcludedFromCollision(filling: any, targetType: string = 'loop', grid?: GridModule): boolean {
         return this.collisionExclusionRules.some(rule => {
             if (filling[rule.prop] === undefined || !rule.values.has(filling[rule.prop])) return false
             if (rule.condition && grid && !rule.condition(grid)) return false
@@ -98,25 +98,6 @@ export default class LoopsManager {
             const types = Array.isArray(rule.collisionWith) ? rule.collisionWith : [rule.collisionWith]
             return types.includes(targetType)
         })
-    }
-
-    public getLoopZones(section: GridSection): LoopZone[] {
-        const zones = []
-
-        Object.values(section?.loops ?? {}).forEach((doorLoops: any) => {
-            doorLoops?.forEach((loop: any) => {
-                loop?.coords?.forEach((coord: number) => {
-                    zones.push({
-                        minY: coord - loop.height / 2,
-                        maxY: coord + loop.height / 2,
-                        minX: loop.positionX,
-                        maxX: loop.positionX + loop.width,
-                    })
-                })
-            })
-        })
-
-        return zones
     }
 
     // -----------------------------------------------------------------------------------------------
@@ -445,9 +426,10 @@ export default class LoopsManager {
 
         const checkLoop = (_loops, cell) => {
             let result = []
+            const shelfThickness = this.scope.getShelfThickness(cell, grid)
             _loops.forEach(loop => {
                 if (
-                    ((loop.minY < (cell.position.y - moduleThickness) && loop.maxY > (cell.position.y - moduleThickness)) ||
+                    ((loop.minY < (cell.position.y - shelfThickness) && loop.maxY > (cell.position.y - shelfThickness)) ||
                         (loop.minY < cell.position.y && loop.maxY > cell.position.y))
                     &&
                     ((loop.minX <= (cell.position.x - cell.width / 2) && loop.maxX >= (cell.position.x - cell.width / 2)) ||

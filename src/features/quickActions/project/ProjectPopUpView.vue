@@ -422,6 +422,8 @@ const loadProject = async (id: string | number) => {
     if (projectData) {
       projectState.resetState();
       projectState.setInitialState(projectData);
+      console.log(projectData, "----PROD");
+
       try {
         schemeTransition.clearStore();
         // Очищаем текущую комнату перед загрузкой нового проекта
@@ -528,7 +530,6 @@ const loadProject = async (id: string | number) => {
     toaster.error("Ошибка загрузки проекта");
   } finally {
     isProjectLoading.value = false;
-    // Открытый проект совпадает с серверным, снапшот автосохранения для него не нужен
     autosave.markSaved();
   }
 };
@@ -1077,7 +1078,7 @@ onMounted(async () => {
         right: .5rem;
         transform: translate(50% 50%);
 
-        transition-property: fill ;
+        transition-property: fill;
         transition-duration: 0.25s;
         transition-timing-function: ease;
       }

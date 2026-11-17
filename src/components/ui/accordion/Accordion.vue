@@ -99,7 +99,7 @@ onMounted(async () => {
 
     &::before {
       content: "\276F";
-
+      margin-right: 2rem;
       display: inline-block;
       transform: rotate(90deg);
       transition: transform 0.2s ease-in-out;

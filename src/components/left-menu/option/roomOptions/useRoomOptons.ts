@@ -317,7 +317,6 @@ export const useRoomOptions = defineStore('RoomOptions', () => {
     //--------------------------------------------------
 
     const setHeightClamp = (value: number | string | null) => {
-        // По умолчанию примагничиваем к потолку
         const curValue = value ?? useWallHeightStore().wallHeightMm * 10
         startHeightClamp.value = curValue
     }

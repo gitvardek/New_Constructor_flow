@@ -1,3 +1,10 @@
+// Типы гардеробной системы живут в wardrobe/types.ts — здесь только
+// опциональные поля, которыми они цепляются к GridSection/GridModule.
+import type {
+    WardrobeProfile,
+    WardrobeFillingItem,
+} from "@/components/UMconstructor/wardrobe/types.ts";
+
 import * as THREE from "three";
 import { TFasadeProp } from "@/types/types.ts";
 
@@ -119,6 +126,10 @@ export interface GridSection {
     loopsSides?: {};
     hiTechProfiles?: FillingObject[];
     fillings?: FillingObject[];
+    // Гардеробная система (см. GridModule.moduleKind) — секция не использует
+    // cells/cellsRows/extras вовсе, содержимое секции плоским списком здесь
+    // (полки, штанги, тумбочки — по type).
+    wardrobeFilling?: WardrobeFillingItem[];
 }
 
 export const ErrorsType = {
@@ -198,6 +209,13 @@ export interface GridModule {
     noLoops?: boolean;
     errors?: Object;
     profilesConfig?: ProfilesConfig;
+    // Не задано (undefined) = обычный "коробочный" УМ, как и раньше.
+    // 'wardrobe' = гардеробная система — sections[] используются только для
+    // ширины/позиции секций и resize-драга, cells/cellsRows/extras внутри
+    // них не используются вовсе (см. GridSection.wardrobeFilling,
+    // WardrobeProfile, вариант "C" в SESSION_CONTEXT.md).
+    moduleKind?: 'boxed' | 'wardrobe';
+    wardrobeProfiles?: WardrobeProfile[];
 }
 
 export interface canvasConfig {

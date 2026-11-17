@@ -198,7 +198,6 @@ export class FasadeBuilder {
         if (fasadeData.ALUM != null && FASADE_PROPS[key].COLOR != null) {
             
             const alumData = this.parent.getMaterialRecord('FASADE', FASADE_PROPS[key].COLOR);
-
             if (alumData) {
                 this.parent.alum_builder.createAlum({ fasade: mesh, data: alumData });
             }
@@ -1076,6 +1075,15 @@ export class FasadeBuilder {
         }
 
         return fasadePositionsData;
+    }
+
+    // CONFIG.FASADE_POSITIONS без сборки 3D. У объекта сцены их заполняет первая
+    // сборка (numberingToUniform), а редактору УМ они нужны для стартовой сетки —
+    // этим пользуется вложенная сессия (тумбочка гардеробной), у которой объекта
+    // на сцене нет. Требует актуальных CONFIG.SIZE и EXPRESSIONS.
+    public prepareFasadePositions(CONFIG: THREETypes.TObject) {
+        CONFIG.FASADE_POSITIONS = [];
+        CONFIG.FASADE_PROPS.forEach((_: unknown, key: number) => this.getFasadePosition(CONFIG, key));
     }
 
     private setFasadePosition(

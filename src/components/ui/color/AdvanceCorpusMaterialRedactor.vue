@@ -12,7 +12,7 @@ import {
 } from "vue";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useAppData } from "@/store/appliction/useAppData";
-import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage";
+import { useUMEditorModel, useUMEngineStorage } from "@/components/UMconstructor/ts/umEngineContext.ts";
 
 import MillingRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/MillingRedactor.vue";
 import PatinaRedactor from "@/components/right-menu/customiser-pages/ColorRightPage/PatinaRedactor.vue";
@@ -33,7 +33,9 @@ import { useFasadeOptionsState } from "@/components/right-menu/customiser-pages/
 import { useUMFasadeCommands } from "@/components/right-menu/customiser-pages/ColorRightPage/composables/useUMFasadeCommands";
 import { scrollToActiveOption } from "@/components/right-menu/customiser-pages/ColorRightPage/composables/scrollToActiveOption";
 
-const umStorage = useUMStorage();
+// Внутри редактора УМ — стор и модель его сессии, вне — основной стор и выбранный объект.
+const umStorage = useUMEngineStorage();
+const getCurrentModel = useUMEditorModel();
 
 const props = defineProps({
   elementIndex: [Number, String] /** Индекс выбранного элемента */,
@@ -774,8 +776,6 @@ const prepareData = () => {
   }
 
   if (SHOWCASE) {
-    // Сохранённая витрина могла стать несовместимой с фрезеровкой: её нет в отфильтрованном
-    // списке — подставляем первую доступную, как сцена делает с фрезеровкой при сборке
     const showcaseRepair = resolveShowcaseRepair({
       showcaseId: SHOWCASE,
       showcaseList: showcaseData,
@@ -800,7 +800,7 @@ const prepareData = () => {
 };
 
 onBeforeMount(() => {
-  productData.value = modelState.getCurrentModel.userData;
+  productData.value = getCurrentModel().userData;
   productId.value = productData.value.PROPS.PRODUCT;
   commands.setMaterialRestrictions(props.elementData.COLOR);
 

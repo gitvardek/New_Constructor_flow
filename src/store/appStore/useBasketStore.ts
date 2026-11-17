@@ -4,7 +4,7 @@ import { computed, readonly, ref } from 'vue'
 import { useBasketApi } from '@/store/appStore/basket/useBasketApi'
 import { useBasketStorage } from '@/store/appStore/basket/useBasketStorage'
 import { useRoomContantData } from '../appliction/useRoomContantData'
-import { createBasketItem, createGlobalData, updateGlobalData } from '@/components/Basket/helper/basketMapper'
+import { createBasketItem, createCabinetItems, createGlobalData, getCabinetParentBasketId, updateGlobalData } from '@/components/Basket/helper/basketMapper'
 import { TTotalProps } from "@/types/types";
 import type { IBasket, IBasketResponse, BasketItemType } from '@/types/basket'
 import { useAppData } from '../appliction/useAppData'
@@ -110,10 +110,12 @@ export const useBasketStore = defineStore('basket', () => {
 
     const filtered = getFilteredData()
 
+    // Тумбочки гардеробной — отдельные позиции рядом со своей гардеробной
     const sceneItems = filtered
-      .map((obj: TTotalProps, key: string) =>
-        createBasketItem(obj.data, mainConstructor.value.length, obj.basketId)
-      )
+      .flatMap((obj: TTotalProps, key: string) => [
+        createBasketItem(obj.data, mainConstructor.value.length, obj.basketId),
+        ...createCabinetItems(obj.data, obj.basketId),
+      ])
 
     const globalData = createGlobalData(filtered)
 
@@ -152,6 +154,15 @@ export const useBasketStore = defineStore('basket', () => {
 
     if (index !== -1) {
       list.value.splice(index, 1)
+
+      // Позиции тумбочек удалённой гардеробной: syncBasket ниже уходит сразу,
+      // иначе цена успела бы посчитаться по тумбочкам без их гардеробной
+      // (пересборка из сцены приходит позже, с дебаунсом)
+      if (list === mainConstructor) {
+        mainConstructor.value = mainConstructor.value
+          .filter(item => getCabinetParentBasketId(item.BASKETID) !== String(basketId))
+      }
+
       updateGlobalData()
       syncBasket();
     }

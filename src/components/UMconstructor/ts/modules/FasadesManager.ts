@@ -1,6 +1,6 @@
 //@ts-nocheck
 
-import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import ExternalFasadesManager from "@/components/UMconstructor/ts/modules/ExternalFasadesManager.ts";
 import { FasadeObject, GridModule, LOOPSIDE, TSelectedCell } from "./../../types/UMtypes.ts";
 import { TFasadeProp } from "@/types/types.ts";
@@ -12,7 +12,8 @@ import { useConversationActions } from "@/components/right-menu/actions/useConve
 export default class FasadesManager {
     scope: UMconstructorClass
     EXTERNAL_FASADES: ExternalFasadesManager
-    FASADES_CONVERSATION: ReturnType<typeof useConversationActions> = useConversationActions();
+    // Проверки размеров — по модели движка: во вложенной сессии выбран не её объект.
+    FASADES_CONVERSATION: ReturnType<typeof useConversationActions> = useConversationActions(() => this.scope.getModel());
 
     constructor(scope: UMconstructorClass) {
         this.scope = scope;
@@ -20,7 +21,8 @@ export default class FasadesManager {
     }
 
     createFacadeData(fasadeIndex?: number, _productId?: number) {
-        const { PROPS: { FASADE, PRODUCT } } = this.scope.MODEL_STATE.getCurrentModel.userData
+        // PROPS сессии, а не выбранного 3D-объекта: во вложенной сессии это разные товары.
+        const { FASADE, PRODUCT } = this.scope.UM_STORE.getUMData()
         const umHeight = this.scope.UM_STORE.totalHeight
         const productId = _productId || PRODUCT;
         const { FACADE } = this.scope.MODEL_STATE._PRODUCTS[productId];
@@ -135,6 +137,9 @@ export default class FasadesManager {
                                 segment.width += deltaWidth;
 
                                 /** @Пересчёт_позиции_фасада */
+                                // const wallOverlap = secIndex === 0 ? leftWidth : grid.moduleThickness;
+                                // segment.position.x = section.position.x - section.width / 2 - wallOverlap + 2 + ((segment.width + 4) * doorIndex);
+
                                 if (secIndex !== 0) {
                                     segment.position.x = section.position.x - section.width / 2 - grid.moduleThickness / 2 + 2 + ((segment.width + 4) * doorIndex);
                                 } else if (doorIndex > 0) {
@@ -176,8 +181,16 @@ export default class FasadesManager {
                                 const isSplitFasade = !!lastSegment.splitGroup;
 
                                 if (newHeight <= 0 || (isSplitFasade && newHeight < (lastSegment.minY ?? 0))) {
-                                    this.removeFasadeSegment(secIndex, doorIndex, door.length - 1, grid, false)
-                                    needReset = true;
+                                    // Единственный сегмент двери удалить нельзя: оставляем его с ошибкой —
+                                    // так модуль сообщит, что ящики больше не помещаются в дверь.
+                                    // needReset ставим ТОЛЬКО по факту удаления, иначе reset зациклится
+                                    if (this.removeFasadeSegment(secIndex, doorIndex, door.length - 1, grid, false)) {
+                                        needReset = true;
+                                    }
+                                    else {
+                                        lastSegment.height = Math.max(newHeight, lastSegment.minY ?? 0);
+                                        lastSegment.error = true;
+                                    }
                                 }
                                 else {
                                     lastSegment.height += deltaHeight;
@@ -475,120 +488,6 @@ export default class FasadesManager {
         this.scope.reset();
     };
 
-    //==== УМ 150 ====
-    resetFasadeMaterial(material: TFasadeProp) {
-        if (!material) return
-
-        material.COLOR = this.scope.CONST.NO_FASADE_ID
-        material.ALUM = null
-        material.MILLING = null
-        material.PALETTE = null
-        material.PATINA = null
-        material.GLASS = null
-        material.MILLING_TYPE = null
-        material.TYPE = null
-        material.MANUAL_NO_FASADE = true
-    };
-
-    // Сбрасываем в «без фасада»: материал просто перестаёт быть выбранным
-    resetRestrictedFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
-        const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
-
-        let resetCount = 0
-
-        const walk = (fasades: FasadeObject[][] = []) => {
-            fasades?.forEach(door => {
-                door?.forEach(fasade => {
-                    const color = fasade?.material?.COLOR
-
-                    if (!color || +color === NO_FASADE_ID) return
-                    if (!this.FASADES_CONVERSATION.isLowUmRestrictedFasade(+color)) return
-
-                    this.resetFasadeMaterial(fasade.material)
-                    resetCount += 1
-                })
-            })
-        }
-
-        grid.sections?.forEach(section => walk(section.fasades))
-        walk(grid.fasades)
-
-        if (resetCount)
-            this.scope.callAlert(
-                "warning",
-                `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: для модуля высотой менее ${this.scope.CONST.MIN_SECTION_TO_FILLINGS_HEIGHT} мм такое покрытие недоступно`
-            )
-    };
-    // Размер фасада вышел за пределы, доступные его материалу, сбрасываем в «без фасада»
-    markOversizedFasades(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
-        // IGNORE_SIZE у продукта снимает все ограничения по размеру
-        if (this.FASADES_CONVERSATION.checkIgnore(this.scope.MODEL_STATE.getCurrentModel)) {
-            return
-        }
-
-        const maxWidth = grid.isSlidingDoors
-            ? this.scope.CONST.MAX_SLIDE_DOOR_WIDTH
-            : this.scope.CONST.MAX_FASADE_WIDTH
-
-        const walk = (fasades: FasadeObject[][] = []) => {
-            fasades?.forEach(door => {
-                door?.forEach(fasade => {
-                    if (fasade?.width > maxWidth) {
-                        fasade.error = true
-                    }
-                })
-            })
-        }
-
-        grid.sections?.forEach(section => walk(section.fasades))
-        walk(grid.fasades)
-    };
-
-    resetErrorFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
-        const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
-
-        let resetCount = 0
-
-        const walk = (fasades: FasadeObject[][] = []) => {
-            fasades?.forEach(door => {
-                door?.forEach(fasade => {
-                    if (!fasade?.error) {
-                        return
-                    }
-
-                    const color = fasade.material?.COLOR
-
-                    if (!color || +color === NO_FASADE_ID) {
-                        return
-                    }
-
-                    const fitsBounds = fasade.width >= (fasade.minX ?? 0)
-                        && fasade.height >= (fasade.minY ?? 0)
-
-                    if (!fitsBounds) {
-                        return
-                    }
-
-                    this.resetFasadeMaterial(fasade.material)
-                    delete fasade.error
-                    resetCount += 1
-                })
-            })
-        }
-
-        grid.sections?.forEach(section => walk(section.fasades))
-        walk(grid.fasades)
-
-        // Одно сообщение на весь проход: метод зовётся при каждом пересчёте, но повторно
-        // ничего не сбрасывает — уже сброшенные отсеиваются по цвету «без фасада»
-        if (resetCount) {
-            this.scope.callAlert(
-                "warning",
-                `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: полотно такого размера в нём не выпускается`
-            )
-        }
-    };
-
     addDoor(
         secIndex: number,
         grid: GridModule = this.scope.UM_STORE.getUMGrid(),
@@ -673,13 +572,7 @@ export default class FasadesManager {
             }
         }
 
-
-        // Первая дверь секции открывается влево, вторая — вправо
-        const doorIndex = section.fasades.length
-        const preferredSide = doorIndex === 0 ? "left" : "right"
-        const preferred = tmp_list.find(item => LOOPSIDE[+item.ID]?.includes(preferredSide))
-
-        newDoor.loopsSide = (preferred ?? tmp_list.pop()).ID;
+        newDoor.loopsSide = tmp_list.pop().ID;
 
         if (!section.loopsSides)
             section.loopsSides = {}
@@ -718,11 +611,11 @@ export default class FasadesManager {
                 : grid.sections[secIndex].fasades;
         let segment = fasades[doorIndex][segmentIndex];
         segment.splitGroup = segment.splitGroup ?? Date.now()
+
         const halfHeight = Math.floor(
             (segment.height - (grid.isSlidingDoors ? 0 : 4)) / 2
         );
         // Обновляем высоту последней строки
-
         Object.assign(segment, this.getFasadePositionMinMax(segment))
 
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
@@ -889,17 +782,18 @@ export default class FasadesManager {
                 prev = undefined;
         }
 
-        const combinedHeight = next
-            ? currentSegment.height +
-            next.height +
-            (grid.isSlidingDoors ? 0 : 4)
-            : currentSegment.height +
-            prev.height +
-            (grid.isSlidingDoors ? 0 : 4);
-
-        next ? (next.height = combinedHeight) : (prev.height = combinedHeight);
-
+        // Высоту удаляемого сегмента забирает вплотную стоящий сосед. Соседа нет
+        // (единственный сегмент двери, либо между сегментами стоят фасады ящиков) —
+        // передать высоту некому, и сегмент НЕ удаляем, иначе он просто пропадёт.
+        // Что делать дальше, решает вызывающий: updateFasades клампит высоту
+        // последнего сегмента и помечает его ошибкой.
         let tmpSegment = next || prev;
+        if (!tmpSegment || currentSection.length <= 1) {
+            return false;
+        }
+
+        tmpSegment.height = currentSegment.height + tmpSegment.height + (grid.isSlidingDoors ? 0 : 4);
+
         let checkConversation = this.FASADES_CONVERSATION.checkFasadeConversations(
             tmpSegment.material.COLOR,
             <TFasadeTrueSizes>{ FASADE_WIDTH: tmpSegment.width, FASADE_HEIGHT: tmpSegment.height }
@@ -909,17 +803,14 @@ export default class FasadesManager {
             tmpSegment.error = true;
         else delete tmpSegment.error;
 
-        next
-            ? (next.position.y = currentSegment.position.y)
-            : (prev.position.y = prev.position.y);
+        if (next)
+            next.position.y = currentSegment.position.y;
 
         for (let i = 0; i < fasades[doorIndex].length; i++) {
             if (i > segmentIndex) fasades[doorIndex][i].id -= 1;
         }
 
-        if (currentSection.length > 1) {
-            currentSection.splice(segmentIndex, 1);
-        }
+        currentSection.splice(segmentIndex, 1);
 
         const groupId = currentSegment.splitGroup
         if (groupId) {
@@ -927,11 +818,13 @@ export default class FasadesManager {
             if (rest.length < 2) rest.forEach(item => delete item.splitGroup)
         }
 
-        // Обновляем текущий сектор
+        // Обновляем текущую секцию
         this.selectCell(secIndex, 0, 0)
 
         if (reset)
             this.scope.reset(grid)
+
+        return true;
     };
 
     updateFasadeHeight(
@@ -1049,14 +942,7 @@ export default class FasadesManager {
             })
         })
 
-        // if(!grid.sections[secIndex].loopsSides){
-        //     grid.sections[secIndex].loopsSides = {}
-        // }
 
-        // grid.sections[secIndex].loopsSides[doorIndex] = fasade.loopsSide;
-        // grid.sections[secIndex].fasades[doorIndex].forEach(
-        //     (item) => (item.loopsSide = fasade.loopsSide)
-        // );
 
         this.scope.reset(grid);
     };
@@ -1087,6 +973,120 @@ export default class FasadesManager {
             tmp_list = tmp_list.filter(item => !usedSides.has(item.ID));
 
             return tmp_list.length > 0;
+        }
+    };
+
+    //==== УМ 150 ====
+    resetFasadeMaterial(material: TFasadeProp) {
+        if (!material) return
+
+        material.COLOR = this.scope.CONST.NO_FASADE_ID
+        material.ALUM = null
+        material.MILLING = null
+        material.PALETTE = null
+        material.PATINA = null
+        material.GLASS = null
+        material.MILLING_TYPE = null
+        material.TYPE = null
+        material.MANUAL_NO_FASADE = true
+    };
+
+    resetRestrictedFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
+        let resetCount = 0
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    const color = fasade?.material?.COLOR
+
+                    if (!color || +color === NO_FASADE_ID) return
+                    if (!this.FASADES_CONVERSATION.isLowUmRestrictedFasade(+color)) return
+
+                    this.resetFasadeMaterial(fasade.material)
+                    resetCount += 1
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+
+        if (resetCount) {
+            this.scope.callAlert(
+                "warning",
+                `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: для модуля высотой менее ${this.scope.CONST.MIN_SECTION_TO_FILLINGS_HEIGHT} мм такое покрытие недоступно`
+            )
+        }
+
+    };
+
+    // Размер фасада вышел за пределы, доступные его материалу, сбрасываем в «без фасада»
+    markOversizedFasades(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        // IGNORE_SIZE у продукта снимает все ограничения по размеру
+        if (this.FASADES_CONVERSATION.checkIgnore(this.scope.MODEL_STATE.getCurrentModel)) {
+            return
+        }
+
+        const maxWidth = grid.isSlidingDoors
+            ? this.scope.CONST.MAX_SLIDE_DOOR_WIDTH
+            : this.scope.CONST.MAX_FASADE_WIDTH
+
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    if (fasade?.width > maxWidth) {
+                        fasade.error = true
+                    }
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+    };
+
+    resetErrorFasadeMaterials(grid: GridModule = this.scope.UM_STORE.getUMGrid()) {
+        const NO_FASADE_ID = this.scope.CONST.NO_FASADE_ID
+
+        let resetCount = 0
+
+        const walk = (fasades: FasadeObject[][] = []) => {
+            fasades?.forEach(door => {
+                door?.forEach(fasade => {
+                    if (!fasade?.error) {
+                        return
+                    }
+
+                    const color = fasade.material?.COLOR
+
+                    if (!color || +color === NO_FASADE_ID) {
+                        return
+                    }
+
+                    const fitsBounds = fasade.width >= (fasade.minX ?? 0)
+                        && fasade.height >= (fasade.minY ?? 0)
+
+                    if (!fitsBounds) {
+                        return
+                    }
+
+                    this.resetFasadeMaterial(fasade.material)
+                    delete fasade.error
+                    resetCount += 1
+                })
+            })
+        }
+
+        grid.sections?.forEach(section => walk(section.fasades))
+        walk(grid.fasades)
+
+        // Одно сообщение на весь проход: метод зовётся при каждом пересчёте, но повторно
+        // ничего не сбрасывает — уже сброшенные отсеиваются по цвету «без фасада»
+        if (resetCount) {
+            this.scope.callAlert(
+                "warning",
+                `Материал ${resetCount === 1 ? "фасада снят" : `${resetCount} фасадов снят`}: полотно такого размера в нём не выпускается`
+            )
         }
     };
 }

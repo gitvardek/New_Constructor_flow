@@ -73,5 +73,3 @@ onUnmounted(() => {
   position: relative;
 }
 </style>
-
-// New_Constructor_flow/src/layouts/DefaultLayout.vue

@@ -2,6 +2,7 @@
 
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useModelState } from "@/store/appliction/useModelState";
+import { useUMEditorModel } from "@/components/UMconstructor/ts/umEngineContext.ts";
 import { MILLING_HANDLE_KEYS, additionalMillingKeys } from "@/Application/F-millings";
 import { TMillingListItem } from "@/store/appliction/useModelState";
 import { TConfig, TFasadeProp, FasadeTextAlignAction } from "@/types/types";
@@ -10,11 +11,12 @@ export type THandleType = "milling" | "integrate"
 
 const useHandlesAction = () => {
     const modelState = useModelState()
+    const getCurrentModel = useUMEditorModel()
     const eventBus = useEventBus()
 
     const getControllerData = (fasadeNdx: number) => {
         let result = [];
-        const model = modelState.getCurrentModel;
+        const model = getCurrentModel();
         const config = model?.userData?.PROPS?.CONFIG;
         if (!config) return result;
 
@@ -63,7 +65,7 @@ const useHandlesAction = () => {
         type: THandleType,
         curFasadeProps: TFasadeProp | null = null,
     ) => {
-        const model = modelState.getCurrentModel;
+        const model = getCurrentModel();
         const CONFIG = (model?.userData?.PROPS?.CONFIG ?? {}) as TConfig;
         const { FASADE_POSITIONS, FASADE_PROPS } = CONFIG;
         if (!FASADE_POSITIONS || !FASADE_PROPS) {
@@ -104,7 +106,7 @@ const useHandlesAction = () => {
 
         if (!type) return
 
-        const model = modelState.getCurrentModel;
+        const model = getCurrentModel();
         const { FASADE_PROPS } = model?.userData.PROPS.CONFIG;
         const currentMilling = FASADE_PROPS[fasadeNdx].MILLING
         const currentAlum = FASADE_PROPS[fasadeNdx].ALUM

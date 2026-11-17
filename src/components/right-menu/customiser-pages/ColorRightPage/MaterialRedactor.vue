@@ -33,8 +33,8 @@ import { useFasadeSize } from "./composables/useFasadeSize";
 import { useFasadeHandles } from "./composables/useFasadeHandles";
 import { useFasadeCommands } from "./composables/useFasadeCommands";
 import { useFasadeOptionsState } from "./composables/useFasadeOptionsState";
-import { useApplyToAllFasades } from "./composables/useApplyToAllFasades";
 import { scrollToActiveOption } from "./composables/scrollToActiveOption";
+import { useApplyToAllFasades } from "./composables/useApplyToAllFasades";
 import {
   FASADE_OPTION_KEYS,
   toImageView,
@@ -42,9 +42,9 @@ import {
   isPatinaAvailableForMilling,
   getDefaultPatinaForMilling,
   resolveMillingRepair,
-  resolveShowcaseRepair,
   resolveOptionsOnMaterialSelect,
   resolveOptionsFromConfig,
+  resolveShowcaseRepair,
 } from "./domain/fasadeOptions";
 
 const { checkFasadeConversations, filterFasadeConversations } =
@@ -122,7 +122,6 @@ const commands = useFasadeCommands(
   () => props.tabIndex,
   () => productData.value,
 );
-
 // Перенос отделки этого фасада на остальные фасады объекта («Применить ко всем»)
 const { isApplyToAllVisible, applyToAll } = useApplyToAllFasades(
   () => props.tabIndex,
@@ -474,7 +473,11 @@ const prepareData = () => {
   });
   modelState.createCurrentPatinaData({ fasadeId: COLOR, productId: pid });
   modelState.createCurrentGlassData({ fasadeId: COLOR, productId: pid });
-
+  modelState.createCurrentShowcaseData({
+    fasadeId: COLOR,
+    productId: pid,
+    fasadeNdx: props.tabIndex,
+  });
   // Типы фасада (положения интегрированной ручки) — под текущее полотно: иначе restoreHandles
   // берёт из стора список, оставшийся от другого фасада, или пустой после загрузки проекта
   modelState.createCurrentFasadeTypesData({ fasadeId: COLOR, productId: pid });
@@ -495,30 +498,8 @@ const prepareData = () => {
     repairMilling(repair.milling.ID, repair.patinaId, isShowcase);
   }
 
-  // Витрины — под итоговую фрезеровку.
-
   const millingId = repair ? repair.milling.ID : MILLING;
   const patinaId = repair ? repair.patinaId : PATINA;
-
-  const showcaseList = modelState.createCurrentShowcaseData({
-    fasadeId: COLOR,
-    productId: pid,
-    fasadeNdx: props.tabIndex,
-    millingId,
-  });
-
-  const showcaseRepair = isShowcase
-    ? resolveShowcaseRepair({ showcaseId: SHOWCASE, showcaseList })
-    : null;
-
-  if (showcaseRepair) {
-    console.warn(
-      `Фасад №${props.tabIndex + 1}: витрина ${SHOWCASE} несовместима с фрезеровкой ${millingId}, заменена на ${showcaseRepair.ID}`,
-    );
-    commands.changeShowcase(showcaseRepair.ID);
-  }
-
-  const showcaseId = showcaseRepair ? showcaseRepair.ID : SHOWCASE;
 
   /** @Тип_фасада и @Тип_ручки_фрезеровки */
   restoreHandles({ TYPE, MILLING_TYPE, MILLING: millingId });
@@ -531,7 +512,7 @@ const prepareData = () => {
       PALETTE,
       PATINA: patinaId,
       GLASS,
-      SHOWCASE: showcaseId,
+      SHOWCASE,
       ALUM,
       COLOR,
     },
@@ -683,7 +664,6 @@ onBeforeUnmount(() => {
   }
 
 }
-
 
 .configuration {
   display: flex;

@@ -390,7 +390,7 @@ export class TransformControlsManager {
         this.eventBus.on("A:TransformMode_On", onAttach)
         this.eventBus.on("A:TransformMode_Off", onDisable)
         this.eventBus.on("A:GlobalTransformMode_Off", onDisable)
-        
+
         this.eventBus.on("A:Load", onTotalDetach)
         this.eventBus.on("A:Create", onTotalDetach)
         this.eventBus.on("A:NextAction", onTotalDetach)

@@ -5,7 +5,6 @@ import vue from '@vitejs/plugin-vue'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
-
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/dev_modeller/',
@@ -67,10 +66,20 @@ export default defineConfig({
     output: {
       entryFileNames: "assets/js/[name]-[hash].js",
       chunkFileNames: "assets/js/[name]-[hash].js",
-      assetFileNames: ({ name, extname }) => {
-          if (/\.css$/.test(name ?? '')) {
+      assetFileNames: ({ name }) => {
+          const fileName = name ?? '';
+
+          if (/\.css$/.test(fileName)) {
             return 'assets/style-[hash][extname]';
           }
+
+          // Шрифты — с хешем содержимого в имени. Без него URL шрифта не меняется
+          // при добавлении новых иконок, и браузер продолжает использовать старый
+          // закешированный файл, в котором новых глифов нет (иконка не рисуется).
+          if (/\.(woff2?|ttf|eot|otf)$/.test(fileName)) {
+            return 'assets/fonts/[name]-[hash][extname]';
+          }
+
           return 'assets/[name][extname]';
       },
     },

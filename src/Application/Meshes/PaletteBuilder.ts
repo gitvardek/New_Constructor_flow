@@ -119,7 +119,6 @@ export class PaletteBuilder {
         fasadeProps: { [key: string]: any };
     }) {
 
-
         const { _APP } = this.parent;
         const palette = _APP.PALETTE[data];
         const fasadeId = fasadeProps.COLOR ?? 567323;

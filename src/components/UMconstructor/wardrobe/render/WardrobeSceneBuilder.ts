@@ -1,0 +1,664 @@
+// ==== Гардеробная система (WARDROBE) ====
+// Отрисовка гардеробной сетки в PIXI: секции (без стенок/cells) и профили на
+// их границах, N секций -> N+1 профилей. Вынесено из SceneBuilder.ts, где
+// лежало рядом с box-UM createSector/createVerticalCut — те завязаны на
+// cells/rows/extras, которых у гардеробной системы нет вовсе, общего кода не
+// было.
+//
+// Точка входа одна: SceneBuilder.renderGrid() для moduleKind === 'wardrobe'
+// зовёт renderWardrobeGrid() и выходит. Общее состояние — тот же
+// RenderContext, что у SceneBuilder/SelectionHighlighter/DividerDragEngine,
+// так что все движки видят одни PIXI-контейнеры.
+//@ts-nocheck
+
+import { Container, Graphics, Text } from "pixi.js";
+import { Shape, Section } from "@/components/UMconstructor/utils/PixiMethods.ts";
+import RenderContext from "@/components/UMconstructor/utils/render2d/RenderContext.ts";
+import { WARDROBE_PROFILE_WIDTH, WARDROBE_CANVAS_PADDING_PX, WARDROBE_LEG_PLATE_HEIGHT, WARDROBE_LEG_PLATE_WIDTH, WARDROBE_LEG_STEM_WIDTH } from "@/Application/F-wardrobeData.ts";
+import { getWardrobeShelfPixiHeight, getWardrobeFasteningColorFamily, getWardrobeShelfDepth, getWardrobeFillingSideGap, getWardrobeFasteningLegs, getWardrobeTotalHeight, getWardrobeProfilePositionY, canDragWardrobeProfileY } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { WARDROBE_COLORS, getWardrobeShelfColors } from "./WardrobeColors.ts";
+import { createHorizontalDimension, createVerticalDimension, createNameLabel } from "@/components/UMconstructor/editor-v2/render2d/dimensions.ts";
+import { SELECTION_STROKE_COLOR } from "@/components/UMconstructor/editor-v2/render2d/palette.ts";
+import { isWardrobeCabinet } from "@/components/UMconstructor/cabinet/CabinetSystem.ts";
+import { drawWardrobeCabinet, getCabinetOuterSpanPx } from "@/components/UMconstructor/cabinet/render/CabinetGraphics.ts";
+
+// Подпись элемента секции на канвасе. index — порядок в wardrobeFilling (как в
+// WardrobeFillingsView.vue). Общая для createWardrobeSector и WardrobeDragEngine.
+export function getWardrobeItemName(shelf, index) {
+    if (shelf.type === 'rail') return `Штанга ${index + 1}`;
+    if (isWardrobeCabinet(shelf)) return `Тумбочка ${index + 1}`;
+    return `Полка ${index + 1}`;
+}
+
+// Горизонтальный габарит элемента в локальных px секции: у каждого типа свой
+// зазор от профиля (WardrobeSystem.getWardrobeFillingSideGap), у тумбочки его
+// считает её же хелпер (cabinet/render/CabinetGraphics.getCabinetOuterSpanPx —
+// с крышкой габарит шире корпуса на её свес).
+export function getWardrobeItemSpanPx(ctx, shelf, sectorWidthPx) {
+    if (isWardrobeCabinet(shelf)) return getCabinetOuterSpanPx(ctx, shelf, sectorWidthPx);
+
+    const gapPx = ctx.getPixelWidth(getWardrobeFillingSideGap(shelf?.type));
+    return { x: gapPx, width: Math.max(sectorWidthPx - 2 * gapPx, 1) };
+}
+
+// Заливка элемента секции в graphic (перед перерисовкой вызывающий делает clear()).
+// Общая для createWardrobeShelf и живого драга (WardrobeDragEngine.onWardrobeShelfDragMove).
+export function drawWardrobeItem(graphic, ctx, shelf, sectorWidthPx, topPx, heightPx) {
+    if (isWardrobeCabinet(shelf)) {
+        drawWardrobeCabinet(graphic, ctx, shelf, sectorWidthPx, topPx, heightPx);
+        return;
+    }
+
+    const shelfColors = getWardrobeShelfColors(shelf);
+    const span = getWardrobeItemSpanPx(ctx, shelf, sectorWidthPx);
+    graphic.rect(span.x, topPx, span.width, heightPx);
+    graphic.fill({ color: shelfColors.fill, alpha: shelf.material === 'glass' ? WARDROBE_COLORS.shelf.glassAlpha : 1 });
+    graphic.stroke({ width: 1, color: shelfColors.stroke, alignment: 1 });
+}
+
+// Цвет обводки выделенной полки/штанги (createWardrobeSector) — яркий,
+// не встречается среди цветов самих полок/профилей (WARDROBE_COLORS), чтобы
+// всегда чётко читаться поверх любой из них. Экспортирован — WardrobeDragEngine.
+// onWardrobeShelfDragMove перерисовывает эту же обводку live во время драга
+// (тем же цветом, не подменяя его на что-то своё). Само значение — в общем
+// ките (editor-v2/render2d/palette.SELECTION_STROKE_COLOR): тем же цветом
+// обводится выделенная деталь тумбочки.
+export const WARDROBE_SHELF_HIGHLIGHT_COLOR = SELECTION_STROKE_COLOR;
+
+// Размерная линия зазора между ДВУМЯ конкретными полками (режим 'gap') —
+// вынесено из createWardrobeSector в отдельную функцию, чтобы ТУ ЖЕ формулу
+// мог переиспользовать WardrobeDragEngine.onWardrobeShelfDragMove для
+// live-обновления ТОЛЬКО линий, касающихся перетаскиваемой полки (уточнение
+// пользователя: "верни реактивность", "в режиме между наполнениями не
+// изменяется") — без полного пересчёта всей секции на каждый move (это
+// вернуло бы Text-объекты для ВСЕХ пар полок секции на каждый кадр, тот же
+// баг фризов, который уже чинился отдельно). lower/upper — уже
+// ОТСОРТИРОВАННАЯ по positionY пара (lower ниже, upper выше). Возвращает
+// null, если зазор <= 0 (полки перекрываются/впритык — валидная линия
+// невозможна, тот же кейс, что и раньше пропускался через `continue`).
+export function createWardrobeGapDimension(ctx, lower, upper, depthMm, wardrobeProductId, height, absX, absY, width) {
+    const lowerHeightMm = getWardrobeShelfPixiHeight(lower, depthMm, wardrobeProductId);
+    const gapMm = upper.positionY - (lower.positionY + lowerHeightMm);
+    if (gapMm <= 0) return null;
+
+    // Локальные координаты секции — Y растёт ВНИЗ (PIXI), а positionY (мм
+    // от пола) растёт ВВЕРХ — тот же пересчёт, что и в createWardrobeShelf
+    // (bottomPx = height - getPixelHeight(positionY)).
+    const lowerTopPx = height - ctx.getPixelHeight(lower.positionY + lowerHeightMm)
+    const upperBottomPx = height - ctx.getPixelHeight(upper.positionY)
+    // labelSide=1 (справа, по умолчанию) — уточнение пользователя,
+    // haloText=true — контраст независимо от фона под текстом (см.
+    // editor-v2/render2d/dimensions.DIMENSION_TEXT_STYLE_HALO): подпись здесь почти
+    // всегда перекрывает тёмный профиль соседней границы.
+    return createVerticalDimension(absY + lowerTopPx, absY + upperBottomPx, absX + width - 4, gapMm, 1, true);
+}
+
+export default class WardrobeSceneBuilder {
+    ctx: RenderContext
+
+    constructor(ctx: RenderContext) {
+        this.ctx = ctx
+    }
+
+
+    // Рисует секции (без стенок/cells) и профили на их границах. N секций
+    // -> N+1 профилей (профили — границы секций, включая два крайних, левый
+    // и правый край модуля). Полностью отдельно от box-UM SceneBuilder.
+    // createSector/createVerticalCut — те завязаны на cells/rows/extras,
+    // которых у гардеробной системы нет вовсе.
+    renderWardrobeGrid(moduleGrid, moduleSector) {
+        const ctx = this.ctx
+        const sections = moduleGrid.sections
+        const heightPx = ctx.getPixelHeight(moduleGrid.height)
+        const profileWidthPx = ctx.getPixelWidth(WARDROBE_PROFILE_WIDTH)
+
+        // Отступ канваса (WARDROBE_CANVAS_PADDING_PX, см. renderGrid) секции
+        // и полки наследуют автоматически — они дети moduleSector, чья позиция
+        // уже включает отступ. Профили и подписи ниже — нет: профили идут в
+        // ctx.deviders (sectionsContainer), подписи — в ctx.sectionLables
+        // (lablesContainer), оба верхнеуровневые, сидят на app.stage в (0,0) и
+        // трансформацию moduleSector не получают. Поэтому её приходится
+        // прибавлять вручную к каждой абсолютной координате в этом методе —
+        // иначе секции/полки съезжают на отступ, а профили остаются на месте.
+        const moduleOffsetX = moduleSector.position.x
+        const moduleOffsetY = moduleSector.position.y
+
+        // section.width — ВНУТРЕННЕЕ расстояние между профилями (как и в 3D).
+        // Перед каждой секцией резервируется WARDROBE_PROFILE_WIDTH (правый
+        // крайний профиль — после цикла), поэтому видимая ширина секции ровно
+        // widthPx. Раньше профили рисовались ПОВЕРХ краёв заливки, и секция
+        // визуально теряла 2×25мм при неизменном section.width.
+        //
+        // Из-за резерва totalWidthPx больше ctx.getPixelWidth(moduleGrid.width)
+        // на (N+1)×profileWidthPx — на эту разницу увеличен канвас в
+        // Render2D.vue::updateTotalSize, иначе правый край обрезался бы.
+        let xOffset = 0
+        sections.forEach((section, sectionIndex) => {
+            xOffset += profileWidthPx
+            const widthPx = ctx.getPixelWidth(section.width)
+            section.xOffset = xOffset
+            section.yOffset = 0
+
+            this.createWardrobeSector({
+                x: xOffset,
+                y: 0,
+                width: widthPx,
+                height: heightPx,
+                section,
+                sectionIndex,
+                _sector: moduleSector,
+                // Длина полки считается от ТЕКУЩЕЙ grid.depth, а не от потолка
+                // getWardrobeProfileMaxDepth: тот не меняется при правке поля
+                // "Глубина", из-за чего высота наклонной полки переставала на
+                // неё реагировать (см. WardrobeSystem.getWardrobeShelfDepth).
+                depthMm: getWardrobeShelfDepth(moduleGrid),
+                wardrobeProductId: moduleGrid.productID,
+                moduleOffsetX,
+                moduleOffsetY,
+            })
+
+            xOffset += widthPx
+        })
+        xOffset += profileWidthPx // правый крайний профиль
+
+        const totalWidthPx = xOffset
+
+        // N+1 профилей на границах 0..sections.length; 0 и sections.length —
+        // крайние (левый/правый край модуля), не перетаскиваются.
+        //
+        // Профиль[i] занимает СВОЁ место ровно перед sections[i]
+        // (section.xOffset уже учитывает резерв), правый крайний — после
+        // последней секции; раньше внутренние центрировались НА границе,
+        // половиной в каждом соседе. Без наложения section.width честно равен
+        // видимому промежутку. Драг внутреннего профиля
+        // (WardrobeDragEngine.onWardrobeProfileDragMove) от этой геометрии не
+        // зависит — считает по section.width соседей и дельте мыши.
+        //
+        // heightPx (= moduleGrid.height в px) — высота канваса по САМОМУ
+        // ВЫСОКОМУ профилю (UMconstructorClass.reset()); каждый профиль
+        // рисуется СВОЕЙ высотой от пола вверх, короткие ("Стена") до верха
+        // не достают (см. createWardrobeProfile).
+        // Крайние точки сборки по вертикали (с ножками) — набираются в цикле
+        // под размерную линию общей высоты после него.
+        let spanTopY = Infinity
+        let spanBottomY = -Infinity
+
+        for (let profileIndex = 0; profileIndex <= sections.length; profileIndex++) {
+            const isEdge = profileIndex === 0 || profileIndex === sections.length
+
+            const profileX = profileIndex < sections.length
+                ? sections[profileIndex].xOffset - profileWidthPx
+                : totalWidthPx - profileWidthPx
+
+            const profileData = moduleGrid.wardrobeProfiles?.[profileIndex]
+            // "Семья" цвета — из каталога fastenings[fasteningId].type
+            // ("floor_ceiling"/"floor_wall"/"wall_wall"), не из самого
+            // fasteningId/названия (см. WardrobeSystem.getWardrobeFasteningColorFamily).
+            const colorFamily = getWardrobeFasteningColorFamily(moduleGrid.productID, profileData?.fasteningId)
+            // Та же логика выбора draggable/edge заливки, что и внутри
+            // createWardrobeProfile ниже — нужна ЗДЕСЬ отдельно, чтобы дать
+            // подписи "Профиль N" (сидит ПРЯМО на этой заливке) правильный
+            // bgColorHex для контрастности (см. editor-v2/render2d/dimensions.
+            // getContrastTextColor, уточнение пользователя).
+            const profileFillColors = WARDROBE_COLORS.profile[colorFamily] ?? WARDROBE_COLORS.profile['floor_ceiling']
+            const profileFill = isEdge ? profileFillColors.edge.fill : profileFillColors.draggable.fill
+
+            const profileHeightMm = profileData?.height ?? moduleGrid.height
+            // Отступ от пола — только у навесного "стена-стена" (остальные
+            // стоят на полу, см. WardrobeSystem.getWardrobeProfilePositionY).
+            // Он не растягивает габарит модуля: верхний торец остаётся в
+            // heightPx, поэтому масштаб канваса от драга по Y не меняется.
+            const profilePositionYMm = getWardrobeProfilePositionY(moduleGrid, profileData)
+            const profileOffsetPx = ctx.getPixelHeight(profilePositionYMm)
+
+            this.createWardrobeProfile({
+                x: profileX + moduleOffsetX,
+                y: moduleOffsetY,
+                totalHeightPx: heightPx,
+                profileHeightMm,
+                profileOffsetPx,
+                colorFamily,
+                profileIndex,
+                profileId: profileData?.id,
+                draggable: !isEdge,
+                movableY: canDragWardrobeProfileY(moduleGrid, profileData),
+            })
+
+            // profileHeightPx — используется и размерной линией ниже (в
+            // 'floor' от wardrobeDragActive), и контуром выделения сразу под
+            // ней (нужен ВСЕГДА, не только вне драга) — вынесен из-под if,
+            // формула идентична createWardrobeProfile.
+            const profileHeightPx = Math.min(Math.max(ctx.getPixelHeight(profileHeightMm), 2), heightPx)
+            // Торцы САМОГО профиля (с учётом отступа) и пол модуля — от них
+            // считается всё остальное: ножки, обводка выделения, подписи,
+            // размерные линии. У напольных креплений profileBottomY === floorY.
+            const floorY = moduleOffsetY + heightPx
+            const profileBottomY = floorY - profileOffsetPx
+            const profileTopY = profileBottomY - profileHeightPx
+
+            // Ножки профиля — ВНЕ габарита модуля: нижняя уходит под пол,
+            // верхняя (только "пол-потолок") поднимается над верхним торцом
+            // профиля. Место под них зарезервировано на канвасе
+            // (WardrobeSystem.getWardrobeLegReservePx, см. SceneBuilder.
+            // renderGrid/Render2D.updateTotalSize), поэтому они не обрезаются
+            // краем и не читаются как часть высоты профиля. Состав ножек —
+            // по типу крепления, то же правило, что в 3D-сборке.
+            const legs = getWardrobeFasteningLegs(moduleGrid.productID, profileData?.fasteningId)
+            const legBottomPx = legs.bottom > 0 ? ctx.getPixelHeight(legs.bottom) : 0
+            const legTopPx = legs.top > 0 ? ctx.getPixelHeight(legs.top) : 0
+
+            if (legBottomPx > 0) {
+                this.createWardrobeProfileLeg({
+                    x: profileX + moduleOffsetX,
+                    widthPx: profileWidthPx,
+                    yBase: profileBottomY,
+                    heightPx: legBottomPx,
+                    direction: 1,
+                    colorFamily,
+                    draggable: !isEdge,
+                })
+            }
+
+            if (legTopPx > 0) {
+                this.createWardrobeProfileLeg({
+                    x: profileX + moduleOffsetX,
+                    widthPx: profileWidthPx,
+                    yBase: profileTopY,
+                    heightPx: legTopPx,
+                    direction: -1,
+                    colorFamily,
+                    draggable: !isEdge,
+                })
+            }
+
+            spanTopY = Math.min(spanTopY, profileTopY - legTopPx)
+            spanBottomY = Math.max(spanBottomY, profileBottomY + legBottomPx)
+
+            // Выделение двустороннее: канвас <-> "Настройка профилей".
+            // Обводка ПОВЕРХ профиля, не подмена заливки (как у полки в
+            // createWardrobeSector); profile.position уже абсолютная, так что
+            // координаты те же без пересчёта. Видимость — по
+            // UM_STORE.selectedWardrobeProfileId (простое поле стора, а не
+            // Vue-ref, как selectedFilling у полок). Регистрация в
+            // ctx.wardrobeProfilesMap нужна, чтобы
+            // SelectionHighlighter.selectWardrobeProfile переключал .visible
+            // напрямую, без renderGrid.
+            const profileHighlight = new Graphics();
+            profileHighlight.rect(profileX + moduleOffsetX, profileTopY, profileWidthPx, profileHeightPx);
+            profileHighlight.stroke({ width: 2, color: WARDROBE_SHELF_HIGHLIGHT_COLOR, alignment: 1 });
+            profileHighlight.visible = ctx.UMconstructor?.value?.UM_STORE.selectedWardrobeProfileId === profileData?.id;
+            ctx.sectionLables.push(profileHighlight);
+            ctx.wardrobeProfilesMap.push({
+                data: { id: profileData?.id },
+                highlightGraphics: profileHighlight,
+            });
+
+            // Высота профиля: вертикальная размерная линия сбоку, от верха
+            // профиля до низа канваса, в абсолютных координатах. Кладём в
+            // ctx.sectionLables, а не ctx.dementions: dementionContainer
+            // добавлен в app.stage первым и рендерится позади всего, а
+            // lablesContainer — последним (обозначения на переднем плане).
+            //
+            // У КРАЙНЕГО ПРАВОГО профиля линия и подпись зеркалятся НАЛЕВО
+            // (isLastProfile), иначе уходят за край канваса; у левого справа
+            // всегда есть минимум ширина секции.
+            //
+            // ctx.wardrobeDragActive — во время драга пропускаем Text-объекты
+            // (размерная линия + "Профиль N"), самую дорогую часть отрисовки;
+            // троттлинга до кадра не хватало, т.к. медленный сам renderGrid().
+            // Прямоугольник профиля рисуется всегда, полный рендер
+            // возвращается на dragEnd (resetModule()).
+            if (!ctx.wardrobeDragActive) {
+                const isLastProfile = profileIndex === sections.length
+                const dimensionX = moduleOffsetX + (isLastProfile ? profileX - 4 : profileX + profileWidthPx + 4)
+                ctx.sectionLables.push(createVerticalDimension(
+                    profileTopY, profileBottomY, dimensionX, profileHeightMm, isLastProfile ? -1 : 1,
+                ))
+
+                // Отступ от пола — та же сторона и X, что у высоты профиля,
+                // ниже её: линия продолжает размерную цепочку "высота +
+                // отступ = габарит модуля". Только у поднятого навесного
+                // профиля: при нулевом отступе линия была бы нулевой длины.
+                if (profileOffsetPx > 0) {
+                    ctx.sectionLables.push(createVerticalDimension(
+                        profileBottomY, floorY, dimensionX, profilePositionYMm, isLastProfile ? -1 : 1,
+                    ))
+                }
+
+                // "Профиль N" (1-based) — ВЕРТИКАЛЬНЫЙ текст
+                // (createNameLabel(vertical=true)) по центру ширины и
+                // видимой высоты САМОГО профиля. Сбоку подпись у левого
+                // крайнего перекрывалась с "Секция N"/подписью полки, а у
+                // правого уходила за край канваса; внутри профиля она всегда в
+                // его границах, где бы он ни стоял.
+                ctx.sectionLables.push(createNameLabel(
+                    `Профиль ${profileIndex + 1}`,
+                    moduleOffsetX + profileX + profileWidthPx / 2,
+                    profileTopY + profileHeightPx / 2,
+                    0.5, 0.5, true,
+                    profileFill,
+                ))
+            }
+        }
+
+        // Общая высота системы (самый высокий профиль + ножки) — внешняя
+        // вертикальная размерная линия СЛЕВА от модуля, в отступе канваса:
+        // высоты профилей подписаны справа от своих профилей, слева свободно.
+        // Подпись тоже влево (labelSide=-1), чтобы не наезжать на профиль 1.
+        //
+        // Только при РЕАЛЬНО существующих ножках ("пол-потолок"/"пол-стена"):
+        // у "стена-стена" общая высота равна высоте самого высокого профиля,
+        // и линия дублировала бы его собственную.
+        const totalHeightMm = getWardrobeTotalHeight(moduleGrid)
+        if (!ctx.wardrobeDragActive && totalHeightMm > (moduleGrid.height || 0)) {
+            ctx.sectionLables.push(createVerticalDimension(
+                spanTopY, spanBottomY, moduleOffsetX - 10, totalHeightMm, -1,
+            ))
+        }
+    }
+
+    // Секция гардеробной системы — просто прямоугольник (тот же Section/
+    // cellGraphics, что и у обычных секций box-UM, для единого визуального
+    // стиля), без cells/fasades/тсарги/наполнения.
+    //
+    // _sector (moduleSector из createModule) ОБЯЗАТЕЛЕН:
+    // SelectionHighlighter.toggleSectionColor снимает подсветку через
+    // ctx.sections[0].children, т.е. секции должны быть ДЕТЬМИ
+    // ctx.sections[0], а не соседями в ctx.sections (тот же контракт, что у
+    // box-UM createSector). С `ctx.sections.push(sector)` клик по секции не
+    // подсвечивал его и не снимал подсветку с других.
+    createWardrobeSector({ x, y, width, height, section, sectionIndex, _sector, depthMm, wardrobeProductId, moduleOffsetX = 0, moduleOffsetY = 0 }) {
+        const ctx = this.ctx
+        const sector = new Container({ isRenderGroup: true });
+
+        sector.position.set(x, y);
+        // absX/absY — АБСОЛЮТНЫЕ координаты канваса; x/y выше локальные,
+        // относительно moduleSector: верны для sector.position, но не для
+        // меток ниже (см. moduleOffsetX/Y в renderWardrobeGrid).
+        const absX = x + moduleOffsetX;
+        const absY = y + moduleOffsetY;
+        sector.shapes = [];
+        sector.sectorData = section;
+        sector.sections = ctx.sections;
+        sector.secIndex = sectionIndex;
+
+        const cell = new Section(section, width, height, sector, false);
+
+        const selected = ctx.selectedCell;
+        cell.highlightGraphics.visible = selected.value.sec === sectionIndex;
+
+        sector.addChild(cell.cellGraphics);
+        sector.addChild(cell.highlightGraphics);
+
+        cell.cellGraphics.on("pointerdown", () => {
+            ctx.selectCell("module", <TSelectedCell>{ sec: sectionIndex, cell: null, row: null, extra: null, item: null });
+        });
+        cell.cellGraphics.eventMode = "static";
+        cell.cellGraphics.cursor = "pointer";
+
+        // Полки — ДЕТИ sector (а не отдельного shared-контейнера, как box-UM
+        // createFilling/Shape), поэтому работают в локальных координатах
+        // секции (0..width/0..height), см. createWardrobeShelf. shelfIndex —
+        // порядок в МАССИВЕ, не сортировка по positionY: та же нумерация, что
+        // в WardrobeFillingsView.vue ("Полка N"/"Штанга N"), чтобы канвас и
+        // панель "Конфигурация" совпадали.
+        const shelves = section.wardrobeFilling || [];
+        shelves.forEach((shelf) => {
+            sector.addChild(this.createWardrobeShelf({ sectorWidthPx: width, sectorHeightPx: height, shelf, depthMm, sectionIndex, wardrobeProductId }));
+        });
+
+        // Все размерные линии и нейминги ниже идут НЕ детьми sector (тот
+        // рендерится в общем порядке ctx.sections и может оказаться позади
+        // fasades/handles-контейнеров), а в ctx.sectionLables →
+        // lablesContainer: он добавлен в app.stage последним и всегда на
+        // переднем плане — как высота профиля в renderWardrobeGrid.
+        // Локальные координаты (0..width/0..height) переводятся в абсолютные
+        // добавлением x/y секции: lablesContainer сидит на app.stage в (0,0).
+
+        // Режим размерных данных полок/штанг — переключатель "Наполнение"
+        // (WardrobeRightPanelView.vue -> UM_STORE.wardrobeShelfDimensionMode).
+        // 'gap' — зазор МЕЖДУ соседними полками, отдельная размерная линия у
+        // ПРАВОГО края секции (контраст-фикс labelSide=-1 здесь НЕ
+        // применяется — линия должна остаться справа).
+        const dimensionMode = ctx.UMconstructor?.value?.UM_STORE.wardrobeShelfDimensionMode ?? 'floor'
+
+        // ctx.wardrobeDragActive — во время драга размерные линии зазора
+        // пропускаются целиком (Text — самое дорогое при большом числе полок);
+        // полный рендер возвращается на dragEnd.
+        if (dimensionMode === 'gap' && !ctx.wardrobeDragActive) {
+            // Сортировка по positionY нужна отдельно от shelfIndex ниже
+            // (порядок добавления в массив НЕ совпадает с порядком по высоте).
+            const sortedShelves = [...shelves].sort((a, b) => a.positionY - b.positionY);
+            const gapLines = [];
+            for (let i = 1; i < sortedShelves.length; i++) {
+                const lower = sortedShelves[i - 1];
+                const upper = sortedShelves[i];
+                // Формула в createWardrobeGapDimension — её же зовёт
+                // WardrobeDragEngine.onWardrobeShelfDragMove, чтобы живьём
+                // обновлять только линии у перетаскиваемой полки.
+                const gapContainer = createWardrobeGapDimension(ctx, lower, upper, depthMm, wardrobeProductId, height, absX, absY, width);
+                if (!gapContainer) continue;
+                ctx.sectionLables.push(gapContainer);
+                // По ПАРЕ id, не индексу — см. RenderContext.wardrobeGapLinesMap
+                // (соседство по positionY может смениться за один драг).
+                gapLines.push({ lowerId: lower.id, upperId: upper.id, container: gapContainer });
+            }
+            ctx.wardrobeGapLinesMap[sectionIndex] = gapLines;
+        }
+
+        // Подписи полок/штанг — по центру секции (x+width/2, anchor 0.5) и по
+        // центру своей PIXI-высоты; слева от секции (x+4) они накладывались
+        // на подпись и размерную линию соседнего профиля.
+        //
+        // В режиме 'floor' расстояние до пола пишется ПРЯМО В подпись, а не
+        // отдельной размерной линией (линии от пола раздвигались "веером").
+        // positionY по всей модели данных и так хранится в мм от пола.
+        shelves.forEach((shelf, shelfIndex) => {
+            const shelfHeightMm = getWardrobeShelfPixiHeight(shelf, depthMm, wardrobeProductId);
+            const shelfTopPx = height - ctx.getPixelHeight(shelf.positionY + shelfHeightMm);
+            const shelfHeightPx = Math.max(ctx.getPixelHeight(shelfHeightMm), 2);
+
+            // ctx.wardrobeDragActive — во время драга пропускаем ТОЛЬКО
+            // подпись (Text); контур выделения ниже дешёвый и рисуется всегда,
+            // он показывает, какую полку тащим.
+            //
+            // nameLabel (null, если подпись пропущена — например при драге
+            // ПРОФИЛЯ) регистрируется в wardrobeShelvesMap: при живом драге
+            // ПОЛКИ WardrobeDragEngine.onWardrobeShelfDragMove двигает и
+            // переписывает её напрямую, иначе она замирала бы до конца драга —
+            // renderGrid() в это время не вызывается.
+            let nameLabel = null;
+            if (!ctx.wardrobeDragActive) {
+                const baseName = getWardrobeItemName(shelf, shelfIndex);
+                const label = dimensionMode === 'floor' ? `${baseName} — ${Math.round(shelf.positionY)} мм` : baseName;
+                // bgColorHex — подпись сидит прямо на заливке полки/штанги,
+                // контраст подбирается динамически
+                // (editor-v2/render2d/dimensions.getContrastTextColor).
+                nameLabel = createNameLabel(
+                    label, absX + width / 2, absY + shelfTopPx + shelfHeightPx / 2, 0.5, 0.5, false,
+                    getWardrobeShelfColors(shelf).fill,
+                );
+                ctx.sectionLables.push(nameLabel);
+            }
+
+            // Выделение двустороннее: канвас <-> WardrobeFillingsView.vue.
+            // Обводка ПОВЕРХ полки, а не подмена заливки (как box-UM
+            // highlightGraphics): цвет полки сам несёт тип/материал, см.
+            // getWardrobeShelfColors. В ctx.sectionLables (передний план),
+            // иначе рамка терялась бы под соседями. Видимость — по
+            // ctx.selectedFilling.value; регистрация в ctx.wardrobeShelvesMap
+            // нужна, чтобы SelectionHighlighter.selectCell переключал .visible
+            // напрямую (как с ctx.fillingsMap).
+            const span = getWardrobeItemSpanPx(ctx, shelf, width);
+            const shelfHighlight = new Graphics();
+            shelfHighlight.rect(absX + span.x, absY + shelfTopPx, span.width, shelfHeightPx);
+            shelfHighlight.stroke({ width: 2, color: WARDROBE_SHELF_HIGHLIGHT_COLOR, alignment: 1 });
+            shelfHighlight.visible =
+                ctx.selectedFilling.value?.sec === sectionIndex &&
+                ctx.selectedFilling.value?.item === shelf.id;
+            ctx.sectionLables.push(shelfHighlight);
+            ctx.wardrobeShelvesMap.push({
+                data: { sec: sectionIndex, cell: null, row: null, extra: null, id: shelf.id },
+                highlightGraphics: shelfHighlight,
+                nameLabel,
+            });
+        });
+
+        // Ширина и нейминг секции вынесены НАД верхней границей
+        // модуля, в зону WARDROBE_CANVAS_PADDING_PX — внутри секции они
+        // наезжали на её верхнюю границу. Обе подписи на одной строке Y:
+        // "Секция N" слева (anchor 0,1 — текст растёт вверх от линии),
+        // размерная линия по центру секции (её подпись тоже над линией).
+        //
+        // -6, а не -10: при WARDROBE_CANVAS_PADDING_PX=20 линии нужно ~15px
+        // над собой под текст и засечки, при -10 текст вылезал за верх.
+        //
+        // ctx.wardrobeDragActive — во время драга пропускаем Text-объекты.
+        if (!ctx.wardrobeDragActive) {
+            const sectorTopLabelsY = absY - 6;
+            ctx.sectionLables.push(createHorizontalDimension(absX + 0, absX + width, sectorTopLabelsY, section.width));
+            ctx.sectionLables.push(createNameLabel(`Секция ${sectionIndex + 1}`, absX + 4, sectorTopLabelsY, 0, 1));
+        }
+
+        if (_sector) _sector.addChild(sector);
+        else ctx.sections.push(sector);
+        section.sector = sector;
+
+        return sector;
+    }
+
+    // Полка секции — плоская (обычная) или наклонная (обувная), ЛДСП или
+    // стекло. Перетаскивается мышью по вертикали (DividerDragEngine.
+    // onWardrobeShelfDragStart/Move/End) — секции/shelfId записаны прямо на
+    // graphic (тот же приём, что profile.profileIndex у createWardrobeProfile),
+    // настройка типа/материала по-прежнему только через правую панель.
+    //
+    // Цвет — по ТИПУ (у прямой и наклонной разные базовые, см.
+    // WardrobeColors.ts), материал (ЛДСП/стекло) — прозрачностью поверх.
+    // Высота — getWardrobeShelfPixiHeight: у прямой толщина материала, у
+    // наклонной проекция повёрнутого прямоугольника на вертикаль (как в 3D
+    // ShelfBuilder.buildWardrobeAngledShelf), поэтому наклонная занимает
+    // больше — это её реальный силуэт, не искажение.
+    //
+    // positionY — мм от низа секции до НИЖНЕЙ грани полки (см.
+    // WardrobeShelvesManager.updateWardrobeShelfPositionY).
+    createWardrobeShelf({ sectorWidthPx, sectorHeightPx, shelf, depthMm, sectionIndex, wardrobeProductId }) {
+        const ctx = this.ctx
+        const heightMm = getWardrobeShelfPixiHeight(shelf, depthMm, wardrobeProductId)
+        const heightPx = Math.max(ctx.getPixelHeight(heightMm), 2)
+
+        const bottomPx = sectorHeightPx - ctx.getPixelHeight(Math.max(shelf.positionY || 0, 0))
+        const topPx = bottomPx - heightPx
+
+        // Цвет — WardrobeColors.getWardrobeShelfColors, его же берёт
+        // createWardrobeSector для фона подписи (editor-v2/render2d/dimensions.getContrastTextColor).
+        const graphic = new Graphics();
+        drawWardrobeItem(graphic, ctx, shelf, sectorWidthPx, topPx, heightPx);
+
+        graphic.eventMode = 'static';
+        graphic.cursor = 'ns-resize';
+        graphic.secIndex = sectionIndex;
+        graphic.shelfId = shelf.id;
+        graphic.on('pointerdown', ctx.onWardrobeShelfDragStart);
+
+        return graphic;
+    }
+
+    // Профиль — тонкая вертикальная планка на границе секции(й). Внутренние
+    // (draggable) тянутся по X, меняя ширину двух соседних секций; навесные
+    // "стена-стена" (movableY) — ещё и по Y, меняя свой отступ от пола. Чем
+    // окажется драг, решает WardrobeDragEngine.onWardrobeProfileDragStart по
+    // доминирующей оси движения мыши; обработчик один на все профили, в т.ч.
+    // на неподвижные (крайние напольные) — для них он сводится к выделению.
+    // Сама планка — только высота профиля, без ножек: те рисуются отдельно
+    // (createWardrobeProfileLeg из renderWardrobeGrid) и ВНЕ габарита
+    // модуля, чтобы moduleGrid.height по-прежнему читалось как высота
+    // профиля, а не вместе с ними (общую высоту подписывает отдельная
+    // размерная линия слева).
+    //
+    // У каждого профиля СВОЯ высота (profileHeightMm) и своя точка опоры:
+    // напольный крепится к полу и растёт ВВЕРХ, поэтому короткие просто не
+    // достают до totalHeightPx (эталон — самый высокий профиль), а не
+    // растягиваются; навесной поднят над полом на profileOffsetPx. Пол —
+    // общая точка отсчёта, как positionY у полок. Цвет зависит от colorFamily
+    // ('floor_ceiling'|'floor_wall'|'wall_wall', вычисляет вызывающий код из
+    // fastenings[fasteningId].type) и draggable (WardrobeColors.ts).
+    createWardrobeProfile({ x, y = 0, totalHeightPx, profileHeightMm, profileOffsetPx = 0, colorFamily, profileIndex, profileId, draggable, movableY = false }) {
+        const ctx = this.ctx
+        const widthPx = ctx.getPixelWidth(WARDROBE_PROFILE_WIDTH)
+        const heightPx = Math.min(Math.max(ctx.getPixelHeight(profileHeightMm), 2), totalHeightPx)
+        const colors = WARDROBE_COLORS.profile[colorFamily] ?? WARDROBE_COLORS.profile['floor_ceiling']
+        const color = draggable ? colors.draggable : colors.edge
+
+        const profile = new Graphics();
+        profile.rect(0, 0, widthPx, heightPx);
+        profile.fill(color.fill);
+        profile.stroke({ width: 1, color: color.stroke, alignment: 1 });
+
+        // y — отступ канваса гардеробной системы (WARDROBE_CANVAS_PADDING_PX,
+        // см. renderGrid/renderWardrobeGrid) — профили НЕ дети moduleSector
+        // (добавляются в ctx.deviders → отдельный верхнеуровневый
+        // sectionsContainer), поэтому не наследуют его позицию автоматически
+        // через PIXI-трансформацию, как секции/полки — нужно прибавлять
+        // вручную. По умолчанию 0 (box-UM/вызовы без явного отступа —
+        // поведение не меняется).
+        profile.position.set(x, y + totalHeightPx - heightPx - profileOffsetPx);
+
+        // Один обработчик на все профили: он и выделяет (это нужно даже
+        // неподвижному крайнему напольному — настраивается он в панели), и
+        // ведёт драг по доступным осям. Какие оси доступны, движок считает
+        // сам по profileIndex и креплению, поэтому флаги сюда не передаются.
+        // profileIndex/profileId записаны прямо на graphic — как
+        // secIndex/shelfId у полки.
+        profile.eventMode = "static";
+        profile.profileIndex = profileIndex;
+        profile.profileId = profileId;
+        profile.cursor = draggable
+            ? (movableY ? "move" : "ew-resize")
+            : (movableY ? "ns-resize" : "pointer");
+        profile.on("pointerdown", ctx.onWardrobeProfileDragStart);
+
+        ctx.deviders.push(profile);
+
+        return profile;
+    }
+
+    // Регулировочная ножка профиля — схема "стержень + опорная плита", та же
+    // геометрия, что в 3D (LegBuilder.createWardrobeLeg, там цилиндры с
+    // радиусом = половина этих ширин). Рисуется в цвете СВОЕГО профиля:
+    // ножка принадлежит ему, а форма отличает её от продолжения планки.
+    //
+    // yBase — точка примыкания к торцу профиля (пол для нижней, верхний
+    // торец для верхней), direction: 1 — вниз, -1 — вверх. Геометрия растёт
+    // ТОЛЬКО в сторону direction, как и в 3D, поэтому ножка не утапливается
+    // в тело профиля.
+    createWardrobeProfileLeg({ x, widthPx, yBase, heightPx, direction, colorFamily, draggable }) {
+        const ctx = this.ctx
+        const colors = WARDROBE_COLORS.profile[colorFamily] ?? WARDROBE_COLORS.profile['floor_ceiling']
+        const color = draggable ? colors.draggable : colors.edge
+
+        // Минимум 1px: на мелком масштабе 10мм стержня и 8мм плиты
+        // округляются в ноль, и ножка пропала бы совсем.
+        const stemWidthPx = Math.max(ctx.getPixelWidth(WARDROBE_LEG_STEM_WIDTH), 1)
+        const plateWidthPx = Math.max(ctx.getPixelWidth(WARDROBE_LEG_PLATE_WIDTH), stemWidthPx)
+        const plateHeightPx = Math.min(Math.max(ctx.getPixelHeight(WARDROBE_LEG_PLATE_HEIGHT), 1), heightPx)
+        const stemHeightPx = Math.max(heightPx - plateHeightPx, 0)
+
+        const centerX = x + widthPx / 2
+        const stemY = direction === 1 ? yBase : yBase - stemHeightPx
+        const plateY = direction === 1 ? yBase + stemHeightPx : yBase - heightPx
+
+        const leg = new Graphics();
+        leg.rect(centerX - stemWidthPx / 2, stemY, stemWidthPx, stemHeightPx);
+        leg.rect(centerX - plateWidthPx / 2, plateY, plateWidthPx, plateHeightPx);
+        leg.fill(color.fill);
+        leg.stroke({ width: 1, color: color.stroke, alignment: 1 });
+
+        // В тот же контейнер, что профили (ctx.deviders) — ножка не
+        // интерактивна: драг/выделение остаются на планке профиля.
+        ctx.deviders.push(leg);
+
+        return leg;
+    }
+
+}

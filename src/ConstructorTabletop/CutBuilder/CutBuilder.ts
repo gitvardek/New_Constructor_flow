@@ -182,6 +182,7 @@ class TableTopCreator extends BuildersHelper {
         const cromkaData = kromka ? this.getMaterialRecord('HEM', kromka) : null
 
         if (cromkaData) {
+            const cromkaData = this.modelState._HEM[kromka]
             await this.getMaterial({
                 material: material2,
                 url: cromkaData.DETAIL_PICTURE,

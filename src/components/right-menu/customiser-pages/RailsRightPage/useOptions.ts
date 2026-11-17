@@ -3,7 +3,7 @@ import { useAppData } from "@/store/appliction/useAppData";
 import { useModelState } from "@/store/appliction/useModelState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useMechanism } from "./Mechanism/useMechanism";
-import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useUMEditorContext } from "@/components/UMconstructor/ts/umEngineContext.ts";
 import { TRootOptionType, TOption, TTotalProps } from "@/types/types";
 import { useExpressions } from "../../../../utils/useExpressions";
 
@@ -16,7 +16,14 @@ export const useOptions = ({ withMechanism = true } = {}) => {
     const appData = useAppData();
     const modelState = useModelState();
     const eventBus = useEventBus();
-    const UM_STORE = useUMStorage();
+    // Внутри редактора УМ — его модель и стор. Во вложенной сессии (isolated)
+    // объекта на сцене нет: 3D не уведомляется, он соберётся из конфига.
+    const editor = useUMEditorContext();
+    const UM_STORE = editor.store;
+    const getCurrentModel = editor.getModel;
+    const emitToScene = (...args: any[]) => {
+        if (!editor.isolated) eventBus.emit(...args);
+    };
     const { weightCalculation, createMeckhanizmList } = mechanism;
 
 
@@ -33,7 +40,8 @@ export const useOptions = ({ withMechanism = true } = {}) => {
     const LOW_MODULE_HIDDEN_GROUPS = [548, 549]
     const NO_LOOPS_OPTION = 1795067
 
-    const mechanismList = withMechanism ? createMeckhanizmList() : [];
+    // Механизмы модуля — по выбранному объекту сцены; у вложенной сессии его нет.
+    const mechanismList = withMechanism && !editor.isolated ? createMeckhanizmList() : [];
 
     const syncHorizont = (options: any[], props: TTotalProps = modelState.getCurrentModel?.userData?.PROPS) => {
         // Низкий модуль: цоколь в него не помещается при любом наборе опций
@@ -84,7 +92,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
 
     const createOptionList = () => {
 
-        const { PROPS } = modelState.getCurrentModel.userData;
+        const { PROPS } = getCurrentModel().userData;
         const filtered = filterOptions()
         let result = checkExeptionOptionForFasade(filtered, PROPS.CONFIG.OPTIONS)
 
@@ -105,7 +113,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
 
         const { ID: id, cutSize } = option;
 
-        const { PROPS } = modelState.getCurrentModel.userData;
+        const { PROPS } = getCurrentModel().userData;
         const { OPTIONS, MECHANISM_TEMP, ID, SHELFQUANT } = PROPS.CONFIG;
 
         const curOpt = OPTIONS.find(el => el.id == id);
@@ -125,9 +133,9 @@ export const useOptions = ({ withMechanism = true } = {}) => {
             PROPS.CONFIG.MECHANISM = values ? id : null
             curMech.active = values;
 
-            eventBus.emit("A:SelectModelOption")
+            emitToScene("A:SelectModelOption")
             if (isNestandart) {
-                eventBus.emit("A:RecountShelfs", { data: SHELFQUANT.current });
+                emitToScene("A:RecountShelfs", { data: SHELFQUANT.current });
             }
 
         }
@@ -180,7 +188,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
                                 break
                             case 4722965:   //Навесной
                                 UM_STORE.onWallModule = false
-                                modelState.createCurrentBackwallData(ID);
+                                modelState.createCurrentBackwallData(ID, UM_STORE.onWallModule);
                                 break;
                             default:
                                 break;
@@ -247,7 +255,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
                 break;
             case 4722965:   //Навесной
                 UM_STORE.onWallModule = curOpt.active
-                modelState.createCurrentBackwallData(ID);
+                modelState.createCurrentBackwallData(ID, UM_STORE.onWallModule);
                 let currentBackwallData = modelState.getCurrentBackwallData;
 
                 if (UM_STORE.onWallModule && currentBackwallData.length > 0) {
@@ -292,14 +300,14 @@ export const useOptions = ({ withMechanism = true } = {}) => {
         const optionData = appData.getAppData.OPTION?.[id] ?? {}
         const emittedOption = { ...optionData, ...(option && typeof option === 'object' ? option : {}) }
 
-        eventBus.emit("A:SelectModelOption", { option: emittedOption, values, disabledOptions })
+        emitToScene("A:SelectModelOption", { option: emittedOption, values, disabledOptions })
 
         //  eventBus.emit("A:SelectModelOption")
 
         return curOpt.active;
     };
 
-    const syncOptions = (model = modelState.getCurrentModel) => {
+    const syncOptions = (model = getCurrentModel()) => {
         const PROPS = model?.userData?.PROPS as TTotalProps
 
         // Без тела нет trueSize, по которому считаются CONDITIONS и размер распила
@@ -310,7 +318,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
         checkExeptionOptionForFasade(filterOptions(PROPS), PROPS.CONFIG.OPTIONS, PROPS)
     }
 
-    const checkExeptionOptionForFasade = (options, props, PROPS: TTotalProps = modelState.getCurrentModel.userData.PROPS) => {
+    const checkExeptionOptionForFasade = (options, props, PROPS: TTotalProps = getCurrentModel().userData.PROPS) => {
         const { FASADE_PROPS } = PROPS.CONFIG
         const prepareColorId = FASADE_PROPS.map(el => {
             return el.COLOR
@@ -321,7 +329,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
         return result
     }
 
-    const filterOptions = (PROPS: TTotalProps = modelState.getCurrentModel.userData.PROPS) => {
+    const filterOptions = (PROPS: TTotalProps = getCurrentModel().userData.PROPS) => {
         const data = appData.getAppData
         const options = data.OPTION as Record<string | number, TRootOptionType>
         const optGroup = data.OPTIONS_GROUP
@@ -365,7 +373,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
         return filtered
     }
 
-    const filterGroups = (groups, incomingIds, props, PROPS: TTotalProps = modelState.getCurrentModel?.userData?.PROPS) => {
+    const filterGroups = (groups, incomingIds, props, PROPS: TTotalProps = getCurrentModel()?.userData?.PROPS) => {
         const idStrs = incomingIds.map(id => id.toString());
         const tmp_active_options = getActiveOptionIds(props)
         const lowModule = isLowModule(PROPS)
@@ -424,7 +432,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
 
                         if (!shouldBeVisible && curOptionInConfig.active) {
                             curOptionInConfig.active = item.active = false
-                            eventBus.emit("A:SelectModelOption")
+                            emitToScene("A:SelectModelOption")
                         }
 
 
@@ -474,7 +482,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
                             const curOptionInConfig = props?.find(el => el.id === optionCurrent.ID)
                             curOptionInConfig ? curOptionInConfig.active = optionCurrent.active : false
                         }
-                        eventBus.emit("A:SelectModelOption")
+                        emitToScene("A:SelectModelOption")
                     }
                 }
             })
@@ -493,7 +501,7 @@ export const useOptions = ({ withMechanism = true } = {}) => {
 
                     if (!closeOptions.find(item => item.active)) {
                         optionCurrent.active = true
-                        eventBus.emit("A:SelectModelOption")
+                        emitToScene("A:SelectModelOption")
                     }
                 }
             })
@@ -502,17 +510,25 @@ export const useOptions = ({ withMechanism = true } = {}) => {
 
     const resetGlobal = () => {
 
-        const { PROPS } = modelState.getCurrentModel.userData;
+        const { PROPS } = getCurrentModel().userData;
         syncOptions()
         PROPS.CONFIG.MECHANISM = null
         PROPS.CONFIG.MECHANISM_TEMP = []
 
     }
 
-    const getCutSizeOption = (option, options, PROPS: TTotalProps = modelState.getCurrentModel.userData.PROPS) => {
+    // Габарит корпуса для условий опций и размера распила. У вложенной сессии
+    // 3D-тела нет — габарит из стора редактора.
+    const getTrueSize = (PROPS: TTotalProps) => PROPS.BODY?.userData?.trueSize ?? {
+        BODY_WIDTH: UM_STORE.totalWidth || PROPS.CONFIG?.SIZE?.width,
+        BODY_HEIGHT: UM_STORE.totalHeight || PROPS.CONFIG?.SIZE?.height,
+        BODY_DEPTH: UM_STORE.totalDepth || PROPS.CONFIG?.SIZE?.depth,
+    }
+
+    const getCutSizeOption = (option, options, PROPS: TTotalProps = getCurrentModel().userData.PROPS) => {
 
         const { id } = option
-        const { BODY_WIDTH, BODY_HEIGHT } = PROPS.BODY.userData.trueSize
+        const { BODY_WIDTH, BODY_HEIGHT } = getTrueSize(PROPS)
         const getResult = (param) => { return param * 0.5 - cutOptionsTempSize * 0.5 }
 
 
@@ -522,7 +538,6 @@ export const useOptions = ({ withMechanism = true } = {}) => {
             }
             if (parseInt(id) === 4722786) {
                 return getResult(BODY_HEIGHT)
-
             }
         }
 
@@ -530,9 +545,9 @@ export const useOptions = ({ withMechanism = true } = {}) => {
 
     }
 
-    const checkAvailable = (options: TRootOptionType, PROPS: TTotalProps = modelState.getCurrentModel.userData.PROPS) => {
+    const checkAvailable = (options: TRootOptionType, PROPS: TTotalProps = getCurrentModel().userData.PROPS) => {
 
-        const { BODY_WIDTH, BODY_HEIGHT, CONFIG } = PROPS.BODY.userData.trueSize
+        const { BODY_WIDTH, BODY_HEIGHT } = getTrueSize(PROPS)
         const isNestandartFasade = NESTANDART_FASADE.includes(PROPS.PRODUCT)
         const isConditions = options.CONDITIONS
         if (UNIVERSALE_MODULES.includes(PROPS.PRODUCT)) return true

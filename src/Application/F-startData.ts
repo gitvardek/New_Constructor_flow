@@ -100,7 +100,7 @@ const START_PROJECT_PARAMS = {
 
         ambientLight: {
             color: '#ffffff',
-            intensity: 1.5,
+            intensity: 2,
         },
 
         pointLight: {
@@ -110,7 +110,7 @@ const START_PROJECT_PARAMS = {
             castShadow: false,
             mapSize: 512,
             // intensity: 1.6,
-            intensity: 5,
+            intensity: 2,
             distance: 5000,
             decay: 0
         }
@@ -140,7 +140,7 @@ const START_PROJECT_PARAMS = {
     default_plinth_color: null,
     default_showcase: 1013628,
     default_milling: 2462671,
-    default_patina: null, //475428
+    default_patina: null,
     mirror_type: 10336730
     // 2462671 - фрезф
 }

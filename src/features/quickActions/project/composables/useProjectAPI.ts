@@ -336,6 +336,9 @@ export function useProjectAPI() {
       // Сначала сохраняем сцену в браузер
       eventBus.emit('A:Save')
 
+      // const projectData = sceneState.getCurrentProjectParams
+      // resetGlobalOptions()
+
       const projectData = saveSceneParams() ?? sceneState.getCurrentProjectParams
 
       // Если передан projectName, обновляем его перед сохранением
@@ -380,9 +383,7 @@ export function useProjectAPI() {
       const normalized = normalizeApiResponse<{ data?: any }>(response)
 
       if (normalized.success) {
-        // Проект уехал на сервер — локальный снапшот больше не нужен
-        autosaveStorage.remove()
-
+        autosaveStorage.remove();
         return { success: true, data: normalized.data?.data || normalized.data }
       } else {
         throw new Error(normalized.error || 'Unknown error')

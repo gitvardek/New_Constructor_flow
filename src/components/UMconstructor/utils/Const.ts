@@ -32,7 +32,9 @@ export const UM_PARAMS = {
     MAX_TSARGA_WIDTH: 1200,  // Максимальная ширина царги
     INNER_DRAWER_GAP: 30,        // Отступ от тела внешнего ящика и между внутренними ящиками (мм)
     INNER_DRAWER_FACADE_GAP: 45,  // Отступ от крайнего внутреннего ящика до фасада внешнего ящика (мм)
-    FILLINGS_MAX_WIDTH: 900//Максимальная ширина секции при которой можно добавить наполнение
+    UNIVERSAL_DRAWER_DEPTH_RESERVE: 50,  // Запас по глубине корпуса для универсального ящика 
+    FILLINGS_MAX_WIDTH: 900,//Максимальная ширина секции при которой можно добавить наполнение
+    GLASS_SHELF_MAX_WIDTH: 900//Максимальная ширина секции при которой можно добавить стеклянную полку
 }
 
 export const UM_DRAWERS_IDS = {
@@ -41,11 +43,24 @@ export const UM_DRAWERS_IDS = {
     UNIVERSAL: [15309443]
 }
 
+// Аксессуары для шкафов (штанги и пр.) — делят область с ящиками, при смене
+// габаритов сдвигаются в свободное место (см. ResizeRefitManager)
+export const UM_ACCESSORY_GROUPS = [6174300];
+
 // Наполнение, которое можно добавлять без ограничений по ширине и высоте области
 export const FILLINGS_RESTRICTION_EXCEPTIONS = [6513263];
 export const FILLINGS_WIDTH_UNRESTRICTED_GROUPS = [6174300];
 
 export const WITH_TSARGA = [3954672];
 export const MODULE_TSARGA_OPTIONS = [7250589, 7250452];
+// export const WITH_TSARGA = [];
+
 // Модули, которые ставятся на сцену без фасадов: цвет фасада из настроек комнаты им не подставляется.
 export const WITHOUT_START_FASADE = [5168676];
+export const SHELF_PRODUCTS = {
+    ldsp: 5975548,
+    glass: 3124181,
+};
+
+// Стекло тоньше корпуса и от его материала не зависит
+export const GLASS_SHELF_THICKNESS = 6;

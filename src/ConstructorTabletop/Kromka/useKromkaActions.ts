@@ -115,7 +115,6 @@ const useKromkaActions = defineStore('KromkaActions', () => {
 
         const activeProfile = toptableData?.PROFILE ? tempProfileData.value.find((el) => el.ID === toptableData.PROFILE) : tempProfileData.value.find((prof) => prof.value);
 
-        // const { HEM, REC_HEM } = PRODUCTS[productId]
         const product = PRODUCTS[productId]
         const HEM = product.HEM
         const REC_HEM = product.REC_HEM
@@ -225,22 +224,21 @@ const useKromkaActions = defineStore('KromkaActions', () => {
     const getCurretKromkaListUM = (productId: number) => {
 
         if (!kromkaActive.value || !productId)
-            return
+            return;
 
-        // const { HEM, REC_HEM } = PRODUCTS[productId]
-        const product = PRODUCTS[productId]
-        const HEM = product.HEM
-        const REC_HEM = product.REC_HEM
-        if (!product.HEM) return []
+        const product = PRODUCTS[productId];
+        const HEM = product.HEM;
+        const REC_HEM = product.REC_HEM;
+        if (!product.HEM) return [];
 
         const hemList = HEM.map((el: number) => {
             return HEMLIST[el]
         }).filter(Boolean)
 
-        tempKromkaList.value = hemList
+        tempKromkaList.value = hemList;
 
-        const currentId = tempKromkaId.value
-        const defaultHem = HEMLIST[REC_HEM?.[0]]
+        const currentId = tempKromkaId.value;
+        const defaultHem = HEMLIST[REC_HEM?.[0]];
         const target = hemList.find(el => el.ID === currentId)
             ?? hemList.find(el => el.ID === defaultHem?.ID)
             ?? hemList[0]

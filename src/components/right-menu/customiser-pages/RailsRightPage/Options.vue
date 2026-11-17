@@ -4,7 +4,7 @@ import { onBeforeMount, onBeforeUnmount, computed, ref, defineProps, withDefault
 import { useOptions } from "./useOptions";
 import { TRootOptionType } from "@/types/types";
 import { useEventBus } from "@/store/appliction/useEventBus";
-import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useUMEngineStorage } from "@/components/UMconstructor/ts/umEngineContext.ts";
 
 interface IProps {
   mechanizmList?: [];
@@ -19,7 +19,8 @@ const props = withDefaults(defineProps<IProps>(), {
 
 const { createOptionList, checkActive } = useOptions();
 const eventBus = useEventBus();
-const UM_STORE = useUMStorage();
+// Внутри редактора УМ — стор его сессии.
+const UM_STORE = useUMEngineStorage();
 const optionList = ref([]);
 
 const createList = () => {

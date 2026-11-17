@@ -14,10 +14,13 @@ type TsizeData = {
 }
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
 import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useUMEditorModel } from "@/components/UMconstructor/ts/umEngineContext.ts";
 
-export const useConversationActions = () => {
+// getModel — модель проверок; по умолчанию по контексту редактора УМ (useUMEditorModel).
+export const useConversationActions = (getModel?: () => any) => {
 
     const modelState = useModelState();
+    const getCurrentModel = getModel ?? useUMEditorModel();
     const UM_STORE = useUMStorage();
     const eventBus = useEventBus();
     const toaster = useToast();
@@ -29,7 +32,7 @@ export const useConversationActions = () => {
     // fasadeId здесь — id материала фасада, как и в createFasadeConversations.
     // Высоту берём из стора УМ: пока открыт конструктор, CONFIG.SIZE хранит размер до
     // применения изменений. Вне конструктора totalHeight равен нулю, и берётся конфиг
-    const isLowUmRestrictedFasade = (fasadeId: number, curModel: Object3D | null = modelState.getCurrentModel) => {
+    const isLowUmRestrictedFasade = (fasadeId: number, curModel: Object3D | null = getCurrentModel()) => {
         const PROPS = curModel?.userData?.PROPS as TTotalProps
 
         if (!LOW_UM_PRODUCT.includes(+PROPS?.PRODUCT)) return false
@@ -51,7 +54,7 @@ export const useConversationActions = () => {
 
     const onRsizeConversations = async (size: TsizeData) => {
 
-        const curModel = modelState.getCurrentModel as Object3D
+        const curModel = getCurrentModel() as Object3D
         if (!curModel) return
 
 
@@ -74,6 +77,9 @@ export const useConversationActions = () => {
                 height >= MIN_HEIGHT &&
                 width <= MAX_WIDTH &&
                 width >= MIN_WIDTH;
+
+            // console.log(`Полоно HEIGHT:${MAX_HEIGHT} - ${MIN_HEIGHT}, WIDTH: ${MAX_WIDTH} - ${MIN_WIDTH}`);
+            // console.log(`Размер фасада: HEIGHT:${height}, WIDTH:${width}`)
 
             if (!check) {
                 eventBus.emit("A:Delite-Fasad", key);
@@ -117,8 +123,7 @@ export const useConversationActions = () => {
         const groupId = section?.UF_GROUP ?? section;
         const isIgnoreSize = checkIgnore(curModel)
 
-        // if (!groupId || isIgnoreSize) return temp
-        // const toCheck = modelState._FASADE_SIZE_RESTRICT[section.ID];
+
 
         // Дверные лимиты УМ применимы только к дверям: боковая стенка и накладка
         // ограничены размером листа, поэтому для них ветка isUM пропускается
@@ -185,7 +190,7 @@ export const useConversationActions = () => {
 
     const checkFasadeConversations = (fasadeId: number, size: TFasadeTrueSizes) => {
 
-        const curModel = modelState.getCurrentModel as Object3D
+        const curModel = getCurrentModel() as Object3D
 
         if (checkIgnore(curModel)) {
             return true
@@ -219,7 +224,7 @@ export const useConversationActions = () => {
     }
 
     const filterFasadeConversations = (fasadeNdx: number, fasadeSize: TFasadeTrueSizes) => {
-        const sceneModel = modelState.getCurrentModel as Object3D;
+        const sceneModel = getCurrentModel() as Object3D;
         const { FASADE } = sceneModel?.userData.PROPS;
         const { FASADE_WIDTH, FASADE_HEIGHT, isDrawer } = fasadeSize || FASADE[fasadeNdx]?.userData?.trueSize;
 
@@ -244,7 +249,7 @@ export const useConversationActions = () => {
     };
 
     const filterMaterialsConversations = (materialList: TFasadeConversation[], fasadeSize: TFasadeTrueSizes) => {
-        const isSizeIgnore = checkIgnore(modelState.getCurrentModel as Object3D)
+        const isSizeIgnore = checkIgnore(getCurrentModel() as Object3D)
 
         const tempList = materialList.map((el) => {
             if (el.FASADES && Array.isArray(el.FASADES)) {
@@ -269,7 +274,7 @@ export const useConversationActions = () => {
         const { _MILLING_SIZE_RESTRICT } = modelState
         if (!fasadeId) return null
 
-        if (checkIgnore(modelState.getCurrentModel as Object3D)) {
+        if (checkIgnore(getCurrentModel() as Object3D)) {
             return null
         }
 
@@ -286,7 +291,7 @@ export const useConversationActions = () => {
 
     const onResizeMillingCheck = () => {
 
-        const curModel = modelState.getCurrentModel
+        const curModel = getCurrentModel()
         // @ts-ignore
         const { FASADE, CONFIG } = curModel?.userData.PROPS as TTotalProps;
         const { FASADE_PROPS } = CONFIG as TConfig;
@@ -318,6 +323,7 @@ export const useConversationActions = () => {
         if (!PROPS && !currentProduct) {
             return false
         }
+
 
         if (currentProduct) {
             return Number(currentProduct.IGNORE_SIZE ?? 0) !== 0

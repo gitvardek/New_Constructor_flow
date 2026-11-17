@@ -1,7 +1,7 @@
 //@ts-nocheck
 
 
-import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { UM_PARAMS, WITH_TSARGA } from "@/components/UMconstructor/utils/Const.ts";
 import * as THREE from "three";
 import {
@@ -510,6 +510,8 @@ export default class SectionsManager {
                     delete elem.cellsRows
             });
         }
+
+        this.scope.LOOPS.calcLoops(next ? secIndex + 1 : secIndex - 1, grid);
 
         if (grid.sections.length > 1) {
             grid.sections.splice(secIndex, 1);

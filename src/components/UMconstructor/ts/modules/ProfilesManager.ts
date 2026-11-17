@@ -1,6 +1,6 @@
 //@ts-nocheck
 
-import type UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
+import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import * as THREE from "three";
 import { GridModule, GridSection, LOOPSIDE } from "@/components/UMconstructor/types/UMtypes.ts";
 
@@ -10,6 +10,8 @@ type TProfileSide = "left" | "right"
 const LEFT_LOOPS = [LOOPSIDE.left, LOOPSIDE.left_on_partition]
 const RIGHT_LOOPS = [LOOPSIDE.right, LOOPSIDE.right_on_partition]
 
+// Боковой hi-tech профиль box-UM. Профили гардеробной системы — другая
+// сущность, живут в wardrobe/managers/WardrobeProfilesManager.ts.
 export default class ProfilesManager {
     scope: UMconstructorClass
 
@@ -17,8 +19,7 @@ export default class ProfilesManager {
         this.scope = scope
     }
 
-    // Стоят ли у секции петли с указанной стороны. Фасады ящиков и сегменты разделённого
-    // фасада без материала пропускаем — петель у них нет (то же правило, что в calcLoops)
+
     hasLoopsOnSide(section: GridSection, sideLoops: number[]): boolean {
         const { NO_FASADE_ID } = this.scope.CONST
 
@@ -149,7 +150,7 @@ export default class ProfilesManager {
         }
 
         grid.profilesConfig.sideProfile.size.x = grid.height
-        
+
         this.applyProfileSide(side, grid)
     }
 }

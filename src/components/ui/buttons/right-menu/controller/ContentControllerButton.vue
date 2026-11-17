@@ -1,5 +1,5 @@
 <template>
-  <button class="right-menu__button top-c" >
+  <button class="right-menu__button top-c" title="Копировать объект">
     <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g clip-path="url(#clip0_77_9659)">
         <path
@@ -19,7 +19,6 @@ import { useCustomiserStore } from '@/store/appStore/useCustomiserStore';
 
 const customiserStore = useCustomiserStore();
 
-let o = 'class' //TODO заглушка. Разобраться, что зачем.
 
 </script>
 <style lang="scss" scoped>

@@ -26,6 +26,7 @@ export class Room extends BuildersHelper {
     boundFloorMaterial: ((item: number) => void) | null = null
     boundHeightClampValue: ((item: number) => void) | null = null
     boundDuplicateProd: (() => void) | null = null
+    boundInsertPreset: ((snapshot: any) => void) | null = null
 
     root: THREETypes.TApplication
     private params: { [key: string]: any }

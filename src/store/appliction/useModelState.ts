@@ -1,6 +1,6 @@
 //@ts-nocheck
 import * as THREE from "three"
-import { FasadeTextAlignAction, TMillingRestrictItem } from "@/types/types";
+import { FasadeTextAlignAction, TMillingRestrictItem, TDrawersData } from "@/types/types";
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useAppData } from './useAppData';
@@ -102,6 +102,10 @@ export const useModelState = defineStore('ModelState', () => {
     const _HEM = computed(() => _APP.value.HEM || [])
     const _WALL = computed(() => _APP.value.WALL || [])
     const _FASADE_EXCEPTIONS = computed(() => _APP.value.FASADE_EXCEPTIONS || [])
+    const _WARDROBE_SYSTEM = computed(() => _APP.value.WARDROBE_SYSTEM || [])
+    const _SECTIONS = computed(() => _APP.value.CATALOG?.SECTIONS || [])
+    const _DRAWERS = computed<TDrawersData>(() => _APP.value.DRAWERS || {})
+
 
     // console.log(_FASADE_SIZE_RESTRICT.value, '=== 🔥 _FASADE_SIZE_RESTRICT 🔥 ===')
 
@@ -209,8 +213,11 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** ------- Задняя стенка -------- */
 
-    const createCurrentBackwallData = (productId: number) => {
+    // onWallModule — из стора сессии редактора УМ; вне редактора — основной стор.
+    // def — только вернуть список, не меняя текущий (как у createCurrentModuleData).
+    const createCurrentBackwallData = (productId: number, onWallModule: boolean = UM_store.onWallModule, def: boolean = false) => {
         const productInfo = _PRODUCTS.value[productId]
+        if (def && !(productInfo?.BACKWALL?.length && productInfo.BACKWALL[0])) return []
 
         if (productInfo.BACKWALL?.length && productInfo.BACKWALL[0]) {
             const validFacadeIds = productInfo.BACKWALL.filter(id => _FASADE.value[id]);
@@ -239,11 +246,11 @@ export const useModelState = defineStore('ModelState', () => {
                 .filter(group => group.FASADES.length > 0)
                 .sort((a, b) => a.SORT - b.SORT);
 
-            let onWallModule = UM_store.onWallModule
             if (onWallModule) {
                 result = result.filter(item => item.NAME.toLowerCase().includes('хдф'));
             }
 
+            if (def) return result;
             currentBackwallData.value = result;
         }
     }
@@ -254,9 +261,11 @@ export const useModelState = defineStore('ModelState', () => {
 
     /** ------- Боковые стенки -------- */
 
-    const createCurrentSidewallData = (productId: number) => {
+    // def — только вернуть список, не меняя текущий.
+    const createCurrentSidewallData = (productId: number, def: boolean = false) => {
 
         const productInfo = _PRODUCTS.value[productId]
+        if (def && !(productInfo?.SIDEWALL?.length && productInfo.SIDEWALL[0])) return []
 
         if (productInfo.SIDEWALL?.length && productInfo.SIDEWALL[0]) {
             const groupedFasades = productInfo.SIDEWALL.reduce((acc, facadeId) => {
@@ -283,6 +292,7 @@ export const useModelState = defineStore('ModelState', () => {
                 .filter(group => group.FASADES.length > 0)
                 .sort((a, b) => a.SORT - b.SORT);
 
+            if (def) return result;
             currentSidewallData.value = result;
         }
     }
@@ -527,7 +537,6 @@ export const useModelState = defineStore('ModelState', () => {
         }
 
         const millingConversations = checkMillingConversations(fasadeId)
-
         const sideColors = ["LEFTSIDECOLOR", "RIGHTSIDECOLOR"]
 
 
@@ -679,7 +688,6 @@ export const useModelState = defineStore('ModelState', () => {
     }
 
     /** Витрины */
-
     const normalizeMillingShowcases = (value: null | string | number | (number | null)[]): number[] | null => {
 
         if (value == null) {
@@ -841,7 +849,9 @@ export const useModelState = defineStore('ModelState', () => {
         _WALL,
         _FASADE_EXCEPTIONS,
         _COLOR,
-
+        _WARDROBE_SYSTEM,
+        _SECTIONS,
+        _DRAWERS,
 
         getModels,
 

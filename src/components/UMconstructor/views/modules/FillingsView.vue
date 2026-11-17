@@ -14,6 +14,11 @@ import { computed, onBeforeUnmount, onMounted, ref, toRefs, watch } from "vue";
 import FillingsInsertPanel from "@/components/UMconstructor/views/modules/FillingsInsertPanel.vue";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import { useFigureRightPage } from "@/utils/useFigureRightPage";
+import { useFillingFasadeEditor } from "@/components/UMconstructor/editor-v2/fillings/useFillingFasadeEditor.ts";
+import {
+  getUniversalDepthOptions as getDepthOptions,
+  getUniversalHeightOptions as getHeightOptions,
+} from "@/components/UMconstructor/editor-v2/fillings/drawerOptions.ts";
 import {
   FillingObject,
   GridCell,
@@ -40,6 +45,7 @@ const props = defineProps({
   },
 });
 
+type axis = "X" | "Y";
 type workMode = "config" | "add";
 const mode = ref<workMode>("add");
 const changeConstructorMode = (_mode: workMode) => {
@@ -58,10 +64,6 @@ type selectedMaterial = {
   fasadeSize?: {};
 };
 
-const isOpenMaterialSelector = ref<boolean>(false);
-const currentFasadeMaterial = ref<selectedMaterial | boolean>(false);
-const isOpenHandleSelector = ref<boolean>(false);
-const currentHandle = ref<selectedMaterial | boolean>(false);
 const panelRef = ref<HTMLElement | null>(null);
 
 const step = ref<number>(1);
@@ -71,17 +73,7 @@ const selectedFilling = ref<TSelectedCell>(<TSelectedCell>{});
 const { module, UMconstructor } = toRefs(props);
 const { createSurfaceList } = useFigureRightPage();
 
-const createFacadeData = (fasadeIndex?: number) => {
-  UMconstructor?.value?.FASADES.createFacadeData(fasadeIndex);
-};
-
-const reset = (grid) => {
-  UMconstructor?.value?.reset();
-};
-
-
-// Номер ящика для заголовка — тот же, которым он подписан на схеме: по нему
-// выбранный на схеме элемент находится в списке
+// Номер ящика для заголовка — тот же, которым он подписан на схеме
 const getFillingLabel = (filling: FillingObject) =>
   getSegmentLabel({
     sectionIndex: filling.sec,
@@ -91,159 +83,23 @@ const getFillingLabel = (filling: FillingObject) =>
     itemIndex: filling.id,
   });
 
-const getSegment = (sec, cell, row, extra) => {
-  const curSection = module.value.sections[sec];
-  const curCell = curSection?.cells?.[cell];
-  const curRow = curCell?.cellsRows?.[row];
-  const curExtra = curRow?.extras?.[extra];
-  return curExtra || curRow || curCell || curSection;
-};
 
-const openFasadeSelector = (
-  sec: number,
-  cell: number | null,
-  row: number | null,
-  extra: number | null,
-  fillingIndex: number | null,
-) => {
-  // fillingIndex — индекс в массиве; filling.id — уникальный ID, который ждёт UM_STORE
-  const fillingId = getSegment(sec, cell, row, extra)?.fillings?.[fillingIndex]?.id ?? fillingIndex;
-
-  if (
-    currentFasadeMaterial.value &&
-    sec === currentFasadeMaterial.value.sec &&
-    cell === currentFasadeMaterial.value.cell &&
-    row === currentFasadeMaterial.value.row &&
-    extra === currentFasadeMaterial.value.extra &&
-    fillingId === currentFasadeMaterial.value.item
-  ) {
-    closeMenu();
-    return;
-  }
-
-  /** @Создание_данных_для_выбранного_фасада */
-  createFacadeData();
-  closeMenu();
-
-  setTimeout(() => {
-    const curModuleSegment = getSegment(sec, cell, row, extra);
-    const fillObj = curModuleSegment.fillings[fillingIndex];
-    let data = fillObj.fasade.material;
-    currentFasadeMaterial.value = {
-      sec,
-      cell,
-      row,
-      item: fillingId,
-      extra,
-      data,
-      fasadeSize: {
-        FASADE_WIDTH: fillObj.fasade.width,
-        FASADE_HEIGHT: fillObj.fasade.height,
-        isDrawer: true,
-      },
-    };
-    UMconstructor?.value?.FILLINGS.selectCell(sec, cell, row, extra, fillingId);
-    isOpenMaterialSelector.value = true;
-  }, 10);
-};
-
-const openHandleSelector = (
-  sec: number,
-  cell: number | null,
-  row: number | null,
-  extra: number | null,
-  fillingIndex: number | null,
-) => {
-  const fillingId = getSegment(sec, cell, row, extra)?.fillings?.[fillingIndex]?.id ?? fillingIndex;
-
-  if (
-    currentHandle.value &&
-    sec === currentHandle.value.sec &&
-    cell === currentHandle.value.cell &&
-    row === currentHandle.value.row &&
-    extra === currentHandle.value.extra &&
-    fillingId === currentHandle.value.item
-  ) {
-    closeMenu();
-    return;
-  }
-
-  closeMenu();
-
-  setTimeout(() => {
-    const curModuleSegment = getSegment(sec, cell, row, extra);
-    const fillObj = curModuleSegment.fillings[fillingIndex];
-    let data = fillObj.fasade.material;
-
-    if (!data.HANDLES) data.HANDLES = { id: null, position: 'right' };
-
-    currentHandle.value = {
-      sec,
-      cell,
-      row,
-      item: fillingId,
-      extra,
-      data,
-    };
-    UMconstructor?.value?.FILLINGS.selectCell(sec, cell, row, extra, fillingId);
-    isOpenHandleSelector.value = true;
-  }, 10);
-};
-
-const selectHandle = (data: any, type: string) => {
-  switch (type) {
-    case "handle":
-      currentHandle.value.data.HANDLES.id = data;
-      break;
-    case "position":
-      currentHandle.value.data.HANDLES.position = data;
-      break;
-  }
-
-  // Object.assign провоцирует Vue задетектировать изменение HANDLES через переназначение свойства
-  const { sec, cell, row, extra, item } = currentHandle.value;
-  const curModuleSegment = getSegment(sec, cell, row, extra);
-  const fillObj = curModuleSegment?.fillings?.find(f => f.id === item);
-  if (fillObj?.fasade) {
-    fillObj.fasade.material = Object.assign(fillObj.fasade.material, currentHandle.value.data);
-    UMconstructor?.value?.FILLINGS.syncDrawerFasade(sec, fillObj, module.value);
-  }
-
-  reset()
-};
-
-const selectOption = (value: Object, type: string, palette: Object = false) => {
-  // prepareData шлёт сырые ID (числа), onSelectMaterial — объекты справочника.
-  // Без фолбэка на само значение число превращалось бы в undefined и затирало MILLING/PATINA/GLASS
-  currentFasadeMaterial.value.data[type] = value ? value.ID ?? value : null;
-  if (palette) currentFasadeMaterial.value.data["PALETTE"] = palette;
-
-  if (type === "COLOR") {
-    if (
-      currentFasadeMaterial.value.data[type] ===
-      UMconstructor?.value?.CONST.NO_FASADE_ID
-    )
-      currentFasadeMaterial.value.data["MANUAL_NO_FASADE"] = true;
-    else delete currentFasadeMaterial.value.data["MANUAL_NO_FASADE"];
-  }
-
-  let { sec, cell, row, extra, item } = currentFasadeMaterial.value;
-  const curModuleSegment = getSegment(sec, cell, row, extra);
-  // item = filling.id (не индекс массива) — ищем по ID
-  const fillObj = curModuleSegment?.fillings?.find(f => f.id === item);
-  if (fillObj?.fasade) {
-    fillObj.fasade.material = Object.assign(fillObj.fasade.material, currentFasadeMaterial.value.data);
-    UMconstructor?.value?.FILLINGS.syncDrawerFasade(sec, fillObj, module.value);
-  }
-};
-
-const closeMenu = () => {
-  isOpenMaterialSelector.value = false;
-  isOpenHandleSelector.value = false;
-
-  currentHandle.value = false;
-  currentFasadeMaterial.value = false;
-};
+// Редактор фасада и ручки ящика — общая логика с редактором v2.
+const {
+  isOpenMaterialSelector,
+  currentFasadeMaterial,
+  isOpenHandleSelector,
+  currentHandle,
+  openFasadeSelector,
+  openHandleSelector,
+  selectHandle,
+  selectOption,
+  closeMenu,
+  closeIfOtherSelected,
+} = useFillingFasadeEditor({
+  getEngine: () => UMconstructor.value,
+  getModule: () => module.value,
+});
 
 const handleOutsideClick = (event: MouseEvent) => {
   // Закрываем только когда попап реально открыт
@@ -305,6 +161,7 @@ type segment = GridSection | GridCell | GridCellsRow | GridRowExtra;
 // Поле "Позиция" работает в той же системе, что 2D-слой и сборка 3D: distances от дна
 // и левого края сегмента, в котором лежит наполнение. Поэтому введённое значение уходит
 // в менеджер как есть, без пересчёта координат
+
 const getPositionY = (filling: FillingObject, cell: segment) =>
   UMconstructor?.value?.FILLINGS.getAbsolutePositionY(
     filling,
@@ -386,18 +243,11 @@ const applyPositionX = (
   );
 };
 
-const getUniversalDepthOptions = (filling: FillingObject): number[] => {
-  const product = UMconstructor.value?.APP?.CATALOG?.PRODUCTS?.[filling.product];
-  if (!product?.SIZE_EDIT_DEPTH?.length) return [];
-  const maxAllowed = (module.value?.depth ?? 0) - 70;
-  return product.SIZE_EDIT_DEPTH.filter((d: number) => d <= maxAllowed);
-};
+const getUniversalDepthOptions = (filling: FillingObject): number[] =>
+  getDepthOptions(UMconstructor.value, module.value, filling);
 
-const getUniversalHeightOptions = (filling: FillingObject): number[] => {
-  const product = UMconstructor.value?.APP?.CATALOG?.PRODUCTS?.[filling.product];
-  if (!product?.DROWER_FASADE_HEIGHT) return [];
-  return Object.keys(product.DROWER_FASADE_HEIGHT).map(Number);
-};
+const getUniversalHeightOptions = (filling: FillingObject): number[] =>
+  getHeightOptions(UMconstructor.value, filling);
 
 const curUMId = computed(() => {
   const product = UMconstructor.value?.UM_STORE.getUMData().PRODUCT
@@ -431,32 +281,7 @@ watch(
   () => {
     handleCellSelect();
 
-    const { sec, cell, row, extra, item } = selectedFilling.value;
-    if (
-      currentFasadeMaterial.value &&
-      !(
-        sec === currentFasadeMaterial.value.sec &&
-        cell === currentFasadeMaterial.value.cell &&
-        row === currentFasadeMaterial.value.row &&
-        extra === currentFasadeMaterial.value.extra &&
-        item === currentFasadeMaterial.value.item
-      )
-    ) {
-      closeMenu();
-      return;
-    } else if (
-      currentHandle.value &&
-      !(
-        sec === currentHandle.value.sec &&
-        cell === currentHandle.value.cell &&
-        row === currentHandle.value.row &&
-        extra === currentHandle.value.extra &&
-        item === currentHandle.value.item
-      )
-    ) {
-      closeMenu();
-      return;
-    }
+    closeIfOtherSelected(selectedFilling.value);
   },
 );
 </script>
@@ -565,10 +390,8 @@ watch(
                         <div :class="['actions-input--container']">
                           <input v-if="filling.isVerticalItem" type="number" :step="1"
                             :max="section.width - filling.width" min="0" class="actions-input"
-                            :value="filling.distances?.left"
-                            @input="applyPositionX($event, fillingIndex, secIndex)" />
-                          <input v-else type="number" :step="1"
-                            :min="getPositionLimitsY(filling, section).min"
+                            :value="filling.distances?.left" @input="applyPositionX($event, fillingIndex, secIndex)" />
+                          <input v-else type="number" :step="1" :min="getPositionLimitsY(filling, section).min"
                             :max="getPositionLimitsY(filling, section).max" class="actions-input"
                             :value="getPositionY(filling, section)"
                             @input="applyPositionY($event, fillingIndex, secIndex)" />
@@ -640,27 +463,27 @@ watch(
                           currentFasadeMaterial.item === filling.id,
                       },
                     ]" :type="filling.fasade.material.PALETTE ? 'palette' : 'surface'
-                        " :data="filling.fasade.material.PALETTE
-                          ? {
-                            ...UMconstructor.APP.PALETTE[
+                      " :data="filling.fasade.material.PALETTE
+                        ? {
+                          ...UMconstructor.APP.PALETTE[
+                          filling.fasade.material.PALETTE
+                          ],
+                          hex: UMconstructor.APP.PALETTE[
                             filling.fasade.material.PALETTE
-                            ],
-                            hex: UMconstructor.APP.PALETTE[
-                              filling.fasade.material.PALETTE
-                            ].HTML,
-                          }
-                          : UMconstructor.APP.FASADE[
-                          filling.fasade.material.COLOR
-                          ]
+                          ].HTML,
+                        }
+                        : UMconstructor.APP.FASADE[
+                        filling.fasade.material.COLOR
+                        ]
                         " @click.stop="
-                        openFasadeSelector(
-                          secIndex,
-                          null,
-                          null,
-                          null,
-                          fillingIndex,
-                        )
-                        " />
+                          openFasadeSelector(
+                            secIndex,
+                            null,
+                            null,
+                            null,
+                            fillingIndex,
+                          )
+                          " />
 
                     <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                       {
@@ -671,13 +494,13 @@ watch(
                           currentHandle.item === filling.id,
                       },
                     ]" :type="'Handles'" :data="filling.fasade.material.HANDLES
-                          ? {
-                            ...UMconstructor.APP.CATALOG.PRODUCTS[
-                            filling.fasade.material.HANDLES.id
-                            ],
-                          }
-                          : false
-                        " @click.stop="
+                      ? {
+                        ...UMconstructor.APP.CATALOG.PRODUCTS[
+                        filling.fasade.material.HANDLES.id
+                        ],
+                      }
+                      : false
+                      " @click.stop="
                         openHandleSelector(
                           secIndex,
                           null,
@@ -692,6 +515,7 @@ watch(
             </div>
 
             <div class="accordion" v-if="section.cells.length">
+
               <div v-for="(cell, cellIndex) in section.cells" :key="cellIndex">
                 <Accordion v-if="cell.fillings?.length" :open="false" class="item-group">
                   <template #title>
@@ -746,8 +570,7 @@ watch(
                                 :max="cell.width - filling.width" min="0" class="actions-input"
                                 :value="filling.distances?.left"
                                 @input="applyPositionX($event, fillingIndex, secIndex, cellIndex)" />
-                              <input v-else type="number" :step="1"
-                                :min="getPositionLimitsY(filling, cell).min"
+                              <input v-else type="number" :step="1" :min="getPositionLimitsY(filling, cell).min"
                                 :max="getPositionLimitsY(filling, cell).max" class="actions-input"
                                 :value="getPositionY(filling, cell)"
                                 @input="applyPositionY($event, fillingIndex, secIndex, cellIndex)" />
@@ -817,29 +640,29 @@ watch(
                               currentFasadeMaterial.item === filling.id,
                           },
                         ]" :type="filling.fasade.material.PALETTE
-                              ? 'palette'
-                              : 'surface'
-                            " :data="filling.fasade.material.PALETTE
-                              ? {
-                                ...UMconstructor.APP.PALETTE[
+                          ? 'palette'
+                          : 'surface'
+                          " :data="filling.fasade.material.PALETTE
+                            ? {
+                              ...UMconstructor.APP.PALETTE[
+                              filling.fasade.material.PALETTE
+                              ],
+                              hex: UMconstructor.APP.PALETTE[
                                 filling.fasade.material.PALETTE
-                                ],
-                                hex: UMconstructor.APP.PALETTE[
-                                  filling.fasade.material.PALETTE
-                                ].HTML,
-                              }
-                              : UMconstructor.APP.FASADE[
-                              filling.fasade.material.COLOR
-                              ]
+                              ].HTML,
+                            }
+                            : UMconstructor.APP.FASADE[
+                            filling.fasade.material.COLOR
+                            ]
                             " @click.stop="
-                            openFasadeSelector(
-                              secIndex,
-                              cellIndex,
-                              null,
-                              null,
-                              fillingIndex,
-                            )
-                            " />
+                              openFasadeSelector(
+                                secIndex,
+                                cellIndex,
+                                null,
+                                null,
+                                fillingIndex,
+                              )
+                              " />
 
                         <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                           {
@@ -850,13 +673,13 @@ watch(
                               currentHandle.item === filling.id,
                           },
                         ]" :type="'Handles'" :data="filling.fasade.material.HANDLES
-                              ? {
-                                ...UMconstructor.APP.CATALOG.PRODUCTS[
-                                filling.fasade.material.HANDLES.id
-                                ],
-                              }
-                              : false
-                            " @click.stop="
+                          ? {
+                            ...UMconstructor.APP.CATALOG.PRODUCTS[
+                            filling.fasade.material.HANDLES.id
+                            ],
+                          }
+                          : false
+                          " @click.stop="
                             openHandleSelector(
                               secIndex,
                               cellIndex,
@@ -929,8 +752,7 @@ watch(
                                     :max="row.width - filling.width" min="0" class="actions-input"
                                     :value="filling.distances?.left"
                                     @input="applyPositionX($event, fillingIndex, secIndex, cellIndex, rowIndex)" />
-                                  <input v-else type="number" :step="1"
-                                    :min="getPositionLimitsY(filling, row).min"
+                                  <input v-else type="number" :step="1" :min="getPositionLimitsY(filling, row).min"
                                     :max="getPositionLimitsY(filling, row).max" class="actions-input"
                                     :value="getPositionY(filling, row)"
                                     @input="applyPositionY($event, fillingIndex, secIndex, cellIndex, rowIndex)" />
@@ -1003,29 +825,29 @@ watch(
                                   currentFasadeMaterial.item === filling.id,
                               },
                             ]" :type="filling.fasade.material.PALETTE
-                                  ? 'palette'
-                                  : 'surface'
-                                " :data="filling.fasade.material.PALETTE
-                                  ? {
-                                    ...UMconstructor.APP.PALETTE[
+                              ? 'palette'
+                              : 'surface'
+                              " :data="filling.fasade.material.PALETTE
+                                ? {
+                                  ...UMconstructor.APP.PALETTE[
+                                  filling.fasade.material.PALETTE
+                                  ],
+                                  hex: UMconstructor.APP.PALETTE[
                                     filling.fasade.material.PALETTE
-                                    ],
-                                    hex: UMconstructor.APP.PALETTE[
-                                      filling.fasade.material.PALETTE
-                                    ].HTML,
-                                  }
-                                  : UMconstructor.APP.FASADE[
-                                  filling.fasade.material.COLOR
-                                  ]
+                                  ].HTML,
+                                }
+                                : UMconstructor.APP.FASADE[
+                                filling.fasade.material.COLOR
+                                ]
                                 " @click.stop="
-                                openFasadeSelector(
-                                  secIndex,
-                                  cellIndex,
-                                  rowIndex,
-                                  null,
-                                  fillingIndex,
-                                )
-                                " />
+                                  openFasadeSelector(
+                                    secIndex,
+                                    cellIndex,
+                                    rowIndex,
+                                    null,
+                                    fillingIndex,
+                                  )
+                                  " />
 
                             <ConfigurationOption v-if="filling.fasade" :disable-delete-choice="true" :class="[
                               {
@@ -1036,13 +858,13 @@ watch(
                                   currentHandle.item === filling.id,
                               },
                             ]" :type="'Handles'" :data="filling.fasade.material.HANDLES
-                                  ? {
-                                    ...UMconstructor.APP.CATALOG.PRODUCTS[
-                                    filling.fasade.material.HANDLES.id
-                                    ],
-                                  }
-                                  : false
-                                " @click.stop="
+                              ? {
+                                ...UMconstructor.APP.CATALOG.PRODUCTS[
+                                filling.fasade.material.HANDLES.id
+                                ],
+                              }
+                              : false
+                              " @click.stop="
                                 openHandleSelector(
                                   secIndex,
                                   cellIndex,
@@ -1148,7 +970,7 @@ watch(
 
       <AdvanceCorpusMaterialRedactor v-if="isOpenMaterialSelector" :is-fasade="true"
         :elementData="currentFasadeMaterial.data" :fasade-size="currentFasadeMaterial.fasadeSize"
-        @parent-callback="selectOption" />
+        :element-label="`ящика №${currentFasadeMaterial.item}`" @parent-callback="selectOption" />
 
       <Handles v-else :is2-dconstructor="true" :data="createSurfaceList(currentHandle)" :index="0"
         @parent-callback="selectHandle" :active-pos="currentHandle.data.HANDLES.position" />
@@ -1238,23 +1060,6 @@ watch(
   }
 }
 
-
-// Номер ящика стоит заголовком над его названием — так же, как «Позиция» над полем ввода
-.filling-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-
-  .actions-items--title {
-    align-self: flex-start;
-    margin-bottom: 0;
-  }
-}
-
-.actions-title--number {
-  font-weight: 600;
-}
 
 .actions-title--inner-drawer {
   color: #888;

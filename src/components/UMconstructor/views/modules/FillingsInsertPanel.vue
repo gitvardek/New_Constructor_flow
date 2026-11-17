@@ -4,16 +4,15 @@ import "@/components/UMconstructor/styles/UM.scss";
 
 import { computed, ref } from "vue";
 import { _URL } from "@/types/constants.ts";
-import {
-  FILLINGS_RESTRICTION_EXCEPTIONS,
-  FILLINGS_WIDTH_UNRESTRICTED_GROUPS,
-  UM_DRAWERS_IDS,
-  UM_PARAMS,
-} from "../../utils/Const";
+import { UM_PARAMS } from "../../utils/Const";
+import { useFillingInsertRules } from "@/components/UMconstructor/editor-v2/fillings/useFillingInsertRules.ts";
+import DrawerFilters from "@/components/UMconstructor/editor-v2/fillings/DrawerFilters.vue";
+import { isDrawerGroup } from "@/components/UMconstructor/editor-v2/fillings/drawerFilters.ts";
 import UMconstructorClass from "@/components/UMconstructor/ts/UMconstructorClass.ts";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
 import Accordion from "@/components/ui/accordion/Accordion.vue";
-import Tooltip from "@/components/ui/tooltip/Tooltip.vue";
+import SearchInput from "@/components/ui/inputs/SearchInput.vue";
+import ProductCard from "@/components/ui/cards/ProductCard.vue";
 
 interface IProps {
   fillings: Array<any>;
@@ -25,47 +24,32 @@ const props = defineProps<IProps>();
 
 const openedFillingGroupKey = ref<string | number | null>(null);
 
+// Один общий ref на "текущий отфильтрованный список" достаточен: одновременно
+// открыта только ОДНА группа (openedFillingGroupKey), поиск внутри разных
+// групп никогда не пересекается.
 const filteredMaterialList = ref<Array<any>>([]);
 const isSearch = computed(() => filteredMaterialList.value.length > 0);
 
-const getSelectSegment = () => {
-  const { sec, cell, row, extra } = props.UMconstructor.UM_STORE.getSelected("module") ?? {};
-  if (sec === null || sec === undefined) return false;
-  const curSection = props.module.sections?.[sec];
-  const curCell = curSection?.cells?.[cell];
-  const curRow = curCell?.cellsRows?.[row];
-  const curExtra = curRow?.extras?.[extra];
+// По тому же соображению хватает одного ref на результат селектов фильтрации
+// ящиков (DrawerFilters, группы из UM_DRAWERS_IDS).
+const drawerFilteredItems = ref<Array<any> | null>(null);
 
-  return curExtra || curRow || curCell || curSection;
+// Список группы после селектов фильтрации (вне группы ящиков — как пришёл).
+const baseItems = (fillingGroup: any, key: string | number) =>
+  (openedFillingGroupKey.value === key && drawerFilteredItems.value) || fillingGroup.items;
 
-
-}
-
-const isFillingWidthRestricted = computed(() => {
-  const segment = getSelectSegment();
-  return (segment?.width ?? 0) > UM_PARAMS.FILLINGS_MAX_WIDTH
-});
-
-const isFillingHeightRestricted = computed(() => {
-  const segment = getSelectSegment();
-  return (segment?.height ?? 0) <= UM_PARAMS.MIN_SECTION_TO_FILLINGS_HEIGHT;
-});
-
-const isWidthUnrestrictedGroup = (groupID: string | number) =>
-  FILLINGS_WIDTH_UNRESTRICTED_GROUPS.includes(+groupID);
-
-// Универсальный ящик, стенки не менее 18 мм
-const isUniversalDrawerBlocked = (filling: any) =>
-  !props.UMconstructor.FILLINGS.isUniversalDrawerAllowed(props.module, filling);
-
-const isFillingBlocked = (groupID: string | number, filling?: any) => {
-  if (FILLINGS_RESTRICTION_EXCEPTIONS.includes(+filling?.ID)) {
-    return false;
-  }
-  return (isFillingWidthRestricted.value && !isWidthUnrestrictedGroup(groupID)) ||
-    isFillingHeightRestricted.value ||
-    (UM_DRAWERS_IDS.UNIVERSAL.includes(+groupID) && isUniversalDrawerBlocked(filling));
+// Поиск и фильтры действуют вместе: SearchInput эмитит результат один раз на
+// ввод и о смене селектов не знает, поэтому пересекаем его с отфильтрованным.
+const visibleItems = (fillingGroup: any, key: string | number) => {
+  const base = baseItems(fillingGroup, key);
+  return isSearch.value ? base.filter((item: any) => filteredMaterialList.value.includes(item)) : base;
 };
+
+// Ограничения вставки — общая логика с редактором v2.
+const { isFillingWidthRestricted, isFillingHeightRestricted, isFillingBlocked } = useFillingInsertRules({
+  getEngine: () => props.UMconstructor,
+  getModule: () => props.module,
+});
 
 const toggleFillingGroup = (key: string | number, isOpen: boolean) => {
   if (isOpen) {
@@ -74,20 +58,18 @@ const toggleFillingGroup = (key: string | number, isOpen: boolean) => {
     openedFillingGroupKey.value = null;
   }
   filteredMaterialList.value = [];
+  drawerFilteredItems.value = null;
 };
 
-const onSearchChange = (e: Event, totalMaterialList: Array<any>) => {
-  const reg = new RegExp(`${(e.target as HTMLInputElement).value.toLowerCase()}`, "g");
-  filteredMaterialList.value = totalMaterialList.filter((item) =>
-    reg.test(item.NAME.toLowerCase()),
-  );
-  if ((e.target as HTMLInputElement).value === "") filteredMaterialList.value = [];
+const onAddFilling = (filling: any, groupID: number) => {
+  props.UMconstructor.FILLINGS.addFilling(filling, groupID, props.module);
 };
 </script>
 
 <template>
   <div class="UM splitter-container--product-data">
     <div v-if="isFillingWidthRestricted" class="UM filling-width-warning">
+      <!-- Добавление недоступно: ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм  -->
       Ширина области больше {{ UM_PARAMS.FILLINGS_MAX_WIDTH }} мм: доступны только аксессуары
     </div>
 
@@ -104,33 +86,23 @@ const onSearchChange = (e: Event, totalMaterialList: Array<any>) => {
             </h3>
           </template>
 
-          <input v-if="openedFillingGroupKey === key" class="UM search" type="text" placeholder="Поиск"
-            @input="(e) => onSearchChange(e, fillingGroup.items)" />
+          <DrawerFilters v-if="openedFillingGroupKey === key && isDrawerGroup(fillingGroup.groupID)"
+            :items="fillingGroup.items" @update:filtered="drawerFilteredItems = $event" />
+
+          <SearchInput v-if="openedFillingGroupKey === key && !isDrawerGroup(fillingGroup.groupID)" :items="baseItems(fillingGroup, key)"
+            @update:filtered="filteredMaterialList = $event" />
 
           <div class="UM item-group-wrapper">
+            <p v-if="openedFillingGroupKey === key && !visibleItems(fillingGroup, key).length" class="UM no-select">
+              Ничего не найдено — измените фильтры или поиск.
+            </p>
+
             <ul class="list">
-              <!-- Все возможные материалы -->
-              <li v-if="!isSearch" :class="['item-group-color']" v-for="(filling, key1) in fillingGroup.items"
-                :key="key1 + filling.NAME">
-                <div
-                  :class="['name__container', { 'name__container--disabled': isFillingBlocked(fillingGroup.groupID, filling) }]"
-                  @click="UMconstructor.FILLINGS.addFilling(filling, fillingGroup.groupID, module)">
-                  <img class="name__bg-item" :src="_URL + filling.PREVIEW_PICTURE" />
-                  <p class="name__text-item">{{ filling.NAME }}</p>
-                </div>
-
-              </li>
-
-              <!-- Отфильтрованные материалы -->
-              <li v-else :class="['item-group-color']" v-for="(filling, key2) in filteredMaterialList"
-                :key="key2 + filling.NAME">
-                <div
-                  :class="['name__container', { 'name__container--disabled': isFillingBlocked(fillingGroup.groupID, filling) }]"
-                  @click="UMconstructor.FILLINGS.addFilling(filling, fillingGroup.groupID, module)">
-
-                  <img class="name__bg-item" :src="_URL + filling.PREVIEW_PICTURE" />
-                  <p class="name__text-item">{{ filling.NAME }}</p>
-                </div>
+              <li :class="['item-group-color']" v-for="(filling, itemKey) in visibleItems(fillingGroup, key)"
+                :key="itemKey + filling.NAME">
+                <ProductCard :name="filling.NAME" :image="_URL + filling.PREVIEW_PICTURE"
+                  :disabled="isFillingBlocked(fillingGroup.groupID, filling)"
+                  @click="onAddFilling(filling, fillingGroup.groupID)" />
               </li>
             </ul>
           </div>
@@ -155,30 +127,6 @@ const onSearchChange = (e: Event, totalMaterialList: Array<any>) => {
 
   &-fillings_list {
     padding: 1rem 0;
-  }
-}
-
-.name {
-  &__container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    width: 100%;
-    max-width: 100px;
-
-    &--disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-  }
-
-  &__bg-item {
-    width: 50px;
-  }
-
-  &__text-item {
-    font-size: 1.2rem;
   }
 }
 </style>

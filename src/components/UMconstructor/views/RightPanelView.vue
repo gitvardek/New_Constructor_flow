@@ -9,6 +9,7 @@ import SectionsView from "@/components/UMconstructor/views/modules/SectionsView.
 import FasadesView from "@/components/UMconstructor/views/modules/FasadesView.vue";
 import FillingsView from "@/components/UMconstructor/views/modules/FillingsView.vue";
 import { GridModule } from "@/components/UMconstructor/types/UMtypes.ts";
+import { getFillingGroups } from "@/components/UMconstructor/editor-v2/fillings/fillingGroups.ts";
 
 const props = defineProps({
   module: {
@@ -29,31 +30,7 @@ const { module, mode, UMconstructor } = toRefs(props)
 const step = ref<number>(1);
 const optionsRef = ref(null);
 
-const getFillings = computed(() => {
-  const objectsMatrix = []
-  const productData = UMconstructor?.value?.UM_STORE.getUMData()
-  const productInfo = UMconstructor?.value?.APP.CATALOG.PRODUCTS[productData.PRODUCT]
-  const fillingsGroups = Object.keys(productInfo.FILLING_SECTION)
-
-  fillingsGroups.map(groupID => {
-    let fillingsGroup = UMconstructor?.value?.APP.CATALOG.SECTIONS[groupID]
-
-    if (!fillingsGroup.PRODUCTS) return
-
-    objectsMatrix.push({
-      groupName: fillingsGroup.NAME,
-      groupID: fillingsGroup.ID,
-      items: fillingsGroup.PRODUCTS.map(item => {
-        if (!item) return
-        const element = UMconstructor?.value?.APP.CATALOG.PRODUCTS[item];
-        element.groupID = fillingsGroup.ID
-        return element
-      }).filter(Boolean)
-    })
-  })
-
-  return objectsMatrix;
-});
+const getFillings = computed(() => getFillingGroups(UMconstructor.value));
 
 </script>
 

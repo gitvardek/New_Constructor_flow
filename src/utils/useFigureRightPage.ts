@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useAppData } from "@/store/appliction/useAppData";
-import { useModelState } from "@/store/appliction/useModelState";
+import { useUMEditorModel } from "@/components/UMconstructor/ts/umEngineContext.ts";
 import { TFasadeProp } from "@/types/types";
 
 
@@ -30,10 +30,11 @@ export interface IFigureFasade {
 export const useFigureRightPage = () => {
 
     const _APP = useAppData()
-    const modelState = useModelState();
+    // Внутри редактора УМ — модель его движка (во вложенной сессии выбран не её объект).
+    const getCurrentModel = useUMEditorModel();
 
     const createHandlesList = () => {
-        const { PROPS } = modelState.getCurrentModel!.userData
+        const { PROPS } = getCurrentModel()!.userData
         const ptoductId = PROPS.PRODUCT
 
         // const data = appData.getAppData
@@ -100,7 +101,7 @@ export const useFigureRightPage = () => {
         // const _data = appData.getAppData
         const { FASADE, CATALOG, POSITION_HANDLES } = _APP.getAppData
         const { PRODUCTS } = CATALOG
-        const { PROPS } = modelState.getCurrentModel.userData;
+        const { PROPS } = getCurrentModel().userData;
         const { PRODUCT } = PROPS
         const { FASADE_PROPS, FASADE_POSITIONS, FASADE_TYPE } = PROPS.CONFIG
         const tempList: IFigureFasade[] = []
@@ -141,7 +142,7 @@ export const useFigureRightPage = () => {
     }
 
     const createPlinthData = () => {
-        const { PROPS } = modelState.getCurrentModel.userData
+        const { PROPS } = getCurrentModel().userData
         return PROPS.CONFIG.PLINTH_ACTIONS
     }
 

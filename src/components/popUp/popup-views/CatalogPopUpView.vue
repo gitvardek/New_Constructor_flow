@@ -180,6 +180,8 @@ const {
   fetchSubCatalogData,
   setDreadcrumb,
   resetCatalogData,
+  updateProductPrice,
+  fetchProductPrice,
 } = catalogStore;
 
 const searchTimeout = ref(null);
@@ -211,6 +213,7 @@ onMounted(async () => {
     style: appData.appData.CITY.style,
   });
 });
+
 
 // Methods
 const handleCategoriesListClick = async (data) => {

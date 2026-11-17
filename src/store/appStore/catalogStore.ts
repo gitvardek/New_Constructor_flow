@@ -231,7 +231,9 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   const updateProductPrice = (data: any) => {
     try {
+      // Скрываем спиннер и показываем блоки с ценами
       hidePriceSpinner();
+
       // Устанавливаем оригинальную цену
       const priceElement = document.querySelector('.product__price-text');
       if (priceElement) {

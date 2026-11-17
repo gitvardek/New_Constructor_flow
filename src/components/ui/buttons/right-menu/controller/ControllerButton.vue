@@ -3,6 +3,7 @@
     class="right-menu__button top-r"
     :class="{ active: customiserStore.isCustomiserOpen }"
     @click="togglePopup"
+    title="Параметры объекта"
   >
     <svg
       width="21"

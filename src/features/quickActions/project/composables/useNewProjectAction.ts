@@ -31,9 +31,7 @@ export const useNewProjectAction = () => {
   const autosave = useAutosave();
 
   const runNewProject = async (widths?: NewProjectWallWidths | null) => {
-    // Прежний снапшот относится к брошенному проекту, предлагать его больше незачем
     autosaveStorage.remove();
-
     if (router.currentRoute.value.path !== '/2d') {
       await router.push('/2d');
     }
@@ -60,14 +58,13 @@ export const useNewProjectAction = () => {
 
     const projectData = widths
       ? buildProjectFromWallWidths(
-          widths.right,
-          widths.left,
-          widths.bottom,
-          widths.top
-        )
+        widths.right,
+        widths.left,
+        widths.bottom,
+        widths.top
+      )
       : undefined;
     await loadBlankRoom(projectData);
-    // Снапшот после первых правок
     autosave.markSaved();
   };
 

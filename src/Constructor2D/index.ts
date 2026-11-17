@@ -255,7 +255,10 @@ export default class Constructor2D {
       if (this.app2d && typeof this.app2d.destroy === 'function') {
         try {
           this.app2d.stage?.removeChildren();
-          this.app2d.destroy(true, { children: true });
+          // Без releaseGlobalResources (его включает destroy(true)): пулы PIXI общие
+          // для всех приложений страницы, очистка ломает другой живой канвас
+          // (редактор УМ) — "Cannot read properties of null (reading 'clear')".
+          this.app2d.destroy({ removeView: true, releaseGlobalResources: false }, { children: true });
         } catch (error) {
           console.warn('Ошибка при уничтожении PIXI приложения:', error);
         }

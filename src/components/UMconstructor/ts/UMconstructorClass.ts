@@ -2,43 +2,52 @@
 
 import FasadesManager from "@/components/UMconstructor/ts/modules/FasadesManager.ts";
 import type { Application } from "@/Application/Core/Application.ts";
-import { UM_PARAMS, WITH_TSARGA } from "./../utils/Const.ts";
+import { UM_PARAMS, WITH_TSARGA, GLASS_SHELF_THICKNESS } from "./../utils/Const.ts";
 import FillingsManager from "@/components/UMconstructor/ts/modules/FillingsManager.ts";
 import ProfilesManager from "@/components/UMconstructor/ts/modules/ProfilesManager.ts";
 import SidecolorsManager from "@/components/UMconstructor/ts/modules/SidecolorsManager.ts";
 import SectionsManager from "@/components/UMconstructor/ts/modules/SectionsManager.ts";
 import ShelvesManager from "@/components/UMconstructor/ts/modules/ShelvesManager.ts";
+import WardrobeModule from "@/components/UMconstructor/wardrobe/WardrobeModule.ts";
 import LoopsManager from "@/components/UMconstructor/ts/modules/LoopsManager.ts";
-import { useUMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
+import { useUMStorage, type UMStorage } from "@/store/appStore/UniversalModule/useUMStorage.ts";
 import { useAppData } from "@/store/appliction/useAppData.ts";
 import { useToast } from "@/features/toaster/useToast.ts";
 import { Ref, ref } from "vue";
 
 import { saveUMGrid, ShapeAdjuster } from "@/components/UMconstructor/utils/PixiMethods.ts";
+import { isWardrobeSystemProduct, migrateWardrobeGrid } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { createWardrobeGrid } from "@/components/UMconstructor/wardrobe/createWardrobeGrid.ts";
+import { distributeProportionally } from "@/components/UMconstructor/editor-v2/grid/scaleGridWidth.ts";
 import {
     alertType,
     constructorMode,
+    FasadeObject,
     FillingObject,
     GridCell,
     GridCellsRow,
     GridModule,
     GridRowExtra,
-    GridSection, TSelectedCell
+    GridSection, LOOPSIDE, TSelectedCell
 } from "./../types/UMtypes.ts";
 import { TTotalProps } from "@/types/types.ts";
 
 import * as THREE from "three";
-import { FasadeObject, LOOPSIDE } from "@/types/constructor2d/interfaсes.ts";
 import { TFasadeProp } from "@/types/types.ts";
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import OptionsManager from "@/components/UMconstructor/ts/modules/OptionsManager.ts";
+import ResizeRefitManager from "@/components/UMconstructor/ts/modules/ResizeRefitManager.ts";
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import Render2D from "@/components/UMconstructor/views/Render2D.vue";
 import { Application } from "@/Application/Core/Application.ts";
 import UMconstructor from "@/components/UMconstructor/UMconstructor.vue";
 
 export default class UMconstructorClass {
-    UM_STORE: ReturnType<typeof useUMStorage> = useUMStorage();
+    // Свой стор у каждого экземпляра: основной — useUMStorage(), вложенные
+    // сессии — createUMStorage (см. createUMEngine.ts).
+    UM_STORE: UMStorage;
+    // Приложение — для создания вложенных сессий (createUMEngine).
+    ROOT: Application;
     APP: ReturnType<typeof useAppData> = useAppData().getAppData;
     MODEL_STATE: ReturnType<typeof useModelState> = useModelState();
     CONST: typeof UM_PARAMS
@@ -50,14 +59,26 @@ export default class UMconstructorClass {
     PROFILES: ProfilesManager
     SECTIONS: SectionsManager
     SHELVES: ShelvesManager
+    WARDROBE: WardrobeModule
     SIDECOLORS: SidecolorsManager
     SHAPE_ADJUSTER: ShapeAdjuster
     OPTIONS: OptionsManager
+    RESIZE: ResizeRefitManager
     RENDER_REF: Ref<typeof Render2D | undefined> = ref<typeof Render2D>()
-    ALERT_FOOTER_REF: Ref = ref()
+
     DEBOUNCES: {}
 
-    constructor(root: Application) {
+    // Своя модель вложенной сессии (см. getModel); у основного движка — null.
+    SESSION_MODEL: any = null
+
+    constructor(root: Application, options: { store?: UMStorage; isolatedModel?: boolean } = {}) {
+        this.UM_STORE = options.store ?? useUMStorage()
+        this.ROOT = root
+        if (options.isolatedModel) {
+            const store = this.UM_STORE
+            // Форма userData объекта сцены: PROPS — данные сессии, restrictData — лимиты материалов фасадов.
+            this.SESSION_MODEL = { userData: { get PROPS() { return store.getUMData() }, restrictData: {} } }
+        }
         this.CONST = UM_PARAMS
         this.BUILDER = root._universalGeometryBuilder?.buildProduct
 
@@ -68,10 +89,19 @@ export default class UMconstructorClass {
         this.PROFILES = new ProfilesManager(this)
         this.SECTIONS = new SectionsManager(this)
         this.SHELVES = new ShelvesManager(this)
+        this.WARDROBE = new WardrobeModule(this)
         this.SIDECOLORS = new SidecolorsManager(this)
         this.SHAPE_ADJUSTER = new ShapeAdjuster({ scope: this })
         this.OPTIONS = new OptionsManager(this)
+        this.RESIZE = new ResizeRefitManager(this)
         this.DEBOUNCES = {}
+    }
+
+    // Модель, от имени которой идут проверки размеров фасадов и работают общие
+    // компоненты правого меню (материал, ручки): у основного движка — выбранный
+    // 3D-объект, у вложенной сессии — своя (выбран родитель, например гардеробная).
+    getModel(): any {
+        return this.SESSION_MODEL ?? this.MODEL_STATE.getCurrentModel
     }
 
     selectCell(type: constructorMode, newSelected: TSelectedCell) {
@@ -109,12 +139,14 @@ export default class UMconstructorClass {
 
     debounce(timerKey: string, callback: Function, wait: number) {
         if (this.DEBOUNCES[timerKey]) {
+
             clearTimeout(this.DEBOUNCES[timerKey])
         } else {
             this.UM_STORE.pendingOperations++
         }
 
         this.DEBOUNCES[timerKey] = setTimeout(() => {
+
             delete this.DEBOUNCES[timerKey]
             try {
                 callback();
@@ -126,6 +158,20 @@ export default class UMconstructorClass {
 
     createUMgrid(productData: TTotalProps, size: { width: number, height: number, depth: number }) {
         if (productData) {
+            const PROPS = productData.PROPS;
+
+            // Гардеробная система (временно, черновик) — полностью отдельная
+            // ветка, не пересекается с логикой ниже (FASADE_POSITIONS/раздвижные
+            // двери/петли — у гардеробной системы этого нет). Сетка хранится
+            // под CONFIG.WARDROBEGRID, не CONFIG.MODULEGRID — см. WardrobeSystem.ts
+            // и SESSION_CONTEXT.md про isUM/RoomManager.ts.
+            if (isWardrobeSystemProduct(productData.globalData)) {
+                if (!PROPS.CONFIG.WARDROBEGRID || !Object.keys(PROPS.CONFIG.WARDROBEGRID).length) {
+                    return createWardrobeGrid(productData.globalData, size);
+                }
+                return migrateWardrobeGrid(PROPS.CONFIG.WARDROBEGRID);
+            }
+
             const {
                 MIN_FASADE_HEIGHT,
                 MIN_FASADE_WIDTH,
@@ -134,7 +180,6 @@ export default class UMconstructorClass {
                 MIN_SLIDE_DOOR_WIDTH,
             } = this.CONST;
 
-            const PROPS = productData.PROPS;
             const { width, height, depth } = size;
             let result
             if (!PROPS.CONFIG.MODULEGRID || !Object.keys(PROPS.CONFIG.MODULEGRID).length) {
@@ -323,9 +368,6 @@ export default class UMconstructorClass {
     getMinMaxModuleSize(productData: TTotalProps, _dimension: string, _minmax: string) {
         const dimension = _dimension.toUpperCase()
         const minmax = _minmax.toUpperCase()
-
-        // if (dimension === 'HEIGHT' && minmax === 'MIN') return 150
-
         return +productData.CONFIG.SIZE_EDIT[`SIZE_EDIT_` + dimension + `_` + minmax];
     }
 
@@ -333,41 +375,57 @@ export default class UMconstructorClass {
         this.RENDER_REF = ref
     }
 
-    setAlertRef(ref: Ref) {
-        this.ALERT_FOOTER_REF = ref
+    // Завершение сессии: отложенные операции (debounce) не должны сработать
+    // после закрытия и записать в чужую сетку.
+    dispose() {
+        Object.values(this.DEBOUNCES).forEach((timer) => clearTimeout(timer))
+        this.DEBOUNCES = {}
+        this.UM_STORE.pendingOperations = 0
+        this.RENDER_REF = ref()
     }
+
 
     callAlert(type: alertType, message: string) {
         if (type)
-            this.AlERT[type](message, this.ALERT_FOOTER_REF)
+            this.AlERT[type](message)
     }
 
     setShapeAdjuster(SHAPE_ADJUSTER: ShapeAdjuster) {
         this.SHAPE_ADJUSTER = SHAPE_ADJUSTER
     }
 
+    // Смена высоты цоколя без пересчёта: секции и фасады сдвигаются на разницу
+    // со старым #HORIZONT#, дальше reset() вызывающего дотягивает высоты. Отдельно
+    // от updateHorizont — нужен и без debounce (тумбочка: переход на 0 при создании).
+    applyHorizont(grid: GridModule, value: number | string) {
+        // Цоколь двигает секции, фасады и стек внешних ящиков — наполнение подгоняем
+        this.RESIZE.markResized()
+        const PROPS = this.UM_STORE.getUMData();
+        const delta = parseInt(value) - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]
+
+        grid.sections.forEach((section, secIndex) => {
+            section.position.y += delta
+            section.fasades.forEach((door) => {
+                door.forEach((segment) => {
+                    segment.position.y += delta;
+                })
+            })
+
+            this.FASADES.EXTERNAL_FASADES.shiftStackWithHorizont(secIndex, delta, grid)
+        })
+
+        grid.horizont = PROPS.CONFIG.HORIZONT = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] = parseInt(value);
+    }
+
     updateHorizont(value) {
         this.debounce('horizont', () => {
-            const PROPS = this.UM_STORE.getUMData();
             const grid = this.UM_STORE.getUMGrid()
 
             if (!grid?.sections?.length) {
                 return
             }
 
-            let delta = parseInt(value) - PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"]
-            grid.sections.forEach((section, secIndex) => {
-                section.position.y += delta
-                section.fasades.forEach((door) => {
-                    door.forEach((segment) => {
-                        segment.position.y += delta;
-                    })
-                })
-
-                this.FASADES.EXTERNAL_FASADES.shiftStackWithHorizont(secIndex, delta, grid)
-            })
-
-            grid.horizont = PROPS.CONFIG.HORIZONT = PROPS.CONFIG.EXPRESSIONS["#HORIZONT#"] = parseInt(value);
+            this.applyHorizont(grid, value)
             this.reset();
         }, 1000)
     };
@@ -376,12 +434,25 @@ export default class UMconstructorClass {
         this.debounce('totalHeight', () => {
             const grid = this.UM_STORE.getUMGrid()
 
-            grid.height = this.UM_STORE.totalHeight = parseInt(value);
-            //this.RENDER_REF.updateTotalHeight(value);
-            this.RENDER_REF.updateTotalSize(value, "height");
+            // Гардеробная система — своя ветка (см. ProfilesManager.
+            // applyModuleHeightToProfiles): высота модуля производна от
+            // высот профилей (reset() пересчитывает её как максимум по ним),
+            // поэтому прямая запись grid.height здесь бессмысленна — нужно
+            // менять сами профили, а канвас/UM_STORE.totalHeight обновит
+            // сам reset() (как и при правке высоты профиля из "Настройка
+            // профилей").
+            if (grid.moduleKind === 'wardrobe') {
+                this.WARDROBE.profiles.applyModuleHeightToProfiles(grid, parseInt(value));
+            } else {
+                grid.height = this.UM_STORE.totalHeight = parseInt(value);
+                //this.RENDER_REF.updateTotalHeight(value);
+                this.RENDER_REF.updateTotalSize(value, "height");
 
-            this.checkSideColorsConversations()
-            this.reset();
+                this.RESIZE.markResized()
+                this.checkSideColorsConversations()
+                this.reset();
+            }
+
             this.RENDER_REF.selectCell("module", 0, null);
 
         }, 1000)
@@ -395,6 +466,8 @@ export default class UMconstructorClass {
 
             //this.RENDER_REF.updateTotalWidth(value);
             this.RENDER_REF.updateTotalSize(value, "width");
+
+            this.RESIZE.markResized()
             this.reset(grid);
             this.RENDER_REF.selectCell("module", 0, null);
 
@@ -409,6 +482,8 @@ export default class UMconstructorClass {
             const PROPS = this.UM_STORE.getUMData();
 
             PROPS.CONFIG.SIZE.depth = parseInt(value);
+
+            this.RESIZE.markResized()
             this.checkSideColorsConversations()
             this.reset();
         }, 1000)
@@ -482,6 +557,7 @@ export default class UMconstructorClass {
             profileData.product = 6513251
 
             grid.profilesConfig.sideProfile = profileData
+            this.PROFILES.applyProfileSide(side, grid)
             this.UM_STORE.onSideProfile = true
         }
         else {
@@ -492,13 +568,29 @@ export default class UMconstructorClass {
         this.reset(grid)
     }
 
+    getShelfThickness(container: any, grid: any) {
+        if (container?.glassShelf) {
+            return GLASS_SHELF_THICKNESS;
+        }
+        return grid?.moduleThickness ?? 18;
+    };
+
     reset(grid: GridModule = this.UM_STORE.getUMGrid()) {
 
-        if (!grid?.sections?.length) {
+        if (!grid?.sections?.length && grid.moduleKind !== 'wardrobe') {
             return false
         }
 
+        // Флаг одноразовый — снимаем до ветвлений, иначе он утечёт в следующий reset()
+        const needRefit = this.RESIZE.consumeResized()
+
         this.UM_STORE.setLoad(true)
+        // Гардеробная сетка пересчитывается отдельным путём: у неё нет
+        // cells/rows/царги, а у товара нет FASADE_POSITION — box-UM пересчёт
+        // ниже на ней падал (см. wardrobe/managers/WardrobeGridReset.ts).
+        if (grid.moduleKind === 'wardrobe') {
+            return this.WARDROBE.reset(grid)
+        }
 
         const PROPS = this.UM_STORE.getUMData();
         const {
@@ -557,25 +649,43 @@ export default class UMconstructorClass {
 
                         lastCellHeight -= newCell.height
 
+                        const shelfAbove = this.getShelfThickness(tmpCells[i + 1], moduleGrid)
+
                         if (i === tmpCells.length - 1 || lastCellHeight <= 0) {
                             newCell.height += lastCellHeight
 
                             if (newCell.height < MIN_SECTION_HEIGHT) {
-                                newCellsArray[newCellsArray.length - 1].height += newCell.height + moduleGrid.moduleThickness
+                                newCellsArray[newCellsArray.length - 1].height += newCell.height + this.getShelfThickness(newCell, moduleGrid)
                                 break;
                             }
                         }
                         else {
-                            lastCellHeight -= moduleGrid.moduleThickness
+                            lastCellHeight -= shelfAbove
                         }
 
                         if (newCell.cellsRows?.length) {
                             let newCellsRowArray = <GridCellsRow>[]
                             let positionCellsRow = new THREE.Vector2(newCell.position.x - newCell.width / 2, newCell.position.y)
 
+                            // Ряды делят ширину ячейки ПРОПОРЦИОНАЛЬНО, не уже
+                            // MIN_SECTION_WIDTH, сумма сходится точно. Раньше
+                            // вся разница дописывалась ПОСЛЕДНЕМУ ряду после
+                            // цикла: при сужении секции он уходил в минус
+                            // (ширина -16 на дампе пользователя) и разделитель
+                            // оказывался вне корпуса. Ширины считаются ДО
+                            // цикла — ими же раскладываются позиции и
+                            // наполнение внутри него.
+                            const rowsTotalWidth = newCell.width - (newCell.cellsRows.length - 1) * moduleGrid.moduleThickness
+                            const newRowsWidth = distributeProportionally(
+                                newCell.cellsRows.map((row) => row.width),
+                                rowsTotalWidth,
+                                MIN_SECTION_WIDTH,
+                            )
+
                             newCell.cellsRows.forEach((row, rowIndex) => {
                                 let newRow = <GridCellsRow>{ ...row, position: new THREE.Vector2(row.position.x, row.position.y) }
 
+                                newRow.width = newRowsWidth[rowIndex]
                                 newRow.position.copy(positionCellsRow.clone())
                                 newRow.position.x += newRow.width / 2
                                 newRow.height = newCell.height;
@@ -620,17 +730,18 @@ export default class UMconstructorClass {
                                         }
 
                                         lastExtraHeight -= newExtra.height
+                                        const shelfAbove = this.getShelfThickness(extras[j + 1], moduleGrid)
 
                                         if (j === extras.length - 1 || lastExtraHeight <= 0) {
                                             newExtra.height += lastExtraHeight
 
                                             if (newExtra.height < MIN_SECTION_HEIGHT) {
-                                                newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + moduleGrid.moduleThickness
+                                                newRowExtrasArray[newRowExtrasArray.length - 1].height += newExtra.height + this.getShelfThickness(newExtra, moduleGrid)
                                                 break;
                                             }
                                         }
                                         else {
-                                            lastExtraHeight -= moduleGrid.moduleThickness
+                                            lastExtraHeight -= shelfAbove
                                         }
 
                                         if (newExtra.fillings?.length) {
@@ -650,45 +761,21 @@ export default class UMconstructorClass {
                                         }
 
                                         newRowExtrasArray.push(newExtra)
-                                        positionRowExtras.y += newExtra.height + moduleGrid.moduleThickness
+                                        positionRowExtras.y += newExtra.height + shelfAbove
                                     }
 
                                     newRow.extras = newRowExtrasArray.slice().sort((a, b) => b.position.y - a.position.y)
                                 }
                             })
 
-                            let cellsRowWidthSum = 0;
-                            newCellsRowArray.forEach((row, rowIndex) => {
-                                cellsRowWidthSum += row.width;
-                            })
-                            cellsRowWidthSum += (newCellsRowArray.length - 1) * moduleGrid.moduleThickness;
-
-                            let deltaWidth = newCell.width - cellsRowWidthSum;   //Величина, на которую нужно изменить ширину последней ячейки
-                            if (deltaWidth !== 0) {
-                                let lastRow = newCellsRowArray[newCellsRowArray.length - 1]
-                                lastRow.width += deltaWidth
-                                lastRow.position.x += -deltaWidth / 2
-
-                                if (lastRow.fillings?.length) {
-                                    lastRow.fillings = <FillingObject>[...lastRow.fillings]
-                                    lastRow.fillings.forEach((filling, index) => {
-                                        if (filling.isVerticalItem) {
-                                            this.FILLINGS.updateFilling(lastRow.height, filling, 'height', moduleGrid)
-                                        }
-                                        else {
-                                            if (filling.isProfile) {
-                                                this.FILLINGS.updateFilling((moduleGrid.profilesConfig.onSectionSize || filling.isProfile.isBottomHiTechProfile) ? newSection.width : moduleGrid.width, filling, 'width', moduleGrid)
-                                            } else
-                                                this.FILLINGS.updateFilling(lastRow.width, filling, 'width', moduleGrid)
-                                        }
-                                    })
-                                }
-                            }
+                            // Досчёта дельты последнему ряду здесь больше нет:
+                            // distributeProportionally выше уже даёт сумму
+                            // ровно в ширину ячейки (см. комментарий там же).
 
                             newCell.cellsRows = newCellsRowArray.slice()
                         }
 
-                        positionCells.y += newCell.height + moduleGrid.moduleThickness
+                        positionCells.y += newCell.height + shelfAbove
 
                         if (newCell.fillings?.length) {
                             newCell.fillings = <FillingObject>[...newCell.fillings]
@@ -792,19 +879,26 @@ export default class UMconstructorClass {
                 depth: this.UM_STORE.totalDepth,
             }
 
+            // Наполнение подгоняем до пересчёта фасадов: стек внешних ящиков
+            // собирается уже по фактическим позициям тел (см. ResizeRefitManager)
+            if (needRefit) {
+                this.RESIZE.refit(module)
+            }
+
             module = this.FASADES.updateFasades(module)
+
             this.FASADES.resetRestrictedFasadeMaterials(module)
             this.FASADES.resetErrorFasadeMaterials(module)
             this.FASADES.markOversizedFasades(module)
             this.FILLINGS.cleanupOrphanFillings(module)
             this.FILLINGS.cleanupOversizedFillings(module)
-            this.FILLINGS.cleanupUniversalDrawers(module)
+            this.FILLINGS.drawers.cleanupUniversalDrawers(module)
 
-            this.FILLINGS.cleanupInvalidFillings(module)
-
-            // Сторона бокового профиля зависит от петель крайних секций и ширины модуля —
-            // пересчитываем, когда петли уже разложены
             this.PROFILES.updateSideProfile(module)
+
+            if (this.SHELVES.cleanupOversizedGlassShelves(module)) {
+                return this.reset(module)
+            }
         }
         catch (error) {
             console.error(error)

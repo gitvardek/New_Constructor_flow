@@ -3,6 +3,7 @@
     class="right-menu__button bottom-b"
     :class="getActiveCollision"
     @click="toggleCollision"
+    title="Сталкивание с другими объектами"
   >
     <svg
       width="20"

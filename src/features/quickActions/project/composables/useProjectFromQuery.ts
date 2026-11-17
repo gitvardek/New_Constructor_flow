@@ -8,8 +8,9 @@ import { useRoomState } from "@/store/appliction/useRoomState";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useAppData } from "@/store/appliction/useAppData";
 import { useToast } from "@/features/toaster/useToast";
-import { useAutosave } from "@/features/autosave";
 import { useRouter, useRoute } from "vue-router";
+import { useAutosave } from "@/features/autosave";
+
 
 /** Ожидание готовности appData (после getdata) перед загрузкой проекта по ссылке */
 export function waitForAppDataLoaded(): Promise<void> {
@@ -30,10 +31,11 @@ export function waitForAppDataLoaded(): Promise<void> {
   });
 }
 
-export const getProjectIdFromQuery = (query: Record<string, any>) =>
-  Object.fromEntries(
+export function getProjectIdFromQuery(query: Record<string, any>){
+  return Object.fromEntries(
     Object.entries(query).map(([k, v]) => [k.toLowerCase(), v])
   ).projectid;
+}
 
 export function useProjectFromQuery() {
   const router = useRouter();
@@ -60,10 +62,10 @@ export function useProjectFromQuery() {
       schemeTransition.clearStore();
       // Очищаем текущую комнату перед загрузкой нового проекта
       roomState.clearCurrentRoomId();
-      
+
       await sceneState.loadProjectFromData(projectData);
       schemeTransition.setAppData(projectData.rooms);
-      
+
       roomState.routConvertData('/3d')
 
       projectState.setProjectId(id.toString());
@@ -83,7 +85,6 @@ export function useProjectFromQuery() {
       window.C2D.layers.planner.init(true);
       window.C2D.layers.doorsAndWindows.init(true);
 
-      // Открытый проект совпадает с серверным, снапшот автосохранения для него не нужен
       useAutosave().markSaved();
       return true;
     } catch (error) {
@@ -128,4 +129,5 @@ export function useProjectFromQuery() {
   return {
     accordCheck,
   };
+
 }
