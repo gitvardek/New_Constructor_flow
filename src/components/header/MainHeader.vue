@@ -44,6 +44,7 @@ import AddLightHeaderButton from "@/components/ui/buttons/header/AddLightHeaderB
 import BuyBasketButton from "@/components/ui/buttons/header/BuyBasketButton.vue";
 
 import { QuickActionsToolbar } from "@/features/quickActions";
+import { useHotkeys, useHotkeysStore, HOTKEY_IDS } from "@/features/hotkeys";
 import RoomHeight from "../left-menu/option/roomOptions/RoomHeight.vue";
 import AddPhotoHelperButton from "@/components/ui/buttons/header/helpers/AddPhotoHelperButton.vue";
 import GetAppHelperButton from "@/components/ui/buttons/header/helpers/GetAppHelperButton.vue";
@@ -73,6 +74,7 @@ const customiserStore = useCustomiserStore();
 const schemeTransition = useSchemeTransition();
 const constructor2DHistory = useConstructor2DHistory();
 const popupStore = usePopupStore();
+const hotkeysStore = useHotkeysStore();
 const { setTransformControlsValue } = useTransformController();
 
 const clampHeight = computed(() => roomOptions.getHeightClamp);
@@ -253,6 +255,32 @@ const nextAction = async () => {
     console.error("Ошибка при выполнении nextAction:", error);
   }
 };
+
+/** История доступна — то же условие, что у кнопок в шапке. */
+const historyAvailable = computed(
+  () => historyActions.value && (route.path === "/3d" || route.path === "/2d"),
+);
+
+// Хоткеи вызывают те же функции, что кнопки, и гаснут вместе с ними
+useHotkeys([
+  {
+    id: HOTKEY_IDS.HISTORY_UNDO,
+    enabled: () => historyAvailable.value && !lessThenActions.value,
+    handler: () => {
+      prevAction();
+    },
+  },
+  {
+    id: HOTKEY_IDS.HISTORY_REDO,
+    enabled: () => historyAvailable.value && !moreThenActions.value,
+    handler: () => {
+      nextAction();
+    },
+  },
+]);
+
+const undoTitle = computed(() => hotkeysStore.describe(HOTKEY_IDS.HISTORY_UNDO));
+const redoTitle = computed(() => hotkeysStore.describe(HOTKEY_IDS.HISTORY_REDO));
 
 /** После undo/redo выбирает текущую комнату: оставляет текущую, если она есть в снимке, иначе — первую из снимка */
 const setCurrentRoomAfterRestore = (snapshot: Record<string, unknown>[]) => {
@@ -506,12 +534,9 @@ onBeforeUnmount(() => {
           <img class="header-link__logo" src="@/assets/img/logo.png" />
         </div>
         <div class="header-main-ui">
-          <div :class="['history', 'history__btns', getHistoruBtnsState]" v-if="
-            historyActions && (route.path == '/3d' || route.path == '/2d')
-          ">
-            <!-- {{ restorLength }}{{ curActionCount }} -->
-            <LeftLightHeaderButton @click="prevAction" :class="{ disabled: lessThenActions }" />
-            <RightLightHeaderButton @click="nextAction" :class="{ disabled: moreThenActions }" />
+          <div :class="['history', 'history__btns', getHistoruBtnsState]" v-if="historyAvailable">
+            <LeftLightHeaderButton @click="prevAction" :title="undoTitle" :class="{ disabled: lessThenActions }" />
+            <RightLightHeaderButton @click="nextAction" :title="redoTitle" :class="{ disabled: moreThenActions }" />
           </div>
           <div class="header-ui-group">
             <S2DLightHeaderButton />

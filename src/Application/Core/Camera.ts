@@ -10,6 +10,7 @@ import { useSceneState } from "@/store/appliction/useSceneState"
 import { useEventBus } from "@/store/appliction/useEventBus";
 
 import { Sizes } from "../Utils/Sizes"
+import { modifiers } from "@/features/hotkeys/runtime"
 
 type TCameraExtremum = {
     min: number,
@@ -30,14 +31,12 @@ export class Camera {
     // ortoParams: THREEInterfases.IOrtoCameraData
     ortoCamera: boolean = false
     screenSpacePanning: boolean = false
-    keybordListeners: TKeybordListeners
     cameraExtremum: TCameraExtremum = {
         min: -16000,
         max: 16000
     }
 
-    private onKeyDown: (event) => void;
-    private onKeyUp: (event) => void
+    private releaseModifiers: (() => void) | null = null
     private onSetPosition: (value: any) => void
 
     private cameraPositions = [
@@ -58,15 +57,12 @@ export class Camera {
     constructor(parent: THREETypes.TApplication) {
 
         this.parent = parent
-        this.keybordListeners = parent.keybordListeners
         this.sizes = parent.sizes
         this.canvas = parent.canvas
         this.params = useSceneState().getStartCameraData
         // this.ortoParams = useSceneState().getStartOrtoCameraData
         this.scene = parent.scene
 
-        this.onKeyDown = this.keyDown.bind(this)
-        this.onKeyUp = this.keyUp.bind(this)
         this.onSetPosition = this.setPosition.bind(this)
 
         this.setInstance();
@@ -83,27 +79,13 @@ export class Camera {
         return this.instance
     }
 
+    // Панорамирование в плоскости экрана, пока зажат Ctrl (Cmd на macOS).
+    // Прежний keyUp гасил его по условию `!ctrlKey || !metaKey`, то есть почти
+    // на любом отпускании клавиши — в том числе с всё ещё зажатым Ctrl.
     setupKeys() {
-        this.keybordListeners.addKeydownCallback(this.onKeyDown)
-        this.keybordListeners.addKeyupCallback(this.onKeyUp)
-    }
-
-    keyDown(event) {
-
-        if (event.ctrlKey || event.metaKey) {
-
-            this.controls.screenSpacePanning = true
-            // console.log('screenSpacePanning TRUE')
-        }
-    }
-
-    keyUp(event) {
-
-        if (!event.ctrlKey || !event.metaKey) {
-            this.controls.screenSpacePanning = false
-            // console.log('screenSpacePanning FALSE')
-        }
-
+        this.releaseModifiers = modifiers.subscribe(state => {
+            if (this.controls) this.controls.screenSpacePanning = state.ctrl || state.meta
+        })
     }
 
     screenPanningChange() {
@@ -180,6 +162,8 @@ export class Camera {
     }
 
     removeCamera() {
+        this.releaseModifiers?.()
+        this.releaseModifiers = null
     }
 
     /**

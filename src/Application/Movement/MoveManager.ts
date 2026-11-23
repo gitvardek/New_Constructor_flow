@@ -26,7 +26,6 @@ export class MoveManager {
     uniformState: ReturnType<typeof useUniformState> = useUniformState();
     uniformEvents: THREETypes.TUniformTextureEvents
 
-    keybordListeners: TKeybordListeners
     root: THREETypes.TApplication
     canvas: HTMLElement | null = null;
     scene: THREE.Scene | null = null;
@@ -60,7 +59,6 @@ export class MoveManager {
     private onTouchMoveBound: (event: TouchEvent) => void;
     private onTouchEndBound: (event: TouchEvent) => void;
 
-    private onKeyDown: (event) => void;
     private extention: ''
 
 
@@ -89,7 +87,6 @@ export class MoveManager {
         this.controls = root._orbitControls
         this.trafficManager = trafficManager
         this.roomManager = root._roomManager;
-        this.keybordListeners = root.keybordListeners
 
         this.raycaster = raycaster;
         this.mouse = mouse;
@@ -117,11 +114,8 @@ export class MoveManager {
         this.onTouchMoveBound = this.onTouchMove.bind(this)
         this.onTouchEndBound = this.onTouchEnd.bind(this)
 
-        this.onKeyDown = this.keyDown.bind(this)
-
         this.setupModelMove();
         this.addVueEvents();
-        this.setupKeys();
 
     }
 
@@ -438,7 +432,6 @@ export class MoveManager {
         this.canvas.removeEventListener('touchstart', this.onTouchStartBound, false);
         this.canvas.removeEventListener('touchmove', this.onTouchMoveBound, false);
         this.canvas.removeEventListener('touchend', this.onTouchEndBound, false);
-        // document.removeEventListener('keyup', this.onKeyUp, false);
 
         this.canvas = null;
         this.scene = null;
@@ -479,28 +472,10 @@ export class MoveManager {
         return false
     }
 
-    setupKeys() {
-        this.keybordListeners.addKeydownCallback(this.onKeyDown)
-    }
-
-    keyDown(event) {
-
-        // return
-
-        if (event.repeat) return
-
-        // if (event.shiftKey) {
-        //     this.uniformModeHandler.toggleUniformMode()
-        //     this.selectedObject = null
-
-        //     // Эмитим событие для синхронизации состояния UI
-        //     this.eventBus.emit('A:Uniform-Mode-Toggled', {
-        //         uniformMode: this.uniformEvents._unionMode,
-        //         showGroupsManager: false 
-        //     })
-        // }
-
-    }
+    // Клавиатурного обработчика здесь больше нет: его тело было закомментировано
+    // целиком, а переключение uniform-режима живёт в addVueEvents
+    // ('A:Toggle-Uniform-Mode'). Понадобится хоткей — регистрируй через
+    // registerById, как в Constructor2D/methods/events/hotkeys.
 
     addVueEvents() {
         this.eventBus.emit('A:Move', () => {

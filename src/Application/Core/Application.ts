@@ -20,7 +20,6 @@ import { SetObject } from "../Utils/SetObject";
 import { Ruler } from "../Utils/Ruler";
 import { ProductInfoHover } from "../Utils/ProductInfoHover";
 import { SystemInfo } from "../Utils/SystemInfo";
-import { KeybordListeners } from "../Utils/KeybordListeners";
 import { UserHistory } from "../Utils/UserHistory";
 import { UseEdgeBuilder } from "../Meshes/EdgeBuilder/useEdgeBuilder";
 
@@ -74,7 +73,6 @@ export class Application {
     private setObject: SetObject | null = null
     private ruler: Ruler | null = null
     private systemInfo: SystemInfo | null = null
-    private keybordListeners: KeybordListeners | null = null
     private customBoxHelper: CustomBoxHelper | null = null
     private productInfoHover: ProductInfoHover | null = null
 
@@ -85,7 +83,6 @@ export class Application {
 
         // THREE.Cache.enabled = true
         this.systemInfo = new SystemInfo()
-        this.keybordListeners = new KeybordListeners(this)
         this.resources = new Resources();
         this.deepDispose = new DeepDispose()
         this.canvas = canvas
@@ -260,15 +257,6 @@ export class Application {
 
     public destroy() {
         try {
-            // Отключаем слушатели событий
-            if (this.keybordListeners) {
-                try {
-                    this.keybordListeners.removeKeyListeners();
-                } catch (error) {
-                    console.warn('Ошибка при удалении слушателей клавиатуры:', error);
-                }
-            }
-
             if (this.transformControlsManager) {
                 try {
                     this.transformControlsManager.dispose()
@@ -355,7 +343,6 @@ export class Application {
             }
 
             // Очищаем ссылки
-            this.keybordListeners = null;
             this.productInfoHover = null;
             this.meshEvents = null;
             this.enviromentData = null;

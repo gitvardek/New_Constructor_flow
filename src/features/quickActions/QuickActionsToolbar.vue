@@ -111,6 +111,7 @@ import { useSceneState } from "@/store/appliction/useSceneState";
 import { useToast } from "@/features/toaster/useToast";
 import { useEventBus } from "@/store/appliction/useEventBus";
 import { useProjectStore } from "./project/store/useProjectStore";
+import { useHotkeys, HOTKEY_IDS } from "@/features/hotkeys";
 // import folderIcon from "@/assets/svg/folder.svg";
 // import bookIcon from "@/assets/svg/book.svg";
 
@@ -128,6 +129,23 @@ const sceneState = useSceneState();
 const toaster = useToast();
 const eventBus = useEventBus();
 const projectStore = useProjectStore();
+
+// Хоткей вызывает ту же команду, что кнопка. Регистрация здесь, а не в
+// useHotkeyCommands: диалоги сохранения привязаны к рефам именно этого
+// экземпляра useQuickActionsToolbar (см. onMounted ниже), у второй копии
+// composable они пустые и сохранение молча ничего не открыло бы.
+useHotkeys([
+  {
+    id: HOTKEY_IDS.SAVE_PROJECT,
+    // Ctrl+S ждут рабочим и при наборе в поле
+    allowInInput: true,
+    // Пока крутится лоадер сохранения, второе нажатие копило бы таймеры команды
+    enabled: () => !projectStore.isSaving,
+    handler: () => {
+      actions.find(action => action.key === "saveProject")?.action();
+    },
+  },
+]);
 
 const saveAsNewMode = ref(false);
 const kpCheckbox = ref(false);
