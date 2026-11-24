@@ -73,11 +73,14 @@ export class OBBCollider {
         const { DEPTH, HEIGHT, WIDTH } = object.userData.trueSizes
         const heightMagnetThreshold = HEIGHT < this.defaultMagnetTrashhold ? this.defaultMagnetTrashhold : HEIGHT;
 
-        const position = this.snapToHeight(
+        const heightPosition = this.snapToHeight(
             targetPosition,
             objectBox,
             heightClamp,
             heightMagnetThreshold);
+
+        // Выравнивание верхов, как и stuking, работает только при перетаскивании мышью
+        const position = drag ? this.snapToTops(object, heightPosition, objectsBoundsStore) : heightPosition
 
         const objectPos = this.roomInterseck({ object, wall, position, targetRotation, wallStore, boundsStore })
 
@@ -413,6 +416,48 @@ export class OBBCollider {
         }
 
         return adjustedPosition;
+    }
+
+    /**
+     * Верх объекта встаёт на уровень верха ближайшего по высоте соседа.
+     * element_down исключён: он всегда прижат к полу (см. roomInterseck).
+     */
+    private snapToTops(object: THREE.Object3D, position: THREE.Vector3, bounds: OBB[]): THREE.Vector3 {
+
+        if (!SNAP_CONFIG.stuking || !bounds.length) return position
+
+        // Тип берём из CONFIG: у напольных модулей, опознанных по ножкам,
+        // userData.elementType пустой, а CONFIG.ELEMENT_TYPE уже element_down
+        const elementType = object.userData.PROPS?.CONFIG?.ELEMENT_TYPE ?? object.userData.elementType
+        if (elementType === 'element_down') return position
+
+        const up = new THREE.Vector3(0, 1, 0)
+        const top = this.getObbTop(object, position.y)
+
+        let shift = 0
+
+        for (const bound of bounds) {
+            const delta = bound.center.y + this.projectRadius(bound, up) - top
+
+            if (Math.abs(delta) > SNAP_CONFIG.topThreshold) continue
+            if (shift && Math.abs(shift) <= Math.abs(delta)) continue
+
+            shift = delta
+        }
+
+        return shift ? position.clone().setY(position.y + shift) : position
+    }
+
+    /** Мировая высота верха габарита, если origin объекта окажется на y */
+    private getObbTop(object: THREE.Object3D, y: number): number {
+
+        const { halfSize } = object.userData.obb
+        const m = new THREE.Matrix4().makeRotationFromEuler(object.rotation).elements
+
+        // Строка Y матрицы поворота — вклад локальных осей в мировую вертикаль
+        const halfHeight = Math.abs(m[1]) * halfSize.x + Math.abs(m[5]) * halfSize.y + Math.abs(m[9]) * halfSize.z
+
+        return y + getObbCenterOffset(object).y + halfHeight
     }
 
     private findClosestPoint(middlePoint, point1, point2) {
