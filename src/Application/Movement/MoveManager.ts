@@ -372,12 +372,18 @@ export class MoveManager {
             this.selectedObject.userData.aabb = new THREE.Box3().setFromObject(this.selectedObject);
 
             const adjustedPosition = this.roomManager.adjustPositionWithRaycasting({
-                object: this.selectedObject, targetPosition: point, wall: surface
+                object: this.selectedObject, targetPosition: point, wall: surface, drag: true
             });
 
             this.selectedObject.position.copy(adjustedPosition.position);
             this.selectedObject.rotation.copy(adjustedPosition.rotation);
-            this.selectedObject.userData.targetPosition = point
+
+            // Цель — точка на плоскости стены под объектом, а не сырая точка курсора:
+            // магниты и коллизия уводят объект от курсора, а ресайз целится именно сюда
+            const surfacePlane = surface.userData.name !== 'floor' ? surface.userData.plane : null
+            this.selectedObject.userData.targetPosition = surfacePlane
+                ? surfacePlane.projectPoint(this.selectedObject.position, new THREE.Vector3())
+                : this.selectedObject.position.clone()
 
             // Центр OBB — центр габарита, а не origin объекта: у несимметричной
             // сборки (гардеробная система) они расходятся, и объект заходил в

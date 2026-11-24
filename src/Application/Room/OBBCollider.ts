@@ -27,9 +27,21 @@ export function getCenterOffset(
     return local ? local.clone().applyEuler(rotation) : new THREE.Vector3()
 }
 
+/**
+ * Смещение центра OBB от origin объекта — парное к userData.obb.halfSize.
+ * У моделей без obbCenter (GLB) берём живой AABB: другого источника нет.
+ */
+export function getObbCenterOffset(object: THREE.Object3D, rotation: THREE.Euler = object.rotation): THREE.Vector3 {
+    if (object.userData?.obbCenter) return getCenterOffset(object, rotation, 'obbCenter')
+    if (!object.userData?.aabb) return new THREE.Vector3()
+    return object.userData.aabb.getCenter(new THREE.Vector3()).sub(object.position)
+}
+
 export class OBBCollider {
     private defaultMagnetTrashhold = 50
-    private readonly defaultSteps = 30
+    private readonly sweepStep = 15          // шаг трассы коллизии, мм
+    private readonly maxSweepSteps = 128     // потолок шагов на один кадр
+    private readonly contactPrecision = 0.1  // остаточный зазор в касании, мм
     private readonly UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966]
 
     getCorrectPosition({ object,
@@ -40,7 +52,8 @@ export class OBBCollider {
         heightClamp,
         wallStore,
         boundsStore,
-        objectsBoundsStore
+        objectsBoundsStore,
+        drag = false
     }: {
         object: THREE.Object3D,
         targetPosition: THREE.Vector3,
@@ -52,6 +65,7 @@ export class OBBCollider {
         wallStore: THREE.Object3D[],
         boundsStore: THREE.Box3,
         objectsBoundsStore: OBB[],
+        drag?: boolean,
     }): TAdjustPosition {
 
         const objectBox = object.userData.obb
@@ -66,7 +80,7 @@ export class OBBCollider {
 
         const objectPos = this.roomInterseck({ object, wall, position, targetRotation, wallStore, boundsStore })
 
-        const objectsInterseck = this.objectsInterseck({ object, objectPos, objectsBoundsStore })
+        const objectsInterseck = this.objectsInterseck({ object, objectPos, objectsBoundsStore, drag })
 
         return {
             position: objectsInterseck.position,
@@ -421,135 +435,116 @@ export class OBBCollider {
     objectsInterseck({
         object,
         objectPos,
-        objectsBoundsStore
+        objectsBoundsStore,
+        drag = false
     }: {
         object: THREE.Object3D,
         objectPos: { position: THREE.Vector3, rotation: THREE.Euler },
-        objectsBoundsStore: OBB[]
+        objectsBoundsStore: OBB[],
+        drag?: boolean
     }) {
 
-        const aabb = object.userData.aabb.clone();
-        const obb = object.userData.obb.clone();
-        const matrixWorld = object.matrixWorld.clone();
+        const rotation = objectPos.rotation.clone()
+        const fromPos = object.position.clone()
+        const toPos = objectPos.position.clone()
 
-        const fromPos = object.position.clone();          // старт
-        const toPos = objectPos.position.clone();       // цель
-        const moveDir = toPos.clone().sub(fromPos);       // вектор перемещения
-
-        const steps = 20;                                 // дискретизация
-        let finalSafePosition = fromPos.clone();          // последняя безопасная
-        let lastSafeY = fromPos.y;                // последняя безопасная Y
-
-        let collided = false;                           // факт столкновения на трассе
-        let collidedOBB: OBB | null = null;
-        const defCollided = object.userData.PROPS.RAYCAST         // с кем столкнулись
-
-        //  1. Пошаговый прогон
-
-        for (let i = 1; i <= this.defaultSteps; i++) {
-            const t = i / this.defaultSteps;
-            const testPos = fromPos.clone().add(moveDir.clone().multiplyScalar(t));
-
-            // переносим AABB в тестовую точку
-            const offset = testPos.clone().sub(fromPos);
-            const testBox = aabb.clone().translate(offset);
-
-            // строим OBB для проверки
-            const center = new THREE.Vector3();
-            testBox.getCenter(center);
-
-            const testOBB = obb.clone();
-            testOBB.center.copy(center);
-            if (testOBB.center.y < 0) testOBB.center.y = 0;
-            testOBB.rotation.setFromMatrix4(matrixWorld);
-
-            // проверяем пересечения
-            let hasCollision = false;
-            for (const bound of objectsBoundsStore) {
-                if (testOBB.intersectsOBB(bound) && !defCollided) {
-                    hasCollision = true;
-                    collidedOBB = bound;
-                    break;
-                }
-            }
-
-            if (hasCollision) {
-                collided = true;
-                break;                    // прерываем трассу на первом столкновении
-            } else {
-                finalSafePosition.copy(testPos);
-                lastSafeY = testPos.y;
-            }
+        /** RAYCAST — объект-призрак, ни с чем не сталкивается */
+        if (object.userData.PROPS.RAYCAST || !objectsBoundsStore.length) {
+            return { position: toPos, rotation }
         }
 
-        // 2. Конечная позиция – может быть чистой
+        const testOBB = object.userData.obb.clone()
+        testOBB.rotation.setFromMatrix4(object.matrixWorld)
 
-        if (collided) {
-            const finalOffset = toPos.clone().sub(fromPos);
-            const finalBox = aabb.clone().translate(finalOffset);
+        // Тестовый OBB ставим по центру габарита, а не по origin объекта
+        const centerOffset = getObbCenterOffset(object, rotation)
 
-            const finalCenter = new THREE.Vector3();
-            finalBox.getCenter(finalCenter);
-
-            const finalOBB = obb.clone();
-            finalOBB.center.copy(finalCenter);
-            finalOBB.rotation.setFromMatrix4(matrixWorld);
-
-            let finalIsClear = true;
-            for (const bound of objectsBoundsStore) {
-                if (finalOBB.intersectsOBB(bound)) {
-                    finalIsClear = false;
-                    break;
-                }
-            }
-
-            if (finalIsClear) {
-                // вся цель свободна – берём её
-                return {
-                    position: toPos.clone(),
-                    rotation: objectPos.rotation.clone()
-                };
-            }
+        const center = new THREE.Vector3()
+        const setCenter = (point: THREE.Vector3) => {
+            center.copy(point).add(centerOffset)
+            if (center.y < 0) center.y = 0
+            testOBB.center.copy(center)
+            return center
         }
 
-        // 3. «Скольжение» – оставляем X/Z, фиксируем Y
-
-        if (collided && collidedOBB) {
-            // Позиция: конечные XZ + последний безопасный Y
-            const slidePos = new THREE.Vector3(toPos.x, lastSafeY, toPos.z);
-
-            const offset = slidePos.clone().sub(fromPos);
-            const slideBox = aabb.clone().translate(offset);
-
-            const slideCenter = new THREE.Vector3();
-            slideBox.getCenter(slideCenter);
-
-            const slideOBB = obb.clone();
-            slideOBB.center.copy(slideCenter);
-            slideOBB.rotation.setFromMatrix4(matrixWorld);
-
-            let slideClear = true;
-            for (const bound of objectsBoundsStore) {
-                if (slideOBB.intersectsOBB(bound)) {
-                    slideClear = false;
-                    break;
-                }
-            }
-
-            if (slideClear) {
-                return {
-                    position: slidePos,
-                    rotation: objectPos.rotation.clone()
-                };
-            }
+        // Габариты, внутри которых объект уже оказался (drop, дубликат, ресайз):
+        // из них разрешаем только выход. Совсем отключать их нельзя — объект
+        // проходил бы такого соседа насквозь, пока не выйдет за его пределы.
+        setCenter(fromPos)
+        const trapped = new Map<OBB, number>()
+        for (const bound of objectsBoundsStore) {
+            if (testOBB.intersectsOBB(bound)) trapped.set(bound, center.distanceTo(bound.center))
         }
 
-        // 4. Ни цель, ни скольжение не подошли – остаемся на finalSafePosition
+        const collides = (point: THREE.Vector3): boolean => {
+            const position = setCenter(point)
+            return objectsBoundsStore.some(bound => {
+                if (!testOBB.intersectsOBB(bound)) return false
+                const escapeFrom = trapped.get(bound)
+                return escapeFrom === undefined || position.distanceTo(bound.center) < escapeFrom
+            })
+        }
 
-        return {
-            position: finalSafePosition,
-            rotation: objectPos.rotation.clone()
-        };
+        // Цель свободна — ставим объект сразу туда: соседа можно обойти с любой стороны
+        if (!collides(toPos)) return { position: toPos, rotation }
+
+        // Не перетаскивание (ресайз, гизмо): объект остаётся на месте, подводить его
+        // к занятой цели нельзя. Но пока объект не в сцене (drop, загрузка), его
+        // position — сырая точка курсора на стене, и оставаться на ней нельзя.
+        if (!drag) return { position: object.parent ? fromPos : toPos, rotation }
+
+        let position = this.sweep(fromPos, toPos, collides)
+
+        // Остаток хода раскладываем по осям — это и есть скольжение вдоль соседа
+        for (const axis of ['x', 'y', 'z'] as const) {
+            if (position[axis] === toPos[axis]) continue
+
+            const axisTarget = position.clone()
+            axisTarget[axis] = toPos[axis]
+            position = this.sweep(position, axisTarget, collides)
+        }
+
+        return { position, rotation }
+    }
+
+    /**
+     * Самая дальняя свободная точка на отрезке from→to.
+     * Шаг трассы — в мировых единицах, а не доля хода: при далёкой камере кадр
+     * даёт перемещение в сотни мм, и объект застревал в один шаг от соседа.
+     */
+    private sweep(from: THREE.Vector3, to: THREE.Vector3, collides: (point: THREE.Vector3) => boolean): THREE.Vector3 {
+
+        const move = to.clone().sub(from)
+        const distance = move.length()
+        if (distance <= this.contactPrecision) return to.clone()
+
+        const steps = Math.min(Math.ceil(distance / this.sweepStep), this.maxSweepSteps)
+        const point = new THREE.Vector3()
+
+        let safe = 0        // доля хода, заведомо свободная
+        let blocked = 0     // доля хода, заведомо занятая
+        let hit = false
+
+        for (let i = 1; i <= steps; i++) {
+            const t = i / steps
+
+            if (collides(point.copy(from).addScaledVector(move, t))) {
+                blocked = t
+                hit = true
+                break
+            }
+            safe = t
+        }
+
+        if (!hit) return to.clone()
+
+        // Уточнение до касания: без него зазор равен шагу трассы
+        while ((blocked - safe) * distance > this.contactPrecision) {
+            const middle = (safe + blocked) * 0.5
+            collides(point.copy(from).addScaledVector(move, middle)) ? blocked = middle : safe = middle
+        }
+
+        return from.clone().addScaledVector(move, safe)
     }
 
 }
