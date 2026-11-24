@@ -73,14 +73,11 @@ export class OBBCollider {
         const { DEPTH, HEIGHT, WIDTH } = object.userData.trueSizes
         const heightMagnetThreshold = HEIGHT < this.defaultMagnetTrashhold ? this.defaultMagnetTrashhold : HEIGHT;
 
-        const heightPosition = this.snapToHeight(
+        const position = this.snapToHeight(
             targetPosition,
             objectBox,
             heightClamp,
             heightMagnetThreshold);
-
-        // Выравнивание верхов, как и stuking, работает только при перетаскивании мышью
-        const position = drag ? this.snapToTops(object, heightPosition, objectsBoundsStore) : heightPosition
 
         const objectPos = this.roomInterseck({ object, wall, position, targetRotation, wallStore, boundsStore })
 
@@ -418,48 +415,6 @@ export class OBBCollider {
         return adjustedPosition;
     }
 
-    /**
-     * Верх объекта встаёт на уровень верха ближайшего по высоте соседа.
-     * element_down исключён: он всегда прижат к полу (см. roomInterseck).
-     */
-    private snapToTops(object: THREE.Object3D, position: THREE.Vector3, bounds: OBB[]): THREE.Vector3 {
-
-        if (!SNAP_CONFIG.stuking || !bounds.length) return position
-
-        // Тип берём из CONFIG: у напольных модулей, опознанных по ножкам,
-        // userData.elementType пустой, а CONFIG.ELEMENT_TYPE уже element_down
-        const elementType = object.userData.PROPS?.CONFIG?.ELEMENT_TYPE ?? object.userData.elementType
-        if (elementType === 'element_down') return position
-
-        const up = new THREE.Vector3(0, 1, 0)
-        const top = this.getObbTop(object, position.y)
-
-        let shift = 0
-
-        for (const bound of bounds) {
-            const delta = bound.center.y + this.projectRadius(bound, up) - top
-
-            if (Math.abs(delta) > SNAP_CONFIG.topThreshold) continue
-            if (shift && Math.abs(shift) <= Math.abs(delta)) continue
-
-            shift = delta
-        }
-
-        return shift ? position.clone().setY(position.y + shift) : position
-    }
-
-    /** Мировая высота верха габарита, если origin объекта окажется на y */
-    private getObbTop(object: THREE.Object3D, y: number): number {
-
-        const { halfSize } = object.userData.obb
-        const m = new THREE.Matrix4().makeRotationFromEuler(object.rotation).elements
-
-        // Строка Y матрицы поворота — вклад локальных осей в мировую вертикаль
-        const halfHeight = Math.abs(m[1]) * halfSize.x + Math.abs(m[5]) * halfSize.y + Math.abs(m[9]) * halfSize.z
-
-        return y + getObbCenterOffset(object).y + halfHeight
-    }
-
     private findClosestPoint(middlePoint, point1, point2) {
         // Вычисляем расстояния
         const distanceToPoint1 = middlePoint.distanceTo(point1);
@@ -553,51 +508,111 @@ export class OBBCollider {
             }
         }
 
-        return { position: this.snapToNeighbours(position, testOBB, setCenter(position), objectsBoundsStore), rotation }
+        return {
+            position: this.snapToNeighbours({ object, position, testOBB, center: setCenter(position), bounds: objectsBoundsStore, collides }),
+            rotation
+        }
     }
 
     /**
-     * Stuking: горизонтальный зазор до ближайшего соседа схлопывается до нуля.
-     * Сосед годится, только если по двум другим осям габариты перекрываются —
-     * иначе объект цеплялся бы за шкаф в стороне или на другой высоте.
+     * Stuking: объект довыравнивается по соседям, с которыми оказался в контакте —
+     * схлопывает до нуля горизонтальный зазор и ставит свои грани вровень с их
+     * гранями. Верх вдобавок ловится за верх любого модуля сцены — этому магниту
+     * контакт не нужен. По каждой оси применяется одно смещение, и только если
+     * оно не создаёт пересечения.
      */
-    private snapToNeighbours(position: THREE.Vector3, testOBB: OBB, center: THREE.Vector3, bounds: OBB[]): THREE.Vector3 {
+    private snapToNeighbours({ object, position, testOBB, center, bounds, collides }: {
+        object: THREE.Object3D,
+        position: THREE.Vector3,
+        testOBB: OBB,
+        center: THREE.Vector3,
+        bounds: OBB[],
+        collides: (point: THREE.Vector3) => boolean,
+    }): THREE.Vector3 {
 
-        if (!SNAP_CONFIG.stuking) return position
+        if (!SNAP_CONFIG.stuking || !bounds.length) return position
 
-        // Горизонтальные оси самого объекта: магнитим по ширине и глубине
-        const axes = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1)]
-            .map(axis => axis.applyMatrix3(testOBB.rotation).setY(0))
-            .filter(axis => axis.lengthSq() > 0.01)
-            .map(axis => axis.normalize())
-
-        const checkAxes = [...axes, new THREE.Vector3(0, 1, 0)]
+        // center живёт в замыкании collides — считаем от снимка
+        const selfCenter = center.clone()
         const delta = new THREE.Vector3()
+        const up = new THREE.Vector3(0, 1, 0)
 
-        let best: { axis: THREE.Vector3, gap: number, shift: number } | null = null
-
-        for (const bound of bounds) {
-            delta.subVectors(bound.center, center)
-
-            const gaps = checkAxes.map(axis =>
-                Math.abs(delta.dot(axis)) - this.projectRadius(testOBB, axis) - this.projectRadius(bound, axis))
-
-            axes.forEach((axis, i) => {
-                const gap = gaps[i]
-
-                if (gap <= 0 || gap > SNAP_CONFIG.threshold) return
-                if (gaps.some((other, j) => j !== i && other >= 0)) return
-                if (best && gap >= best.gap) return
-
-                best = {
-                    axis,
-                    gap,
-                    shift: Math.sign(delta.dot(axis)) * Math.max(gap - this.contactPrecision, 0),
-                }
-            })
+        // Горизонтальные оси объекта; у наклонённого гизмо одна из них может выродиться
+        const horizontal = (x: number, z: number) => {
+            const axis = new THREE.Vector3(x, 0, z).applyMatrix3(testOBB.rotation).setY(0)
+            return axis.lengthSq() > 0.01 ? axis.normalize() : null
         }
 
-        return best ? position.clone().addScaledVector(best.axis, best.shift) : position
+        const width = horizontal(1, 0)
+        const depth = horizontal(0, 1)
+        const axes = [width, depth, up].filter(Boolean) as THREE.Vector3[]
+
+        /** Проекция вектора до центра соседа на ось */
+        const distance = (bound: OBB, axis: THREE.Vector3) => delta.subVectors(bound.center, selfCenter).dot(axis)
+        /** Зазор между габаритами вдоль оси; отрицательный — габариты перекрываются */
+        const gap = (bound: OBB, axis: THREE.Vector3) =>
+            Math.abs(distance(bound, axis)) - this.projectRadius(testOBB, axis) - this.projectRadius(bound, axis)
+
+        // Соседи в контакте: ни по одной оси не расходимся больше порога. Их может
+        // быть несколько — модуль под рядом навесных касается сразу двух
+        const contacts = bounds.filter(bound => axes.every(axis => gap(bound, axis) <= SNAP_CONFIG.threshold))
+
+        /** Зазор схлопываем, только если по остальным осям габариты перекрываются */
+        const gapShift = (bound: OBB, axis: THREE.Vector3 | null) => {
+            if (!axis) return 0
+
+            const value = gap(bound, axis)
+
+            if (value <= 0 || value > SNAP_CONFIG.threshold) return 0
+            if (axes.some(other => other !== axis && gap(bound, other) >= 0)) return 0
+
+            return Math.sign(distance(bound, axis)) * (value - this.contactPrecision)
+        }
+
+        /** Одноимённые грани вровень: из двух сторон берём ту, что ближе */
+        const faceShift = (bound: OBB, axis: THREE.Vector3 | null) => {
+            if (!axis) return 0
+
+            const radius = this.projectRadius(testOBB, axis) - this.projectRadius(bound, axis)
+            const to = distance(bound, axis)
+            const value = Math.abs(to + radius) <= Math.abs(to - radius) ? to + radius : to - radius
+
+            return Math.abs(value) <= SNAP_CONFIG.faceThreshold ? value : 0
+        }
+
+        /** Верх на уровень верха любого модуля сцены: контакт тут не нужен */
+        const topShift = (bound: OBB) => {
+            const value = distance(bound, up) + this.projectRadius(bound, up) - this.projectRadius(testOBB, up)
+
+            return Math.abs(value) <= SNAP_CONFIG.topThreshold ? value : 0
+        }
+
+        let result = position
+
+        /** По оси одно смещение: наименьшее из подходящих и не создающее пересечения */
+        const apply = (axis: THREE.Vector3 | null, shifts: number[]) => {
+            const shift = shifts.filter(Boolean).sort((a, b) => Math.abs(a) - Math.abs(b))[0]
+            if (!axis || shift === undefined) return
+
+            const next = result.clone().addScaledVector(axis, shift)
+            if (!collides(next)) result = next
+        }
+
+        apply(width, contacts.flatMap(bound => [gapShift(bound, width), faceShift(bound, width)]))
+        apply(depth, contacts.map(bound => gapShift(bound, depth)))
+        apply(up, this.isFloorElement(object)
+            ? []
+            : [...contacts.map(bound => faceShift(bound, up)), ...bounds.map(topShift)])
+
+        return result
+    }
+
+    /**
+     * Напольный модуль: вертикально выравнивать нечего, он прижат к полу.
+     * Тип берём из CONFIG — у модулей, опознанных по ножкам, userData.elementType пустой.
+     */
+    private isFloorElement(object: THREE.Object3D): boolean {
+        return (object.userData.PROPS?.CONFIG?.ELEMENT_TYPE ?? object.userData.elementType) === 'element_down'
     }
 
     /** Радиус габарита вдоль оси: проекция полуразмеров OBB на неё */
