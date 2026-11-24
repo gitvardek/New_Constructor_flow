@@ -16,7 +16,12 @@ import { useUniformState } from "@/store/appliction/useUniformState";
 
 import { OBBHelper } from "../Utils/CalculateBoundingBox";
 import { getCenterOffset } from "../Room/OBBCollider";
+import { SNAP_CONFIG, toggleStuking } from "../Room/SnapConfig";
 import { UniformModeHandler } from "../Utils/UniformModeHandler";
+
+import { registerById } from "@/features/hotkeys/registerById";
+import { HOTKEY_IDS } from "@/features/hotkeys/registry/hotkeys.config";
+import { useToast } from "@/features/toaster/useToast";
 
 export class MoveManager {
 
@@ -47,6 +52,7 @@ export class MoveManager {
     startPos: THREE.Vector3 = new THREE.Vector3()
     uniformModeHandler: UniformModeHandler
     leftDown: boolean = false
+    private releaseHotkeys: () => void = () => undefined
 
     // rulerLines: THREE.Object3D[] = []
 
@@ -116,7 +122,16 @@ export class MoveManager {
 
         this.setupModelMove();
         this.addVueEvents();
+        this.setupHotkeys();
 
+    }
+
+    /** Alt+S — режим stuking. UI у режима нет, поэтому состояние показываем тостом */
+    private setupHotkeys() {
+        this.releaseHotkeys = registerById(HOTKEY_IDS.TOGGLE_STUKING, () => {
+            toggleStuking()
+            useToast().info(`Примагничивание ${SNAP_CONFIG.stuking ? 'включено' : 'выключено'}`)
+        })
     }
 
     setupModelMove() {
@@ -430,6 +445,7 @@ export class MoveManager {
     }
 
     dispose() {
+        this.releaseHotkeys();
         this.canvas.removeEventListener('mousedown', this.onMouseDownBound, false);
         this.canvas.removeEventListener('mousemove', this.onMouseMoveBound, false);
         this.canvas.removeEventListener('mouseup', this.onMouseUpBound, false);

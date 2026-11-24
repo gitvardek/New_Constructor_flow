@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { OBB } from 'three/examples/jsm/math/OBB.js';
 import { TAdjustPosition } from "@/types/types"
+import { SNAP_CONFIG } from './SnapConfig';
 
 /**
  * OBBCollider
@@ -485,26 +486,82 @@ export class OBBCollider {
             })
         }
 
-        // Цель свободна — ставим объект сразу туда: соседа можно обойти с любой стороны
-        if (!collides(toPos)) return { position: toPos, rotation }
+        const targetFree = !collides(toPos)
 
         // Не перетаскивание (ресайз, гизмо): объект остаётся на месте, подводить его
         // к занятой цели нельзя. Но пока объект не в сцене (drop, загрузка), его
         // position — сырая точка курсора на стене, и оставаться на ней нельзя.
-        if (!drag) return { position: object.parent ? fromPos : toPos, rotation }
+        if (!drag) return { position: targetFree || !object.parent ? toPos : fromPos, rotation }
 
-        let position = this.sweep(fromPos, toPos, collides)
+        let position = toPos
 
-        // Остаток хода раскладываем по осям — это и есть скольжение вдоль соседа
-        for (const axis of ['x', 'y', 'z'] as const) {
-            if (position[axis] === toPos[axis]) continue
+        if (!targetFree) {
+            position = this.sweep(fromPos, toPos, collides)
 
-            const axisTarget = position.clone()
-            axisTarget[axis] = toPos[axis]
-            position = this.sweep(position, axisTarget, collides)
+            // Остаток хода раскладываем по осям — это и есть скольжение вдоль соседа
+            for (const axis of ['x', 'y', 'z'] as const) {
+                if (position[axis] === toPos[axis]) continue
+
+                const axisTarget = position.clone()
+                axisTarget[axis] = toPos[axis]
+                position = this.sweep(position, axisTarget, collides)
+            }
         }
 
-        return { position, rotation }
+        return { position: this.snapToNeighbours(position, testOBB, setCenter(position), objectsBoundsStore), rotation }
+    }
+
+    /**
+     * Stuking: горизонтальный зазор до ближайшего соседа схлопывается до нуля.
+     * Сосед годится, только если по двум другим осям габариты перекрываются —
+     * иначе объект цеплялся бы за шкаф в стороне или на другой высоте.
+     */
+    private snapToNeighbours(position: THREE.Vector3, testOBB: OBB, center: THREE.Vector3, bounds: OBB[]): THREE.Vector3 {
+
+        if (!SNAP_CONFIG.stuking) return position
+
+        // Горизонтальные оси самого объекта: магнитим по ширине и глубине
+        const axes = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1)]
+            .map(axis => axis.applyMatrix3(testOBB.rotation).setY(0))
+            .filter(axis => axis.lengthSq() > 0.01)
+            .map(axis => axis.normalize())
+
+        const checkAxes = [...axes, new THREE.Vector3(0, 1, 0)]
+        const delta = new THREE.Vector3()
+
+        let best: { axis: THREE.Vector3, gap: number, shift: number } | null = null
+
+        for (const bound of bounds) {
+            delta.subVectors(bound.center, center)
+
+            const gaps = checkAxes.map(axis =>
+                Math.abs(delta.dot(axis)) - this.projectRadius(testOBB, axis) - this.projectRadius(bound, axis))
+
+            axes.forEach((axis, i) => {
+                const gap = gaps[i]
+
+                if (gap <= 0 || gap > SNAP_CONFIG.threshold) return
+                if (gaps.some((other, j) => j !== i && other >= 0)) return
+                if (best && gap >= best.gap) return
+
+                best = {
+                    axis,
+                    gap,
+                    shift: Math.sign(delta.dot(axis)) * Math.max(gap - this.contactPrecision, 0),
+                }
+            })
+        }
+
+        return best ? position.clone().addScaledVector(best.axis, best.shift) : position
+    }
+
+    /** Радиус габарита вдоль оси: проекция полуразмеров OBB на неё */
+    private projectRadius(obb: OBB, axis: THREE.Vector3): number {
+        const r = obb.rotation.elements
+
+        return Math.abs(axis.x * r[0] + axis.y * r[1] + axis.z * r[2]) * obb.halfSize.x
+            + Math.abs(axis.x * r[3] + axis.y * r[4] + axis.z * r[5]) * obb.halfSize.y
+            + Math.abs(axis.x * r[6] + axis.y * r[7] + axis.z * r[8]) * obb.halfSize.z
     }
 
     /**

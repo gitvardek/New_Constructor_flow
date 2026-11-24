@@ -26,6 +26,8 @@ export const HOTKEY_IDS = {
     DELETE_PRODUCT: "product.delete",
     /** Ctrl+S — сохранение проекта. */
     SAVE_PROJECT: "project.save",
+    /** Alt+S — режим stuking: примагничивание товаров друг к другу. */
+    TOGGLE_STUKING: "scene.stuking",
 } as const;
 
 export const HOTKEYS: THotkeyMeta[] = [
@@ -83,6 +85,13 @@ export const HOTKEYS: THotkeyMeta[] = [
         scope: SCOPES.GLOBAL,
         title: "Сохранить проект",
         description: "Та же команда, что у кнопки в тулбаре: переход на /3d и диалог имени.",
+    },
+    {
+        id: HOTKEY_IDS.TOGGLE_STUKING,
+        combo: "alt+s",
+        scope: SCOPES.SCENE_3D,
+        title: "Примагничивание товаров",
+        description: "Схлопывает зазор до соседа меньше порога до нуля при перетаскивании.",
     },
 ];
 
