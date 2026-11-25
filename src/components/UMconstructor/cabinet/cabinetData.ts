@@ -30,6 +30,11 @@ export const CABINET_MIN_GAP = 2
 //   (ModulegridParser: POSITION_Z = SIZE.depth + 2).
 export const CABINET_TOP_FRONT_GAP = 2
 export const CABINET_FASADE_GAP = 2
+// Место под полотно фасада, которое резервируется при ПРОВЕРКЕ наполнения,
+// даже если фасада ещё нет: выбор фасада уменьшает корпус уже с наполнением
+// внутри, и без резерва ящик снимался бы как не влезший по глубине
+// (cabinetDepth.getCabinetFillingDepthLimit). 18 — самое толстое штатное полотно.
+export const CABINET_FASADE_RESERVE = 18
 
 // Опции товара, которых у тумбочки нет (висит между профилями): 4722965 —
 // "Навесной", 5738924 — "Без дна", группа 548 — "Опоры".

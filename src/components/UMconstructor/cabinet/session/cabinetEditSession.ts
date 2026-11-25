@@ -18,7 +18,7 @@ import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import { scaleGridWidth } from "@/components/UMconstructor/editor-v2/grid/scaleGridWidth.ts";
 import { getCabinetProduct } from "../cabinetProduct.ts";
 import { getCabinetEditLimits, getCabinetMaxCarcassHeight, type CabinetEditLimits } from "../cabinetLimits.ts";
-import { getCabinetBodyDepth } from "../cabinetDepth.ts";
+import { getCabinetBodyDepth, getCabinetFillingDepthLimit } from "../cabinetDepth.ts";
 import { getCabinetTopPanelThickness } from "../cabinetTopPanel.ts";
 import { createDefaultCabinetConfig, getCabinetHeight, removeExcludedCabinetOptions } from "../CabinetSystem.ts";
 
@@ -58,7 +58,7 @@ const prepareConfig = (engine: UMconstructorClass, product: any, CONFIG: any, li
     const sourceHeight = (hasGrid && CONFIG.MODULEGRID.height) || fallbackHeight;
     const height = Math.min(Math.max(sourceHeight, limits.minHeight), limits.maxHeight);
     // Глубина — по ЭТОМУ конфигу, а не limits.depth: при сбросе содержимого
-    // (resetContent) фасадов в нём уже нет, а крышка осталась.
+    // (resetContent) его крышка и фасады могут отличаться от сохранённых.
     const depth = getCabinetBodyDepth(limits.systemDepth, CONFIG);
     const size = { width: limits.width, height, depth };
 
@@ -72,6 +72,13 @@ const prepareConfig = (engine: UMconstructorClass, product: any, CONFIG: any, li
         if (CONFIG.MODULEGRID.width !== size.width) {
             scaleGridWidth(CONFIG.MODULEGRID, size.width, engine.CONST.MIN_SECTION_WIDTH);
         }
+        // Глубина сохранённого конфига разошлась с расчётной (сменилась глубина
+        // системы или правила вычета, cabinetDepth.ts) — наполнение подгоняем
+        // тем же путём, что при правке габарита: иначе не влезающее по глубине
+        // так и останется в сетке. В 3D это не видно (ящик рисуется по своей
+        // product.depth, а не по требуемой ACTUAL_DEPT), и несобираемый модуль
+        // молча уехал бы в корзину.
+        if (CONFIG.MODULEGRID.depth !== size.depth) engine.RESIZE.markResized();
         Object.assign(CONFIG.MODULEGRID, size);
     } else {
         engine.BUILDER.fasade_builder.prepareFasadePositions(CONFIG);
@@ -105,6 +112,10 @@ export const createCabinetEditSession = ({ wardrobeEngine, wardrobeGrid: grid, s
     // Сырое приложение: через прокси движка вложенный движок получил бы реактивную
     // обёртку всего приложения (сцена, сборщики).
     const engine = createUMEngine(toRaw(wardrobeEngine).ROOT, "cabinet");
+
+    // Наполнение проверяется по худшей глубине корпуса, а не по текущей: крышку
+    // и фасад включают, когда оно уже стоит (cabinetDepth.ts).
+    engine.FILLING_DEPTH_LIMIT = getCabinetFillingDepthLimit(limits.systemDepth);
 
     let PROPS: any;
     try {

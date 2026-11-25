@@ -14,11 +14,17 @@
 // POSITION_Z = SIZE.depth + 2). Задняя грань корпуса при этом всегда на -D/2
 // (CabinetMeshBuilder), т.е. все вычеты уходят в перед.
 //
+// Крышку и фасад включают в редакторе, когда наполнение уже стоит, т.е. корпус
+// мельчает под ним. Поэтому НАПОЛНЕНИЕ проверяется не по текущей глубине
+// корпуса, а по худшей из возможных — getCabinetFillingDepthLimit: иначе ящик,
+// поставленный в тумбочку без фасада, снимался бы при его появлении
+// (ResizeRefitManager.refitDepth).
+//
 // Глубина крышки — всегда D, её подставляет в сборку CabinetMeshBuilder
 // (CONFIG.TOPFASADE_DEPTH), а не формула УМ от корпуса.
 import { useModelState } from "@/store/appliction/useModelState.ts";
 import { UM_PARAMS } from "@/components/UMconstructor/utils/Const.ts";
-import { CABINET_TOP_FRONT_GAP, CABINET_FASADE_GAP } from "./cabinetData.ts";
+import { CABINET_TOP_FRONT_GAP, CABINET_FASADE_GAP, CABINET_FASADE_RESERVE } from "./cabinetData.ts";
 import { hasCabinetTopPanel } from "./cabinetTopPanel.ts";
 
 // Толщина самого толстого ПОЛОТНА фасада сетки, мм; 0 — фасада нет.
@@ -68,4 +74,18 @@ export function getCabinetBodyDepth(systemDepth: number, config: any, grid: any 
     }
 
     return depth;
+}
+
+// Предел глубины НАПОЛНЕНИЯ тумбочки, мм, с расшифровкой вычета для сообщений:
+// корпус в худшем случае — с крышкой и самым толстым штатным полотном, даже
+// если сейчас их нет. По нему наполнение проверяют и при установке
+// (FillingsCore.getFillingDepthLimit), и при подгонке (ResizeRefitManager):
+// что поставили, то и останется при любом выборе крышки и фасада.
+export function getCabinetFillingDepthLimit(systemDepth: number): { depth: number; reason: string } {
+    const deduction = CABINET_TOP_FRONT_GAP + CABINET_FASADE_GAP + CABINET_FASADE_RESERVE;
+
+    return {
+        depth: Math.max(Math.floor(systemDepth - deduction), 0),
+        reason: `в системе ${Math.floor(systemDepth)} мм за вычетом места под крышку и фасад (${CABINET_TOP_FRONT_GAP}+${CABINET_FASADE_GAP}+${CABINET_FASADE_RESERVE} мм)`,
+    };
 }

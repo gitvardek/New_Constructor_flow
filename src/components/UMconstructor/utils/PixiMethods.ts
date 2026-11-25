@@ -1,6 +1,6 @@
 // @ts-nocheck 31
 import { UM_PARAMS, UM_DRAWERS_IDS } from "./Const.ts";
-import { UM_PARAMS } from "./Const.ts";
+import { getBottomFasadeOverhang } from "./GlobalMethods.ts";
 import { Container, Graphics, GraphicsPath, Text, TextStyle } from "pixi.js";
 import * as THREE from "three";
 import { MANUFACTURER, TSelectedCell } from "@/components/UMconstructor/types/UMtypes.ts";
@@ -377,7 +377,7 @@ class Shape extends Helpers {
         this.highlightGraphics.visible = false;
 
         if (data.fasade) {
-            this.paddingBottom = this.getPixelHeight(data.fasade.manufacturerOffset - (data.moduleThickness - 2))
+            this.paddingBottom = this.getPixelHeight(data.fasade.manufacturerOffset - getBottomFasadeOverhang(data.moduleThickness, this.UM_STORE.getUMGrid()?.noBottom))
             this.paddingTop = this.getPixelHeight(data.fasade.height - data.fasade.manufacturerOffset - data.height - (data.moduleThickness - 2))
         }
 
@@ -789,9 +789,12 @@ class Shape extends Helpers {
         let width = this.width
         let height = this.height
         if (this.data.fasade) {
-            let moduleThickness = this.UM_STORE.getUMGrid().moduleThickness
+            let grid = this.UM_STORE.getUMGrid()
+            let moduleThickness = grid.moduleThickness
+            // Вверху всегда крышка, внизу дна может не быть — свесы фасада разные
+            let bottomOverhang = getBottomFasadeOverhang(moduleThickness, grid.noBottom)
             let top_offset = this.data.fasade.height - this.data.fasade.manufacturerOffset - this.data.height - (moduleThickness - 2)
-            height = this.getPixelHeight(this.data.fasade.height - (moduleThickness - 2) * 2)
+            height = this.getPixelHeight(this.data.fasade.height - (moduleThickness - 2) - bottomOverhang)
             pxPos.y -= this.getPixelHeight(top_offset)
 
             return (
@@ -1384,7 +1387,7 @@ class ShapeAdjuster extends Helpers {
                 shape.data.fasade.height = shape.data.data.MIN_FASADE_SIZE
                 let moduleData = this.scope.UM_STORE.getUMGrid()
 
-                height += this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
+                height += this.getPixelHeight(manufacturerOffset - getBottomFasadeOverhang(moduleData.moduleThickness, moduleData.noBottom))
                 //maxY = maxY + this.getPixelHeight(manufacturerOffset - (moduleData.moduleThickness - 2))
                 //minY = minY - this.getPixelHeight(moduleData.moduleThickness - 2)
             }

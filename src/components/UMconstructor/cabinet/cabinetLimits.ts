@@ -5,7 +5,7 @@
 // WardrobeGridReset удалил бы тумбочку как "не помещается". Глубину корпуса
 // пользователь тоже не вводит, но она НЕ равна глубине системы: её считает
 // cabinetDepth.ts по крышке и фасадам, и в редакторе она меняется вместе с ними
-// (cabinetEditSession.syncDepth).
+// (cabinetEditSession.syncSize).
 import {
     getWardrobeSectionInstallableHeight,
     getWardrobeShelfDepth,

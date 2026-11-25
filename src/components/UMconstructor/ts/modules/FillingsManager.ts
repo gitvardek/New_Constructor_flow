@@ -261,6 +261,18 @@ export default class FillingsManager {
             }
         }
 
+        // Глубину проверяем отдельно от места в области: createFillingDataToCheck
+        // отвечает одним false на ширину/высоту/глубину, а причина "не та глубина"
+        // из габаритов области не видна (у тумбочки предел вообще меньше корпуса,
+        // см. FillingsCore.getFillingDepthLimit).
+        const depthLimit = this.core.getFillingDepthLimit(grid)
+        const requiredDepth = Number(product.ACTUAL_DEPT) || 0
+
+        if (!isVerticalItem && requiredDepth > depthLimit.depth) {
+            this.scope.callAlert("error", `«${product.NAME}» не помещается по глубине: нужно ${requiredDepth} мм, доступно ${depthLimit.depth} мм — ${depthLimit.reason}`)
+            return;
+        }
+
         const startFillingData = this.createFillingDataToCheck(product, currentModuleSegment, grid, isVerticalItem, !!product.MIN_FASADE_SIZE);
 
 
