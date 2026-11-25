@@ -456,19 +456,18 @@ export default class ExternalFasadesManager {
             const topBox = sortedBoxesByIncrease[index + 1]
             let upperFasadeSize = false
 
-            fullFasadelSize = fullFasadelSize - boxFasadeHeight - (box.isProfile || topBox?.isProfile ? 0 : otstup)
-            bottomFasadePosition = bottomFasadePosition + boxFasadeHeight + (box.isProfile || topBox?.isProfile ? 0 : otstup)
+            // Зазор нужен между двумя фасадами; к профилю фасад примыкает вплотную,
+            // он для того и стоит. Промежуточный фасад зажат между box и topBox, так
+            // что снизу его отбивает один зазор, сверху — другой
+            const gapOverBox = box.isProfile ? 0 : otstup
+            const gapUnderTopBox = topBox ? (topBox.isProfile ? 0 : otstup) : gapOverBox
+
+            fullFasadelSize = fullFasadelSize - boxFasadeHeight - gapOverBox
+            bottomFasadePosition = bottomFasadePosition + boxFasadeHeight + gapOverBox
 
             //Условие для нижней планки
             if (topBox) {
-                upperFasadeSize = Math.abs(topBox.position.y - bottomFasadePosition)
-
-                if ((!box.isProfile && topBox.isProfile) && upperFasadeSize > otstup) {
-                    bottomFasadePosition += otstup
-                    upperFasadeSize -= otstup
-                } else if ((!box.isProfile && !topBox.isProfile) && upperFasadeSize > 0) {
-                    upperFasadeSize -= otstup
-                }
+                upperFasadeSize = Math.abs(topBox.position.y - bottomFasadePosition) - gapUnderTopBox
             } else {
                 upperFasadeSize = Math.abs(this.FASADES_MANAGER.scope.UM_STORE.totalHeight - 2 - bottomFasadePosition)
             }
@@ -484,8 +483,8 @@ export default class ExternalFasadesManager {
             //логика приложения. Поэтому, если у нас такой промежуток есть, то мы кладём его размер и позицию, но не смещаем её и не уменьшаем\
             //общий фасад, тогда фасады отобразятся корректно.
             if (upperFasadeSize > 0) {
-                fullFasadelSize = fullFasadelSize - upperFasadeSize - (box.isProfile || topBox?.isProfile ? 0 : otstup)
-                bottomFasadePosition = bottomFasadePosition + upperFasadeSize + (box.isProfile || topBox?.isProfile ? 0 : otstup)
+                fullFasadelSize = fullFasadelSize - upperFasadeSize - gapUnderTopBox
+                bottomFasadePosition = bottomFasadePosition + upperFasadeSize + gapUnderTopBox
             } else if (topBox) {
                 fullFasadelSize = fullFasadelSize - (topBox.position.y - bottomFasadePosition)
                 bottomFasadePosition = topBox.position.y
@@ -620,49 +619,170 @@ export default class ExternalFasadesManager {
         this.scope.FILLINGS.drawers.moveLinkedInnerDrawers(container, filling, -delta)
     };
 
-    liftStackAboveBottom(secIndex: number, grid: GridModule) {
-        const BOTTOM_FASADE_OFFSET = 2
-
+    // Тела стопки секции: ящики с фасадами и хай-тек профили. Тело ящика ищем так же,
+    // как calcDrawersFasades: фасад может принадлежать наполнению вложенной ячейки,
+    // а не самой секции
+    private stackBodies(secIndex: number, grid: GridModule): FillingObject[] {
         const section = grid.sections?.[secIndex]
-        const drawerFasades = section?.fasadesDrawers ?? []
-        if (!drawerFasades.length) return
+        const bodies = []
 
-        const lowest = Math.min(...drawerFasades.map(fasade => fasade.position?.y ?? 0))
-        const shift = BOTTOM_FASADE_OFFSET - lowest
-        if (shift <= 0) return
+        const collect = (body) => {
+            if (body?.position && !bodies.includes(body)) {
+                bodies.push(body)
+            }
+        }
+
+        section?.fasadesDrawers?.forEach(fasade => {
+            collect(this.scope.FILLINGS.getFillingObject({
+                grid,
+                sec: fasade.sec ?? secIndex,
+                cell: fasade.cell,
+                row: fasade.row,
+                extra: fasade.extra,
+                item: fasade.item - 1,
+            }) ?? section?.fillings?.find(filling => filling.id === fasade.item))
+        })
+
+        section?.hiTechProfiles?.forEach(profile => {
+            const twin = this.scope.FILLINGS.getFillingObject({
+                grid,
+                sec: profile.sec ?? secIndex,
+                cell: profile.cell,
+                row: profile.row,
+                extra: profile.extra,
+                item: profile.id - 1,
+            })
+
+            collect(twin?.isProfile && twin.id === profile.id ? twin : profile)
+        })
+
+        return bodies
+    };
+
+    // Деталь в координатах фасадов — тех, что раскладывает calcDrawersFasadesPositons.
+    // В координатах тел те же промежутки выглядят иначе: фасад выше тела и свисает ниже
+    // него на manufacturerOffset, поэтому стоящие вплотную ящики разнесены там на полсотни
+    // миллиметров, и стопка ошибочно разрывается по первому же ящику
+    private fasadeBox(body, grid: GridModule): { y: number, height: number } {
+        if (body.isProfile) {
+            return {
+                y: grid.height - (body.position.y + body.height + (body.isProfile.manufacturerOffset || 0)),
+                height: body.isProfile.isBottomHiTechProfile ? 0 : (body.isProfile.offsetFasades || body.height),
+            }
+        }
+
+        return {
+            y: body.fasade?.position?.y ?? grid.height - (body.position.y + body.height),
+            height: body.fasade?.height ?? body.height,
+        }
+    };
+
+    // Применяет посчитанные сдвиги к телам стопки и пересчитывает позиции фасадов.
+    // floorDelta — насколько уехал пол (цоколь): до потолка секции стало ближе ровно
+    // на сдвиг, до пола — на разницу сдвига и цоколя
+    private applyStackShifts(
+        secIndex: number,
+        grid: GridModule,
+        sorted: FillingObject[],
+        shiftOf: Map<FillingObject, number>,
+        floorDelta: number = 0,
+    ) {
+        const section = grid.sections?.[secIndex]
 
         // После saveUMGrid fillings[].fasade, hiTechProfiles и fasadesDrawers могут быть
         // как одним объектом, так и разными копиями — двигаем каждый объект ровно один раз
         const moved = new Set()
-        const moveBody = (body) => {
-            if (!body?.position || moved.has(body)) return
+        const moveBody = (body, shift: number) => {
+            if (!body?.position || moved.has(body)) {
+                return
+            }
             moved.add(body)
 
             // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
             body.position.y -= shift
             if (body.distances) {
                 body.distances.top -= shift
-                body.distances.bottom += shift
+                body.distances.bottom += shift - floorDelta
             }
         }
 
-        section.fillings?.forEach(filling => {
-            if (!filling?.fasade && !filling?.isProfile) return
-            moveBody(filling)
+        sorted.forEach(body => moveBody(body, shiftOf.get(body)))
+
+        // На живой сетке профиль в hiTechProfiles и в fillings — один объект, после
+        // saveUMGrid это копии: догоняем по id, иначе списки разъедутся
+        section?.hiTechProfiles?.forEach(profile => {
+            const twin = sorted.find(body => body.isProfile && body.id === profile.id)
+
+            if (twin) {
+                moveBody(profile, shiftOf.get(twin))
+            }
         })
-        section.hiTechProfiles?.forEach(moveBody)
 
         // Позицию фасада пересчитываем от тела — единственного источника истины
         const placeFasade = (fasade, body) => {
-            if (!fasade?.position || !body?.position) return
+            if (!fasade?.position || !body?.position) {
+                return
+            }
             fasade.position.y = grid.height - (body.position.y + body.height + fasade.manufacturerOffset)
         }
 
-        section.fillings?.forEach(filling => placeFasade(filling.fasade, filling))
-        drawerFasades.forEach(fasade => {
-            const body = section.fillings?.find(filling => filling.id === fasade.item)
+        sorted.forEach(body => placeFasade(body.fasade, body))
+        section?.fasadesDrawers?.forEach(fasade => {
+            const body = sorted.find(item => item.id === fasade.item)
             placeFasade(fasade, body)
         })
+    };
+
+    // Поднимает стопку так, чтобы нижний фасад ящика не уходил под низ модуля: с опцией
+    // «Без дна» низ области совпадает с краем модуля, и фасад свисает наружу.
+    // Поднимается только то, чему не хватает места: верхнюю деталь двигает лишь сосед
+    // снизу, иначе хай-тек профиль, и так стоящий у потолка, уезжал за габарит модуля
+    // на каждом пересчёте фасадов
+    liftStackAboveBottom(secIndex: number, grid: GridModule) {
+        const OTSTUP = UM_PARAMS.FASADES_MIN_GAP
+        const floor = (grid.horizont ?? 0) + 2
+        const ceiling = grid.height - 2
+
+        const drawerFasades = grid.sections?.[secIndex]?.fasadesDrawers ?? []
+        if (!drawerFasades.length) return
+
+        const lowest = Math.min(...drawerFasades.map(fasade => fasade.position?.y ?? 0))
+        if (lowest >= floor) return
+
+        const bodies = this.stackBodies(secIndex, grid)
+        if (!bodies.length) return
+
+        const sorted = bodies.slice().sort((a, b) => this.fasadeBox(a, grid).y - this.fasadeBox(b, grid).y)
+        const boxes = sorted.map(body => this.fasadeBox(body, grid))
+
+        // Зазор нужен между фасадами ящиков; к профилю фасад примыкает вплотную
+        // (так же считает calcDrawersFasadesPositons)
+        const gapBelow = (index: number) => sorted[index].isProfile || sorted[index - 1].isProfile ? 0 : OTSTUP
+
+        // Снизу вверх: нижняя деталь встаёт на пол, каждая следующая отступает от соседа
+        const target = boxes.map(box => box.y)
+        for (let i = 0; i < target.length; i++) {
+            const limit = i === 0 ? floor : target[i - 1] + boxes[i - 1].height + gapBelow(i)
+
+            target[i] = Math.max(target[i], limit)
+        }
+
+        // Сверху вниз: выше потолка подниматься некуда. Ниже исходной позиции не опускаем —
+        // это подъём, а не перераскладка: деталь, уже стоящая у потолка, остаётся на месте
+        for (let i = target.length - 1; i >= 0; i--) {
+            const limit = i === target.length - 1
+                ? ceiling - boxes[i].height
+                : target[i + 1] - gapBelow(i + 1) - boxes[i].height
+
+            target[i] = Math.max(Math.min(target[i], limit), boxes[i].y)
+        }
+
+        const shiftOf = new Map()
+        sorted.forEach((body, index) => {
+            shiftOf.set(body, target[index] - boxes[index].y)
+        })
+
+        this.applyStackShifts(secIndex, grid, sorted, shiftOf)
     };
 
     renumberSectionFasades(secIndex: number, grid: GridModule) {
@@ -726,68 +846,14 @@ export default class ExternalFasadesManager {
 
         const OTSTUP = UM_PARAMS.FASADES_MIN_GAP
 
-        const section = grid.sections?.[secIndex]
-        const drawerFasades = section?.fasadesDrawers ?? []
-
-        // Тело ящика ищем так же, как calcDrawersFasades: фасад может принадлежать
-        // наполнению вложенной ячейки, а не самой секции
-        const bodies = []
-        drawerFasades.forEach(fasade => {
-            const body = this.scope.FILLINGS.getFillingObject({
-                grid,
-                sec: fasade.sec ?? secIndex,
-                cell: fasade.cell,
-                row: fasade.row,
-                extra: fasade.extra,
-                item: fasade.item - 1,
-            }) ?? section?.fillings?.find(filling => filling.id === fasade.item)
-
-            if (body?.position && !bodies.includes(body)) {
-                bodies.push(body)
-            }
-        })
-
-        section?.hiTechProfiles?.forEach(profile => {
-            const twin = this.scope.FILLINGS.getFillingObject({
-                grid,
-                sec: profile.sec ?? secIndex,
-                cell: profile.cell,
-                row: profile.row,
-                extra: profile.extra,
-                item: profile.id - 1,
-            })
-
-            const body = twin?.isProfile && twin.id === profile.id ? twin : profile
-
-            if (body?.position && !bodies.includes(body)) {
-                bodies.push(body)
-            }
-        })
+        const bodies = this.stackBodies(secIndex, grid)
 
         if (!bodies.length) {
             return
         }
 
-        // Считаем в координатах фасадов — тех, что раскладывает calcDrawersFasadesPositons.
-        // В координатах тел те же промежутки выглядят иначе: фасад выше тела и свисает ниже
-        // него на manufacturerOffset, поэтому стоящие вплотную ящики разнесены там на полсотни
-        // миллиметров, и стопка ошибочно разрывается по первому же ящику
-        const fasadeBox = (body) => {
-            if (body.isProfile) {
-                return {
-                    y: grid.height - (body.position.y + body.height + (body.isProfile.manufacturerOffset || 0)),
-                    height: body.isProfile.isBottomHiTechProfile ? 0 : (body.isProfile.offsetFasades || body.height),
-                }
-            }
-
-            return {
-                y: body.fasade?.position?.y ?? grid.height - (body.position.y + body.height),
-                height: body.fasade?.height ?? body.height,
-            }
-        }
-
-        const sorted = bodies.slice().sort((a, b) => fasadeBox(a).y - fasadeBox(b).y)
-        const boxes = sorted.map(fasadeBox)
+        const sorted = bodies.slice().sort((a, b) => this.fasadeBox(a, grid).y - this.fasadeBox(b, grid).y)
+        const boxes = sorted.map(body => this.fasadeBox(body, grid))
 
         // Пол поднимается вместе с цоколем, потолок фасадной зоны от цоколя не зависит.
         // grid.horizont на этот момент ещё старый — новый выставляется после сдвига
@@ -825,47 +891,6 @@ export default class ExternalFasadesManager {
             shiftOf.set(body, target[index] - boxes[index].y)
         })
 
-        const moved = new Set()
-        const moveBody = (body, shift) => {
-            if (!body?.position || moved.has(body)) {
-                return
-            }
-            moved.add(body)
-
-            // Тела живут в системе сверху вниз, поэтому подъём — это вычитание
-            body.position.y -= shift
-            if (body.distances) {
-                // Потолок секции на месте, а пол ушёл на delta: до потолка стало ближе
-                // ровно на сдвиг, до пола — на разницу сдвига и цоколя
-                body.distances.top -= shift
-                body.distances.bottom += shift - delta
-            }
-        }
-
-        sorted.forEach(body => moveBody(body, shiftOf.get(body)))
-
-        // На живой сетке профиль в hiTechProfiles и в fillings — один объект, после
-        // saveUMGrid это копии: догоняем по id, иначе списки разъедутся
-        section?.hiTechProfiles?.forEach(profile => {
-            const twin = sorted.find(body => body.isProfile && body.id === profile.id)
-
-            if (twin) {
-                moveBody(profile, shiftOf.get(twin))
-            }
-        })
-
-        // Позицию фасада пересчитываем от тела — единственного источника истины
-        const placeFasade = (fasade, body) => {
-            if (!fasade?.position || !body?.position) {
-                return
-            }
-            fasade.position.y = grid.height - (body.position.y + body.height + fasade.manufacturerOffset)
-        }
-
-        sorted.forEach(body => placeFasade(body.fasade, body))
-        drawerFasades.forEach(fasade => {
-            const body = sorted.find(item => item.id === fasade.item)
-            placeFasade(fasade, body)
-        })
+        this.applyStackShifts(secIndex, grid, sorted, shiftOf, delta)
     };
 }

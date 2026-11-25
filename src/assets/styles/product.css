@@ -2047,7 +2047,7 @@
 
 .ui-icon {
     display: block;
-    text-indent: -99999px;
+    /* text-indent: -99999px; */
     overflow: hidden;
     background-repeat: no-repeat
 }
@@ -2801,9 +2801,10 @@ input.ui-button::-moz-focus-inner,button.ui-button::-moz-focus-inner {
 
 .ui-spinner .ui-icon {
     position: absolute;
-    margin-top: -8px;
+    margin-top: -4px;
     top: 50%;
-    left: 0
+    left: 0;
+    cursor: pointer;
 }
 
 .ui-spinner-up {

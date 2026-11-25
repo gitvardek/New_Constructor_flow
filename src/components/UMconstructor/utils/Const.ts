@@ -65,3 +65,4 @@ export const SHELF_PRODUCTS = {
 
 // Стекло тоньше корпуса и от его материала не зависит
 export const GLASS_SHELF_THICKNESS = 6;
+

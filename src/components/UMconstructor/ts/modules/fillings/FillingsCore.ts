@@ -12,7 +12,8 @@ import {
     FillingObject,
     GridSection, GridCell, GridCellsRow, GridRowExtra,
 } from "@/components/UMconstructor/types/UMtypes.ts";
-import { UM_DRAWERS_IDS, UM_PARAMS, FILLINGS_WIDTH_UNRESTRICTED_GROUPS} from "../../../utils/Const";
+import { UM_DRAWERS_IDS, UM_PARAMS, FILLINGS_WIDTH_UNRESTRICTED_GROUPS } from "../../../utils/Const";
+import { getBottomFasadeOverhang } from "../../../utils/GlobalMethods.ts";
 import { isOuterDrawer, isInnerDrawer } from "./FillingTypePredicates.ts";
 
 export default class FillingsCore {
@@ -402,7 +403,8 @@ export default class FillingsCore {
             case "min":
                 result = 0 - (filling.isProfile ? grid.moduleThickness : 0)
                 if (filling.fasade) {
-                    result = result - (grid.moduleThickness - 2) + filling.fasade.manufacturerOffset
+                    // Снизу фасад упирается не в крышку, а в дно: без дна свес другой
+                    result = result - getBottomFasadeOverhang(grid.moduleThickness, grid.noBottom) + filling.fasade.manufacturerOffset
                     // distances.bottom измеряется от sectorBounds.y = moduleThickness, поэтому cell.position.y не добавляем
 
                 }
