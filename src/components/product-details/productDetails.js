@@ -308,7 +308,6 @@ function CatalogApp() {
 
 	this.catalogAddToBasket = function (e) {
 		const target = e.currentTarget;
-		console.log('1')
 		// ищем форму (аналог jQuery: $(e.currentTarget).parentsUntil(".product__wrapper").parent().find(".product__form"))
 		const form = target.closest(".product__wrapper")?.querySelector(".product__form");
 
@@ -362,11 +361,9 @@ function CatalogApp() {
 				if (label) value = label.textContent.trim();
 			}
 
-			if (!value) value = formDataObj[sizeEditMap[name]] || '';
+			//if (!value) value = formDataObj[sizeEditMap[name]] || '';
 			if (value) formDataObj[name] = value;
 		});
-
-		console.log(formDataObj);
 
 
 		const basketStore = useBasketStore();
@@ -1177,7 +1174,6 @@ function CatalogApp() {
 				if (typeVal !== undefined) {
 					$("input[name='" + codeElem + "']").val(typeVal)
 					if (arrType[type] == 'PALETTE') {
-						console.log(typeVal)
 						text += name[arrType[type]] + ': ' + $("select:enabled[name='" + arrType[type] + "'] option:selected").text() + '<br>';
 					} else {
 						text += name[arrType[type]] + ': ' + $("input[name='" + arrType[type] + "']:checked").closest('.selected').find('.value-title').text() + '<br>';
@@ -1970,7 +1966,7 @@ function CatalogApp() {
 				}
 
 				// последний fallback — обычный input (height/width/depth)
-				if (!value) value = urlEncodedData.get(sizeEditMap[name]) || '';
+				//if (!value) value = urlEncodedData.get(sizeEditMap[name]) || '';
 
 				if (value) {
 					if (existing === null) {
@@ -1980,7 +1976,11 @@ function CatalogApp() {
 						urlEncodedData.append(name, value);
 					}
 				}
+
+				
 			});
+
+			
 			if (!urlEncodedData.has('SIZEEDITJOINDEPTH')) {
 				var jdInput = document.querySelector('input[name="SIZEEDITJOINDEPTH"]');
 				if (jdInput && jdInput.value) urlEncodedData.append('SIZEEDITJOINDEPTH', jdInput.value);
@@ -1990,8 +1990,6 @@ function CatalogApp() {
 			const cityID = useConfigStore().cityID || '17281';
 			urlEncodedData.append('userid', userId);
 			urlEncodedData.append('cityid', cityID);
-			urlEncodedData.append('debug_source', '2');
-			console.log('test')
 
 			fetch(apiPath + "/API/catalog.element.getprice.php", {
 				method: "POST",
@@ -1999,7 +1997,6 @@ function CatalogApp() {
 			})
 				.then(response => response.text())
 				.then(msg => {
-					console.log(msg);
 
 					// === Извлекаем DOM-элемент из jQuery-объекта или используем напрямую ===
 					const container = elem[0] || elem; // ← ключевая строка: если elem — jQuery, берём elem[0]
