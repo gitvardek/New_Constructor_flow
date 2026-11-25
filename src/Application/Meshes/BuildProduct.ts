@@ -591,7 +591,9 @@ export class BuildProduct extends BuildersHelper {
         // рассинхрон ломал позиционирование/bounds. У гардеробной системы
         // свой механизм ножек (buildWardrobeLegs, по fasteningType профиля).
         const legs = (!isWardrobeSystemTemp && legsHeight) ? this.leg_builder.buildLegs(PROPS, data, total) : null;
-        const plinth = (!isWardrobeSystemTemp && legsHeight > 0) ? this.plinth_builder.buildPlinth(PROPS, legsHeight, defaultConfig) : null;
+        // move — поправка корпуса из карточки (corr_x/corr_z). Цоколь ставится
+        // по корпусу, поэтому получает её же, см. PlinthBuilder.buildPlinth
+        const plinth = (!isWardrobeSystemTemp && legsHeight > 0) ? this.plinth_builder.buildPlinth(PROPS, legsHeight, move) : null;
 
         // ==== Гардеробная система (WARDROBE) — Вариант B ====
         // Сборка из 2D-данных (PROPS.CONFIG.WARDROBEGRID, см.
@@ -723,7 +725,7 @@ export class BuildProduct extends BuildersHelper {
         const tempTotal = new THREE.Object3D();
         const exept = new THREE.Object3D();
 
-        [legs?.clone(), body?.clone(), shelf?.clone(), fasade?.clone(), wardrobeGroup?.clone()]
+        [legs?.clone(), body?.clone(), shelf?.clone(), this.getFasadeForBounds(fasade, PROPS), wardrobeGroup?.clone()]
             .filter(Boolean)
             .forEach(part => tempTotal.add(part));
 
@@ -745,6 +747,11 @@ export class BuildProduct extends BuildersHelper {
         total.userData.clampCenter = new THREE.Box3().setFromObject(clampSource).getCenter(new THREE.Vector3());
 
         if (drowMode) this.useEdgeBuilder.drawingMode(drowMode, total);
+
+        // Поправка карточки corr_x/corr_z — сдвиг корпуса от origin группы.
+        // Нужна цоколю и номинальным габаритам: и то и другое строится от
+        // origin, а корпус стоит не там
+        total.userData.bodyOffset = move ?? new THREE.Vector3();
 
         total.userData.isTopTable = isTopTable
 
@@ -971,6 +978,72 @@ export class BuildProduct extends BuildersHelper {
         return arrows;
     }
 
+    /**
+     * Фасады, которые идут в габарит модуля (aabb/obb/trueSizes). Не идут два
+     * вида:
+     *  — скрытый фасад («Без фасада»): места он не занимает, а
+     *    Box3.setFromObject считает и невидимое;
+     *  — составной фасад-планка: она выступает за модуль в угол и в габарит
+     *    не идёт (см. getSizerFasades).
+     * Остальные фасады В ЗАМЕРЕ НУЖНЫ: без них коллизия идёт по корпусу, и
+     * модули проваливаются друг другу в фасады.
+     *
+     * Ребро фасада лежит в группе рядом и повторяет его геометрию, поэтому
+     * выбрасывается вместе с ним (userData.edgeID). Отбор — до клонирования:
+     * у клонов id другие, по edgeID их уже не найти.
+     */
+    protected getFasadeForBounds(fasade: THREE.Object3D | null, props: THREETypes.TObject) {
+        if (!fasade) return null;
+
+        const dropped = new Set<number>();
+
+        const drop = (child?: THREE.Object3D) => {
+            if (!child) return;
+
+            dropped.add(child.id);
+
+            if (child.userData?.edgeID != null) dropped.add(child.userData.edgeID);
+        };
+
+        fasade.children.filter(child => !child.visible).forEach(drop);
+        this.getSizerFasades(props.CONFIG).forEach(ndx => drop(props.FASADE?.[ndx]));
+
+        if (!dropped.size) return fasade.clone();
+
+        const group = new THREE.Object3D();
+
+        group.position.copy(fasade.position);
+        group.rotation.copy(fasade.rotation);
+        group.scale.copy(fasade.scale);
+
+        fasade.children
+            .filter(child => !dropped.has(child.id))
+            .forEach(child => group.add(child.clone()));
+
+        return group;
+    }
+
+    /**
+     * Индексы фасадов-планок: угловых добивок, которые стоят в ряду фасадов,
+     * но выступают за модуль — в габарит для коллизий они не идут. Признак —
+     * ненулевой DIFFWIDTH/DIFFDEPTH у ТИПОРАЗМЕРА фасада: это и есть прибавка,
+     * которую планка даёт модулю, в карточку она уходит как
+     * #FASADESIZEDIFFWIDTH{n}#/#FASADESIZEDIFFDEPTH{n}#.
+     *
+     * По карточке модели планку не опознать: у «ТуГ 2.0» она в формулах не
+     * упоминается вовсе, у «ТуГ Универсальный» — только в столешнице. Общее у
+     * них одно, сам типоразмер.
+     */
+    private getSizerFasades(config: THREETypes.TConfig): number[] {
+        return Object.values(config?.FASADE_PROPS ?? {}).reduce((acc: number[], fasade: any, ndx: number) => {
+            const size = this._FASADESIZE[fasade?.SIZES?.id];
+
+            if (parseFloat(size?.DIFFWIDTH) || parseFloat(size?.DIFFDEPTH)) acc.push(ndx);
+
+            return acc;
+        }, []);
+    }
+
     private setBounds(target: THREE.Object3D, source: THREE.Object3D, resize: THREETypes.TSize, props: THREETypes.TConfig) {
 
         const { SIZE, SIZE_OFFSET } = props
@@ -982,7 +1055,9 @@ export class BuildProduct extends BuildersHelper {
 
         /** Для коллизии объектов с отступами боковыми фасадами и т.д. */
         if (!resize) {
-            SIZE_OFFSET.width = size.x - SIZE.width
+            // Не уходит в минус: скрытый фасад и планка в замер не входят
+            // (getFasadeForBounds), и замер бывает уже номинальной ширины
+            SIZE_OFFSET.width = Math.max(size.x - SIZE.width, 0)
         }
 
         target.userData.trueSizes = {

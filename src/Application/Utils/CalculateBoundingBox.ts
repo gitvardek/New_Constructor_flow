@@ -19,6 +19,20 @@ export function separateArrows(object: THREE.Object3D, box: THREE.Box3) {
 export class OBBHelper {
 
     helper: THREE.Object3D | null = null
+    private helpers: THREE.Object3D[] = []
+
+    /** Снимает рамки прошлого пересчёта: add() строит новый меш на каждый
+     *  вызов, и без очистки сцена набирает боксы прежних положений */
+    clear(scene: THREE.Scene) {
+        this.helpers.forEach(helper => {
+            scene.remove(helper)
+            helper.geometry?.dispose()
+            helper.material?.dispose()
+        })
+
+        this.helpers = []
+        this.helper = null
+    }
 
     add(obb: OBB, color: string = '#6385ff') {
 
@@ -38,6 +52,8 @@ export class OBBHelper {
         this.helper.position.copy(obb.center);
 
         this.helper.quaternion.copy(quaternion);
+
+        this.helpers.push(this.helper)
 
         return this.helper;
 

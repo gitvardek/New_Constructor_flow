@@ -27,6 +27,18 @@ export function getCenterOffset(
     return local ? local.clone().applyEuler(rotation) : new THREE.Vector3()
 }
 
+/**
+ * Поворот объекта в мире, матрицей 4×4 и без масштаба.
+ * OBB.rotation заполняется через Matrix3.setFromMatrix4, а тот забирает весь
+ * левый верхний угол матрицы: matrixWorld с масштабом ≠ 1 ложился поверх
+ * halfSize, который уже в мировых миллиметрах, и бокс перекашивало.
+ */
+export function getWorldRotationMatrix(object: THREE.Object3D): THREE.Matrix4 {
+    return new THREE.Matrix4().makeRotationFromQuaternion(
+        object.getWorldQuaternion(new THREE.Quaternion())
+    )
+}
+
 export class OBBCollider {
     private defaultMagnetTrashhold = 50
     private readonly defaultSteps = 30
@@ -428,9 +440,17 @@ export class OBBCollider {
         objectsBoundsStore: OBB[]
     }) {
 
-        const aabb = object.userData.aabb.clone();
         const obb = object.userData.obb.clone();
-        const matrixWorld = object.matrixWorld.clone();
+
+        // Центр габарита относительно origin — пара к obb.halfSize. Раньше
+        // центр пробного бокса брался из userData.aabb, а он меряется по ВСЕМУ
+        // объекту (стрелки размеров, цоколь, столешница) и пишется то в
+        // локальных, то в мировых координатах: у несимметричной сборки вроде
+        // ТуГ бокс уезжал с модуля. Тот же расчёт, что в
+        // RoomManager.createTotalObbBounds и MoveManager.
+        const centerOffset = getCenterOffset(object, object.rotation, 'obbCenter');
+
+        const rotationMatrix = getWorldRotationMatrix(object);
 
         const fromPos = object.position.clone();          // старт
         const toPos = objectPos.position.clone();       // цель
@@ -450,18 +470,11 @@ export class OBBCollider {
             const t = i / this.defaultSteps;
             const testPos = fromPos.clone().add(moveDir.clone().multiplyScalar(t));
 
-            // переносим AABB в тестовую точку
-            const offset = testPos.clone().sub(fromPos);
-            const testBox = aabb.clone().translate(offset);
-
             // строим OBB для проверки
-            const center = new THREE.Vector3();
-            testBox.getCenter(center);
-
             const testOBB = obb.clone();
-            testOBB.center.copy(center);
+            testOBB.center.copy(testPos).add(centerOffset);
             if (testOBB.center.y < 0) testOBB.center.y = 0;
-            testOBB.rotation.setFromMatrix4(matrixWorld);
+            testOBB.rotation.setFromMatrix4(rotationMatrix);
 
             // проверяем пересечения
             let hasCollision = false;
@@ -485,15 +498,9 @@ export class OBBCollider {
         // 2. Конечная позиция – может быть чистой
 
         if (collided) {
-            const finalOffset = toPos.clone().sub(fromPos);
-            const finalBox = aabb.clone().translate(finalOffset);
-
-            const finalCenter = new THREE.Vector3();
-            finalBox.getCenter(finalCenter);
-
             const finalOBB = obb.clone();
-            finalOBB.center.copy(finalCenter);
-            finalOBB.rotation.setFromMatrix4(matrixWorld);
+            finalOBB.center.copy(toPos).add(centerOffset);
+            finalOBB.rotation.setFromMatrix4(rotationMatrix);
 
             let finalIsClear = true;
             for (const bound of objectsBoundsStore) {
@@ -518,15 +525,9 @@ export class OBBCollider {
             // Позиция: конечные XZ + последний безопасный Y
             const slidePos = new THREE.Vector3(toPos.x, lastSafeY, toPos.z);
 
-            const offset = slidePos.clone().sub(fromPos);
-            const slideBox = aabb.clone().translate(offset);
-
-            const slideCenter = new THREE.Vector3();
-            slideBox.getCenter(slideCenter);
-
             const slideOBB = obb.clone();
-            slideOBB.center.copy(slideCenter);
-            slideOBB.rotation.setFromMatrix4(matrixWorld);
+            slideOBB.center.copy(slidePos).add(centerOffset);
+            slideOBB.rotation.setFromMatrix4(rotationMatrix);
 
             let slideClear = true;
             for (const bound of objectsBoundsStore) {
