@@ -27,6 +27,7 @@ import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUt
 import { saveUMGrid } from "@/components/UMconstructor/utils/PixiMethods.ts";
 import { cloneUMData } from "@/components/UMconstructor/editor-v2/session/cloneUMData.ts";
 import { WARDROBE_GRID_CONFIG_KEY } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
+import { validateRaspashnoyHeight } from "@/components/UMconstructor/ts/validation/raspashnoyHeight.ts";
 import { resetReplacementsLog } from '../Meshes/Utils/MaterialResolver';
 // import CreateShape from '../2DScene/CreateShape';
 
@@ -446,6 +447,14 @@ export class RoomManager extends Room {
             /** @Загрузка_модели */
 
             const isUM = loadData.CONFIG?.MODULEGRID
+
+            // Валидация сохранённых габаритов до сборки. model.size — отдельная
+            // копия CONFIG.SIZE в записи content, и корпус собирается именно по
+            // ней (createPerentGroup -> _size), поэтому синхронизируем обе.
+            if (isUM) {
+                const minHeight = validateRaspashnoyHeight(this.root, loadData)
+                if (minHeight && size) size.height = minHeight
+            }
 
             let builder = isUM ? this.universalGeometryBuilder : this.geometryBuilder;
 
