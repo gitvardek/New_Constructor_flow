@@ -177,6 +177,24 @@ export default class FillingsCore {
         this.scope.selectCell("fillings", <TSelectedCell>{ sec: n(sec), cell: n(cell), row: n(row), extra: n(extra), item: n(item) });
     };
 
+    // Предел глубины наполнения в модуле, мм, и расшифровка для сообщений:
+    // глубина корпуса (у купе — минус зазор под створки), а у тумбочки
+    // гардеробной — её худшая глубина (scope.FILLING_DEPTH_LIMIT).
+    getFillingDepthLimit(grid: GridModule = this.scope.UM_STORE.getUMGrid()): { depth: number; reason: string } {
+        const slidingDoorsGap = grid?.fasades?.length ? this.scope.CONST.SLIDING_DOORS_DEPTH_GAP : 0
+        const depth = (grid?.depth ?? 0) - slidingDoorsGap
+        const limit = this.scope.FILLING_DEPTH_LIMIT
+
+        if (limit && limit.depth < depth) return limit
+
+        return {
+            depth,
+            reason: slidingDoorsGap
+                ? `в модуле ${grid?.depth} мм за вычетом ${slidingDoorsGap} мм под створки купе`
+                : `глубина модуля ${grid?.depth} мм`,
+        }
+    };
+
     createFillingDataToCheck(
         product,
         currentSpace,
@@ -188,9 +206,8 @@ export default class FillingsCore {
 
         let width = product.width
         let height = product.height
-        let isSlidingDoors = grid.fasades?.length ? 100 : 0
 
-        if (!isVerticalItem && (height > currentSpace.height || product.ACTUAL_DEPT > grid.depth - isSlidingDoors)) {
+        if (!isVerticalItem && (height > currentSpace.height || product.ACTUAL_DEPT > this.getFillingDepthLimit(grid).depth)) {
             return false
         }
 

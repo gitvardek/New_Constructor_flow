@@ -71,6 +71,13 @@ export default class UMconstructorClass {
     // Своя модель вложенной сессии (см. getModel); у основного движка — null.
     SESSION_MODEL: any = null
 
+    // Предел глубины наполнения жёстче глубины корпуса (null — нет такого).
+    // Ставит сессия тумбочки гардеробной: её корпус ужимается под крышку и
+    // фасад уже после того, как наполнение поставили, поэтому проверять надо
+    // по худшей глубине (cabinet/cabinetDepth.getCabinetFillingDepthLimit).
+    // Читается через FillingsCore.getFillingDepthLimit.
+    FILLING_DEPTH_LIMIT: { depth: number; reason: string } | null = null
+
     constructor(root: Application, options: { store?: UMStorage; isolatedModel?: boolean } = {}) {
         this.UM_STORE = options.store ?? useUMStorage()
         this.ROOT = root

@@ -47,10 +47,6 @@ type TDrawerStackItem = {
     startY: number
 }
 
-// Глубина наполнения в модуле с дверями-купе меньше на зазор под створки
-// (та же величина, что в FillingsCore.createFillingDataToCheck).
-const SLIDING_DOORS_DEPTH_GAP = 100
-
 // Наполнение во всю глубину гардеробной короче корпуса (как в FillingsManager.addFilling).
 const WARDROBE_FILLING_DEPTH_GAP = 100
 
@@ -166,7 +162,9 @@ export default class ResizeRefitManager {
     // Глубина наполнения не может превысить корпус: ящикам подбираем допустимую
     // из каталога, остальным держим глубину корпуса, не влезающее снимаем.
     private refitDepth(grid: GridModule): void {
-        const maxDepth = grid.depth - (grid.fasades?.length ? SLIDING_DOORS_DEPTH_GAP : 0)
+        // Предел тот же, что при установке наполнения: что поставили, то и
+        // остаётся (у тумбочки гардеробной он меньше глубины корпуса).
+        const { depth: maxDepth, reason: depthReason } = this.scope.FILLINGS.core.getFillingDepthLimit(grid)
         const moduleProduct = this.scope.APP.CATALOG.PRODUCTS[grid.productID]
         const messages = new Set<string>()
 
@@ -214,7 +212,7 @@ export default class ResizeRefitManager {
                 const actualDepth = Number(product?.ACTUAL_DEPT ?? filling.size?.z ?? 0)
 
                 if (actualDepth > maxDepth) {
-                    messages.add(`«${filling.name}» снято: нужна глубина ${actualDepth} мм, доступно ${maxDepth} мм`)
+                    messages.add(`«${filling.name}» снято: нужна глубина ${actualDepth} мм, доступно ${maxDepth} мм — ${depthReason}`)
                     this.drop(ref, index, grid)
                 }
             }
