@@ -350,7 +350,12 @@ function CatalogApp() {
 		// buttonset-паттерн: value="" у radio — берём из текста <label>
 		var sizeEditMap = { SIZEEDITHEIGHT: 'height', SIZEEDITWIDTH: 'width', SIZEEDITDEPTH: 'depth' };
 		Object.keys(sizeEditMap).forEach(function (name) {
-			if (formDataObj[name] !== undefined && formDataObj[name] !== '') return;
+			if (formDataObj[name] !== undefined && formDataObj[name] !== '') {
+				if (formDataObj[name] == formDataObj[sizeEditMap[name]]) {
+					delete formDataObj[name];
+				}
+				return;
+			}
 
 			var input = document.querySelector('input[name="' + name + '"]:checked')
 				|| document.querySelector('input[name="' + name + '"]');
@@ -362,7 +367,7 @@ function CatalogApp() {
 			}
 
 			//if (!value) value = formDataObj[sizeEditMap[name]] || '';
-			if (value) formDataObj[name] = value;
+			if (value && formDataObj[sizeEditMap[name]] != value) formDataObj[name] = value;
 		});
 
 
@@ -1953,7 +1958,12 @@ function CatalogApp() {
 			var sizeEditMap = { SIZEEDITHEIGHT: 'height', SIZEEDITWIDTH: 'width', SIZEEDITDEPTH: 'depth' };
 			Object.keys(sizeEditMap).forEach(function (name) {
 				var existing = urlEncodedData.get(name);
-				if (existing !== null && existing !== '') return; // уже есть непустое значение
+				if (existing !== null && existing !== '') {
+					if (existing == urlEncodedData.get(sizeEditMap[name])) {
+						urlEncodedData.delete(name);
+					}
+					return;
+				}
 
 				var input = document.querySelector('input[name="' + name + '"]:checked')
 					|| document.querySelector('input[name="' + name + '"]');
@@ -1967,6 +1977,7 @@ function CatalogApp() {
 
 				// последний fallback — обычный input (height/width/depth)
 				//if (!value) value = urlEncodedData.get(sizeEditMap[name]) || '';
+				if (value == urlEncodedData.get(sizeEditMap[name])) return;
 
 				if (value) {
 					if (existing === null) {
