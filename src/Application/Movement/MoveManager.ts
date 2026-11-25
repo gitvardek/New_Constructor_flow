@@ -15,7 +15,7 @@ import { useTransformController } from "@/components/ui/transformController/useT
 import { useUniformState } from "@/store/appliction/useUniformState";
 
 import { OBBHelper } from "../Utils/CalculateBoundingBox";
-import { getCenterOffset } from "../Room/OBBCollider";
+import { getCenterOffset, getWorldRotationMatrix } from "../Room/OBBCollider";
 import { UniformModeHandler } from "../Utils/UniformModeHandler";
 
 export class MoveManager {
@@ -392,7 +392,7 @@ export class MoveManager {
                 .copy(this.selectedObject.position)
                 .add(getCenterOffset(this.selectedObject, this.selectedObject.rotation, 'obbCenter'))
 
-            this.selectedObject.userData.obb.rotation.setFromMatrix4(this.selectedObject.matrixWorld);
+            this.selectedObject.userData.obb.rotation.setFromMatrix4(getWorldRotationMatrix(this.selectedObject));
 
             this.selectedObject.userData.PROPS.CONFIG.ROTATION = this.selectedObject.rotation;
 

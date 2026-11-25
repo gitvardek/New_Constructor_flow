@@ -7,7 +7,7 @@ import * as THREETypes from "@/types/types"
 import * as UniformTypes from '@/types/uniformTextureTypes'
 
 import { OBB } from 'three/examples/jsm/math/OBB.js';
-import { OBBCollider } from './OBBCollider';
+import { OBBCollider, getCenterOffset, getWorldRotationMatrix } from './OBBCollider';
 import { OBBHelper } from '../Utils/CalculateBoundingBox';
 // import { Capsule } from 'three/addons/math/Capsule.js';
 // import { VertexNormalsHelper } from "three/examples/jsm/Addons.js";
@@ -121,17 +121,18 @@ export class RoomManager extends Room {
     createTotalObbBounds() {
 
         this.totalObbBounds = []
+        // this.OBBHealper.clear(this.scene)
         const intersects = this._roomTotalContant as THREE.Object3D[];
 
         intersects.forEach(object => {
 
             if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
 
-                const center = object.userData.aabb.getCenter(new THREE.Vector3())
                 const obb = object.userData.obb.clone()
-                // obb.center.copy(object.position)
-                obb.center.copy(center)
-                obb.rotation.setFromMatrix4(object.matrixWorld);
+
+                obb.center.copy(object.position).add(getCenterOffset(object, object.rotation, 'obbCenter'))
+
+                obb.rotation.setFromMatrix4(getWorldRotationMatrix(object));
 
                 /** @Визуализация_OBB */
 

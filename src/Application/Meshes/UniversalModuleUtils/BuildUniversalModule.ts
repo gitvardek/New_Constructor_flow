@@ -161,7 +161,7 @@ export class BuildUniversalModule extends BuildProduct {
             : null;
 
         const plinth = legsHeight > 0
-            ? this.plinth_builder.buildPlinth(PROPS, legsHeight, defaultConfig)
+            ? this.plinth_builder.buildPlinth(PROPS, legsHeight, move)
             : null;
 
         if (MODULEGRID) {
@@ -233,7 +233,10 @@ export class BuildUniversalModule extends BuildProduct {
         const tempTotal = new THREE.Object3D();
         const exept = new THREE.Object3D();
 
-        [legs?.clone(), body?.clone(), shelf?.clone()]
+        // Фасады в замере обязательны: без них габарит — голый корпус, и
+        // модули проваливались друг другу в фасады. Планку и скрытые фасады
+        // getFasadeForBounds отсекает (BuildProduct)
+        [legs?.clone(), body?.clone(), shelf?.clone(), this.getFasadeForBounds(fasade, PROPS)]
             .filter(Boolean)
             .forEach(part => tempTotal.add(part));
 
@@ -248,6 +251,9 @@ export class BuildUniversalModule extends BuildProduct {
         if (drowMode) {
             this.useEdgeBuilder.drawingMode(drowMode, total)
         }
+
+        // Поправка корпуса из карточки — см. BuildProduct.createProductBody
+        total.userData.bodyOffset = move ?? new THREE.Vector3();
 
         return total;
     };

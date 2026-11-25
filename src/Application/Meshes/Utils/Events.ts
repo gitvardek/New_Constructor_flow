@@ -17,6 +17,8 @@ import { useMenuStore } from '@/store/appStore/useMenuStore';
 import { useRoomOptions } from '@/components/left-menu/option/roomOptions/useRoomOptons';
 import { useOptions } from '@/components/right-menu/customiser-pages/RailsRightPage/useOptions';
 import { getDefaultPatinaForMilling } from '@/components/right-menu/customiser-pages/ColorRightPage/domain/fasadeOptions';
+import { useOptions } from '@/components/right-menu/customiser-pages/RailsRightPage/useOptions';
+import { getDefaultPatinaForMilling } from '@/components/right-menu/customiser-pages/ColorRightPage/domain/fasadeOptions';
 import { BuildersHelper } from '../BuildersHelper';
 
 
@@ -25,7 +27,7 @@ import { MILLINGS, additionalMillingKeys } from '@/Application/F-millings';
 // import { VertexNormalsHelper } from "three/examples/jsm/Addons.js";
 import { BuildUniversalModule } from "@/Application/Meshes/UniversalModuleUtils/BuildUniversalModule.ts";
 import { getUMGridFromConfig, WARDROBE_GRID_CONFIG_KEY } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
-import { getCenterOffset } from "@/Application/Room/OBBCollider";
+import { getCenterOffset, getWorldRotationMatrix } from "@/Application/Room/OBBCollider";
 
 type TRotateActions = Record<number, number>
 export type TDataCreateHandle = { data: TCreateHandleParams; fasadeNdx: number }
@@ -1088,8 +1090,32 @@ export class MeshEvents extends BuildersHelper {
         const obb = object.userData.obb;
         if (!obb) return;
 
-        obb.rotation.setFromMatrix4(object.matrixWorld);
+        obb.rotation.setFromMatrix4(getWorldRotationMatrix(object));
         obb.center.copy(object.position).add(getCenterOffset(object, object.rotation, 'obbCenter'));
+    }
+
+    /**
+     * Полуразмер, подменённый на номинальный, парен не измеренному центру
+     * сборки, а центру номинального габарита: это origin плюс поправка
+     * карточки (bodyOffset, corr_x/corr_z), на которую сдвинут корпус. Пара
+     * halfSize/obbCenter обязана быть из одного объёма, иначе OBB уезжает на
+     * их расхождение (см. RoomManager.createTotalObbBounds).
+     */
+    private alignObbCenterAxes(
+        object: THREE.Object3D,
+        axes: Array<'x' | 'y' | 'z'>,
+        bodyOffset?: THREE.Vector3,
+    ) {
+        const center = object.userData.obbCenter;
+
+        if (!center) return;
+
+        // Копия: на этот же вектор держит ссылку пересобранное тело
+        const aligned = center.clone();
+
+        axes.forEach(axis => { aligned[axis] = bodyOffset?.[axis] ?? 0 });
+
+        object.userData.obbCenter = aligned;
     }
 
     //------------------
@@ -1200,6 +1226,7 @@ export class MeshEvents extends BuildersHelper {
             if (!isWardrobe) {
                 rebuiltObb.halfSize.x = data.width * 0.5;
                 rebuiltObb.halfSize.y = data.height * 0.5;
+                this.alignObbCenterAxes(this._currentMesh, ['x', 'y'], body.userData.bodyOffset);
             }
             this._currentMesh.userData.obb = rebuiltObb;
         }
@@ -1241,7 +1268,7 @@ export class MeshEvents extends BuildersHelper {
 
         const { PROPS } = currentMesh.userData;
         const { CONFIG, PRODUCT } = PROPS;
-        const { POSITION, UNIFORM_TEXTURE, SIZE, SIZE_OFFSET } = CONFIG as THREETypes.TConfig;
+        const { POSITION, UNIFORM_TEXTURE, SIZE_OFFSET } = CONFIG as THREETypes.TConfig;
         const fasadeSize = type === 'resize';
 
         if (!type) CONFIG.SIZE_BASE = { width: data.width, height: data.height, depth: data.depth }
@@ -1268,8 +1295,10 @@ export class MeshEvents extends BuildersHelper {
         currentMesh.position.set(POSITION.x, POSITION.y, POSITION.z);
         currentMesh.updateMatrixWorld(true);
 
-        const halfWidth = fasadeSize ? SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
-        const halfDepth = fasadeSize ? SIZE.depth * 0.5 : data.depth * 0.5;
+        // CONFIG.SIZE читаем здесь, а не из снятой выше копии: его пересобрал
+        // createProductBody, и по копии габарит отставал на один шаг
+        const halfWidth = fasadeSize ? CONFIG.SIZE.width * 0.5 : (data.width + SIZE_OFFSET.width) * 0.5;
+        const halfDepth = fasadeSize ? CONFIG.SIZE.depth * 0.5 : data.depth * 0.5;
 
         currentMesh.userData.trueSizes = {
             DEPTH: halfDepth,
@@ -1317,11 +1346,15 @@ export class MeshEvents extends BuildersHelper {
         // из createPerentGroup): полуразмеры по Y оставались от исходной высоты.
         const rebuiltObb = body.userData.obb?.clone();
         if (rebuiltObb) {
-            rebuiltObb.halfSize.x = halfWidth;
-            rebuiltObb.halfSize.z = halfDepth;
+            // X/Z остаются ИЗМЕРЕННЫМИ. Номинальный габарит — это корпус без
+            // фасадов, и по нему модули проваливались друг другу в фасады.
+            // Планка в замер уже не попала (BuildProduct.getFasadeForBounds),
+            // а измеренные halfSize и obbCenter — пара из одного объёма.
             if (PROPS.FASADE.length === 0 || this.EXTRAS_Y_SIZE.has(PRODUCT)) {
                 rebuiltObb.halfSize.y = data.height * 0.5;
+                this.alignObbCenterAxes(currentMesh, ['y'], body.userData.bodyOffset);
             }
+
             currentMesh.userData.obb = rebuiltObb;
         }
         this.syncBoundsToWorld(currentMesh);

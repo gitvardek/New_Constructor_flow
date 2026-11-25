@@ -8,6 +8,7 @@ import { TApplication, TMoveManager } from '@/types/types';
 import { useEventBus } from '@/store/appliction/useEventBus';
 import { useModelState } from '@/store/appliction/useModelState';
 import { useTransformController } from '@/components/ui/transformController/useTransformController';
+import { getCenterOffset, getWorldRotationMatrix } from '@/Application/Room/OBBCollider';
 // Интерфейс для callbacks (хуков)
 interface TransformControlsCallbacks {
     onAttach?: (object: THREE.Object3D) => void;
@@ -181,8 +182,10 @@ export class TransformControlsManager {
         object.userData.MOUSE_POSITION = this.moveManager.getMousePos(object.position)
         // По aabb строится OBB объекта для коллизий соседей — без пересчёта они сталкивались бы с его старым местом
         object.userData.aabb = new THREE.Box3().setFromObject(object)
-        object.userData.obb.center.copy(object.position)
-        object.userData.obb.rotation.setFromMatrix4(object.matrixWorld)
+        // Центр габарита, а не origin: та же пара halfSize/obbCenter, что в
+        // MoveManager, RoomManager.createTotalObbBounds и Events
+        object.userData.obb.center.copy(object.position).add(getCenterOffset(object, object.rotation, 'obbCenter'))
+        object.userData.obb.rotation.setFromMatrix4(getWorldRotationMatrix(object))
     }
 
     /** Фиксирует установку гизмо: коллайдер больше не поворачивает объект к стенам */
@@ -217,7 +220,7 @@ export class TransformControlsManager {
             CONFIG.ROTATION = wall.rotation.clone()
             object.rotation.copy(wall.rotation)
             object.updateMatrixWorld(true)
-            object.userData.obb.rotation.setFromMatrix4(object.matrixWorld)
+            object.userData.obb.rotation.setFromMatrix4(getWorldRotationMatrix(object))
         }
 
         // Точка на плоскости стены — туда же целится перетаскивание мышью по стене,

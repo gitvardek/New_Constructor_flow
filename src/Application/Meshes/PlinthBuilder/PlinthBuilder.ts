@@ -50,13 +50,14 @@ export class PlinthBuilder {
         return false
     }
 
-    public buildPlinth(props: any, legsHeight: number, defaultConfig: TDefaultOptionsConfig) {
+    public buildPlinth(props: any, legsHeight: number, bodyOffset?: THREE.Vector3) {
         // const { PLINTH_MESH } = props
-        const plinth = defaultConfig?.plinth?.id
-        const plinthHeight = plinth ? this.plinthIds[defaultConfig.plinth.id] : legsHeight
+        const plinthHeight = this.getPlinthHeight(props, legsHeight)
         const plinthParent = new THREE.Object3D()
         const plinthActions = props.CONFIG.PLINTH_ACTIONS
         const sizes: TSize = { ...props.CONFIG.SIZE };
+
+        if (bodyOffset) plinthParent.position.set(bodyOffset.x, 0, bodyOffset.z)
 
         this.createPlinthMesh(props, plinthActions, sizes, plinthParent, plinthHeight)
         props.PLINTH_MESH = (plinthParent)
@@ -132,6 +133,15 @@ export class PlinthBuilder {
         });
 
         plinthParent.userData.PLINTH_LIST = plinthList
+    }
+
+    /** Высота цоколя: выбранный в проекте типоразмер, иначе — высота ножек модуля */
+    private getPlinthHeight(props: any, legsHeight?: number) {
+        const plinthId = this.buildProduct.getDefaultOptionsConfig()?.plinth?.id
+
+        return plinthId
+            ? this.plinthIds[plinthId]
+            : legsHeight ?? this.buildProduct.leg_builder.getLegLength(props)
     }
 
     private createPlinth({
@@ -230,7 +240,7 @@ export class PlinthBuilder {
         const { PLINTH_ACTIONS, SIZE } = CONFIG
         if (PLINTH_MESH instanceof THREE.Object3D) {
             this.deepDispose.clearParent(PLINTH_MESH)
-            this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH)
+            this.createPlinthMesh(PROPS, PLINTH_ACTIONS, SIZE, PLINTH_MESH, this.getPlinthHeight(PROPS))
         }
     }
 }
