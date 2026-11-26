@@ -28,16 +28,23 @@ export const usePopupStore = defineStore('popup', () => {
 
   const isInfoPopupOpen = ref<boolean>(false)
 
+  // Порядок открытия: из плоской карты popups "верхнее" окно не вывести —
+  // Object.entries отдаёт ключи в порядке объявления POPUP_CONFIG.
+  const openOrder = ref<PopupKey[]>([])
+
   const projectParamsCreateHandler = ref<ProjectParamsCreateHandler | null>(null)
 
   const openPopup = (popupName: PopupKey) => {
 
     popups.value[popupName] = true;
+    // Повторное открытие поднимает окно наверх
+    openOrder.value = [...openOrder.value.filter(key => key !== popupName), popupName];
     eventBus.emit("A:ClearSelected", { object: null });
   };
 
   const closePopup = (popupName: PopupKey) => {
     popups.value[popupName] = false;
+    openOrder.value = openOrder.value.filter(key => key !== popupName);
     if (popupName === 'projectParams') {
       projectParamsCreateHandler.value = null;
     }
@@ -57,6 +64,15 @@ export const usePopupStore = defineStore('popup', () => {
 
   const isAnyPopupOpen = computed(() => {
     return Object.values(popups.value).some(isOpen => isOpen);
+  });
+
+  /** Последнее открытое окно — для Esc и прочих действий "над верхним". */
+  const topPopup = computed<PopupKey | null>(() => {
+    for (let i = openOrder.value.length - 1; i >= 0; i--) {
+      const key = openOrder.value[i];
+      if (popups.value[key]) return key;
+    }
+    return null;
   });
 
   const getOpenedPopups = computed(() => {
@@ -79,6 +95,7 @@ export const usePopupStore = defineStore('popup', () => {
     getProjectParamsCreateHandler,
     toggleInfoPopup,
     isAnyPopupOpen,
-    getOpenedPopups
+    getOpenedPopups,
+    topPopup
   };
 });

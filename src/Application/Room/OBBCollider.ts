@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { OBB } from 'three/examples/jsm/math/OBB.js';
 import { TAdjustPosition } from "@/types/types"
+import { SNAP_CONFIG } from './SnapConfig';
 
 /**
  * OBBCollider
@@ -39,9 +40,21 @@ export function getWorldRotationMatrix(object: THREE.Object3D): THREE.Matrix4 {
     )
 }
 
+/**
+ * Смещение центра OBB от origin объекта — парное к userData.obb.halfSize.
+ * У моделей без obbCenter (GLB) берём живой AABB: другого источника нет.
+ */
+export function getObbCenterOffset(object: THREE.Object3D, rotation: THREE.Euler = object.rotation): THREE.Vector3 {
+    if (object.userData?.obbCenter) return getCenterOffset(object, rotation, 'obbCenter')
+    if (!object.userData?.aabb) return new THREE.Vector3()
+    return object.userData.aabb.getCenter(new THREE.Vector3()).sub(object.position)
+}
+
 export class OBBCollider {
     private defaultMagnetTrashhold = 50
-    private readonly defaultSteps = 30
+    private readonly sweepStep = 15          // шаг трассы коллизии, мм
+    private readonly maxSweepSteps = 128     // потолок шагов на один кадр
+    private readonly contactPrecision = 0.1  // остаточный зазор в касании, мм
     private readonly UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966]
 
     getCorrectPosition({ object,
@@ -52,7 +65,8 @@ export class OBBCollider {
         heightClamp,
         wallStore,
         boundsStore,
-        objectsBoundsStore
+        objectsBoundsStore,
+        drag = false
     }: {
         object: THREE.Object3D,
         targetPosition: THREE.Vector3,
@@ -64,6 +78,7 @@ export class OBBCollider {
         wallStore: THREE.Object3D[],
         boundsStore: THREE.Box3,
         objectsBoundsStore: OBB[],
+        drag?: boolean,
     }): TAdjustPosition {
 
         const objectBox = object.userData.obb
@@ -78,7 +93,7 @@ export class OBBCollider {
 
         const objectPos = this.roomInterseck({ object, wall, position, targetRotation, wallStore, boundsStore })
 
-        const objectsInterseck = this.objectsInterseck({ object, objectPos, objectsBoundsStore })
+        const objectsInterseck = this.objectsInterseck({ object, objectPos, objectsBoundsStore, drag })
 
         return {
             position: objectsInterseck.position,
@@ -433,124 +448,232 @@ export class OBBCollider {
     objectsInterseck({
         object,
         objectPos,
-        objectsBoundsStore
+        objectsBoundsStore,
+        drag = false
     }: {
         object: THREE.Object3D,
         objectPos: { position: THREE.Vector3, rotation: THREE.Euler },
-        objectsBoundsStore: OBB[]
+        objectsBoundsStore: OBB[],
+        drag?: boolean
     }) {
 
-        const obb = object.userData.obb.clone();
+        const rotation = objectPos.rotation.clone()
+        const fromPos = object.position.clone()
+        const toPos = objectPos.position.clone()
 
-        // Центр габарита относительно origin — пара к obb.halfSize. Раньше
-        // центр пробного бокса брался из userData.aabb, а он меряется по ВСЕМУ
-        // объекту (стрелки размеров, цоколь, столешница) и пишется то в
-        // локальных, то в мировых координатах: у несимметричной сборки вроде
-        // ТуГ бокс уезжал с модуля. Тот же расчёт, что в
-        // RoomManager.createTotalObbBounds и MoveManager.
-        const centerOffset = getCenterOffset(object, object.rotation, 'obbCenter');
-
-        const rotationMatrix = getWorldRotationMatrix(object);
-
-        const fromPos = object.position.clone();          // старт
-        const toPos = objectPos.position.clone();       // цель
-        const moveDir = toPos.clone().sub(fromPos);       // вектор перемещения
-
-        const steps = 20;                                 // дискретизация
-        let finalSafePosition = fromPos.clone();          // последняя безопасная
-        let lastSafeY = fromPos.y;                // последняя безопасная Y
-
-        let collided = false;                           // факт столкновения на трассе
-        let collidedOBB: OBB | null = null;
-        const defCollided = object.userData.PROPS.RAYCAST         // с кем столкнулись
-
-        //  1. Пошаговый прогон
-
-        for (let i = 1; i <= this.defaultSteps; i++) {
-            const t = i / this.defaultSteps;
-            const testPos = fromPos.clone().add(moveDir.clone().multiplyScalar(t));
-
-            // строим OBB для проверки
-            const testOBB = obb.clone();
-            testOBB.center.copy(testPos).add(centerOffset);
-            if (testOBB.center.y < 0) testOBB.center.y = 0;
-            testOBB.rotation.setFromMatrix4(rotationMatrix);
-
-            // проверяем пересечения
-            let hasCollision = false;
-            for (const bound of objectsBoundsStore) {
-                if (testOBB.intersectsOBB(bound) && !defCollided) {
-                    hasCollision = true;
-                    collidedOBB = bound;
-                    break;
-                }
-            }
-
-            if (hasCollision) {
-                collided = true;
-                break;                    // прерываем трассу на первом столкновении
-            } else {
-                finalSafePosition.copy(testPos);
-                lastSafeY = testPos.y;
-            }
+        /** RAYCAST — объект-призрак, ни с чем не сталкивается */
+        if (object.userData.PROPS.RAYCAST || !objectsBoundsStore.length) {
+            return { position: toPos, rotation }
         }
 
-        // 2. Конечная позиция – может быть чистой
+        const testOBB = object.userData.obb.clone()
+        testOBB.rotation.setFromMatrix4(getWorldRotationMatrix(object))
 
-        if (collided) {
-            const finalOBB = obb.clone();
-            finalOBB.center.copy(toPos).add(centerOffset);
-            finalOBB.rotation.setFromMatrix4(rotationMatrix);
+        // Тестовый OBB ставим по центру габарита, а не по origin объекта
+        const centerOffset = getObbCenterOffset(object, rotation)
 
-            let finalIsClear = true;
-            for (const bound of objectsBoundsStore) {
-                if (finalOBB.intersectsOBB(bound)) {
-                    finalIsClear = false;
-                    break;
-                }
-            }
-
-            if (finalIsClear) {
-                // вся цель свободна – берём её
-                return {
-                    position: toPos.clone(),
-                    rotation: objectPos.rotation.clone()
-                };
-            }
+        const center = new THREE.Vector3()
+        const setCenter = (point: THREE.Vector3) => {
+            center.copy(point).add(centerOffset)
+            if (center.y < 0) center.y = 0
+            testOBB.center.copy(center)
+            return center
         }
 
-        // 3. «Скольжение» – оставляем X/Z, фиксируем Y
-
-        if (collided && collidedOBB) {
-            // Позиция: конечные XZ + последний безопасный Y
-            const slidePos = new THREE.Vector3(toPos.x, lastSafeY, toPos.z);
-
-            const slideOBB = obb.clone();
-            slideOBB.center.copy(slidePos).add(centerOffset);
-            slideOBB.rotation.setFromMatrix4(rotationMatrix);
-
-            let slideClear = true;
-            for (const bound of objectsBoundsStore) {
-                if (slideOBB.intersectsOBB(bound)) {
-                    slideClear = false;
-                    break;
-                }
-            }
-
-            if (slideClear) {
-                return {
-                    position: slidePos,
-                    rotation: objectPos.rotation.clone()
-                };
-            }
+        // Габариты, внутри которых объект уже оказался (drop, дубликат, ресайз):
+        // из них разрешаем только выход. Совсем отключать их нельзя — объект
+        // проходил бы такого соседа насквозь, пока не выйдет за его пределы.
+        setCenter(fromPos)
+        const trapped = new Map<OBB, number>()
+        for (const bound of objectsBoundsStore) {
+            if (testOBB.intersectsOBB(bound)) trapped.set(bound, center.distanceTo(bound.center))
         }
 
-        // 4. Ни цель, ни скольжение не подошли – остаемся на finalSafePosition
+        const collides = (point: THREE.Vector3): boolean => {
+            const position = setCenter(point)
+            return objectsBoundsStore.some(bound => {
+                if (!testOBB.intersectsOBB(bound)) return false
+                const escapeFrom = trapped.get(bound)
+                return escapeFrom === undefined || position.distanceTo(bound.center) < escapeFrom
+            })
+        }
+
+        const targetFree = !collides(toPos)
+
+        // Не перетаскивание (ресайз, гизмо): объект остаётся на месте, подводить его
+        // к занятой цели нельзя. Но пока объект не в сцене (drop, загрузка), его
+        // position — сырая точка курсора на стене, и оставаться на ней нельзя.
+        if (!drag) return { position: targetFree || !object.parent ? toPos : fromPos, rotation }
+
+        let position = toPos
+
+        if (!targetFree) {
+            position = this.sweep(fromPos, toPos, collides)
+
+            // Остаток хода раскладываем по осям — это и есть скольжение вдоль соседа
+            for (const axis of ['x', 'y', 'z'] as const) {
+                if (position[axis] === toPos[axis]) continue
+
+                const axisTarget = position.clone()
+                axisTarget[axis] = toPos[axis]
+                position = this.sweep(position, axisTarget, collides)
+            }
+        }
 
         return {
-            position: finalSafePosition,
-            rotation: objectPos.rotation.clone()
-        };
+            position: this.snapToNeighbours({ object, position, testOBB, center: setCenter(position), bounds: objectsBoundsStore, collides }),
+            rotation
+        }
+    }
+
+    /**
+     * Stuking: объект довыравнивается по соседям, с которыми оказался в контакте —
+     * схлопывает до нуля горизонтальный зазор и ставит свои грани вровень с их
+     * гранями. Верх вдобавок ловится за верх любого модуля сцены — этому магниту
+     * контакт не нужен. По каждой оси применяется одно смещение, и только если
+     * оно не создаёт пересечения.
+     */
+    private snapToNeighbours({ object, position, testOBB, center, bounds, collides }: {
+        object: THREE.Object3D,
+        position: THREE.Vector3,
+        testOBB: OBB,
+        center: THREE.Vector3,
+        bounds: OBB[],
+        collides: (point: THREE.Vector3) => boolean,
+    }): THREE.Vector3 {
+
+        if (!SNAP_CONFIG.stuking || !bounds.length) return position
+
+        // center живёт в замыкании collides — считаем от снимка
+        const selfCenter = center.clone()
+        const delta = new THREE.Vector3()
+        const up = new THREE.Vector3(0, 1, 0)
+
+        // Горизонтальные оси объекта; у наклонённого гизмо одна из них может выродиться
+        const horizontal = (x: number, z: number) => {
+            const axis = new THREE.Vector3(x, 0, z).applyMatrix3(testOBB.rotation).setY(0)
+            return axis.lengthSq() > 0.01 ? axis.normalize() : null
+        }
+
+        const width = horizontal(1, 0)
+        const depth = horizontal(0, 1)
+        const axes = [width, depth, up].filter(Boolean) as THREE.Vector3[]
+
+        /** Проекция вектора до центра соседа на ось */
+        const distance = (bound: OBB, axis: THREE.Vector3) => delta.subVectors(bound.center, selfCenter).dot(axis)
+        /** Зазор между габаритами вдоль оси; отрицательный — габариты перекрываются */
+        const gap = (bound: OBB, axis: THREE.Vector3) =>
+            Math.abs(distance(bound, axis)) - this.projectRadius(testOBB, axis) - this.projectRadius(bound, axis)
+
+        // Соседи в контакте: ни по одной оси не расходимся больше порога. Их может
+        // быть несколько — модуль под рядом навесных касается сразу двух
+        const contacts = bounds.filter(bound => axes.every(axis => gap(bound, axis) <= SNAP_CONFIG.threshold))
+
+        /** Зазор схлопываем, только если по остальным осям габариты перекрываются */
+        const gapShift = (bound: OBB, axis: THREE.Vector3 | null) => {
+            if (!axis) return 0
+
+            const value = gap(bound, axis)
+
+            if (value <= 0 || value > SNAP_CONFIG.threshold) return 0
+            if (axes.some(other => other !== axis && gap(bound, other) >= 0)) return 0
+
+            return Math.sign(distance(bound, axis)) * (value - this.contactPrecision)
+        }
+
+        /** Одноимённые грани вровень: из двух сторон берём ту, что ближе */
+        const faceShift = (bound: OBB, axis: THREE.Vector3 | null) => {
+            if (!axis) return 0
+
+            const radius = this.projectRadius(testOBB, axis) - this.projectRadius(bound, axis)
+            const to = distance(bound, axis)
+            const value = Math.abs(to + radius) <= Math.abs(to - radius) ? to + radius : to - radius
+
+            return Math.abs(value) <= SNAP_CONFIG.faceThreshold ? value : 0
+        }
+
+        /** Верх на уровень верха любого модуля сцены: контакт тут не нужен */
+        const topShift = (bound: OBB) => {
+            const value = distance(bound, up) + this.projectRadius(bound, up) - this.projectRadius(testOBB, up)
+
+            return Math.abs(value) <= SNAP_CONFIG.topThreshold ? value : 0
+        }
+
+        let result = position
+
+        /** По оси одно смещение: наименьшее из подходящих и не создающее пересечения */
+        const apply = (axis: THREE.Vector3 | null, shifts: number[]) => {
+            const shift = shifts.filter(Boolean).sort((a, b) => Math.abs(a) - Math.abs(b))[0]
+            if (!axis || shift === undefined) return
+
+            const next = result.clone().addScaledVector(axis, shift)
+            if (!collides(next)) result = next
+        }
+
+        apply(width, contacts.flatMap(bound => [gapShift(bound, width), faceShift(bound, width)]))
+        apply(depth, contacts.map(bound => gapShift(bound, depth)))
+        apply(up, this.isFloorElement(object)
+            ? []
+            : [...contacts.map(bound => faceShift(bound, up)), ...bounds.map(topShift)])
+
+        return result
+    }
+
+    /**
+     * Напольный модуль: вертикально выравнивать нечего, он прижат к полу.
+     * Тип берём из CONFIG — у модулей, опознанных по ножкам, userData.elementType пустой.
+     */
+    private isFloorElement(object: THREE.Object3D): boolean {
+        return (object.userData.PROPS?.CONFIG?.ELEMENT_TYPE ?? object.userData.elementType) === 'element_down'
+    }
+
+    /** Радиус габарита вдоль оси: проекция полуразмеров OBB на неё */
+    private projectRadius(obb: OBB, axis: THREE.Vector3): number {
+        const r = obb.rotation.elements
+
+        return Math.abs(axis.x * r[0] + axis.y * r[1] + axis.z * r[2]) * obb.halfSize.x
+            + Math.abs(axis.x * r[3] + axis.y * r[4] + axis.z * r[5]) * obb.halfSize.y
+            + Math.abs(axis.x * r[6] + axis.y * r[7] + axis.z * r[8]) * obb.halfSize.z
+    }
+
+    /**
+     * Самая дальняя свободная точка на отрезке from→to.
+     * Шаг трассы — в мировых единицах, а не доля хода: при далёкой камере кадр
+     * даёт перемещение в сотни мм, и объект застревал в один шаг от соседа.
+     */
+    private sweep(from: THREE.Vector3, to: THREE.Vector3, collides: (point: THREE.Vector3) => boolean): THREE.Vector3 {
+
+        const move = to.clone().sub(from)
+        const distance = move.length()
+        if (distance <= this.contactPrecision) return to.clone()
+
+        const steps = Math.min(Math.ceil(distance / this.sweepStep), this.maxSweepSteps)
+        const point = new THREE.Vector3()
+
+        let safe = 0        // доля хода, заведомо свободная
+        let blocked = 0     // доля хода, заведомо занятая
+        let hit = false
+
+        for (let i = 1; i <= steps; i++) {
+            const t = i / steps
+
+            if (collides(point.copy(from).addScaledVector(move, t))) {
+                blocked = t
+                hit = true
+                break
+            }
+            safe = t
+        }
+
+        if (!hit) return to.clone()
+
+        // Уточнение до касания: без него зазор равен шагу трассы
+        while ((blocked - safe) * distance > this.contactPrecision) {
+            const middle = (safe + blocked) * 0.5
+            collides(point.copy(from).addScaledVector(move, middle)) ? blocked = middle : safe = middle
+        }
+
+        return from.clone().addScaledVector(move, safe)
     }
 
 }

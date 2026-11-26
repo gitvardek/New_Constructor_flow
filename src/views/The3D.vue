@@ -61,11 +61,19 @@ import { useSchemeTransition } from "@/store/canvasMerge/schemeTransition";
 import { useMenuStore } from "@/store/appStore/useMenuStore";
 import { useScreenshotsStore } from "@/features/store/screenshotsStore/screenshotsStore";
 
+import {
+  useHotkeyScope, useHotkeys, useHotkeysStore, SCOPES, HOTKEY_IDS,
+} from "@/features/hotkeys";
+
 const menuStore = useMenuStore();
 const roomState = useRoomState();
 const eventBus = useEventBus();
 const modelState = useModelState();
 const uniformState = useUniformState();
+
+// Пока сцена на экране, хоткеи ищутся в её скоупе
+const hotkeys = useHotkeyScope(SCOPES.SCENE_3D);
+
 const { setTransformControlsValue } = useTransformController();
 const { testConnect, checkLoadContent, scheduleBasketSync } = useBascetEvents();
 
@@ -351,6 +359,19 @@ const clearSelected = () => {
 const duplicateProduct = async () => {
   eventBus.emit("A:Duplicate");
 };
+
+useHotkeys([
+  {
+    id: HOTKEY_IDS.DUPLICATE_PRODUCT,
+    enabled: () => canModifySelected.value,
+    handler: () => { duplicateProduct(); },
+  },
+  {
+    id: HOTKEY_IDS.DELETE_PRODUCT,
+    enabled: () => canModifySelected.value,
+    handler: () => { removeModel(null); },
+  },
+]);
 
 // Пресет из выделенного объекта: снимок берётся из того, что уже записано в
 // товар (несохранённые правки 2D-редактора сохраняет кнопка в самом редакторе).
@@ -710,6 +731,14 @@ const activeController = computed(() => {
   };
 });
 
+// Действия контроллера товара: то же условие, что у его кнопок
+const canModifySelected = computed(
+  () => controller.value
+    && !uniformState.getUniformModeData.uniformMode
+    && !transformControlsValue.value
+    && Object.keys(CutData.value).length === 0,
+);
+
 const pregropping = computed(() => {
   const pregroupMode = uniformState.getPreGrouping;
   return {
@@ -784,6 +813,11 @@ const openTableRedactor = () => {
 };
 
 const closeTableRedactor = () => {
+  // До любого выхода: иначе редактор останется «открытым» и при следующем выборе
+  // столешницы смонтируется сам, без openTableRedactor и без родителя
+  isModalOpen.value = false;
+  modelState.setCurrentRaspilParent(false);
+
   if (!product.value) return;
   const APP = VerdekConstructor.value;
   const { userData } = product.value;
@@ -791,7 +825,6 @@ const closeTableRedactor = () => {
     userData.PROPS.RASPIL = CutCash.value;
   }
   CutData.value = userData.PROPS.RASPIL;
-  isModalOpen.value = false;
   CutSave.value = false;
 
   /** Сохраняем данные в родителе */
@@ -800,7 +833,6 @@ const closeTableRedactor = () => {
   if (parent) {
     parent.userData.PROPS.RASPIL = userData.PROPS.RASPIL;
   }
-  modelState.setCurrentRaspilParent(false);
 };
 
 const deliteTable = () => {
@@ -896,11 +928,11 @@ watch(
 
         <RotateButton />
 
-        <Modal v-if="Object.keys(CutData).length > 0" :container="`modal--tableTop`" @open-modal="openTableRedactor"
-          @close-modal="closeTableRedactor">
+        <Modal v-if="Object.keys(CutData).length > 0" :container="`modal--tableTop`" handle-escape
+          @open-modal="openTableRedactor" @close-modal="closeTableRedactor">
           <template #modalBody="{ onModalClose }" class="modal--tableTop">
             <TableTopManager ref="tableTopManager" :grid="CutData.data" :canvas-height="CutData.canvasHeight"
-              :model-height="CutData.modelHeight" v-if="isModalOpen">
+              :model-height="CutData.modelHeight" v-if="isModalOpen && modelState.getCurrentRaspilParent">
               <template #delite>
                 <button class="actions-btn actions-btn--footer" @click="
                   () => {

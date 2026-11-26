@@ -2,10 +2,15 @@
 // @ts-nocheck 31
 import { POPUP_CONFIG } from '@/components/popUp';
 import { usePopupStore } from '@/store/appStore/popUpsStore';
+import { useHotkeyScope, SCOPES } from '@/features/hotkeys';
 import CatalogPopUpView from "./popup-views/CatalogPopUpView.vue";
 import { computed } from 'vue';
 
 const popupStore = usePopupStore();
+
+// Оверлей перекрывает всё под собой — хоткеи сцены и плана тоже. Скоуп активен
+// ровно пока показан popUp, и в нём же лежит Esc, который его закрывает.
+useHotkeyScope(SCOPES.POPUP, { exclusive: true, active: () => popupStore.isAnyPopupOpen });
 const isRoomParamsOnlyOpen = computed(() => {
   const opened = Object.keys(popupStore.getOpenedPopups || {});
   return opened.length === 1 && popupStore.popups.roomParams;

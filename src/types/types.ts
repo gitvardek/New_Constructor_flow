@@ -15,7 +15,6 @@ import { MeshEvents } from "@/Application/Meshes/Utils/Events";
 import { SetObject } from "@/Application/Utils/SetObject";
 import { AlumBuilder } from "@/Application/Meshes/AlumBuilder";
 import { UniformTextureBuilder } from "@/Application/Meshes/UniformTextureBuilder";
-import { KeybordListeners } from "@/Application/Utils/KeybordListeners";
 import { UniformTextureEvents } from "@/Application/Meshes/UniformTextureUtils/UniformTextureEvents";
 import { UniversalGeometryBuilder } from "@/Application/Meshes/UniversalModuleUtils/UniversalGeometryBuilder.ts";
 import { DeepDispose } from "@/Application/Utils/DeepDispose";
@@ -58,7 +57,6 @@ export type TPaletteBulider = PaletteBuilder
 export type TSetObject = SetObject
 export type TAlumBuilder = AlumBuilder
 export type TUniformTextureBuilder = UniformTextureBuilder
-export type TKeybordListeners = KeybordListeners
 export type TUniformTextureEvents = UniformTextureEvents
 export type TDeepDispose = DeepDispose
 export type TAppLights = AppLights

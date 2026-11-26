@@ -14,6 +14,7 @@ import { useRoute, useRouter } from "vue-router";
 import { usePopupStore } from "@/store/appStore/popUpsStore";
 import { useProjectFromQuery, waitForAppDataLoaded, getProjectIdFromQuery } from '@/features/quickActions/project/composables/useProjectFromQuery'
 import { useAutosave, useAutosaveStorage } from '@/features/autosave'
+import { useHotkeyCommands } from '@/features/hotkeys'
 
 const route = useRoute();
 const router = useRouter();
@@ -22,6 +23,7 @@ const pageComponentRef = ref(null);
 const popupStore = usePopupStore();
 const autosave = useAutosave();
 const autosaveStorage = useAutosaveStorage();
+const hotkeys = useHotkeyCommands();
 
 const { accordCheck } = useProjectFromQuery();
 
@@ -40,12 +42,14 @@ const checkAutosave = async () => {
 };
 
 onMounted(() => {
+  hotkeys.start();
   autosave.start(router);
   accordCheck();
   checkAutosave();
 });
 
 onUnmounted(() => {
+  hotkeys.stop();
   autosave.stop();
 });
 </script>
