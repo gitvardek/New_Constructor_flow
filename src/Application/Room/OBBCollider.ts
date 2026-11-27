@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OBB } from 'three/examples/jsm/math/OBB.js';
 import { TAdjustPosition } from "@/types/types"
 import { SNAP_CONFIG } from './SnapConfig';
+import { getUMGridFromConfig } from "@/components/UMconstructor/wardrobe/WardrobeSystem.ts";
 
 /**
  * OBBCollider
@@ -55,6 +56,7 @@ export class OBBCollider {
     private readonly sweepStep = 15          // шаг трассы коллизии, мм
     private readonly maxSweepSteps = 128     // потолок шагов на один кадр
     private readonly contactPrecision = 0.1  // остаточный зазор в касании, мм
+    private readonly floorTolerance = 1      // отрыв от пола, с которого УМ считается поднятым, мм
     private readonly UM_LIST: number[] = [3954672, 1942652, 5168676, 6469966]
 
     getCorrectPosition({ object,
@@ -612,7 +614,7 @@ export class OBBCollider {
 
         apply(width, contacts.flatMap(bound => [gapShift(bound, width), faceShift(bound, width)]))
         apply(depth, contacts.map(bound => gapShift(bound, depth)))
-        apply(up, this.isFloorElement(object)
+        apply(up, this.isFloorElement(object, selfCenter.y - this.projectRadius(testOBB, up))
             ? []
             : [...contacts.map(bound => faceShift(bound, up)), ...bounds.map(topShift)])
 
@@ -622,9 +624,20 @@ export class OBBCollider {
     /**
      * Напольный модуль: вертикально выравнивать нечего, он прижат к полу.
      * Тип берём из CONFIG — у модулей, опознанных по ножкам, userData.elementType пустой.
+     * Поднятый УМ — исключение: по высоте он свободен (roomInterseck не прижимает
+     * его к полу), а стоящий на полу отрывался бы от него, выравнивая верх с соседом.
      */
-    private isFloorElement(object: THREE.Object3D): boolean {
-        return (object.userData.PROPS?.CONFIG?.ELEMENT_TYPE ?? object.userData.elementType) === 'element_down'
+    private isFloorElement(object: THREE.Object3D, bottom: number): boolean {
+        if ((object.userData.PROPS?.CONFIG?.ELEMENT_TYPE ?? object.userData.elementType) !== 'element_down') return false
+
+        return !this.isUniversalModule(object) || bottom <= this.floorTolerance
+    }
+
+    /** УМ и всё, что собрал его движок: непустая сетка в CONFIG (MODULEGRID или WARDROBEGRID) */
+    private isUniversalModule(object: THREE.Object3D): boolean {
+        const { grid } = getUMGridFromConfig(object.userData.PROPS?.CONFIG)
+
+        return !!Object.keys(grid ?? {}).length
     }
 
     /** Радиус габарита вдоль оси: проекция полуразмеров OBB на неё */
