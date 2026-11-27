@@ -3,6 +3,7 @@ export interface UserData {
   name: string
   status: 'online' | 'offline' | 'busy'
   id: string | number
+  groups?: Array<string | number>
 }
 
 export interface LoginData {
