@@ -9,9 +9,9 @@
         @click="activeTab = 'projects'">
         Мои проекты
       </button>
-      <button class="project-tabs__tab" :class="{ 'project-tabs__tab--active': activeTab === 'templates' }"
+      <button v-if="canSeeTemplates" class="project-tabs__tab" :class="{ 'project-tabs__tab--active': activeTab === 'templates' }"
         @click="activeTab = 'templates'">
-        Готовые проекты
+        Новоселам
       </button>
     </div>
 
@@ -202,11 +202,19 @@ import { BASE_DOMAIN } from "@/utils/originalDomain";
 import { buildProjectLink } from "./composables/useProjectLink";
 import { useAutosave } from "@/features/autosave";
 
+// Группы, которым разрешено видеть вкладку «Готовые проекты»
+const READY_PROJECTS_ALLOWED_GROUPS = [68];
+
 const router = useRouter();
 const route = useRoute();
 const toaster = useToast();
 const popupStore = usePopupStore();
 const authStore = useAuthStore();
+
+const canSeeTemplates = computed(() => {
+  const userGroups = authStore.userData?.groups ?? [];
+  return userGroups.some(g => READY_PROJECTS_ALLOWED_GROUPS.includes(Number(g)));
+});
 const sceneState = useSceneState();
 const eventBus = useEventBus();
 const schemeTransition = useSchemeTransition();
@@ -251,6 +259,12 @@ const autosave = useAutosave();
 
 const isProjectLoading = ref(false);
 const activeTab = ref<'projects' | 'templates'>('projects');
+
+watch(canSeeTemplates, (allowed) => {
+  if (!allowed && activeTab.value === 'templates') {
+    activeTab.value = 'projects';
+  }
+});
 
 const getProgectImage = computed(() => {
   return (project) => {

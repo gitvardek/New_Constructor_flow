@@ -124,7 +124,8 @@ export const useAuthStore = defineStore('auth', () => {
         // login: user.LOGIN,
         login: user.LOGIN,
         date: user.DATE_REGISTER,
-        city: 'region_by_user_name'
+        city: 'region_by_user_name',
+        groups: Array.isArray(user.GROUPS) ? user.GROUPS : [],
       };
       return userData.value;
 
