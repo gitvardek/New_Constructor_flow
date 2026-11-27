@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // @ts-nocheck
 import { ref, computed, onMounted, defineExpose } from "vue";
+import { useHotkeyScope, SCOPES } from "@/features/hotkeys";
 
 const props = defineProps<{
   container?: string;
@@ -15,6 +16,12 @@ const props = defineProps<{
 const emit = defineEmits(["open-modal", "close-modal"]);
 
 const dialogBody = ref(null);
+
+// Открытый <dialog> делает контент под собой недоступным — хоткеи тоже: скоуп
+// кладётся exclusive, поэтому ниже него не ищется даже global. Иначе Delete в
+// редакторе УМ удалял бы редактируемый товар со сцены.
+const isOpen = ref(false);
+useHotkeyScope(SCOPES.POPUP, { exclusive: true, active: isOpen });
 // Нативный close приходит асинхронно; флаг отличает закрытие через closeModal от
 // принудительного закрытия браузером (Chrome закрывает на повторный Esc, даже
 // если cancel отменён).
@@ -22,6 +29,7 @@ let closeRequested = false;
 
 const openModal = () => {
   dialogBody.value?.showModal();
+  isOpen.value = true;
   emit("open-modal", true);
 };
 
@@ -29,6 +37,7 @@ const closeModal = () => {
   // close() на уже закрытом диалоге события close не даёт — флаг бы завис.
   if (dialogBody.value?.open) closeRequested = true;
   dialogBody.value?.close();
+  isOpen.value = false;
   emit("close-modal", false);
 };
 
@@ -40,6 +49,8 @@ const onCancel = (event: Event) => {
 };
 
 const onNativeClose = () => {
+  // Сюда приходит и закрытие браузером (повторный Esc) — скоуп снимаем всегда
+  isOpen.value = false;
   if (closeRequested) {
     closeRequested = false;
     return;

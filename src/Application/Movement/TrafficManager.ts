@@ -107,7 +107,7 @@ export class TrafficManager {
             // console.log('OBJ_PROPS', object.userData.PROPS);
             console.log('OBJ_CONFIG', object.userData.PROPS.CONFIG);
             // console.log('object.userData.PROPS.PRODUCT', object.userData.PROPS.PRODUCT)
-            // console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
+            console.log('PROD', this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS.PRODUCT])
 
             const isProd = this.root.geometryBuilder?.buildProduct._PRODUCTS[object.userData.PROPS?.PRODUCT]
 

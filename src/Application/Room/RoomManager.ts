@@ -7,7 +7,7 @@ import * as THREETypes from "@/types/types"
 import * as UniformTypes from '@/types/uniformTextureTypes'
 
 import { OBB } from 'three/examples/jsm/math/OBB.js';
-import { OBBCollider, getCenterOffset, getWorldRotationMatrix } from './OBBCollider';
+import { OBBCollider, getObbCenterOffset, getWorldRotationMatrix } from './OBBCollider';
 import { OBBHelper } from '../Utils/CalculateBoundingBox';
 // import { Capsule } from 'three/addons/math/Capsule.js';
 // import { VertexNormalsHelper } from "three/examples/jsm/Addons.js";
@@ -54,6 +54,7 @@ export class RoomManager extends Room {
     heightClamp: number = useSceneState().getStartHeightClamp
     heightLine: THREE.Object3D[] = []
     totalObbBounds: OBB[] = []
+    debugBounds: THREE.Mesh[] = []
     totalAABBBounds: THREE.Box3[] = []
     duplicateSwitch: boolean = false
 
@@ -122,7 +123,6 @@ export class RoomManager extends Room {
     createTotalObbBounds() {
 
         this.totalObbBounds = []
-        // this.OBBHealper.clear(this.scene)
         const intersects = this._roomTotalContant as THREE.Object3D[];
 
         intersects.forEach(object => {
@@ -130,20 +130,35 @@ export class RoomManager extends Room {
             if (!object.userData?.current && object.visible && !object.userData.PROPS?.RAYCAST) {
 
                 const obb = object.userData.obb.clone()
-
-                obb.center.copy(object.position).add(getCenterOffset(object, object.rotation, 'obbCenter'))
-
+                // Центр габарита, а не центр живого AABB: в AABB попадают стрелки и фасады,
+                // и бокс коллизии уезжал относительно своего же halfSize
+                obb.center.copy(object.position).add(getObbCenterOffset(object))
                 obb.rotation.setFromMatrix4(getWorldRotationMatrix(object));
-
-                /** @Визуализация_OBB */
-
-                // const OBBH = this.OBBHealper.add(obb)
-                // this.scene.add(OBBH)
 
                 this.totalObbBounds.push(obb);
             }
         });
 
+        this.drawDebugBounds()
+    }
+
+    /** Отладка коллизии: боксы соседей. Включать в консоли — `__obbDebug = true` */
+    private drawDebugBounds() {
+
+        this.debugBounds.forEach(mesh => {
+            this.scene.remove(mesh)
+            mesh.geometry.dispose()
+            mesh.material.dispose()
+        })
+        this.debugBounds = []
+
+        if (!(window as any).__obbDebug) return
+
+        this.totalObbBounds.forEach(obb => {
+            const mesh = this.OBBHealper.add(obb)
+            this.scene.add(mesh)
+            this.debugBounds.push(mesh)
+        })
     }
 
     clearTotalObbBounds() {
@@ -170,13 +185,16 @@ export class RoomManager extends Room {
             targetPosition,
             wall,
             targetRotation,
-            snapHeight
+            snapHeight,
+            drag
         }: {
             object: THREE.Object3D,
             targetPosition: THREE.Vector3,
             targetRotation?: THREE.Euler,
             wall: THREE.Object3D,
-            snapHeight?: number
+            snapHeight?: number,
+            /** Перетаскивание мышью: только здесь объект подводится к соседу до касания */
+            drag?: boolean
         }): THREETypes.TAdjustPosition {
 
 
@@ -186,6 +204,7 @@ export class RoomManager extends Room {
             wall,
             targetRotation,
             snapHeight,
+            drag,
             heightClamp: this.heightClamp,
             wallStore: this._roomTotal,
             boundsStore: this._roomBounds,

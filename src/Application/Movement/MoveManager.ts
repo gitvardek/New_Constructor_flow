@@ -16,7 +16,12 @@ import { useUniformState } from "@/store/appliction/useUniformState";
 
 import { OBBHelper } from "../Utils/CalculateBoundingBox";
 import { getCenterOffset, getWorldRotationMatrix } from "../Room/OBBCollider";
+import { SNAP_CONFIG, toggleStuking } from "../Room/SnapConfig";
 import { UniformModeHandler } from "../Utils/UniformModeHandler";
+
+import { registerById } from "@/features/hotkeys/registerById";
+import { HOTKEY_IDS } from "@/features/hotkeys/registry/hotkeys.config";
+import { useToast } from "@/features/toaster/useToast";
 
 export class MoveManager {
 
@@ -26,7 +31,6 @@ export class MoveManager {
     uniformState: ReturnType<typeof useUniformState> = useUniformState();
     uniformEvents: THREETypes.TUniformTextureEvents
 
-    keybordListeners: TKeybordListeners
     root: THREETypes.TApplication
     canvas: HTMLElement | null = null;
     scene: THREE.Scene | null = null;
@@ -48,6 +52,7 @@ export class MoveManager {
     startPos: THREE.Vector3 = new THREE.Vector3()
     uniformModeHandler: UniformModeHandler
     leftDown: boolean = false
+    private releaseHotkeys: () => void = () => undefined
 
     // rulerLines: THREE.Object3D[] = []
 
@@ -60,7 +65,6 @@ export class MoveManager {
     private onTouchMoveBound: (event: TouchEvent) => void;
     private onTouchEndBound: (event: TouchEvent) => void;
 
-    private onKeyDown: (event) => void;
     private extention: ''
 
 
@@ -89,7 +93,6 @@ export class MoveManager {
         this.controls = root._orbitControls
         this.trafficManager = trafficManager
         this.roomManager = root._roomManager;
-        this.keybordListeners = root.keybordListeners
 
         this.raycaster = raycaster;
         this.mouse = mouse;
@@ -117,12 +120,18 @@ export class MoveManager {
         this.onTouchMoveBound = this.onTouchMove.bind(this)
         this.onTouchEndBound = this.onTouchEnd.bind(this)
 
-        this.onKeyDown = this.keyDown.bind(this)
-
         this.setupModelMove();
         this.addVueEvents();
-        this.setupKeys();
+        this.setupHotkeys();
 
+    }
+
+    /** Alt+S — режим stuking. UI у режима нет, поэтому состояние показываем тостом */
+    private setupHotkeys() {
+        this.releaseHotkeys = registerById(HOTKEY_IDS.TOGGLE_STUKING, () => {
+            toggleStuking()
+            useToast().info(`Примагничивание ${SNAP_CONFIG.stuking ? 'включено' : 'выключено'}`)
+        })
     }
 
     setupModelMove() {
@@ -378,12 +387,18 @@ export class MoveManager {
             this.selectedObject.userData.aabb = new THREE.Box3().setFromObject(this.selectedObject);
 
             const adjustedPosition = this.roomManager.adjustPositionWithRaycasting({
-                object: this.selectedObject, targetPosition: point, wall: surface
+                object: this.selectedObject, targetPosition: point, wall: surface, drag: true
             });
 
             this.selectedObject.position.copy(adjustedPosition.position);
             this.selectedObject.rotation.copy(adjustedPosition.rotation);
-            this.selectedObject.userData.targetPosition = point
+
+            // Цель — точка на плоскости стены под объектом, а не сырая точка курсора:
+            // магниты и коллизия уводят объект от курсора, а ресайз целится именно сюда
+            const surfacePlane = surface.userData.name !== 'floor' ? surface.userData.plane : null
+            this.selectedObject.userData.targetPosition = surfacePlane
+                ? surfacePlane.projectPoint(this.selectedObject.position, new THREE.Vector3())
+                : this.selectedObject.position.clone()
 
             // Центр OBB — центр габарита, а не origin объекта: у несимметричной
             // сборки (гардеробная система) они расходятся, и объект заходил в
@@ -430,6 +445,7 @@ export class MoveManager {
     }
 
     dispose() {
+        this.releaseHotkeys();
         this.canvas.removeEventListener('mousedown', this.onMouseDownBound, false);
         this.canvas.removeEventListener('mousemove', this.onMouseMoveBound, false);
         this.canvas.removeEventListener('mouseup', this.onMouseUpBound, false);
@@ -438,7 +454,6 @@ export class MoveManager {
         this.canvas.removeEventListener('touchstart', this.onTouchStartBound, false);
         this.canvas.removeEventListener('touchmove', this.onTouchMoveBound, false);
         this.canvas.removeEventListener('touchend', this.onTouchEndBound, false);
-        // document.removeEventListener('keyup', this.onKeyUp, false);
 
         this.canvas = null;
         this.scene = null;
@@ -479,28 +494,10 @@ export class MoveManager {
         return false
     }
 
-    setupKeys() {
-        this.keybordListeners.addKeydownCallback(this.onKeyDown)
-    }
-
-    keyDown(event) {
-
-        // return
-
-        if (event.repeat) return
-
-        // if (event.shiftKey) {
-        //     this.uniformModeHandler.toggleUniformMode()
-        //     this.selectedObject = null
-
-        //     // Эмитим событие для синхронизации состояния UI
-        //     this.eventBus.emit('A:Uniform-Mode-Toggled', {
-        //         uniformMode: this.uniformEvents._unionMode,
-        //         showGroupsManager: false 
-        //     })
-        // }
-
-    }
+    // Клавиатурного обработчика здесь больше нет: его тело было закомментировано
+    // целиком, а переключение uniform-режима живёт в addVueEvents
+    // ('A:Toggle-Uniform-Mode'). Понадобится хоткей — регистрируй через
+    // registerById, как в Constructor2D/methods/events/hotkeys.
 
     addVueEvents() {
         this.eventBus.emit('A:Move', () => {

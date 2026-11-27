@@ -22,8 +22,7 @@ import { handlerMouseLeftDown } from "./methods/events/handlerMouseLeftDown";
 import { handlerMouseLeftUp } from "./methods/events/handlerMouseLeftUp";
 import { handlerWheel } from "./methods/events/handlerWheel";
 import { handleWindowResize } from "./methods/events/handleWindowResize";
-import { handleKeyDown } from "./methods/events/handleKeyDown";
-import { handleKeyUp } from "./methods/events/handleKeyUp";
+import { registerHotkeys } from "./methods/events/hotkeys";
 
 import { updateRoomStore } from "./methods/udpateRoomStore";
 
@@ -102,8 +101,7 @@ export default class Constructor2D {
   private handlerMouseLeftUp: (e: PIXI.FederatedPointerEvent) => void;
   private handlerWheel: (e: WheelEvent) => void;
   private handleWindowResize: () => void;
-  private handleKeyDown: (e: KeyboardEvent) => void;
-  private handleKeyUp: (e: KeyboardEvent) => void;
+  private releaseHotkeys: (() => void) | null = null;
 
   public updateRoomStore: () => boolean;
 
@@ -135,8 +133,6 @@ export default class Constructor2D {
     this.handlerMouseLeftUp = handlerMouseLeftUp.bind(this);
     this.handlerWheel = handlerWheel.bind(this);
     this.handleWindowResize = handleWindowResize.bind(this);
-    this.handleKeyDown = handleKeyDown.bind(this);
-    this.handleKeyUp = handleKeyUp.bind(this);
 
     this.updateRoomStore = updateRoomStore.bind(this); // фнкция для обновления стора
 
@@ -177,13 +173,16 @@ export default class Constructor2D {
       .on('wheel', this.handlerWheel);
 
     window.addEventListener('resize', this.handleWindowResize);
-    window.addEventListener('keydown', this.handleKeyDown); // нажатие на кнопку backspace или другие
-    window.addEventListener('keyup', this.handleKeyUp);
+    this.releaseHotkeys = registerHotkeys.call(this);
 
   }
 
   public destroy(): void {
     try {
+      // Первым делом: иначе ранний выход ниже оставит скоуп в стеке навсегда
+      this.releaseHotkeys?.();
+      this.releaseHotkeys = null;
+
       // Проверяем, что объект еще не уничтожен
       if (!this.app2d) {
         console.warn('Constructor2D уже уничтожен');
@@ -209,8 +208,6 @@ export default class Constructor2D {
       // Отключаем обработчики событий окна
       try {
         window.removeEventListener('resize', this.handleWindowResize);
-        window.removeEventListener('keydown', this.handleKeyDown);
-        window.removeEventListener('keyup', this.handleKeyUp);
       } catch (error) {
         console.warn('Ошибка при удалении обработчиков событий окна:', error);
       }
