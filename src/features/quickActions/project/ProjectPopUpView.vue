@@ -118,7 +118,7 @@
 
               <div class="item-image__wrap">
                 <img :src="getProgectImage(project)" class="item-image" :alt="project.name || 'Проект'" />
-                <div class="item-delete-btn">
+                <div v-if="activeTab !== 'templates'" class="item-delete-btn">
                   <ClosePopUpButton @close="onDeleteProject(project.id)" @click.stop />
                 </div>
 
